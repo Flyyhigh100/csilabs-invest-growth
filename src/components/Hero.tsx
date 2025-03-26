@@ -49,19 +49,19 @@ const Hero: React.FC = () => {
           <div className={`relative transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white p-2">
               <div className="aspect-video rounded-xl overflow-hidden bg-gradient-to-br from-cbis-blue/10 to-cbis-teal/10 flex items-center justify-center">
-                <div className="p-8 text-center">
-                  <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent mb-3">$CSi-EDP/Labs</div>
-                  <p className="text-cbis-dark mb-6">CSi Labs Token (CSL)</p>
-                  <div className="flex flex-col gap-3 max-w-xs mx-auto">
-                    <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="p-4 sm:p-6 md:p-8 text-center w-full">
+                  <div className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent mb-3">$CSi-EDP/Labs</div>
+                  <p className="text-cbis-dark mb-4">CSi Labs Token (CSL)</p>
+                  <div className="flex flex-col gap-3 max-w-full mx-auto">
+                    <div className="flex justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
                       <span className="text-gray-600">Total Supply:</span>
                       <span className="font-medium">100,000,000 CSL</span>
                     </div>
-                    <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
                       <span className="text-gray-600">Blockchain:</span>
                       <span className="font-medium">Polygon</span>
                     </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="p-2 sm:p-3 bg-gray-50 rounded-lg">
                       <div className="flex justify-between mb-1">
                         <span className="text-gray-600">Contract:</span>
                       </div>
