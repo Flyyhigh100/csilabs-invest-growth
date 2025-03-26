@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Info } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Simplified mock data for the price chart
@@ -126,10 +126,15 @@ const Hero: React.FC = () => {
                               tick={{ fontSize: 10 }}
                               domain={['dataMin', 'dataMax']}
                             />
-                            <ChartTooltip
-                              content={(props) => (
-                                <ChartTooltipContent {...props} />
-                              )}
+                            <Tooltip 
+                              content={props => {
+                                if (!props.active || !props.payload || props.payload.length === 0) {
+                                  return null;
+                                }
+                                return (
+                                  <ChartTooltipContent {...props} />
+                                );
+                              }}
                             />
                             <Line 
                               type="monotone" 
@@ -155,10 +160,15 @@ const Hero: React.FC = () => {
                               tickFormatter={(value) => value.toLocaleString()}
                               tick={{ fontSize: 10 }}
                             />
-                            <ChartTooltip
-                              content={(props) => (
-                                <ChartTooltipContent {...props} />
-                              )}
+                            <Tooltip 
+                              content={props => {
+                                if (!props.active || !props.payload || props.payload.length === 0) {
+                                  return null;
+                                }
+                                return (
+                                  <ChartTooltipContent {...props} />
+                                );
+                              }}
                             />
                             <Line 
                               type="monotone" 
