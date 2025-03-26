@@ -113,7 +113,7 @@ const TokenDetails: React.FC = () => {
                   <div className="flex justify-between mb-1">
                     <span className="text-white">Contract:</span>
                   </div>
-                  <div className="text-white break-all text-sm font-mono overflow-hidden">
+                  <div className="text-white break-all text-xs font-mono overflow-hidden">
                     0xcba5ca199bca0af3f6046da01169035f2c6a7ff0
                   </div>
                 </div>
