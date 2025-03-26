@@ -52,6 +52,14 @@ const chartConfig = {
   }
 };
 
+// Custom tooltip component that satisfies Recharts' typing requirements
+const CustomTooltip = (props: any) => {
+  if (!props.active || !props.payload || props.payload.length === 0) {
+    return null;
+  }
+  return <ChartTooltipContent {...props} />;
+};
+
 const Hero: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -126,16 +134,7 @@ const Hero: React.FC = () => {
                               tick={{ fontSize: 10 }}
                               domain={['dataMin', 'dataMax']}
                             />
-                            <Tooltip 
-                              content={props => {
-                                if (!props.active || !props.payload || props.payload.length === 0) {
-                                  return null;
-                                }
-                                return (
-                                  <ChartTooltipContent {...props} />
-                                );
-                              }}
-                            />
+                            <Tooltip content={CustomTooltip} />
                             <Line 
                               type="monotone" 
                               dataKey="price" 
@@ -160,16 +159,7 @@ const Hero: React.FC = () => {
                               tickFormatter={(value) => value.toLocaleString()}
                               tick={{ fontSize: 10 }}
                             />
-                            <Tooltip 
-                              content={props => {
-                                if (!props.active || !props.payload || props.payload.length === 0) {
-                                  return null;
-                                }
-                                return (
-                                  <ChartTooltipContent {...props} />
-                                );
-                              }}
-                            />
+                            <Tooltip content={CustomTooltip} />
                             <Line 
                               type="monotone" 
                               dataKey="volume" 
