@@ -2,39 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Info } from 'lucide-react';
+import { ArrowRight, Info, LineChart as LineChartIcon, Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTokenData } from '@/hooks/useTokenData';
 
-// Simplified mock data for the price chart
-const priceData = [
-  { date: 'Mar 20', price: 0.00012 },
-  { date: 'Mar 21', price: 0.00014 },
-  { date: 'Mar 22', price: 0.00013 },
-  { date: 'Mar 23', price: 0.00016 },
-  { date: 'Mar 24', price: 0.00015 },
-  { date: 'Mar 25', price: 0.00018 },
-  { date: 'Mar 26', price: 0.00020 },
-  { date: 'Mar 27', price: 0.00022 },
-  { date: 'Mar 28', price: 0.00021 },
-  { date: 'Mar 29', price: 0.00023 },
-];
-
-// Simplified mock data for the volume chart
-const volumeData = [
-  { date: 'Mar 20', volume: 23000 },
-  { date: 'Mar 21', volume: 25000 },
-  { date: 'Mar 22', volume: 22000 },
-  { date: 'Mar 23', volume: 28000 },
-  { date: 'Mar 24', volume: 26000 },
-  { date: 'Mar 25', volume: 29000 },
-  { date: 'Mar 26', volume: 32000 },
-  { date: 'Mar 27', volume: 35000 },
-  { date: 'Mar 28', volume: 33000 },
-  { date: 'Mar 29', volume: 38000 },
-];
-
+// Chart configuration for styling
 const chartConfig = {
   price: {
     label: "Price (USD)",
@@ -62,10 +36,16 @@ const CustomTooltip = (props: any) => {
 
 const Hero: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
+  const { priceData, volumeData, currentPrice, isLoading, hasError } = useTokenData();
 
   useEffect(() => {
     setIsLoaded(true);
   }, []);
+
+  // Format the current price for display
+  const formattedCurrentPrice = currentPrice 
+    ? `$${currentPrice.toFixed(5)}` 
+    : 'Loading...';
 
   return (
     <div className="relative min-h-screen flex items-center bg-gradient-to-b from-gray-50 to-white overflow-hidden">
@@ -109,6 +89,9 @@ const Hero: React.FC = () => {
                   <div className="text-center mb-6">
                     <div className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent mb-3">$CSi-EDP/Labs</div>
                     <p className="text-cbis-dark">CSi Labs Token (CSL)</p>
+                    {currentPrice && (
+                      <p className="text-lg font-medium mt-2">{formattedCurrentPrice}</p>
+                    )}
                   </div>
                   
                   <Tabs defaultValue="price" className="w-full">
@@ -125,52 +108,72 @@ const Hero: React.FC = () => {
                     
                     <TabsContent value="price" className="mt-0">
                       <div className="h-48 w-full">
-                        <ChartContainer config={chartConfig} className="h-full w-full">
-                          <LineChart data={priceData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                            <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                            <YAxis 
-                              tickFormatter={(value) => `$${value.toFixed(5)}`}
-                              tick={{ fontSize: 10 }}
-                              domain={['dataMin', 'dataMax']}
-                            />
-                            <Tooltip content={CustomTooltip} />
-                            <Line 
-                              type="monotone" 
-                              dataKey="price" 
-                              name="price"
-                              stroke="#0BC5EA" 
-                              strokeWidth={2}
-                              dot={false}
-                              activeDot={{ r: 4 }}
-                            />
-                          </LineChart>
-                        </ChartContainer>
+                        {isLoading ? (
+                          <div className="h-full w-full flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 text-cbis-blue animate-spin" />
+                          </div>
+                        ) : hasError ? (
+                          <div className="h-full w-full flex items-center justify-center text-red-500">
+                            Error loading data
+                          </div>
+                        ) : (
+                          <ChartContainer config={chartConfig} className="h-full w-full">
+                            <LineChart data={priceData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                              <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                              <YAxis 
+                                tickFormatter={(value) => `$${value.toFixed(5)}`}
+                                tick={{ fontSize: 10 }}
+                                domain={['dataMin', 'dataMax']}
+                              />
+                              <Tooltip content={CustomTooltip} />
+                              <Line 
+                                type="monotone" 
+                                dataKey="price" 
+                                name="price"
+                                stroke="#0BC5EA" 
+                                strokeWidth={2}
+                                dot={false}
+                                activeDot={{ r: 4 }}
+                              />
+                            </LineChart>
+                          </ChartContainer>
+                        )}
                       </div>
                     </TabsContent>
                     
                     <TabsContent value="volume" className="mt-0">
                       <div className="h-48 w-full">
-                        <ChartContainer config={chartConfig} className="h-full w-full">
-                          <LineChart data={volumeData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                            <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                            <YAxis 
-                              tickFormatter={(value) => value.toLocaleString()}
-                              tick={{ fontSize: 10 }}
-                            />
-                            <Tooltip content={CustomTooltip} />
-                            <Line 
-                              type="monotone" 
-                              dataKey="volume" 
-                              name="volume"
-                              stroke="#1A365D" 
-                              strokeWidth={2}
-                              dot={false}
-                              activeDot={{ r: 4 }}
-                            />
-                          </LineChart>
-                        </ChartContainer>
+                        {isLoading ? (
+                          <div className="h-full w-full flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 text-cbis-blue animate-spin" />
+                          </div>
+                        ) : hasError ? (
+                          <div className="h-full w-full flex items-center justify-center text-red-500">
+                            Error loading data
+                          </div>
+                        ) : (
+                          <ChartContainer config={chartConfig} className="h-full w-full">
+                            <LineChart data={volumeData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                              <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                              <YAxis 
+                                tickFormatter={(value) => value.toLocaleString()}
+                                tick={{ fontSize: 10 }}
+                              />
+                              <Tooltip content={CustomTooltip} />
+                              <Line 
+                                type="monotone" 
+                                dataKey="volume" 
+                                name="volume"
+                                stroke="#1A365D" 
+                                strokeWidth={2}
+                                dot={false}
+                                activeDot={{ r: 4 }}
+                              />
+                            </LineChart>
+                          </ChartContainer>
+                        )}
                       </div>
                     </TabsContent>
                   </Tabs>
@@ -189,7 +192,7 @@ const Hero: React.FC = () => {
                         <span className="text-gray-600">Contract:</span>
                       </div>
                       <div className="text-gray-700 text-xs font-mono break-all overflow-hidden">
-                        0xcba5ca199bca0af3f6046da01169035f2c6a7ff0
+                        0xdcea55a12105335d1c2f8972f3b80965a7e07847
                       </div>
                     </div>
                   </div>
