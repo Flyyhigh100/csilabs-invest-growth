@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -36,7 +35,7 @@ const CustomTooltip = (props: any) => {
 
 const Hero: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const { priceData, volumeData, currentPrice, isLoading, hasError } = useTokenData();
+  const { priceData, volumeData, currentPrice, tokenInfo, isLoading, hasError } = useTokenData();
 
   useEffect(() => {
     setIsLoaded(true);
@@ -126,7 +125,7 @@ const Hero: React.FC = () => {
                                 tick={{ fontSize: 10 }}
                                 domain={['dataMin', 'dataMax']}
                               />
-                              <Tooltip content={CustomTooltip} />
+                              <Tooltip content={<CustomTooltip />} />
                               <Line 
                                 type="monotone" 
                                 dataKey="price" 
@@ -161,7 +160,7 @@ const Hero: React.FC = () => {
                                 tickFormatter={(value) => value.toLocaleString()}
                                 tick={{ fontSize: 10 }}
                               />
-                              <Tooltip content={CustomTooltip} />
+                              <Tooltip content={<CustomTooltip />} />
                               <Line 
                                 type="monotone" 
                                 dataKey="volume" 
@@ -181,18 +180,18 @@ const Hero: React.FC = () => {
                   <div className="flex flex-col gap-4 max-w-full mx-auto mt-6">
                     <div className="flex justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
                       <span className="text-gray-600">Total Supply:</span>
-                      <span className="font-medium">100,000,000 CSL</span>
+                      <span className="font-medium">{tokenInfo ? tokenInfo.totalSupply : 'Loading...'} CSL</span>
                     </div>
                     <div className="flex justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
                       <span className="text-gray-600">Blockchain:</span>
-                      <span className="font-medium">Polygon</span>
+                      <span className="font-medium">{tokenInfo ? tokenInfo.blockchain : 'Loading...'}</span>
                     </div>
                     <div className="p-2 sm:p-3 bg-gray-50 rounded-lg">
                       <div className="flex justify-between mb-1">
                         <span className="text-gray-600">Contract:</span>
                       </div>
                       <div className="text-gray-700 text-xs font-mono break-all overflow-hidden">
-                        0xdcea55a12105335d1c2f8972f3b80965a7e07847
+                        {tokenInfo ? tokenInfo.contractAddress : 'Loading...'}
                       </div>
                     </div>
                   </div>

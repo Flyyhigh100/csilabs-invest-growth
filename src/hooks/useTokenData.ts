@@ -4,9 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { 
   fetchTokenPriceHistory, 
   fetchTokenVolumeHistory,
-  fetchCurrentTokenPrice
+  fetchCurrentTokenPrice,
+  fetchTokenInfo
 } from '@/services/tokenDataService';
-import { TokenPriceData, TokenVolumeData } from '@/types/token';
+import { TokenPriceData, TokenVolumeData, TokenInfo } from '@/types/token';
 
 export const useTokenData = () => {
   // Query for price history data
@@ -43,11 +44,22 @@ export const useTokenData = () => {
     refetchInterval: 1 * 60 * 1000, // Refresh every minute
   });
 
+  // Query for token info
+  const {
+    data: tokenInfo,
+    isLoading: isTokenInfoLoading,
+    error: tokenInfoError
+  } = useQuery({
+    queryKey: ['tokenInfo'],
+    queryFn: fetchTokenInfo,
+    staleTime: 30 * 60 * 1000, // 30 minutes
+  });
+
   // Determine if any data is loading
-  const isLoading = isPriceLoading || isVolumeLoading || isCurrentPriceLoading;
+  const isLoading = isPriceLoading || isVolumeLoading || isCurrentPriceLoading || isTokenInfoLoading;
 
   // Determine if there are any errors
-  const hasError = priceError || volumeError || currentPriceError;
+  const hasError = priceError || volumeError || currentPriceError || tokenInfoError;
   
   // Create a formatted error message if there's an error
   const errorMessage = hasError ? 'Error loading token data' : null;
@@ -56,6 +68,7 @@ export const useTokenData = () => {
     priceData: priceData || [],
     volumeData: volumeData || [],
     currentPrice,
+    tokenInfo,
     isLoading,
     hasError,
     errorMessage
