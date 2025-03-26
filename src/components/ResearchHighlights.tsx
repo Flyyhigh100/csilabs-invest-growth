@@ -2,7 +2,7 @@
 import React from 'react';
 import FadeInSection from './FadeInSection';
 import FeatureCard from './FeatureCard';
-import { Flask, BrainCircuit, Building2, TrendingUp } from 'lucide-react';
+import { BeakerIcon, BrainCircuit, Building2, TrendingUp } from 'lucide-react';
 
 const ResearchHighlights: React.FC = () => {
   return (
@@ -43,7 +43,7 @@ const ResearchHighlights: React.FC = () => {
             <FeatureCard
               title="Advanced Drug Development"
               description="Our focus is on developing cannabinoid-based pharmaceuticals targeting various cancer types, with an emphasis on efficacy and minimal side effects."
-              icon={<Flask className="h-8 w-8" />}
+              icon={<BeakerIcon className="h-8 w-8" />}
             />
           </FadeInSection>
 
