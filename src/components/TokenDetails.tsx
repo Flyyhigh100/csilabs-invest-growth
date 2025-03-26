@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import FadeInSection from './FadeInSection';
 import { ExternalLink, Shield, TrendingUp, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 
 const TokenDetails: React.FC = () => {
   return (
@@ -108,11 +109,11 @@ const TokenDetails: React.FC = () => {
                   <span className="text-white">Blockchain:</span>
                   <span className="font-medium text-white">Polygon</span>
                 </div>
-                <div className="p-3 bg-white bg-opacity-10 backdrop-blur-sm rounded-lg overflow-hidden">
+                <div className="p-3 bg-white bg-opacity-10 backdrop-blur-sm rounded-lg">
                   <div className="flex justify-between mb-1">
-                    <span className="text-white">Contract Address:</span>
+                    <span className="text-white">Contract:</span>
                   </div>
-                  <div className="text-white break-all text-sm">
+                  <div className="text-white break-all text-sm font-mono overflow-hidden">
                     0xcba5ca199bca0af3f6046da01169035f2c6a7ff0
                   </div>
                 </div>
