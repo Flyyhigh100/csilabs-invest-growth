@@ -1,12 +1,25 @@
-// Update this page (the content is just a fallback if you fail to update the page)
 
-const Index = () => {
+import React, { useEffect } from 'react';
+import Hero from '@/components/Hero';
+import ResearchHighlights from '@/components/ResearchHighlights';
+import TokenDetails from '@/components/TokenDetails';
+import InvestmentModel from '@/components/InvestmentModel';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+
+const Index: React.FC = () => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
+    <div className="page-transition min-h-screen">
+      <Navbar />
+      <Hero />
+      <ResearchHighlights />
+      <TokenDetails />
+      <InvestmentModel />
+      <Footer />
     </div>
   );
 };
