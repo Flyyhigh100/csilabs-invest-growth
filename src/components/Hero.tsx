@@ -2,7 +2,55 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Info } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+// Simplified mock data for the price chart
+const priceData = [
+  { date: 'Mar 20', price: 0.00012 },
+  { date: 'Mar 21', price: 0.00014 },
+  { date: 'Mar 22', price: 0.00013 },
+  { date: 'Mar 23', price: 0.00016 },
+  { date: 'Mar 24', price: 0.00015 },
+  { date: 'Mar 25', price: 0.00018 },
+  { date: 'Mar 26', price: 0.00020 },
+  { date: 'Mar 27', price: 0.00022 },
+  { date: 'Mar 28', price: 0.00021 },
+  { date: 'Mar 29', price: 0.00023 },
+];
+
+// Simplified mock data for the volume chart
+const volumeData = [
+  { date: 'Mar 20', volume: 23000 },
+  { date: 'Mar 21', volume: 25000 },
+  { date: 'Mar 22', volume: 22000 },
+  { date: 'Mar 23', volume: 28000 },
+  { date: 'Mar 24', volume: 26000 },
+  { date: 'Mar 25', volume: 29000 },
+  { date: 'Mar 26', volume: 32000 },
+  { date: 'Mar 27', volume: 35000 },
+  { date: 'Mar 28', volume: 33000 },
+  { date: 'Mar 29', volume: 38000 },
+];
+
+const chartConfig = {
+  price: {
+    label: "Price (USD)",
+    theme: {
+      light: "#0BC5EA",
+      dark: "#0BC5EA"
+    }
+  },
+  volume: {
+    label: "Volume",
+    theme: {
+      light: "#1A365D",
+      dark: "#1A365D"
+    }
+  }
+};
 
 const Hero: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -48,11 +96,86 @@ const Hero: React.FC = () => {
 
           <div className={`relative transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white p-2">
-              <div className="rounded-xl overflow-hidden bg-gradient-to-br from-cbis-blue/10 to-cbis-teal/10 flex items-center justify-center py-8">
-                <div className="p-4 sm:p-6 md:p-8 text-center w-full">
-                  <div className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent mb-4">$CSi-EDP/Labs</div>
-                  <p className="text-cbis-dark mb-5">CSi Labs Token (CSL)</p>
-                  <div className="flex flex-col gap-4 max-w-full mx-auto px-4">
+              <div className="rounded-xl overflow-hidden bg-gradient-to-br from-cbis-blue/10 to-cbis-teal/10">
+                <div className="p-4 sm:p-6 md:p-8">
+                  <div className="text-center mb-6">
+                    <div className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent mb-3">$CSi-EDP/Labs</div>
+                    <p className="text-cbis-dark">CSi Labs Token (CSL)</p>
+                  </div>
+                  
+                  <Tabs defaultValue="price" className="w-full">
+                    <div className="flex items-center justify-between mb-4">
+                      <TabsList className="grid grid-cols-2 w-40">
+                        <TabsTrigger value="price">Price</TabsTrigger>
+                        <TabsTrigger value="volume">Volume</TabsTrigger>
+                      </TabsList>
+                      <div className="flex items-center text-xs text-gray-500">
+                        <Info className="h-3 w-3 mr-1" />
+                        <span>Powered by Defined.fi</span>
+                      </div>
+                    </div>
+                    
+                    <TabsContent value="price" className="mt-0">
+                      <div className="h-48 w-full">
+                        <ChartContainer config={chartConfig} className="h-full w-full">
+                          <LineChart data={priceData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                            <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                            <YAxis 
+                              tickFormatter={(value) => `$${value.toFixed(5)}`}
+                              tick={{ fontSize: 10 }}
+                              domain={['dataMin', 'dataMax']}
+                            />
+                            <ChartTooltip
+                              content={(props) => (
+                                <ChartTooltipContent {...props} />
+                              )}
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="price" 
+                              name="price"
+                              stroke="#0BC5EA" 
+                              strokeWidth={2}
+                              dot={false}
+                              activeDot={{ r: 4 }}
+                            />
+                          </LineChart>
+                        </ChartContainer>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="volume" className="mt-0">
+                      <div className="h-48 w-full">
+                        <ChartContainer config={chartConfig} className="h-full w-full">
+                          <LineChart data={volumeData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                            <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                            <YAxis 
+                              tickFormatter={(value) => value.toLocaleString()}
+                              tick={{ fontSize: 10 }}
+                            />
+                            <ChartTooltip
+                              content={(props) => (
+                                <ChartTooltipContent {...props} />
+                              )}
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="volume" 
+                              name="volume"
+                              stroke="#1A365D" 
+                              strokeWidth={2}
+                              dot={false}
+                              activeDot={{ r: 4 }}
+                            />
+                          </LineChart>
+                        </ChartContainer>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                  
+                  <div className="flex flex-col gap-4 max-w-full mx-auto mt-6">
                     <div className="flex justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
                       <span className="text-gray-600">Total Supply:</span>
                       <span className="font-medium">100,000,000 CSL</span>
