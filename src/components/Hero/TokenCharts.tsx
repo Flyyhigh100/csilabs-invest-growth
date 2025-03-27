@@ -48,7 +48,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, ha
         <div className="h-full w-full flex items-center justify-center text-red-500">
           Error loading data
         </div>
-      ) : (
+      ) : priceData && priceData.length > 0 ? (
         <ChartContainer config={chartConfig} className="h-full w-full">
           <LineChart data={priceData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
@@ -70,6 +70,10 @@ export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, ha
             />
           </LineChart>
         </ChartContainer>
+      ) : (
+        <div className="h-full w-full flex items-center justify-center text-gray-500">
+          No price data available
+        </div>
       )}
     </div>
   );
@@ -92,7 +96,7 @@ export const VolumeChart: React.FC<VolumeChartProps> = ({ volumeData, isLoading,
         <div className="h-full w-full flex items-center justify-center text-red-500">
           Error loading data
         </div>
-      ) : (
+      ) : volumeData && volumeData.length > 0 ? (
         <ChartContainer config={chartConfig} className="h-full w-full">
           <LineChart data={volumeData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
@@ -113,6 +117,10 @@ export const VolumeChart: React.FC<VolumeChartProps> = ({ volumeData, isLoading,
             />
           </LineChart>
         </ChartContainer>
+      ) : (
+        <div className="h-full w-full flex items-center justify-center text-gray-500">
+          No volume data available
+        </div>
       )}
     </div>
   );
