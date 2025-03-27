@@ -1,12 +1,11 @@
-
 // Service to fetch token data from Defined.fi API
 import { TokenPriceData, TokenVolumeData, TokenInfo } from '@/types/token';
 
 // Base URL for the API
 const API_BASE_URL = 'https://api.defined.fi';
 
-// API key (in a real app, this should be in an environment variable or fetched securely)
-const API_KEY = 'YOUR_DEFINED_FI_API_KEY'; // Replace with your actual Defined.fi API key
+// API key from the knowledge base
+const API_KEY = '3fe52a290da2025bdddcc45a353c0268810eacf7';
 
 // Token address on Polygon
 const TOKEN_ADDRESS = '0xdcea55a12105335d1c2f8972f3b80965a7e07847';
@@ -17,12 +16,8 @@ const TOKEN_ADDRESS = '0xdcea55a12105335d1c2f8972f3b80965a7e07847';
  */
 export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
   try {
-    // For demonstration purposes, if no API key is provided, fall back to mock data
-    if (!API_KEY || API_KEY === 'YOUR_DEFINED_FI_API_KEY') {
-      console.warn('Using mock price data. Replace API_KEY with a real key for production.');
-      return generateMockPriceData();
-    }
-
+    console.log('Fetching token price history with API key:', API_KEY ? 'API key present' : 'No API key');
+    
     const response = await fetch(`${API_BASE_URL}/v0/token/${TOKEN_ADDRESS}/price_history`, {
       method: 'GET',
       headers: {
@@ -32,13 +27,15 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API error ${response.status}:`, errorText);
       throw new Error(`API error: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('Price history data received:', data);
     
     // Transform the API response to match our expected format
-    // Note: You'll need to adjust this based on the actual API response structure
     return data.data.map((item: any) => ({
       date: new Date(item.timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       price: item.price_usd
@@ -56,12 +53,8 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
  */
 export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
   try {
-    // For demonstration purposes, if no API key is provided, fall back to mock data
-    if (!API_KEY || API_KEY === 'YOUR_DEFINED_FI_API_KEY') {
-      console.warn('Using mock volume data. Replace API_KEY with a real key for production.');
-      return generateMockVolumeData();
-    }
-
+    console.log('Fetching token volume history with API key:', API_KEY ? 'API key present' : 'No API key');
+    
     const response = await fetch(`${API_BASE_URL}/v0/token/${TOKEN_ADDRESS}/volume_history`, {
       method: 'GET',
       headers: {
@@ -71,13 +64,15 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API error ${response.status}:`, errorText);
       throw new Error(`API error: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('Volume history data received:', data);
     
     // Transform the API response to match our expected format
-    // Note: You'll need to adjust this based on the actual API response structure
     return data.data.map((item: any) => ({
       date: new Date(item.timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       volume: item.volume_usd
@@ -95,12 +90,8 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
  */
 export const fetchCurrentTokenPrice = async (): Promise<number> => {
   try {
-    // For demonstration purposes, if no API key is provided, fall back to mock data
-    if (!API_KEY || API_KEY === 'YOUR_DEFINED_FI_API_KEY') {
-      console.warn('Using mock current price. Replace API_KEY with a real key for production.');
-      return generateMockCurrentPrice();
-    }
-
+    console.log('Fetching current token price with API key:', API_KEY ? 'API key present' : 'No API key');
+    
     const response = await fetch(`${API_BASE_URL}/v0/token/${TOKEN_ADDRESS}/price`, {
       method: 'GET',
       headers: {
@@ -110,13 +101,15 @@ export const fetchCurrentTokenPrice = async (): Promise<number> => {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API error ${response.status}:`, errorText);
       throw new Error(`API error: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('Current price data received:', data);
     
     // Return the current price
-    // Note: You'll need to adjust this based on the actual API response structure
     return data.data.price_usd;
   } catch (error) {
     console.error('Error fetching current token price:', error);
@@ -131,16 +124,8 @@ export const fetchCurrentTokenPrice = async (): Promise<number> => {
  */
 export const fetchTokenInfo = async (): Promise<TokenInfo> => {
   try {
-    // For demonstration purposes, if no API key is provided, fall back to mock data
-    if (!API_KEY || API_KEY === 'YOUR_DEFINED_FI_API_KEY') {
-      console.warn('Using mock token info. Replace API_KEY with a real key for production.');
-      return {
-        totalSupply: "100,000,000",
-        blockchain: "Polygon",
-        contractAddress: TOKEN_ADDRESS
-      };
-    }
-
+    console.log('Fetching token info with API key:', API_KEY ? 'API key present' : 'No API key');
+    
     const response = await fetch(`${API_BASE_URL}/v0/token/${TOKEN_ADDRESS}/info`, {
       method: 'GET',
       headers: {
@@ -150,13 +135,15 @@ export const fetchTokenInfo = async (): Promise<TokenInfo> => {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API error ${response.status}:`, errorText);
       throw new Error(`API error: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('Token info data received:', data);
     
     // Transform the API response to match our expected format
-    // Note: You'll need to adjust this based on the actual API response structure
     return {
       totalSupply: data.data.total_supply.toLocaleString(),
       blockchain: "Polygon", // Or extract from API if available
