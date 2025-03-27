@@ -8,6 +8,7 @@ import {
   fetchTokenInfo
 } from '@/services/tokenDataService';
 import { TokenPriceData, TokenVolumeData, TokenInfo } from '@/types/token';
+import { toast } from "@/components/ui/use-toast";
 
 export const useTokenData = () => {
   // Query for price history data
@@ -18,7 +19,19 @@ export const useTokenData = () => {
     refetch: refetchPrice
   } = useQuery({
     queryKey: ['tokenPriceHistory'],
-    queryFn: fetchTokenPriceHistory,
+    queryFn: async () => {
+      try {
+        return await fetchTokenPriceHistory();
+      } catch (error) {
+        console.error('Price history query failed:', error);
+        toast({
+          title: "Error",
+          description: "Could not load price history. Please try again later.",
+          variant: "destructive",
+        });
+        return [];
+      }
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
     retry: 2,
@@ -32,7 +45,19 @@ export const useTokenData = () => {
     refetch: refetchVolume
   } = useQuery({
     queryKey: ['tokenVolumeHistory'],
-    queryFn: fetchTokenVolumeHistory,
+    queryFn: async () => {
+      try {
+        return await fetchTokenVolumeHistory();
+      } catch (error) {
+        console.error('Volume history query failed:', error);
+        toast({
+          title: "Error",
+          description: "Could not load volume history. Please try again later.",
+          variant: "destructive",
+        });
+        return [];
+      }
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
     retry: 2,
@@ -46,7 +71,19 @@ export const useTokenData = () => {
     refetch: refetchCurrentPrice
   } = useQuery({
     queryKey: ['currentTokenPrice'],
-    queryFn: fetchCurrentTokenPrice,
+    queryFn: async () => {
+      try {
+        return await fetchCurrentTokenPrice();
+      } catch (error) {
+        console.error('Current price query failed:', error);
+        toast({
+          title: "Error",
+          description: "Could not load current price. Please try again later.",
+          variant: "destructive",
+        });
+        return null;
+      }
+    },
     staleTime: 1 * 60 * 1000, // 1 minute
     refetchInterval: 1 * 60 * 1000, // Refresh every minute
     refetchOnWindowFocus: true,
@@ -61,7 +98,19 @@ export const useTokenData = () => {
     refetch: refetchTokenInfo
   } = useQuery({
     queryKey: ['tokenInfo'],
-    queryFn: fetchTokenInfo,
+    queryFn: async () => {
+      try {
+        return await fetchTokenInfo();
+      } catch (error) {
+        console.error('Token info query failed:', error);
+        toast({
+          title: "Error",
+          description: "Could not load token information. Please try again later.",
+          variant: "destructive",
+        });
+        return null;
+      }
+    },
     staleTime: 30 * 60 * 1000, // 30 minutes
     refetchOnWindowFocus: false,
     retry: 2,

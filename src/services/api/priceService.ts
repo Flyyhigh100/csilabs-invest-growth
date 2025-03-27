@@ -11,7 +11,10 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
   try {
     console.log('Fetching token price history with API key:', API_KEY ? 'API key present' : 'No API key');
     
-    const response = await fetch(`${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/price_history?timeRange=${TIME_RANGE}`, {
+    const url = `${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/price_history?timeRange=${TIME_RANGE}`;
+    console.log('Fetching price history from URL:', url);
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -36,12 +39,13 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
       }));
     } else {
       console.warn('Unexpected price history data format:', data);
+      console.log('Raw data received:', JSON.stringify(data));
       throw new Error('Unexpected data format');
     }
   } catch (error) {
     console.error('Error fetching token price history:', error);
-    // Fall back to mock data if the API call fails
-    return generateMockPriceData();
+    // No longer fall back to mock data - rethrow the error
+    throw error;
   }
 };
 
@@ -53,7 +57,10 @@ export const fetchCurrentTokenPrice = async (): Promise<number> => {
   try {
     console.log('Fetching current token price with API key:', API_KEY ? 'API key present' : 'No API key');
     
-    const response = await fetch(`${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/price`, {
+    const url = `${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/price`;
+    console.log('Fetching current price from URL:', url);
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -73,13 +80,16 @@ export const fetchCurrentTokenPrice = async (): Promise<number> => {
     // Return the current price
     if (data.data && typeof data.data.price_usd === 'number') {
       return data.data.price_usd;
+    } else if (data.data && typeof data.data.price_usd === 'string') {
+      return parseFloat(data.data.price_usd);
     } else {
       console.warn('Unexpected current price data format:', data);
+      console.log('Raw price data received:', JSON.stringify(data));
       throw new Error('Unexpected data format');
     }
   } catch (error) {
     console.error('Error fetching current token price:', error);
-    // Fall back to mock data if the API call fails
-    return generateMockCurrentPrice();
+    // No longer fall back to mock data - rethrow the error
+    throw error;
   }
 };
