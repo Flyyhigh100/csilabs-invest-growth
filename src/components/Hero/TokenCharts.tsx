@@ -48,7 +48,7 @@ const CustomTooltip = (props: any) => {
   );
 };
 
-// Custom tick formatter for X-axis to show year appropriately
+// Custom tick formatter for X-axis to show month/year appropriately
 const CustomizedXAxisTick = ({ x, y, payload }: any) => {
   return (
     <g transform={`translate(${x},${y})`}>
@@ -75,10 +75,14 @@ interface PriceChartProps {
 export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, hasError }) => {  
   // Calculate interval based on data length to prevent overcrowding
   const calculateTickInterval = () => {
-    if (priceData.length <= 6) return 0; // Show all ticks for 6 or fewer data points
-    if (priceData.length <= 12) return 1; // Show every other tick for up to 12 data points
-    if (priceData.length <= 24) return 2; // Show every third tick for up to 24 data points
-    return Math.ceil(priceData.length / 12); // Aim for ~12 ticks for larger datasets
+    const dataLength = priceData?.length || 0;
+    
+    if (dataLength <= 6) return 0; // Show all ticks for 6 or fewer data points
+    if (dataLength <= 12) return 1; // Show every other tick for up to 12 data points
+    if (dataLength <= 24) return 2; // Show every third tick for up to 24 data points
+    
+    // For multi-year data, we want to show fewer ticks
+    return Math.max(3, Math.ceil(dataLength / 12)); // Show roughly monthly ticks for large datasets
   };
   
   return (
@@ -141,10 +145,14 @@ interface VolumeChartProps {
 export const VolumeChart: React.FC<VolumeChartProps> = ({ volumeData, isLoading, hasError }) => {
   // Calculate interval based on data length to prevent overcrowding
   const calculateTickInterval = () => {
-    if (volumeData.length <= 6) return 0; // Show all ticks for 6 or fewer data points
-    if (volumeData.length <= 12) return 1; // Show every other tick for up to 12 data points
-    if (volumeData.length <= 24) return 2; // Show every third tick for up to 24 data points
-    return Math.ceil(volumeData.length / 12); // Aim for ~12 ticks for larger datasets
+    const dataLength = volumeData?.length || 0;
+    
+    if (dataLength <= 6) return 0; // Show all ticks for 6 or fewer data points
+    if (dataLength <= 12) return 1; // Show every other tick for up to 12 data points
+    if (dataLength <= 24) return 2; // Show every third tick for up to 24 data points
+    
+    // For multi-year data, we want to show fewer ticks
+    return Math.max(3, Math.ceil(dataLength / 12)); // Show roughly monthly ticks for large datasets
   };
   
   return (

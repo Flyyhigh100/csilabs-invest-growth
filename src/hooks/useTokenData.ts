@@ -41,12 +41,12 @@ export const useTokenData = () => {
           description: "Could not load price history. Using demo data instead.",
           variant: "destructive",
         });
-        throw error; // Re-throw to let React Query handle it
+        throw error;
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
-    retry: 2, // Retry up to 2 times
+    retry: 3, // Increase retry count for better chances of success
   });
 
   // Query for volume history data
@@ -79,12 +79,12 @@ export const useTokenData = () => {
           description: "Could not load volume history. Using demo data instead.",
           variant: "destructive",
         });
-        throw error; // Re-throw to let React Query handle it
+        throw error;
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
-    retry: 2, // Retry up to 2 times
+    retry: 3, // Increase retry count
   });
 
   // Query for current price
@@ -106,13 +106,13 @@ export const useTokenData = () => {
           description: "Could not load current price. Using demo data instead.",
           variant: "destructive",
         });
-        throw error; // Re-throw to let React Query handle it
+        throw error;
       }
     },
     staleTime: 1 * 60 * 1000, // 1 minute
     refetchInterval: 1 * 60 * 1000, // Refresh every minute
     refetchOnWindowFocus: true,
-    retry: 2, // Retry up to 2 times
+    retry: 3,
   });
 
   // Query for token info
@@ -134,12 +134,12 @@ export const useTokenData = () => {
           description: "Could not load token information. Please try again later.",
           variant: "destructive",
         });
-        throw error; // Re-throw to let React Query handle it
+        throw error;
       }
     },
     staleTime: 30 * 60 * 1000, // 30 minutes
     refetchOnWindowFocus: false,
-    retry: 2, // Retry up to 2 times
+    retry: 3,
   });
 
   // Function to manually refresh all data
@@ -166,8 +166,20 @@ export const useTokenData = () => {
 
   // Log data for debugging
   useEffect(() => {
-    if (priceData) console.log('Price data loaded:', priceData.length, 'data points');
-    if (volumeData) console.log('Volume data loaded:', volumeData.length, 'data points');
+    if (priceData) {
+      console.log('Price data loaded:', priceData.length, 'data points');
+      if (priceData.length > 0) {
+        console.log('First price data point:', priceData[0]);
+        console.log('Last price data point:', priceData[priceData.length - 1]);
+      }
+    }
+    if (volumeData) {
+      console.log('Volume data loaded:', volumeData.length, 'data points');
+      if (volumeData.length > 0) {
+        console.log('First volume data point:', volumeData[0]);
+        console.log('Last volume data point:', volumeData[volumeData.length - 1]);
+      }
+    }
     if (currentPrice) console.log('Current price loaded:', currentPrice);
   }, [priceData, volumeData, currentPrice]);
 
