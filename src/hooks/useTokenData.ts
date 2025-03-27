@@ -19,6 +19,7 @@ export const useTokenData = () => {
     queryKey: ['tokenPriceHistory'],
     queryFn: fetchTokenPriceHistory,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   // Query for volume history data
@@ -30,6 +31,7 @@ export const useTokenData = () => {
     queryKey: ['tokenVolumeHistory'],
     queryFn: fetchTokenVolumeHistory,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   // Query for current price
@@ -42,6 +44,7 @@ export const useTokenData = () => {
     queryFn: fetchCurrentTokenPrice,
     staleTime: 1 * 60 * 1000, // 1 minute
     refetchInterval: 1 * 60 * 1000, // Refresh every minute
+    refetchOnWindowFocus: true,
   });
 
   // Query for token info
@@ -53,6 +56,7 @@ export const useTokenData = () => {
     queryKey: ['tokenInfo'],
     queryFn: fetchTokenInfo,
     staleTime: 30 * 60 * 1000, // 30 minutes
+    refetchOnWindowFocus: false,
   });
 
   // Determine if any data is loading

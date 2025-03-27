@@ -6,7 +6,7 @@ import { TokenPriceData, TokenVolumeData, TokenInfo } from '@/types/token';
 const API_BASE_URL = 'https://api.defined.fi';
 
 // API key (in a real app, this should be in an environment variable or fetched securely)
-const API_KEY = 'YOUR_DEFINED_FI_API_KEY'; // Replace with your actual API key
+const API_KEY = 'YOUR_DEFINED_FI_API_KEY'; // Replace with your actual Defined.fi API key
 
 // Token address on Polygon
 const TOKEN_ADDRESS = '0xdcea55a12105335d1c2f8972f3b80965a7e07847';
