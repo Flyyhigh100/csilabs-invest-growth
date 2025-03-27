@@ -4,6 +4,21 @@ import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE } from './co
 import { generateMockVolumeData } from '../mocks/mockDataGenerators';
 
 /**
+ * Formats a timestamp to a readable date
+ * @param timestamp Unix timestamp in seconds
+ * @returns Formatted date string
+ */
+const formatDate = (timestamp: number): string => {
+  const date = new Date(timestamp * 1000);
+  
+  // For annual view, use month and year format
+  return date.toLocaleDateString('en-US', { 
+    month: 'short',
+    year: 'numeric'
+  });
+};
+
+/**
  * Fetches historical volume data for a token
  * @returns Promise with volume data array
  */
@@ -34,10 +49,35 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
     
     // Transform the API response to match our expected format
     if (data.data && Array.isArray(data.data)) {
-      return data.data.map((item: any) => ({
-        date: new Date(item.timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        volume: parseFloat(item.volume_usd) || 0
-      }));
+      // Group data by month for annual view
+      const monthlyData: { [key: string]: { volumes: number[], timestamp: number } } = {};
+      
+      data.data.forEach((item: any) => {
+        const timestamp = item.timestamp;
+        const formattedDate = formatDate(timestamp);
+        
+        if (!monthlyData[formattedDate]) {
+          monthlyData[formattedDate] = {
+            volumes: [],
+            timestamp: timestamp
+          };
+        }
+        
+        monthlyData[formattedDate].volumes.push(parseFloat(item.volume_usd) || 0);
+      });
+      
+      // Calculate total volume for each month
+      return Object.entries(monthlyData)
+        .map(([date, data]) => ({
+          date,
+          volume: data.volumes.reduce((sum, volume) => sum + volume, 0)
+        }))
+        .sort((a, b) => {
+          // Sort by timestamp from oldest to newest
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          return dateA.getTime() - dateB.getTime();
+        });
     } else {
       console.warn('Unexpected volume history data format:', data);
       console.log('Raw volume data received:', JSON.stringify(data));
@@ -51,3 +91,4 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
     return generateMockVolumeData();
   }
 };
+

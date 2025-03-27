@@ -1,7 +1,21 @@
-
 import { TokenPriceData } from '@/types/token';
 import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE } from './config';
 import { generateMockPriceData, generateMockCurrentPrice } from '../mocks/mockDataGenerators';
+
+/**
+ * Formats a timestamp to a readable date
+ * @param timestamp Unix timestamp in seconds
+ * @returns Formatted date string
+ */
+const formatDate = (timestamp: number): string => {
+  const date = new Date(timestamp * 1000);
+  
+  // For annual view, use month and year format
+  return date.toLocaleDateString('en-US', { 
+    month: 'short',
+    year: 'numeric'
+  });
+};
 
 /**
  * Fetches historical price data for a token
@@ -34,10 +48,35 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
     
     // Transform the API response to match our expected format
     if (data.data && Array.isArray(data.data)) {
-      return data.data.map((item: any) => ({
-        date: new Date(item.timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        price: parseFloat(item.price_usd) || 0
-      }));
+      // Group data by month for annual view
+      const monthlyData: { [key: string]: { prices: number[], timestamp: number } } = {};
+      
+      data.data.forEach((item: any) => {
+        const timestamp = item.timestamp;
+        const formattedDate = formatDate(timestamp);
+        
+        if (!monthlyData[formattedDate]) {
+          monthlyData[formattedDate] = {
+            prices: [],
+            timestamp: timestamp
+          };
+        }
+        
+        monthlyData[formattedDate].prices.push(parseFloat(item.price_usd) || 0);
+      });
+      
+      // Calculate average price for each month
+      return Object.entries(monthlyData)
+        .map(([date, data]) => ({
+          date,
+          price: data.prices.reduce((sum, price) => sum + price, 0) / data.prices.length
+        }))
+        .sort((a, b) => {
+          // Sort by timestamp from oldest to newest
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          return dateA.getTime() - dateB.getTime();
+        });
     } else {
       console.warn('Unexpected price history data format:', data);
       console.log('Raw data received:', JSON.stringify(data));

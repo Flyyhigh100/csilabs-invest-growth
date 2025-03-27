@@ -34,7 +34,7 @@ const CustomTooltip = (props: any) => {
 interface PriceChartProps {
   priceData: TokenPriceData[];
   isLoading: boolean;
-  hasError: boolean; // Updated type to boolean
+  hasError: boolean;
 }
 
 export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, hasError }) => {
@@ -50,9 +50,13 @@ export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, ha
         </div>
       ) : priceData && priceData.length > 0 ? (
         <ChartContainer config={chartConfig} className="h-full w-full">
-          <LineChart data={priceData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+          <LineChart data={priceData} margin={{ top: 5, right: 10, left: 5, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-            <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+            <XAxis 
+              dataKey="date" 
+              tick={{ fontSize: 10 }}
+              interval="preserveStartEnd"
+            />
             <YAxis 
               tickFormatter={(value) => `$${value.toFixed(5)}`}
               tick={{ fontSize: 10 }}
@@ -82,7 +86,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, ha
 interface VolumeChartProps {
   volumeData: TokenVolumeData[];
   isLoading: boolean;
-  hasError: boolean; // Updated type to boolean
+  hasError: boolean;
 }
 
 export const VolumeChart: React.FC<VolumeChartProps> = ({ volumeData, isLoading, hasError }) => {
@@ -98,9 +102,13 @@ export const VolumeChart: React.FC<VolumeChartProps> = ({ volumeData, isLoading,
         </div>
       ) : volumeData && volumeData.length > 0 ? (
         <ChartContainer config={chartConfig} className="h-full w-full">
-          <LineChart data={volumeData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+          <LineChart data={volumeData} margin={{ top: 5, right: 10, left: 5, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-            <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+            <XAxis 
+              dataKey="date" 
+              tick={{ fontSize: 10 }}
+              interval="preserveStartEnd"
+            />
             <YAxis 
               tickFormatter={(value) => value.toLocaleString()}
               tick={{ fontSize: 10 }}
