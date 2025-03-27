@@ -26,6 +26,7 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
   try {
     console.log('Fetching token price history with API key:', API_KEY ? 'API key present' : 'No API key');
     
+    // Ensure we're getting all available data with 'all' time range
     const url = `${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/price_history?timeRange=${TIME_RANGE}`;
     console.log('Fetching price history from URL:', url);
     
@@ -40,19 +41,27 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API error ${response.status}:`, errorText);
-      console.log('Using mock data as fallback');
-      return generateMockPriceData(true); // Generate multi-year mock data
+      console.log('Using mock data as fallback due to API error');
+      return generateMockPriceData(true);
     }
 
     const data = await response.json();
-    console.log('Price history data received:', data);
+    console.log('Price history data received, status:', data.status);
+    console.log('Data points received:', data.data ? data.data.length : 0);
     
     // Transform the API response to match our expected format
     if (data.data && Array.isArray(data.data)) {
+      // Log sample data point
+      if (data.data.length > 0) {
+        console.log('Sample data point:', data.data[0]);
+      }
+      
       // Filter data to only include records since START_DATE
       const filteredData = data.data.filter((item: any) => 
         item.timestamp >= START_DATE
       );
+      
+      console.log(`Filtered ${filteredData.length} data points since ${new Date(START_DATE * 1000).toISOString()}`);
       
       if (filteredData.length === 0) {
         console.warn('No price data found since START_DATE, using mock data');
@@ -77,7 +86,7 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
       });
       
       // Calculate average price for each month
-      return Object.entries(monthlyData)
+      const result = Object.entries(monthlyData)
         .map(([date, data]) => ({
           date,
           price: data.prices.reduce((sum, price) => sum + price, 0) / data.prices.length
@@ -88,15 +97,21 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
           const dateB = new Date(b.date);
           return dateA.getTime() - dateB.getTime();
         });
+      
+      console.log(`Processed ${result.length} monthly data points`);
+      console.log('First data point:', result[0]);
+      console.log('Last data point:', result[result.length - 1]);
+      
+      return result;
     } else {
       console.warn('Unexpected price history data format:', data);
       console.log('Raw data received:', JSON.stringify(data));
-      console.log('Using mock data as fallback');
+      console.log('Using mock data as fallback due to unexpected data format');
       return generateMockPriceData(true);
     }
   } catch (error) {
     console.error('Error fetching token price history:', error);
-    console.log('Using mock data as fallback');
+    console.log('Using mock data as fallback due to error');
     // Fall back to mock data if the API call fails
     return generateMockPriceData(true);
   }
@@ -124,7 +139,7 @@ export const fetchCurrentTokenPrice = async (): Promise<number> => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API error ${response.status}:`, errorText);
-      console.log('Using mock data as fallback');
+      console.log('Using mock data as fallback due to API error');
       return generateMockCurrentPrice();
     }
 
@@ -139,12 +154,12 @@ export const fetchCurrentTokenPrice = async (): Promise<number> => {
     } else {
       console.warn('Unexpected current price data format:', data);
       console.log('Raw price data received:', JSON.stringify(data));
-      console.log('Using mock data as fallback');
+      console.log('Using mock data as fallback due to unexpected data format');
       return generateMockCurrentPrice();
     }
   } catch (error) {
     console.error('Error fetching current token price:', error);
-    console.log('Using mock data as fallback');
+    console.log('Using mock data as fallback due to error');
     // Fall back to mock data if the API call fails
     return generateMockCurrentPrice();
   }

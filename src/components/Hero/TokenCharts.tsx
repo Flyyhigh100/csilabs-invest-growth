@@ -31,7 +31,7 @@ const CustomTooltip = (props: any) => {
   return <ChartTooltipContent {...props} />;
 };
 
-// Custom tick formatter for X-axis to show year appropriately when many data points
+// Custom tick formatter for X-axis to show year appropriately
 const CustomizedXAxisTick = ({ x, y, payload }: any) => {
   return (
     <g transform={`translate(${x},${y})`}>
@@ -56,6 +56,15 @@ interface PriceChartProps {
 }
 
 export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, hasError }) => {
+  const isMultiYear = priceData && priceData.length > 0 && priceData[0].date.includes('2021');
+  
+  // Calculate interval based on data length
+  const calculateTickInterval = () => {
+    if (priceData.length <= 12) return 0; // Show all ticks for 12 or fewer data points
+    if (priceData.length <= 24) return 1; // Show every other tick for up to 24 data points
+    return Math.ceil(priceData.length / 12); // Aim for ~12 ticks for larger datasets
+  };
+  
   return (
     <div className="h-48 w-full">
       {isLoading ? (
@@ -73,7 +82,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, ha
             <XAxis 
               dataKey="date" 
               tick={<CustomizedXAxisTick />}
-              interval={priceData.length > 12 ? Math.floor(priceData.length / 6) : 0}
+              interval={calculateTickInterval()}
               minTickGap={15}
             />
             <YAxis 
@@ -109,6 +118,13 @@ interface VolumeChartProps {
 }
 
 export const VolumeChart: React.FC<VolumeChartProps> = ({ volumeData, isLoading, hasError }) => {
+  // Calculate interval based on data length
+  const calculateTickInterval = () => {
+    if (volumeData.length <= 12) return 0; // Show all ticks for 12 or fewer data points
+    if (volumeData.length <= 24) return 1; // Show every other tick for up to 24 data points
+    return Math.ceil(volumeData.length / 12); // Aim for ~12 ticks for larger datasets
+  };
+  
   return (
     <div className="h-48 w-full">
       {isLoading ? (
@@ -126,7 +142,7 @@ export const VolumeChart: React.FC<VolumeChartProps> = ({ volumeData, isLoading,
             <XAxis 
               dataKey="date" 
               tick={<CustomizedXAxisTick />}
-              interval={volumeData.length > 12 ? Math.floor(volumeData.length / 6) : 0}
+              interval={calculateTickInterval()}
               minTickGap={15}
             />
             <YAxis 

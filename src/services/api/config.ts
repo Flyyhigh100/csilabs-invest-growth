@@ -14,6 +14,5 @@ export const TOKEN_ADDRESS = '0xdcea55a12105335d1c2f8972f3b80965a7e07847';
 export const TIME_RANGE = 'all'; // Using 'all' to get all available data since 2021
 export const CHAIN_ID = 137; // Polygon chain ID
 
-// Date configuration for filtering data
-export const START_DATE = new Date('2021-10-26').getTime() / 1000; // October 26, 2021 in seconds
-
+// Date configuration for filtering data - October 26, 2021 in seconds
+export const START_DATE = new Date('2021-10-26').getTime() / 1000;

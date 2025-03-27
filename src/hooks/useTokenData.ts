@@ -21,7 +21,9 @@ export const useTokenData = () => {
     queryKey: ['tokenPriceHistory'],
     queryFn: async () => {
       try {
-        return await fetchTokenPriceHistory();
+        const result = await fetchTokenPriceHistory();
+        console.log('Price history query result count:', result.length);
+        return result;
       } catch (error) {
         console.error('Price history query failed:', error);
         toast({
@@ -29,7 +31,7 @@ export const useTokenData = () => {
           description: "Could not load price history. Using demo data instead.",
           variant: "destructive",
         });
-        return [];
+        throw error; // Re-throw to let React Query handle it
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -47,7 +49,9 @@ export const useTokenData = () => {
     queryKey: ['tokenVolumeHistory'],
     queryFn: async () => {
       try {
-        return await fetchTokenVolumeHistory();
+        const result = await fetchTokenVolumeHistory();
+        console.log('Volume history query result count:', result.length);
+        return result;
       } catch (error) {
         console.error('Volume history query failed:', error);
         toast({
@@ -55,7 +59,7 @@ export const useTokenData = () => {
           description: "Could not load volume history. Using demo data instead.",
           variant: "destructive",
         });
-        return [];
+        throw error; // Re-throw to let React Query handle it
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -81,7 +85,7 @@ export const useTokenData = () => {
           description: "Could not load current price. Using demo data instead.",
           variant: "destructive",
         });
-        return null;
+        throw error; // Re-throw to let React Query handle it
       }
     },
     staleTime: 1 * 60 * 1000, // 1 minute
@@ -108,7 +112,7 @@ export const useTokenData = () => {
           description: "Could not load token information. Please try again later.",
           variant: "destructive",
         });
-        return null;
+        throw error; // Re-throw to let React Query handle it
       }
     },
     staleTime: 30 * 60 * 1000, // 30 minutes
@@ -118,6 +122,7 @@ export const useTokenData = () => {
 
   // Function to manually refresh all data
   const refreshAllData = () => {
+    console.log('Manually refreshing all token data');
     refetchPrice();
     refetchVolume();
     refetchCurrentPrice();
