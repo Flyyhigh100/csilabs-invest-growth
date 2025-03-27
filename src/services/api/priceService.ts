@@ -1,6 +1,6 @@
 
 import { TokenPriceData } from '@/types/token';
-import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE, START_DATE } from './config';
+import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE, START_DATE, AGGREGATION_DAYS } from './config';
 import { generateMockPriceData, generateMockCurrentPrice } from '../mocks/mockDataGenerators';
 
 /**
@@ -11,7 +11,7 @@ import { generateMockPriceData, generateMockCurrentPrice } from '../mocks/mockDa
 const formatDate = (timestamp: number): string => {
   const date = new Date(timestamp * 1000);
   
-  // For annual view, use month and year format
+  // For time series view, use month and year format
   return date.toLocaleDateString('en-US', { 
     month: 'short',
     year: 'numeric'
@@ -42,7 +42,7 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
       const errorText = await response.text();
       console.error(`API error ${response.status}:`, errorText);
       console.log('Using mock data as fallback due to API error');
-      return generateMockPriceData(true);
+      return generateMockPriceData();
     }
 
     const data = await response.json();
@@ -65,55 +65,100 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
       
       if (filteredData.length === 0) {
         console.warn('No price data found since START_DATE, using mock data');
-        return generateMockPriceData(true);
+        return generateMockPriceData();
       }
       
-      // Group data by month for annual view
-      const monthlyData: { [key: string]: { prices: number[], timestamp: number } } = {};
-      
-      filteredData.forEach((item: any) => {
-        const timestamp = item.timestamp;
-        const formattedDate = formatDate(timestamp);
+      // Process the data based on the AGGREGATION_DAYS setting
+      if (AGGREGATION_DAYS > 1) {
+        // Group data by month for annual view
+        const monthlyData: { [key: string]: { prices: number[], timestamp: number } } = {};
         
-        if (!monthlyData[formattedDate]) {
-          monthlyData[formattedDate] = {
-            prices: [],
-            timestamp: timestamp
-          };
+        filteredData.forEach((item: any) => {
+          const timestamp = item.timestamp;
+          const formattedDate = formatDate(timestamp);
+          
+          if (!monthlyData[formattedDate]) {
+            monthlyData[formattedDate] = {
+              prices: [],
+              timestamp: timestamp
+            };
+          }
+          
+          // Ensure we're using the actual price from the API
+          if (item.price_usd) {
+            const price = typeof item.price_usd === 'string' 
+              ? parseFloat(item.price_usd) 
+              : item.price_usd;
+              
+            if (!isNaN(price) && price > 0) {
+              monthlyData[formattedDate].prices.push(price);
+            }
+          }
+        });
+        
+        // Calculate average price for each month
+        const result = Object.entries(monthlyData)
+          .map(([date, data]) => ({
+            date,
+            price: data.prices.length > 0 
+              ? data.prices.reduce((sum, price) => sum + price, 0) / data.prices.length
+              : 0
+          }))
+          .filter(item => item.price > 0) // Filter out zero prices
+          .sort((a, b) => {
+            // Sort by timestamp from oldest to newest
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            return dateA.getTime() - dateB.getTime();
+          });
+        
+        console.log(`Processed ${result.length} monthly data points`);
+        if (result.length > 0) {
+          console.log('First data point:', result[0]);
+          console.log('Last data point:', result[result.length - 1]);
         }
         
-        monthlyData[formattedDate].prices.push(parseFloat(item.price_usd) || 0);
-      });
-      
-      // Calculate average price for each month
-      const result = Object.entries(monthlyData)
-        .map(([date, data]) => ({
-          date,
-          price: data.prices.reduce((sum, price) => sum + price, 0) / data.prices.length
-        }))
-        .sort((a, b) => {
-          // Sort by timestamp from oldest to newest
-          const dateA = new Date(a.date);
-          const dateB = new Date(b.date);
-          return dateA.getTime() - dateB.getTime();
-        });
-      
-      console.log(`Processed ${result.length} monthly data points`);
-      console.log('First data point:', result[0]);
-      console.log('Last data point:', result[result.length - 1]);
-      
-      return result;
+        return result;
+      } else {
+        // Use daily data (no aggregation)
+        const result = filteredData
+          .map((item: any) => {
+            const price = typeof item.price_usd === 'string' 
+              ? parseFloat(item.price_usd) 
+              : item.price_usd;
+              
+            return {
+              date: formatDate(item.timestamp),
+              price: price
+            };
+          })
+          .filter(item => !isNaN(item.price) && item.price > 0) // Filter out invalid prices
+          .sort((a, b) => {
+            // Sort by date from oldest to newest
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            return dateA.getTime() - dateB.getTime();
+          });
+          
+        console.log(`Processed ${result.length} daily data points`);
+        if (result.length > 0) {
+          console.log('First data point:', result[0]);
+          console.log('Last data point:', result[result.length - 1]);
+        }
+        
+        return result;
+      }
     } else {
       console.warn('Unexpected price history data format:', data);
       console.log('Raw data received:', JSON.stringify(data));
       console.log('Using mock data as fallback due to unexpected data format');
-      return generateMockPriceData(true);
+      return generateMockPriceData();
     }
   } catch (error) {
     console.error('Error fetching token price history:', error);
     console.log('Using mock data as fallback due to error');
     // Fall back to mock data if the API call fails
-    return generateMockPriceData(true);
+    return generateMockPriceData();
   }
 };
 

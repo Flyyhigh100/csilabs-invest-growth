@@ -15,7 +15,7 @@ const chartConfig = {
     }
   },
   volume: {
-    label: "Volume",
+    label: "Volume (USD)",
     theme: {
       light: "#1A365D",
       dark: "#1A365D"
@@ -28,7 +28,24 @@ const CustomTooltip = (props: any) => {
   if (!props.active || !props.payload || props.payload.length === 0) {
     return null;
   }
-  return <ChartTooltipContent {...props} />;
+  
+  const { payload, label } = props;
+  
+  return (
+    <div className="custom-tooltip bg-white p-3 border border-gray-200 rounded-md shadow-md text-sm">
+      <p className="font-medium">{label}</p>
+      {payload.map((entry: any, index: number) => (
+        <div key={`item-${index}`} className="flex items-center justify-between mt-1">
+          <span className="text-gray-600">{entry.name === 'price' ? 'Price:' : 'Volume:'}</span>
+          <span className="font-medium ml-2">
+            {entry.name === 'price' 
+              ? `$${entry.value.toFixed(5)}` 
+              : `$${entry.value.toLocaleString()}`}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
 };
 
 // Custom tick formatter for X-axis to show year appropriately
@@ -55,9 +72,7 @@ interface PriceChartProps {
   hasError: boolean;
 }
 
-export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, hasError }) => {
-  const isMultiYear = priceData && priceData.length > 0 && priceData[0].date.includes('2021');
-  
+export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, hasError }) => {  
   // Calculate interval based on data length
   const calculateTickInterval = () => {
     if (priceData.length <= 12) return 0; // Show all ticks for 12 or fewer data points
@@ -88,7 +103,8 @@ export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, ha
             <YAxis 
               tickFormatter={(value) => `$${value.toFixed(5)}`}
               tick={{ fontSize: 10 }}
-              domain={['dataMin', 'dataMax']}
+              domain={['auto', 'auto']}
+              allowDecimals={true}
             />
             <Tooltip content={<CustomTooltip />} />
             <Line 
@@ -99,6 +115,8 @@ export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, ha
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4 }}
+              isAnimationActive={true}
+              animationDuration={1000}
             />
           </LineChart>
         </ChartContainer>
@@ -146,8 +164,9 @@ export const VolumeChart: React.FC<VolumeChartProps> = ({ volumeData, isLoading,
               minTickGap={15}
             />
             <YAxis 
-              tickFormatter={(value) => value.toLocaleString()}
+              tickFormatter={(value) => `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
               tick={{ fontSize: 10 }}
+              domain={['auto', 'auto']}
             />
             <Tooltip content={<CustomTooltip />} />
             <Line 
@@ -158,6 +177,8 @@ export const VolumeChart: React.FC<VolumeChartProps> = ({ volumeData, isLoading,
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4 }}
+              isAnimationActive={true}
+              animationDuration={1000}
             />
           </LineChart>
         </ChartContainer>

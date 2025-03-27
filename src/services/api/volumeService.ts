@@ -1,6 +1,6 @@
 
 import { TokenVolumeData } from '@/types/token';
-import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE, START_DATE } from './config';
+import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE, START_DATE, AGGREGATION_DAYS } from './config';
 import { generateMockVolumeData } from '../mocks/mockDataGenerators';
 
 /**
@@ -11,7 +11,7 @@ import { generateMockVolumeData } from '../mocks/mockDataGenerators';
 const formatDate = (timestamp: number): string => {
   const date = new Date(timestamp * 1000);
   
-  // For annual view, use month and year format
+  // For time series view, use month and year format
   return date.toLocaleDateString('en-US', { 
     month: 'short',
     year: 'numeric'
@@ -42,7 +42,7 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
       const errorText = await response.text();
       console.error(`API error ${response.status}:`, errorText);
       console.log('Using mock data as fallback due to API error');
-      return generateMockVolumeData(true);
+      return generateMockVolumeData();
     }
 
     const data = await response.json();
@@ -65,54 +65,99 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
       
       if (filteredData.length === 0) {
         console.warn('No volume data found since START_DATE, using mock data');
-        return generateMockVolumeData(true);
+        return generateMockVolumeData();
       }
       
-      // Group data by month for annual view
-      const monthlyData: { [key: string]: { volumes: number[], timestamp: number } } = {};
-      
-      filteredData.forEach((item: any) => {
-        const timestamp = item.timestamp;
-        const formattedDate = formatDate(timestamp);
+      // Process the data based on the AGGREGATION_DAYS setting
+      if (AGGREGATION_DAYS > 1) {
+        // Group data by month for annual view
+        const monthlyData: { [key: string]: { volumes: number[], timestamp: number } } = {};
         
-        if (!monthlyData[formattedDate]) {
-          monthlyData[formattedDate] = {
-            volumes: [],
-            timestamp: timestamp
-          };
+        filteredData.forEach((item: any) => {
+          const timestamp = item.timestamp;
+          const formattedDate = formatDate(timestamp);
+          
+          if (!monthlyData[formattedDate]) {
+            monthlyData[formattedDate] = {
+              volumes: [],
+              timestamp: timestamp
+            };
+          }
+          
+          // Ensure we're using the actual volume from the API
+          if (item.volume_usd) {
+            const volume = typeof item.volume_usd === 'string' 
+              ? parseFloat(item.volume_usd) 
+              : item.volume_usd;
+              
+            if (!isNaN(volume) && volume > 0) {
+              monthlyData[formattedDate].volumes.push(volume);
+            }
+          }
+        });
+        
+        // Calculate total volume for each month
+        const result = Object.entries(monthlyData)
+          .map(([date, data]) => ({
+            date,
+            volume: data.volumes.length > 0 
+              ? data.volumes.reduce((sum, volume) => sum + volume, 0)
+              : 0
+          }))
+          .filter(item => item.volume > 0) // Filter out zero volumes
+          .sort((a, b) => {
+            // Sort by timestamp from oldest to newest
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            return dateA.getTime() - dateB.getTime();
+          });
+        
+        console.log(`Processed ${result.length} monthly data points`);
+        if (result.length > 0) {
+          console.log('First data point:', result[0]);
+          console.log('Last data point:', result[result.length - 1]);
         }
         
-        monthlyData[formattedDate].volumes.push(parseFloat(item.volume_usd) || 0);
-      });
-      
-      // Calculate total volume for each month
-      const result = Object.entries(monthlyData)
-        .map(([date, data]) => ({
-          date,
-          volume: data.volumes.reduce((sum, volume) => sum + volume, 0)
-        }))
-        .sort((a, b) => {
-          // Sort by timestamp from oldest to newest
-          const dateA = new Date(a.date);
-          const dateB = new Date(b.date);
-          return dateA.getTime() - dateB.getTime();
-        });
-      
-      console.log(`Processed ${result.length} monthly data points`);
-      console.log('First data point:', result[0]);
-      console.log('Last data point:', result[result.length - 1]);
-      
-      return result;
+        return result;
+      } else {
+        // Use daily data (no aggregation)
+        const result = filteredData
+          .map((item: any) => {
+            const volume = typeof item.volume_usd === 'string' 
+              ? parseFloat(item.volume_usd) 
+              : item.volume_usd;
+              
+            return {
+              date: formatDate(item.timestamp),
+              volume: volume
+            };
+          })
+          .filter(item => !isNaN(item.volume) && item.volume > 0) // Filter out invalid volumes
+          .sort((a, b) => {
+            // Sort by date from oldest to newest
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            return dateA.getTime() - dateB.getTime();
+          });
+          
+        console.log(`Processed ${result.length} daily data points`);
+        if (result.length > 0) {
+          console.log('First data point:', result[0]);
+          console.log('Last data point:', result[result.length - 1]);
+        }
+        
+        return result;
+      }
     } else {
       console.warn('Unexpected volume history data format:', data);
       console.log('Raw volume data received:', JSON.stringify(data));
       console.log('Using mock data as fallback due to unexpected data format');
-      return generateMockVolumeData(true);
+      return generateMockVolumeData();
     }
   } catch (error) {
     console.error('Error fetching token volume history:', error);
     console.log('Using mock data as fallback due to error');
     // Fall back to mock data if the API call fails
-    return generateMockVolumeData(true);
+    return generateMockVolumeData();
   }
 };

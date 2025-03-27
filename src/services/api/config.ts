@@ -16,3 +16,6 @@ export const CHAIN_ID = 137; // Polygon chain ID
 
 // Date configuration for filtering data - October 26, 2021 in seconds
 export const START_DATE = new Date('2021-10-26').getTime() / 1000;
+
+// Define the number of days to aggregate data (1 for daily data)
+export const AGGREGATION_DAYS = 1; // Use daily data for more precision
