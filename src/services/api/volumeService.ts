@@ -41,7 +41,7 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
       const errorText = await response.text();
       console.error(`API error ${response.status}:`, errorText);
       console.log('Using mock data as fallback');
-      return generateMockVolumeData(true); // Generate multi-year mock data
+      return generateMockVolumeData(true);
     }
 
     const data = await response.json();
