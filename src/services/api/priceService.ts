@@ -1,7 +1,7 @@
 
 import { TokenPriceData } from '@/types/token';
 import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE } from './config';
-import { generateMockPriceData } from '../mocks/mockDataGenerators';
+import { generateMockPriceData, generateMockCurrentPrice } from '../mocks/mockDataGenerators';
 
 /**
  * Fetches historical price data for a token
