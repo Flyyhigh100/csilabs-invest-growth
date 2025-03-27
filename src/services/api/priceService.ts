@@ -1,0 +1,85 @@
+
+import { TokenPriceData } from '@/types/token';
+import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE } from './config';
+import { generateMockPriceData } from '../mocks/mockDataGenerators';
+
+/**
+ * Fetches historical price data for a token
+ * @returns Promise with price data array
+ */
+export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
+  try {
+    console.log('Fetching token price history with API key:', API_KEY ? 'API key present' : 'No API key');
+    
+    const response = await fetch(`${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/price_history?timeRange=${TIME_RANGE}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': API_KEY
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API error ${response.status}:`, errorText);
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Price history data received:', data);
+    
+    // Transform the API response to match our expected format
+    if (data.data && Array.isArray(data.data)) {
+      return data.data.map((item: any) => ({
+        date: new Date(item.timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        price: parseFloat(item.price_usd) || 0
+      }));
+    } else {
+      console.warn('Unexpected price history data format:', data);
+      throw new Error('Unexpected data format');
+    }
+  } catch (error) {
+    console.error('Error fetching token price history:', error);
+    // Fall back to mock data if the API call fails
+    return generateMockPriceData();
+  }
+};
+
+/**
+ * Fetches current token price
+ * @returns Promise with current price
+ */
+export const fetchCurrentTokenPrice = async (): Promise<number> => {
+  try {
+    console.log('Fetching current token price with API key:', API_KEY ? 'API key present' : 'No API key');
+    
+    const response = await fetch(`${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/price`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': API_KEY
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API error ${response.status}:`, errorText);
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Current price data received:', data);
+    
+    // Return the current price
+    if (data.data && typeof data.data.price_usd === 'number') {
+      return data.data.price_usd;
+    } else {
+      console.warn('Unexpected current price data format:', data);
+      throw new Error('Unexpected data format');
+    }
+  } catch (error) {
+    console.error('Error fetching current token price:', error);
+    // Fall back to mock data if the API call fails
+    return generateMockCurrentPrice();
+  }
+};
