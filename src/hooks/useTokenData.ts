@@ -135,8 +135,8 @@ export const useTokenData = () => {
   // Determine if any data is loading
   const isLoading = isPriceLoading || isVolumeLoading || isCurrentPriceLoading || isTokenInfoLoading;
 
-  // Determine if there are any errors
-  const hasError = priceError || volumeError || currentPriceError || tokenInfoError;
+  // Determine if there are any errors - ensure this returns a boolean
+  const hasError = !!(priceError || volumeError || currentPriceError || tokenInfoError);
   
   // Create a formatted error message if there's an error
   const errorMessage = hasError ? 'Error loading token data' : null;

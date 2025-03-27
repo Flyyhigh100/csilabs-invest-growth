@@ -31,7 +31,7 @@ const Hero: React.FC = () => {
             currentPrice={currentPrice}
             tokenInfo={tokenInfo}
             isLoading={isLoading}
-            hasError={hasError}
+            hasError={!!hasError} // Convert Error object to boolean
           />
         </div>
       </div>

@@ -12,7 +12,7 @@ interface TokenCardProps {
   currentPrice: number | null;
   tokenInfo: TokenInfo | null;
   isLoading: boolean;
-  hasError: boolean;
+  hasError: boolean; // Updated type to boolean
 }
 
 const TokenCard: React.FC<TokenCardProps> = ({ 

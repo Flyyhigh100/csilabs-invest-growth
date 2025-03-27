@@ -34,7 +34,7 @@ const CustomTooltip = (props: any) => {
 interface PriceChartProps {
   priceData: TokenPriceData[];
   isLoading: boolean;
-  hasError: boolean;
+  hasError: boolean; // Updated type to boolean
 }
 
 export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, hasError }) => {
@@ -78,7 +78,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, ha
 interface VolumeChartProps {
   volumeData: TokenVolumeData[];
   isLoading: boolean;
-  hasError: boolean;
+  hasError: boolean; // Updated type to boolean
 }
 
 export const VolumeChart: React.FC<VolumeChartProps> = ({ volumeData, isLoading, hasError }) => {
