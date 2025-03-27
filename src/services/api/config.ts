@@ -11,6 +11,9 @@ export const API_KEY = '3fe52a290da2025bdddcc45a353c0268810eacf7';
 export const TOKEN_ADDRESS = '0xdcea55a12105335d1c2f8972f3b80965a7e07847';
 
 // Additional parameters for API requests
-export const TIME_RANGE = 'all'; // Changed from '30d' to 'all' to get all available data
+export const TIME_RANGE = 'all'; // Using 'all' to get all available data since 2021
 export const CHAIN_ID = 137; // Polygon chain ID
+
+// Date configuration for filtering data
+export const START_DATE = new Date('2021-10-26').getTime() / 1000; // October 26, 2021 in seconds
 

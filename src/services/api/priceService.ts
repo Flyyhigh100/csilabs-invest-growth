@@ -1,5 +1,5 @@
 import { TokenPriceData } from '@/types/token';
-import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE } from './config';
+import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE, START_DATE } from './config';
 import { generateMockPriceData, generateMockCurrentPrice } from '../mocks/mockDataGenerators';
 
 /**
@@ -40,7 +40,7 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
       const errorText = await response.text();
       console.error(`API error ${response.status}:`, errorText);
       console.log('Using mock data as fallback');
-      return generateMockPriceData();
+      return generateMockPriceData(true); // Generate multi-year mock data
     }
 
     const data = await response.json();
@@ -48,10 +48,20 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
     
     // Transform the API response to match our expected format
     if (data.data && Array.isArray(data.data)) {
+      // Filter data to only include records since START_DATE
+      const filteredData = data.data.filter((item: any) => 
+        item.timestamp >= START_DATE
+      );
+      
+      if (filteredData.length === 0) {
+        console.warn('No price data found since START_DATE, using mock data');
+        return generateMockPriceData(true);
+      }
+      
       // Group data by month for annual view
       const monthlyData: { [key: string]: { prices: number[], timestamp: number } } = {};
       
-      data.data.forEach((item: any) => {
+      filteredData.forEach((item: any) => {
         const timestamp = item.timestamp;
         const formattedDate = formatDate(timestamp);
         
@@ -81,13 +91,13 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
       console.warn('Unexpected price history data format:', data);
       console.log('Raw data received:', JSON.stringify(data));
       console.log('Using mock data as fallback');
-      return generateMockPriceData();
+      return generateMockPriceData(true);
     }
   } catch (error) {
     console.error('Error fetching token price history:', error);
     console.log('Using mock data as fallback');
     // Fall back to mock data if the API call fails
-    return generateMockPriceData();
+    return generateMockPriceData(true);
   }
 };
 

@@ -31,6 +31,24 @@ const CustomTooltip = (props: any) => {
   return <ChartTooltipContent {...props} />;
 };
 
+// Custom tick formatter for X-axis to show year appropriately when many data points
+const CustomizedXAxisTick = ({ x, y, payload }: any) => {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text 
+        x={0} 
+        y={0} 
+        dy={16} 
+        textAnchor="middle" 
+        fill="#666" 
+        fontSize={10}
+      >
+        {payload.value}
+      </text>
+    </g>
+  );
+};
+
 interface PriceChartProps {
   priceData: TokenPriceData[];
   isLoading: boolean;
@@ -54,8 +72,9 @@ export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, ha
             <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
             <XAxis 
               dataKey="date" 
-              tick={{ fontSize: 10 }}
-              interval="preserveStartEnd"
+              tick={<CustomizedXAxisTick />}
+              interval={priceData.length > 12 ? Math.floor(priceData.length / 6) : 0}
+              minTickGap={15}
             />
             <YAxis 
               tickFormatter={(value) => `$${value.toFixed(5)}`}
@@ -106,8 +125,9 @@ export const VolumeChart: React.FC<VolumeChartProps> = ({ volumeData, isLoading,
             <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
             <XAxis 
               dataKey="date" 
-              tick={{ fontSize: 10 }}
-              interval="preserveStartEnd"
+              tick={<CustomizedXAxisTick />}
+              interval={volumeData.length > 12 ? Math.floor(volumeData.length / 6) : 0}
+              minTickGap={15}
             />
             <YAxis 
               tickFormatter={(value) => value.toLocaleString()}
