@@ -26,7 +26,7 @@ export const useTokenData = () => {
         console.error('Price history query failed:', error);
         toast({
           title: "Error",
-          description: "Could not load price history. Please try again later.",
+          description: "Could not load price history. Using demo data instead.",
           variant: "destructive",
         });
         return [];
@@ -34,7 +34,7 @@ export const useTokenData = () => {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
-    retry: 2,
+    retry: 1,
   });
 
   // Query for volume history data
@@ -52,7 +52,7 @@ export const useTokenData = () => {
         console.error('Volume history query failed:', error);
         toast({
           title: "Error",
-          description: "Could not load volume history. Please try again later.",
+          description: "Could not load volume history. Using demo data instead.",
           variant: "destructive",
         });
         return [];
@@ -60,7 +60,7 @@ export const useTokenData = () => {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
-    retry: 2,
+    retry: 1,
   });
 
   // Query for current price
@@ -78,7 +78,7 @@ export const useTokenData = () => {
         console.error('Current price query failed:', error);
         toast({
           title: "Error",
-          description: "Could not load current price. Please try again later.",
+          description: "Could not load current price. Using demo data instead.",
           variant: "destructive",
         });
         return null;
@@ -87,7 +87,7 @@ export const useTokenData = () => {
     staleTime: 1 * 60 * 1000, // 1 minute
     refetchInterval: 1 * 60 * 1000, // Refresh every minute
     refetchOnWindowFocus: true,
-    retry: 2,
+    retry: 1,
   });
 
   // Query for token info
@@ -113,7 +113,7 @@ export const useTokenData = () => {
     },
     staleTime: 30 * 60 * 1000, // 30 minutes
     refetchOnWindowFocus: false,
-    retry: 2,
+    retry: 1,
   });
 
   // Function to manually refresh all data

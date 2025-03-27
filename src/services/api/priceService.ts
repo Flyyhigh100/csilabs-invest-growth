@@ -25,7 +25,8 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API error ${response.status}:`, errorText);
-      throw new Error(`API error: ${response.status}`);
+      console.log('Using mock data as fallback');
+      return generateMockPriceData();
     }
 
     const data = await response.json();
@@ -40,12 +41,14 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
     } else {
       console.warn('Unexpected price history data format:', data);
       console.log('Raw data received:', JSON.stringify(data));
-      throw new Error('Unexpected data format');
+      console.log('Using mock data as fallback');
+      return generateMockPriceData();
     }
   } catch (error) {
     console.error('Error fetching token price history:', error);
-    // No longer fall back to mock data - rethrow the error
-    throw error;
+    console.log('Using mock data as fallback');
+    // Fall back to mock data if the API call fails
+    return generateMockPriceData();
   }
 };
 
@@ -71,7 +74,8 @@ export const fetchCurrentTokenPrice = async (): Promise<number> => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API error ${response.status}:`, errorText);
-      throw new Error(`API error: ${response.status}`);
+      console.log('Using mock data as fallback');
+      return generateMockCurrentPrice();
     }
 
     const data = await response.json();
@@ -85,11 +89,13 @@ export const fetchCurrentTokenPrice = async (): Promise<number> => {
     } else {
       console.warn('Unexpected current price data format:', data);
       console.log('Raw price data received:', JSON.stringify(data));
-      throw new Error('Unexpected data format');
+      console.log('Using mock data as fallback');
+      return generateMockCurrentPrice();
     }
   } catch (error) {
     console.error('Error fetching current token price:', error);
-    // No longer fall back to mock data - rethrow the error
-    throw error;
+    console.log('Using mock data as fallback');
+    // Fall back to mock data if the API call fails
+    return generateMockCurrentPrice();
   }
 };

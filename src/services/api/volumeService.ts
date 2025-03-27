@@ -1,6 +1,7 @@
 
 import { TokenVolumeData } from '@/types/token';
 import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE } from './config';
+import { generateMockVolumeData } from '../mocks/mockDataGenerators';
 
 /**
  * Fetches historical volume data for a token
@@ -24,7 +25,8 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API error ${response.status}:`, errorText);
-      throw new Error(`API error: ${response.status}`);
+      console.log('Using mock data as fallback');
+      return generateMockVolumeData();
     }
 
     const data = await response.json();
@@ -39,11 +41,13 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
     } else {
       console.warn('Unexpected volume history data format:', data);
       console.log('Raw volume data received:', JSON.stringify(data));
-      throw new Error('Unexpected data format');
+      console.log('Using mock data as fallback');
+      return generateMockVolumeData();
     }
   } catch (error) {
     console.error('Error fetching token volume history:', error);
-    // No longer fall back to mock data - rethrow the error
-    throw error;
+    console.log('Using mock data as fallback');
+    // Fall back to mock data if the API call fails
+    return generateMockVolumeData();
   }
 };
