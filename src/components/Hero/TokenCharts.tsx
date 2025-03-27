@@ -73,10 +73,11 @@ interface PriceChartProps {
 }
 
 export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, hasError }) => {  
-  // Calculate interval based on data length
+  // Calculate interval based on data length to prevent overcrowding
   const calculateTickInterval = () => {
-    if (priceData.length <= 12) return 0; // Show all ticks for 12 or fewer data points
-    if (priceData.length <= 24) return 1; // Show every other tick for up to 24 data points
+    if (priceData.length <= 6) return 0; // Show all ticks for 6 or fewer data points
+    if (priceData.length <= 12) return 1; // Show every other tick for up to 12 data points
+    if (priceData.length <= 24) return 2; // Show every third tick for up to 24 data points
     return Math.ceil(priceData.length / 12); // Aim for ~12 ticks for larger datasets
   };
   
@@ -99,12 +100,14 @@ export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, ha
               tick={<CustomizedXAxisTick />}
               interval={calculateTickInterval()}
               minTickGap={15}
+              height={30}
             />
             <YAxis 
               tickFormatter={(value) => `$${value.toFixed(5)}`}
               tick={{ fontSize: 10 }}
               domain={['auto', 'auto']}
               allowDecimals={true}
+              width={60}
             />
             <Tooltip content={<CustomTooltip />} />
             <Line 
@@ -136,10 +139,11 @@ interface VolumeChartProps {
 }
 
 export const VolumeChart: React.FC<VolumeChartProps> = ({ volumeData, isLoading, hasError }) => {
-  // Calculate interval based on data length
+  // Calculate interval based on data length to prevent overcrowding
   const calculateTickInterval = () => {
-    if (volumeData.length <= 12) return 0; // Show all ticks for 12 or fewer data points
-    if (volumeData.length <= 24) return 1; // Show every other tick for up to 24 data points
+    if (volumeData.length <= 6) return 0; // Show all ticks for 6 or fewer data points
+    if (volumeData.length <= 12) return 1; // Show every other tick for up to 12 data points
+    if (volumeData.length <= 24) return 2; // Show every third tick for up to 24 data points
     return Math.ceil(volumeData.length / 12); // Aim for ~12 ticks for larger datasets
   };
   
@@ -162,11 +166,13 @@ export const VolumeChart: React.FC<VolumeChartProps> = ({ volumeData, isLoading,
               tick={<CustomizedXAxisTick />}
               interval={calculateTickInterval()}
               minTickGap={15}
+              height={30}
             />
             <YAxis 
               tickFormatter={(value) => `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
               tick={{ fontSize: 10 }}
               domain={['auto', 'auto']}
+              width={60}
             />
             <Tooltip content={<CustomTooltip />} />
             <Line 

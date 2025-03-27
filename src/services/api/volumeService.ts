@@ -1,6 +1,6 @@
 
 import { TokenVolumeData } from '@/types/token';
-import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE, START_DATE, AGGREGATION_DAYS } from './config';
+import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE, START_DATE, END_DATE, QUOTE_TOKEN, AGGREGATION_DAYS } from './config';
 import { generateMockVolumeData } from '../mocks/mockDataGenerators';
 
 /**
@@ -26,8 +26,8 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
   try {
     console.log('Fetching token volume history with API key:', API_KEY ? 'API key present' : 'No API key');
     
-    // Ensure we're getting all available data with 'all' time range
-    const url = `${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/volume_history?timeRange=${TIME_RANGE}`;
+    // Build URL with all necessary parameters
+    const url = `${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/volume_history?timeRange=${TIME_RANGE}&quoteToken=${QUOTE_TOKEN}`;
     console.log('Fetching volume history from URL:', url);
     
     const response = await fetch(url, {
@@ -56,15 +56,15 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
         console.log('Sample data point:', data.data[0]);
       }
       
-      // Filter data to only include records since START_DATE
+      // Filter data to only include records between START_DATE and END_DATE
       const filteredData = data.data.filter((item: any) => 
-        item.timestamp >= START_DATE
+        item.timestamp >= START_DATE && item.timestamp <= END_DATE
       );
       
-      console.log(`Filtered ${filteredData.length} data points since ${new Date(START_DATE * 1000).toISOString()}`);
+      console.log(`Filtered ${filteredData.length} data points between ${new Date(START_DATE * 1000).toISOString()} and ${new Date(END_DATE * 1000).toISOString()}`);
       
       if (filteredData.length === 0) {
-        console.warn('No volume data found since START_DATE, using mock data');
+        console.warn('No volume data found in specified date range, using mock data');
         return generateMockVolumeData();
       }
       
@@ -85,14 +85,12 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
           }
           
           // Ensure we're using the actual volume from the API
-          if (item.volume_usd) {
-            const volume = typeof item.volume_usd === 'string' 
-              ? parseFloat(item.volume_usd) 
-              : item.volume_usd;
+          const volume = typeof item.volume_usd === 'string' 
+            ? parseFloat(item.volume_usd) 
+            : (typeof item.volume_usd === 'number' ? item.volume_usd : 0);
               
-            if (!isNaN(volume) && volume > 0) {
-              monthlyData[formattedDate].volumes.push(volume);
-            }
+          if (!isNaN(volume) && volume > 0) {
+            monthlyData[formattedDate].volumes.push(volume);
           }
         });
         
@@ -125,7 +123,7 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
           .map((item: any) => {
             const volume = typeof item.volume_usd === 'string' 
               ? parseFloat(item.volume_usd) 
-              : item.volume_usd;
+              : (typeof item.volume_usd === 'number' ? item.volume_usd : 0);
               
             return {
               date: formatDate(item.timestamp),

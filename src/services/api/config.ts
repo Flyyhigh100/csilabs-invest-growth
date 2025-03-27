@@ -11,11 +11,19 @@ export const API_KEY = '3fe52a290da2025bdddcc45a353c0268810eacf7';
 export const TOKEN_ADDRESS = '0xdcea55a12105335d1c2f8972f3b80965a7e07847';
 
 // Additional parameters for API requests
-export const TIME_RANGE = 'all'; // Using 'all' to get all available data since 2021
-export const CHAIN_ID = 137; // Polygon chain ID
+export const TIME_RANGE = 'all'; // Using 'all' to get all available data
 
-// Date configuration for filtering data - October 26, 2021 in seconds
+// Chain ID for Polygon
+export const CHAIN_ID = 137; 
+
+// Date configuration - October 26, 2021 in seconds (start of our data range)
 export const START_DATE = new Date('2021-10-26').getTime() / 1000;
 
-// Define the number of days to aggregate data (1 for daily data)
-export const AGGREGATION_DAYS = 1; // Use daily data for more precision
+// End date - Current
+export const END_DATE = Math.floor(Date.now() / 1000);
+
+// Define the aggregation period
+export const AGGREGATION_DAYS = 30; // Monthly aggregation for better yearly view
+
+// Quote token (USDC)
+export const QUOTE_TOKEN = 'token1'; // As seen in the Defined.fi URL

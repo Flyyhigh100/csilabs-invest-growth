@@ -1,6 +1,6 @@
 
 import { TokenPriceData } from '@/types/token';
-import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE, START_DATE, AGGREGATION_DAYS } from './config';
+import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE, START_DATE, END_DATE, QUOTE_TOKEN, AGGREGATION_DAYS } from './config';
 import { generateMockPriceData, generateMockCurrentPrice } from '../mocks/mockDataGenerators';
 
 /**
@@ -26,8 +26,8 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
   try {
     console.log('Fetching token price history with API key:', API_KEY ? 'API key present' : 'No API key');
     
-    // Ensure we're getting all available data with 'all' time range
-    const url = `${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/price_history?timeRange=${TIME_RANGE}`;
+    // Build URL with all necessary parameters
+    const url = `${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/price_history?timeRange=${TIME_RANGE}&quoteToken=${QUOTE_TOKEN}`;
     console.log('Fetching price history from URL:', url);
     
     const response = await fetch(url, {
@@ -56,15 +56,15 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
         console.log('Sample data point:', data.data[0]);
       }
       
-      // Filter data to only include records since START_DATE
+      // Filter data to only include records between START_DATE and END_DATE
       const filteredData = data.data.filter((item: any) => 
-        item.timestamp >= START_DATE
+        item.timestamp >= START_DATE && item.timestamp <= END_DATE
       );
       
-      console.log(`Filtered ${filteredData.length} data points since ${new Date(START_DATE * 1000).toISOString()}`);
+      console.log(`Filtered ${filteredData.length} data points between ${new Date(START_DATE * 1000).toISOString()} and ${new Date(END_DATE * 1000).toISOString()}`);
       
       if (filteredData.length === 0) {
-        console.warn('No price data found since START_DATE, using mock data');
+        console.warn('No price data found in specified date range, using mock data');
         return generateMockPriceData();
       }
       
@@ -85,14 +85,12 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
           }
           
           // Ensure we're using the actual price from the API
-          if (item.price_usd) {
-            const price = typeof item.price_usd === 'string' 
-              ? parseFloat(item.price_usd) 
-              : item.price_usd;
+          const price = typeof item.price_usd === 'string' 
+            ? parseFloat(item.price_usd) 
+            : (typeof item.price_usd === 'number' ? item.price_usd : 0);
               
-            if (!isNaN(price) && price > 0) {
-              monthlyData[formattedDate].prices.push(price);
-            }
+          if (!isNaN(price) && price > 0) {
+            monthlyData[formattedDate].prices.push(price);
           }
         });
         
@@ -125,7 +123,7 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
           .map((item: any) => {
             const price = typeof item.price_usd === 'string' 
               ? parseFloat(item.price_usd) 
-              : item.price_usd;
+              : (typeof item.price_usd === 'number' ? item.price_usd : 0);
               
             return {
               date: formatDate(item.timestamp),
@@ -170,7 +168,7 @@ export const fetchCurrentTokenPrice = async (): Promise<number> => {
   try {
     console.log('Fetching current token price with API key:', API_KEY ? 'API key present' : 'No API key');
     
-    const url = `${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/price`;
+    const url = `${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/price?quoteToken=${QUOTE_TOKEN}`;
     console.log('Fetching current price from URL:', url);
     
     const response = await fetch(url, {

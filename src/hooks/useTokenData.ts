@@ -28,7 +28,7 @@ export const useTokenData = () => {
         if (result.length === 0) {
           toast({
             title: "Warning",
-            description: "No price history data available. Using demo data instead.",
+            description: "No price history data available for the specified time range.",
             variant: "destructive",
           });
         }
@@ -46,7 +46,7 @@ export const useTokenData = () => {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
-    retry: 2, // Increase retries
+    retry: 2, // Retry up to 2 times
   });
 
   // Query for volume history data
@@ -66,7 +66,7 @@ export const useTokenData = () => {
         if (result.length === 0) {
           toast({
             title: "Warning",
-            description: "No volume history data available. Using demo data instead.",
+            description: "No volume history data available for the specified time range.",
             variant: "destructive",
           });
         }
@@ -84,7 +84,7 @@ export const useTokenData = () => {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
-    retry: 2, // Increase retries
+    retry: 2, // Retry up to 2 times
   });
 
   // Query for current price
@@ -112,7 +112,7 @@ export const useTokenData = () => {
     staleTime: 1 * 60 * 1000, // 1 minute
     refetchInterval: 1 * 60 * 1000, // Refresh every minute
     refetchOnWindowFocus: true,
-    retry: 2, // Increase retries
+    retry: 2, // Retry up to 2 times
   });
 
   // Query for token info
@@ -139,7 +139,7 @@ export const useTokenData = () => {
     },
     staleTime: 30 * 60 * 1000, // 30 minutes
     refetchOnWindowFocus: false,
-    retry: 2, // Increase retries
+    retry: 2, // Retry up to 2 times
   });
 
   // Function to manually refresh all data
@@ -149,6 +149,11 @@ export const useTokenData = () => {
     refetchVolume();
     refetchCurrentPrice();
     refetchTokenInfo();
+    
+    toast({
+      title: "Refreshing Data",
+      description: "Fetching the latest token data...",
+    });
   };
 
   // Log errors for debugging
