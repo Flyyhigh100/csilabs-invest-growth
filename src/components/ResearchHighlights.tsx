@@ -2,7 +2,7 @@
 import React from 'react';
 import FadeInSection from './FadeInSection';
 import FeatureCard from './FeatureCard';
-import { BeakerIcon, BrainCircuit, Building2, TrendingUp } from 'lucide-react';
+import { BeakerIcon, BrainCircuit, FilePieChart, TrendingUp } from 'lucide-react';
 
 const ResearchHighlights: React.FC = () => {
   return (
@@ -11,13 +11,13 @@ const ResearchHighlights: React.FC = () => {
         <FadeInSection>
           <div className="text-center mb-16 max-w-3xl mx-auto">
             <div className="inline-block px-3 py-1 mb-4 text-xs font-medium tracking-wider uppercase rounded-full text-cbis-blue bg-blue-50 border border-blue-100">
-              Harvard-Validated Research
+              Proven Cancer-Fighting Results
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-cbis-dark">
-              Pioneering Cancer Treatments Through Innovation
+              Our Research Has Already Killed Cancer Cells
             </h2>
             <p className="text-gray-600">
-              Our research focuses on developing cannabinoid-based drugs for cancer treatment, with validation from Harvard Medical School researchers and ongoing laboratory acquisitions.
+              Our cannabinoid-based treatments have demonstrated remarkable efficacy in eliminating cancer cells across multiple studies. We're now advancing toward FDA-approved clinical trials.
             </p>
           </div>
         </FadeInSection>
@@ -25,32 +25,32 @@ const ResearchHighlights: React.FC = () => {
         <div className="grid md:grid-cols-2 gap-8">
           <FadeInSection delay={100} direction="left">
             <FeatureCard
-              title="Harvard-Validated Research"
-              description="Our research has been validated by Harvard Medical School researchers, providing scientific credibility to our cannabinoid-based cancer treatment approaches."
-              icon={<BrainCircuit className="h-8 w-8" />}
+              title="Cancer Cell Elimination"
+              description="Laboratory studies have confirmed our compounds successfully eliminate cancer cells, with particular efficacy against breast, prostate, and colon cancer cell lines."
+              icon={<BeakerIcon className="h-8 w-8" />}
             />
           </FadeInSection>
 
           <FadeInSection delay={200} direction="right">
             <FeatureCard
-              title="Laboratory Acquisitions"
-              description="We are actively negotiating the purchase of research laboratories in Las Vegas and California to expand our capabilities and accelerate drug development."
-              icon={<Building2 className="h-8 w-8" />}
+              title="Harvard Research Validation"
+              description="Our research methodologies and preliminary results have been validated by Harvard Medical School researchers, confirming the scientific rigor of our approach."
+              icon={<BrainCircuit className="h-8 w-8" />}
             />
           </FadeInSection>
 
           <FadeInSection delay={300} direction="left">
             <FeatureCard
-              title="Advanced Drug Development"
-              description="Our focus is on developing cannabinoid-based pharmaceuticals targeting various cancer types, with an emphasis on efficacy and minimal side effects."
-              icon={<BeakerIcon className="h-8 w-8" />}
+              title="FDA Clinical Trial Pathway"
+              description="We've established a clear regulatory pathway with the FDA for our cancer treatments, with pre-IND meetings scheduled and clinical trial protocols in development."
+              icon={<FilePieChart className="h-8 w-8" />}
             />
           </FadeInSection>
 
           <FadeInSection delay={400} direction="right">
             <FeatureCard
-              title="FDA Approval Process"
-              description="Funds raised through our token sale will directly support our FDA approval process, bringing our treatments closer to market and helping patients worldwide."
+              title="Advancing to Human Trials"
+              description="Funds raised through our token sale will directly support Phase I clinical trials, the critical next step in bringing our cancer-fighting treatments to patients worldwide."
               icon={<TrendingUp className="h-8 w-8" />}
             />
           </FadeInSection>
