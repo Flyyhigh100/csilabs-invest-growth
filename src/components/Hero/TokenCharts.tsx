@@ -1,0 +1,119 @@
+
+import React from 'react';
+import { Loader2 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { TokenPriceData, TokenVolumeData } from '@/types/token';
+
+// Chart configuration for styling
+const chartConfig = {
+  price: {
+    label: "Price (USD)",
+    theme: {
+      light: "#0BC5EA",
+      dark: "#0BC5EA"
+    }
+  },
+  volume: {
+    label: "Volume",
+    theme: {
+      light: "#1A365D",
+      dark: "#1A365D"
+    }
+  }
+};
+
+// Custom tooltip component that satisfies Recharts' typing requirements
+const CustomTooltip = (props: any) => {
+  if (!props.active || !props.payload || props.payload.length === 0) {
+    return null;
+  }
+  return <ChartTooltipContent {...props} />;
+};
+
+interface PriceChartProps {
+  priceData: TokenPriceData[];
+  isLoading: boolean;
+  hasError: boolean;
+}
+
+export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, hasError }) => {
+  return (
+    <div className="h-48 w-full">
+      {isLoading ? (
+        <div className="h-full w-full flex items-center justify-center">
+          <Loader2 className="h-8 w-8 text-cbis-blue animate-spin" />
+        </div>
+      ) : hasError ? (
+        <div className="h-full w-full flex items-center justify-center text-red-500">
+          Error loading data
+        </div>
+      ) : (
+        <ChartContainer config={chartConfig} className="h-full w-full">
+          <LineChart data={priceData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+            <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+            <YAxis 
+              tickFormatter={(value) => `$${value.toFixed(5)}`}
+              tick={{ fontSize: 10 }}
+              domain={['dataMin', 'dataMax']}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Line 
+              type="monotone" 
+              dataKey="price" 
+              name="price"
+              stroke="#0BC5EA" 
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4 }}
+            />
+          </LineChart>
+        </ChartContainer>
+      )}
+    </div>
+  );
+};
+
+interface VolumeChartProps {
+  volumeData: TokenVolumeData[];
+  isLoading: boolean;
+  hasError: boolean;
+}
+
+export const VolumeChart: React.FC<VolumeChartProps> = ({ volumeData, isLoading, hasError }) => {
+  return (
+    <div className="h-48 w-full">
+      {isLoading ? (
+        <div className="h-full w-full flex items-center justify-center">
+          <Loader2 className="h-8 w-8 text-cbis-blue animate-spin" />
+        </div>
+      ) : hasError ? (
+        <div className="h-full w-full flex items-center justify-center text-red-500">
+          Error loading data
+        </div>
+      ) : (
+        <ChartContainer config={chartConfig} className="h-full w-full">
+          <LineChart data={volumeData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+            <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+            <YAxis 
+              tickFormatter={(value) => value.toLocaleString()}
+              tick={{ fontSize: 10 }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Line 
+              type="monotone" 
+              dataKey="volume" 
+              name="volume"
+              stroke="#1A365D" 
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4 }}
+            />
+          </LineChart>
+        </ChartContainer>
+      )}
+    </div>
+  );
+};
