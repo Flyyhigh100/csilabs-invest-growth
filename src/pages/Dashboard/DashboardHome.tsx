@@ -16,36 +16,36 @@ const DashboardHome = () => {
   const transactions = []; // Mock empty transactions list
 
   const getKycStatusUi = () => {
-    switch (kycStatus) {
-      case 'approved':
-        return {
-          icon: <CheckCircle2 className="h-8 w-8 text-green-500" />,
-          title: 'KYC Verified',
-          description: 'Your identity has been verified successfully.',
-          actionButton: null,
-          color: 'bg-green-50'
-        };
-      case 'rejected':
-        return {
-          icon: <AlertCircle className="h-8 w-8 text-red-500" />,
-          title: 'KYC Rejected',
-          description: 'Your identity verification was rejected. Please try again.',
-          actionButton: (
-            <Button className="w-full mt-4">
-              Resubmit KYC
-            </Button>
-          ),
-          color: 'bg-red-50'
-        };
-      case 'pending':
-      default:
-        return {
-          icon: <Clock className="h-8 w-8 text-amber-500" />,
-          title: 'KYC Pending',
-          description: 'Your identity verification is being processed.',
-          actionButton: null,
-          color: 'bg-amber-50'
-        };
+    // Use a type-safe pattern matching approach
+    if (kycStatus === 'approved') {
+      return {
+        icon: <CheckCircle2 className="h-8 w-8 text-green-500" />,
+        title: 'KYC Verified',
+        description: 'Your identity has been verified successfully.',
+        actionButton: null,
+        color: 'bg-green-50'
+      };
+    } else if (kycStatus === 'rejected') {
+      return {
+        icon: <AlertCircle className="h-8 w-8 text-red-500" />,
+        title: 'KYC Rejected',
+        description: 'Your identity verification was rejected. Please try again.',
+        actionButton: (
+          <Button className="w-full mt-4">
+            Resubmit KYC
+          </Button>
+        ),
+        color: 'bg-red-50'
+      };
+    } else {
+      // Default to pending
+      return {
+        icon: <Clock className="h-8 w-8 text-amber-500" />,
+        title: 'KYC Pending',
+        description: 'Your identity verification is being processed.',
+        actionButton: null,
+        color: 'bg-amber-50'
+      };
     }
   };
 
