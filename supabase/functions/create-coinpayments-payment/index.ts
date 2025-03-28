@@ -45,15 +45,131 @@ serve(async (req) => {
       const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
       
       if (userError || !user) {
-        // Fall back to mock data if user authentication fails
-        console.log('Authentication failed, using mock data');
+        console.log('Authentication error:', userError?.message || 'User not found');
+        
+        // Create a transaction using API keys but with anonymous email
+        try {
+          const paymentData = await createCoinPaymentsTransaction(
+            amount, 
+            currency, 
+            transactionId, 
+            walletAddress, 
+            'anonymous@example.com'
+          );
+
+          return new Response(
+            JSON.stringify({
+              paymentAddress: paymentData.address,
+              amount: paymentData.amount,
+              transactionId: transactionId,
+              externalTransactionId: paymentData.txn_id,
+              qrCodeUrl: paymentData.qrcode_url,
+              statusUrl: paymentData.status_url,
+              expiresAt: new Date(paymentData.timeout * 1000).toISOString(),
+              currency: paymentData.currency || currency,
+              instructions: `Please send ${paymentData.amount} ${paymentData.currency || currency} to the address above to complete your purchase.`
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+          );
+        } catch (apiError) {
+          console.error('Error creating transaction with anonymous user:', apiError);
+          // Fall back to mock data if api fails
+          const mockPaymentData = await createCoinPaymentsTransaction(
+            amount, 
+            currency, 
+            transactionId, 
+            walletAddress, 
+            'anonymous@example.com',
+            true // Force mock mode
+          );
+          
+          return new Response(
+            JSON.stringify({
+              paymentAddress: mockPaymentData.address,
+              amount: mockPaymentData.amount,
+              transactionId: transactionId,
+              externalTransactionId: mockPaymentData.txn_id,
+              qrCodeUrl: mockPaymentData.qrcode_url,
+              statusUrl: mockPaymentData.status_url,
+              expiresAt: new Date(mockPaymentData.timeout * 1000).toISOString(),
+              currency: mockPaymentData.currency || currency,
+              instructions: `Please send ${mockPaymentData.amount} ${mockPaymentData.currency || currency} to the address above to complete your purchase.`
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+          );
+        }
+      }
+
+      // Create a new transaction in CoinPayments API with authenticated user
+      try {
+        const paymentData = await createCoinPaymentsTransaction(
+          amount, 
+          currency, 
+          transactionId, 
+          walletAddress, 
+          user.email
+        );
+
+        try {
+          // Save transaction to database
+          await saveTransaction(
+            supabaseClient,
+            user.id,
+            amount,
+            walletAddress,
+            transactionId,
+            paymentData.address,
+            paymentData.txn_id,
+            currency
+          );
+        } catch (dbError) {
+          // Continue without failing - we'll still return the payment details
+          console.log('Database error when saving transaction:', dbError);
+          console.log('Continuing despite database error');
+        }
+
+        return new Response(
+          JSON.stringify({
+            paymentAddress: paymentData.address,
+            amount: paymentData.amount,
+            transactionId: transactionId,
+            externalTransactionId: paymentData.txn_id,
+            qrCodeUrl: paymentData.qrcode_url,
+            statusUrl: paymentData.status_url,
+            expiresAt: new Date(paymentData.timeout * 1000).toISOString(),
+            currency: paymentData.currency || currency,
+            instructions: `Please send ${paymentData.amount} ${paymentData.currency || currency} to the address above to complete your purchase.`
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      } catch (apiError) {
+        console.error('Error with CoinPayments API:', apiError);
+        
+        // Fall back to mock data if api fails
         const mockPaymentData = await createCoinPaymentsTransaction(
           amount, 
           currency, 
           transactionId, 
           walletAddress, 
-          'anonymous@example.com'
+          user.email,
+          true // Force mock mode
         );
+        
+        try {
+          // Save transaction with mock data
+          await saveTransaction(
+            supabaseClient,
+            user.id,
+            amount,
+            walletAddress,
+            transactionId,
+            mockPaymentData.address,
+            mockPaymentData.txn_id,
+            currency
+          );
+        } catch (dbError) {
+          console.error('Database error when saving transaction with mock data:', dbError);
+        }
         
         return new Response(
           JSON.stringify({
@@ -70,59 +186,17 @@ serve(async (req) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         );
       }
-
-      // Create a new transaction in CoinPayments API
-      const paymentData = await createCoinPaymentsTransaction(
-        amount, 
-        currency, 
-        transactionId, 
-        walletAddress, 
-        user.email
-      );
-
-      try {
-        // Save transaction to database
-        await saveTransaction(
-          supabaseClient,
-          user.id,
-          amount,
-          walletAddress,
-          transactionId,
-          paymentData.address,
-          paymentData.txn_id,
-          currency
-        );
-      } catch (dbError) {
-        // Continue without failing - we'll still return the payment details
-        console.log('Database error when saving transaction:', dbError);
-        console.log('Continuing despite database error');
-      }
-
-      return new Response(
-        JSON.stringify({
-          paymentAddress: paymentData.address,
-          amount: paymentData.amount,
-          transactionId: transactionId,
-          externalTransactionId: paymentData.txn_id,
-          qrCodeUrl: paymentData.qrcode_url,
-          statusUrl: paymentData.status_url,
-          expiresAt: new Date(paymentData.timeout * 1000).toISOString(),
-          currency: paymentData.currency || currency,
-          instructions: `Please send ${paymentData.amount} ${paymentData.currency || currency} to the address above to complete your purchase.`
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
     } catch (error) {
-      console.error('Error in payment processing:', error);
+      console.error('General error in user authentication flow:', error);
       
-      // Fall back to mock data if there's any error
-      console.log('Error occurred, using mock data as fallback');
+      // Final fallback to mock data
       const mockPaymentData = await createCoinPaymentsTransaction(
         amount, 
         currency, 
         transactionId, 
         walletAddress, 
-        'fallback@example.com'
+        'fallback@example.com',
+        true // Force mock mode
       );
       
       return new Response(

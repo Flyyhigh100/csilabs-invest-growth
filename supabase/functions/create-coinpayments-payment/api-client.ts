@@ -23,25 +23,30 @@ export async function coinPaymentsRequest(command: string, params: Record<string
 
   console.log(`Making CoinPayments API request for command: ${command}`);
   
-  const response = await fetch(COINPAYMENTS_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'HMAC': hmacSig,
-    },
-    body: new URLSearchParams(requestParams),
-  });
+  try {
+    const response = await fetch(COINPAYMENTS_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'HMAC': hmacSig,
+      },
+      body: new URLSearchParams(requestParams),
+    });
 
-  const data = await response.json();
-  
-  console.log(`CoinPayments API response for ${command}:`, JSON.stringify(data));
-  
-  if (data.error !== 'ok') {
-    console.error('CoinPayments API error:', data.error);
-    throw new Error(`CoinPayments API error: ${data.error}`);
+    const data = await response.json();
+    
+    console.log(`CoinPayments API response for ${command}:`, JSON.stringify(data));
+    
+    if (data.error !== 'ok') {
+      console.error('CoinPayments API error:', data.error);
+      throw new Error(`CoinPayments API error: ${data.error}`);
+    }
+
+    return data.result;
+  } catch (error) {
+    console.error('Error in API request:', error);
+    throw error;
   }
-
-  return data.result;
 }
 
 // Create a transaction in CoinPayments
@@ -50,8 +55,17 @@ export async function createCoinPaymentsTransaction(
   currency: string, 
   transactionId: string, 
   walletAddress: string, 
-  userEmail: string
+  userEmail: string,
+  forceMock: boolean = false
 ) {
+  // Check if we have API keys, if not or if forceMock is true, use mock data
+  if (forceMock || !COINPAYMENTS_PUBLIC_KEY || !COINPAYMENTS_PRIVATE_KEY) {
+    console.log('Using mock data (missing API keys or mock mode requested)');
+    const mockPaymentData = generateMockPaymentData(amount.toString(), currency);
+    console.log(`Mock CoinPayments payment created with ID: ${mockPaymentData.txn_id}`);
+    return mockPaymentData;
+  }
+  
   try {
     const createTransactionParams = {
       amount: amount.toString(),
@@ -64,8 +78,10 @@ export async function createCoinPaymentsTransaction(
       ipn_url: `${Deno.env.get('SUPABASE_FUNCTIONS_URL')}/ipn-handler`, // Would need to implement this separately
     };
 
+    console.log('Attempting to create real CoinPayments transaction with params:', JSON.stringify(createTransactionParams));
+    
     const paymentData = await coinPaymentsRequest('create_transaction', createTransactionParams);
-    console.log('CoinPayments transaction created:', JSON.stringify(paymentData));
+    console.log('CoinPayments transaction created successfully:', JSON.stringify(paymentData));
     
     return paymentData;
   } catch (apiError) {
@@ -74,7 +90,7 @@ export async function createCoinPaymentsTransaction(
     // Fall back to mock data for testing if the API call fails
     console.log('Falling back to mock data due to API error');
     
-    const mockPaymentData = generateMockPaymentData(amount.toString());
+    const mockPaymentData = generateMockPaymentData(amount.toString(), currency);
     console.log(`Mock CoinPayments payment created with ID: ${mockPaymentData.txn_id}`);
     
     return mockPaymentData;

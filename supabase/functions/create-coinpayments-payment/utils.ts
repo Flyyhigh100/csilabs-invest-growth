@@ -54,9 +54,17 @@ export function generateMockPaymentData(amount: string, currencyCode: string = '
       mockAddress = `bc1${Array.from({length: 38}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
       break;
     case 'ETH':
-    case 'USDT': // For ERC-20 tokens
       // Ethereum style address
       mockAddress = `0x${Array.from({length: 40}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
+      break;
+    case 'USDT': 
+      if (Math.random() > 0.5) {
+        // ERC-20 Ethereum token address style
+        mockAddress = `0x${Array.from({length: 40}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
+      } else {
+        // TRC-20 Tron token address style
+        mockAddress = `T${Array.from({length: 33}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
+      }
       break;
     case 'DOGE':
       // Dogecoin style address
