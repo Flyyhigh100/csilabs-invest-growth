@@ -10,11 +10,14 @@ import TokenInfo from "./pages/TokenInfo";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // Auth pages
 import Login from "./pages/Auth/Login";
 import RegisterAuth from "./pages/Auth/Register";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
+import ResetPassword from "./pages/Auth/ResetPassword";
 
 // Dashboard pages
 import DashboardHome from "./pages/Dashboard/DashboardHome";
@@ -26,30 +29,54 @@ const App = () => {
   
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/token-info" element={<TokenInfo />} />
-            <Route path="/register" element={<Register />} />
-            
-            {/* Auth Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<RegisterAuth />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            
-            {/* Dashboard Routes */}
-            <Route path="/dashboard" element={<DashboardHome />} />
-            <Route path="/dashboard/kyc" element={<KYCVerification />} />
-            <Route path="/dashboard/*" element={<Dashboard />} />
-            
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/token-info" element={<TokenInfo />} />
+              <Route path="/register" element={<Register />} />
+              
+              {/* Auth Routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<RegisterAuth />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              
+              {/* Protected Dashboard Routes */}
+              <Route 
+                path="/dashboard" 
+                element={
+                  <ProtectedRoute>
+                    <DashboardHome />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/kyc" 
+                element={
+                  <ProtectedRoute>
+                    <KYCVerification />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/*" 
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </TooltipProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 };

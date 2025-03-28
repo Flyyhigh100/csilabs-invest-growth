@@ -1,69 +1,97 @@
 
-import React, { useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
+import { Eye, EyeOff, Lock, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
-const registerSchema = z.object({
-  firstName: z.string().min(2, { message: "First name must be at least 2 characters" }),
-  lastName: z.string().min(2, { message: "Last name must be at least 2 characters" }),
-  email: z.string().email({ message: "Please enter a valid email address" }),
+const resetPasswordSchema = z.object({
   password: z.string().min(8, { message: "Password must be at least 8 characters" }),
-  confirmPassword: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  confirmPassword: z.string().min(8, { message: "Confirm password must be at least 8 characters" }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
 });
 
-type RegisterFormValues = z.infer<typeof registerSchema>;
+type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
-const Register = () => {
-  const { signUp, user } = useAuth();
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+const ResetPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
+  const navigate = useNavigate();
 
-  const form = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
+  const form = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
       password: "",
       confirmPassword: "",
     },
   });
+  
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // If user is already logged in, redirect to dashboard
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  // Parse the URL to check for hash parameters
+  useEffect(() => {
+    // This effect will check if we have an access token in the URL
+    // If not, we'll redirect to the login page
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    if (!hashParams.get('access_token')) {
+      toast.error("Invalid or expired password reset link");
+      navigate('/login');
+    }
+  }, [navigate]);
 
-  // If registration is complete, show success message
-  if (registrationComplete) {
+  const onSubmit = async (values: ResetPasswordFormValues) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: values.password
+      });
+      
+      if (error) throw error;
+      
+      setIsComplete(true);
+      toast.success("Your password has been successfully reset.");
+      
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to reset password");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isComplete) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-50 to-blue-100 p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">
-              Registration Successful!
+              Password Reset Complete
             </CardTitle>
             <CardDescription className="text-center">
-              Please check your email to verify your account. Once verified, you can log in with your credentials.
+              Your password has been successfully reset. You will be redirected to the login page shortly.
             </CardDescription>
           </CardHeader>
-          <CardFooter className="flex justify-center pt-4">
-            <Button asChild>
-              <Link to="/login">Go to Login</Link>
+          <CardContent className="flex justify-center py-6">
+            <div className="rounded-full bg-green-100 w-20 h-20 flex items-center justify-center">
+              <CheckCircle className="h-10 w-10 text-green-600" />
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <Button onClick={() => navigate('/login')}>
+              Go to Login
             </Button>
           </CardFooter>
         </Card>
@@ -71,101 +99,26 @@ const Register = () => {
     );
   }
 
-  const onSubmit = async (values: RegisterFormValues) => {
-    setIsLoading(true);
-    try {
-      await signUp(values.email, values.password, values.firstName, values.lastName);
-      setRegistrationComplete(true);
-    } catch (error) {
-      console.error("Registration error:", error);
-      // Error already handled in signUp function
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-50 to-blue-100 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
-            Create an Account
+            Reset Your Password
           </CardTitle>
           <CardDescription className="text-center">
-            Enter your details to create a CSi Labs account
+            Enter your new password below
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>First Name</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                          <Input 
-                            placeholder="John" 
-                            className="pl-10" 
-                            {...field} 
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last Name</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                          <Input 
-                            placeholder="Doe" 
-                            className="pl-10" 
-                            {...field} 
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                        <Input 
-                          placeholder="name@example.com" 
-                          className="pl-10" 
-                          {...field} 
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <FormField
                 control={form.control}
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>New Password</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
@@ -199,7 +152,7 @@ const Register = () => {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
+                    <FormLabel>Confirm New Password</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
@@ -233,22 +186,14 @@ const Register = () => {
                 className="w-full bg-gradient-to-r from-cbis-blue to-cbis-teal text-white"
                 disabled={isLoading}
               >
-                {isLoading ? "Creating Account..." : "Create Account"}
+                {isLoading ? "Resetting Password..." : "Reset Password"}
               </Button>
             </form>
           </Form>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
-          <div className="text-center text-sm">
-            Already have an account?{" "}
-            <Link to="/login" className="text-cbis-blue font-medium hover:underline">
-              Sign in
-            </Link>
-          </div>
-        </CardFooter>
       </Card>
     </div>
   );
 };
 
-export default Register;
+export default ResetPassword;

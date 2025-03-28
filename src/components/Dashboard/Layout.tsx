@@ -1,6 +1,6 @@
 
-import React, { ReactNode, useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { ReactNode } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   User, 
   LogOut, 
@@ -18,7 +18,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -27,33 +28,16 @@ interface DashboardLayoutProps {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [user, setUser] = useState<{ email?: string; role?: string } | null>(null);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   
-  useEffect(() => {
-    // Check if user is logged in
-    const userInfo = localStorage.getItem('user');
-    if (!userInfo) {
-      navigate('/login');
-      return;
-    }
-    
+  const handleLogout = async () => {
     try {
-      setUser(JSON.parse(userInfo));
-    } catch (e) {
-      localStorage.removeItem('user');
-      navigate('/login');
+      await signOut();
+      // Navigation handled in auth context
+    } catch (error) {
+      console.error("Logout error:", error);
     }
-  }, [navigate]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    });
-    navigate('/login');
   };
 
   const getInitials = (email?: string) => {

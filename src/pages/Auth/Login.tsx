@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -19,7 +20,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
-  const navigate = useNavigate();
+  const { signIn, user } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -31,22 +32,19 @@ const Login = () => {
     },
   });
 
+  // If user is already logged in, redirect to dashboard
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual authentication logic
-      console.log("Login attempt:", values);
-      
-      // Simulate login success (remove when real auth is implemented)
-      setTimeout(() => {
-        // Mock successful login
-        localStorage.setItem('user', JSON.stringify({ email: values.email, role: 'user' }));
-        toast.success("Login successful! Redirecting to dashboard...");
-        navigate('/dashboard');
-      }, 1500);
+      await signIn(values.email, values.password);
+      // No need to navigate here as it's handled in AuthContext
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("Login failed. Please check your credentials and try again.");
+      // Error is already handled in the signIn function
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +139,7 @@ const Login = () => {
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-center text-sm">
             Don't have an account?{" "}
-            <Link to="/register" className="text-cbis-blue font-medium hover:underline">
+            <Link to="/signup" className="text-cbis-blue font-medium hover:underline">
               Sign up
             </Link>
           </div>

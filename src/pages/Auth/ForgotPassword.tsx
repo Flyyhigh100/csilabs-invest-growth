@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -18,6 +19,7 @@ const forgotPasswordSchema = z.object({
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
 const ForgotPassword = () => {
+  const { resetPassword, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
@@ -28,20 +30,20 @@ const ForgotPassword = () => {
     },
   });
 
+  // If user is already logged in, redirect to dashboard
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   const onSubmit = async (values: ForgotPasswordFormValues) => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual password reset logic
-      console.log("Reset password for:", values.email);
-      
-      // Simulate password reset email
-      setTimeout(() => {
-        setEmailSent(true);
-        toast.success("Password reset instructions have been sent to your email.");
-      }, 1500);
+      await resetPassword(values.email);
+      setEmailSent(true);
+      toast.success("Password reset instructions have been sent to your email.");
     } catch (error) {
       console.error("Password reset error:", error);
-      toast.error("Failed to send password reset email. Please try again later.");
+      // Error already handled in resetPassword function
     } finally {
       setIsLoading(false);
     }
