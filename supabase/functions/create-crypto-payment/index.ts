@@ -42,6 +42,8 @@ serve(async (req) => {
       throw new Error('Error getting user or user not found');
     }
 
+    console.log(`Creating crypto payment for user ${user.id}, amount: $${amount}`);
+
     // For testing purposes, we'll simulate a crypto payment process
     // In production, you would integrate with a real crypto payment processor
     
@@ -67,6 +69,8 @@ serve(async (req) => {
       console.error('Error inserting transaction record:', insertError);
       throw new Error('Failed to record transaction');
     }
+
+    console.log(`Crypto payment created: ${transactionId}`);
 
     return new Response(
       JSON.stringify({ 

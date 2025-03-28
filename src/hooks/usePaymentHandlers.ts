@@ -50,9 +50,9 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
       } else {
         throw new Error("No checkout URL received");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating Stripe checkout:", error);
-      toast.error("Failed to create payment session. Please try again.");
+      toast.error(error.message || "Failed to create payment session. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -73,6 +73,10 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
         throw new Error(error.message || "Failed to create crypto payment");
       }
       
+      if (!data) {
+        throw new Error("No payment data received");
+      }
+      
       setCryptoPaymentDetails({
         paymentAddress: data.paymentAddress,
         transactionId: data.transactionId,
@@ -80,9 +84,10 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
       });
       
       setShowCryptoDialog(true);
-    } catch (error) {
+      toast.success("Crypto payment details generated");
+    } catch (error: any) {
       console.error("Error creating crypto payment:", error);
-      toast.error("Failed to create crypto payment. Please try again.");
+      toast.error(error.message || "Failed to create crypto payment. Please try again.");
     } finally {
       setIsProcessing(false);
     }
