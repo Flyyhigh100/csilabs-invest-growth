@@ -1,120 +1,102 @@
+import React from 'react';
+import {
+  createBrowserRouter,
+  RouterProvider,
+} from "react-router-dom";
+import Index from "@/pages/Index";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import Dashboard from "@/pages/Dashboard";
+import Payments from "@/pages/Dashboard/Payments";
+import Transactions from "@/pages/Dashboard/Transactions";
+import Kyc from "@/pages/Dashboard/Kyc";
+import ResetPassword from './pages/ResetPassword';
+import NotFound from './pages/NotFound';
+import { AuthProvider } from '@/contexts/AuthContext';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import ProtectedAdminRoute from './components/Admin/ProtectedAdminRoute';
+import AdminDashboard from './pages/Admin/Dashboard';
+import AdminTransactions from './pages/Admin/Transactions'; 
+import AdminUsers from './pages/Admin/Users';
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import React from "react";
-import Index from "./pages/Index";
-import TokenInfo from "./pages/TokenInfo";
-import Dashboard from "./pages/Dashboard";
-import NotFound from "./pages/NotFound";
-import { AuthProvider } from "./contexts/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
-
-// Auth pages
-import Login from "./pages/Auth/Login";
-import RegisterAuth from "./pages/Auth/Register";
-import ForgotPassword from "./pages/Auth/ForgotPassword";
-import ResetPassword from "./pages/Auth/ResetPassword";
-
-// Dashboard pages
-import DashboardHome from "./pages/Dashboard/DashboardHome";
-import KYCVerification from "./pages/Dashboard/KYCVerification";
-import Transactions from "./pages/Dashboard/Transactions";
-import Documents from "./pages/Dashboard/Documents";
-import Profile from "./pages/Dashboard/Profile";
-import Payments from "./pages/Dashboard/Payments";
-
-// Create a new QueryClient instance inside the component to ensure it's created in the React component tree
-const App = () => {
-  const queryClient = new QueryClient();
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Index />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: "/login",
+    element: <Login />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: "/register",
+    element: <Register />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPassword />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: "/dashboard",
+    element: (
+      <ProtectedRoute>
+        <Dashboard />
+      </ProtectedRoute>
+    ),
+    errorElement: <NotFound />,
+    children: [
+      {
+        path: "/dashboard/payments",
+        element: <Payments />,
+      },
+      {
+        path: "/dashboard/transactions",
+        element: <Transactions />,
+      },
+      {
+        path: "/dashboard/kyc",
+        element: <Kyc />,
+      },
+    ],
+  },
   
+  // Admin routes
+  {
+    path: "/admin",
+    element: (
+      <ProtectedAdminRoute>
+        <AdminDashboard />
+      </ProtectedAdminRoute>
+    ),
+  },
+  {
+    path: "/admin/transactions",
+    element: (
+      <ProtectedAdminRoute>
+        <AdminTransactions />
+      </ProtectedAdminRoute>
+    ),
+  },
+  {
+    path: "/admin/users",
+    element: (
+      <ProtectedAdminRoute>
+        <AdminUsers />
+      </ProtectedAdminRoute>
+    ),
+  },
+]);
+
+function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/token-info" element={<TokenInfo />} />
-              {/* Redirect from old /register to new /signup */}
-              <Route path="/register" element={<Navigate to="/signup" replace />} />
-              
-              {/* Auth Routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<RegisterAuth />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              
-              {/* Protected Dashboard Routes */}
-              <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <DashboardHome />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/dashboard/kyc" 
-                element={
-                  <ProtectedRoute>
-                    <KYCVerification />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/dashboard/transactions" 
-                element={
-                  <ProtectedRoute>
-                    <Transactions />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/dashboard/payments" 
-                element={
-                  <ProtectedRoute>
-                    <Payments />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/dashboard/documents" 
-                element={
-                  <ProtectedRoute>
-                    <Documents />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/dashboard/profile" 
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/dashboard/*" 
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </TooltipProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   );
-};
+}
 
 export default App;

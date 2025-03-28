@@ -72,6 +72,42 @@ serve(async (req) => {
 
     console.log(`Crypto payment created: ${transactionId}`);
 
+    // Send notification to CEO about the new transaction
+    try {
+      // Get user profile information
+      const { data: profileData } = await supabaseClient
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single();
+      
+      const userName = profileData ? `${profileData.first_name} ${profileData.last_name}` : 'Unknown User';
+      
+      // Call the transaction alert function
+      await fetch(
+        `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transaction-alert`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+          },
+          body: JSON.stringify({
+            transactionId,
+            amount,
+            walletAddress,
+            paymentMethod: 'crypto',
+            status: 'pending',
+            email: user.email,
+            name: userName
+          }),
+        }
+      );
+    } catch (notificationError) {
+      // Don't fail the transaction if notification fails
+      console.error('Error sending transaction notification:', notificationError);
+    }
+
     return new Response(
       JSON.stringify({ 
         paymentAddress: paymentAddress,
