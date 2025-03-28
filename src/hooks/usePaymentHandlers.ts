@@ -11,6 +11,7 @@ type CryptoPaymentDetails = {
   statusUrl?: string;
   expiresAt?: string;
   externalTransactionId?: string;
+  currency?: string;
 } | null;
 
 export const usePaymentHandlers = (walletAddress: string | null) => {
@@ -84,7 +85,8 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
       setCryptoPaymentDetails({
         paymentAddress: data.paymentAddress,
         transactionId: data.transactionId,
-        instructions: data.instructions
+        instructions: data.instructions,
+        currency: 'USDC'
       });
       
       setShowCryptoDialog(true);
@@ -97,14 +99,14 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
     }
   };
 
-  const handleCoinPaymentsPayment = async (amount: number) => {
+  const handleCoinPaymentsPayment = async (amount: number, currency: string = 'USDT') => {
     if (!validatePaymentRequest(amount)) return;
     
     setIsProcessing(true);
     
     try {
       const { data, error } = await supabase.functions.invoke('create-coinpayments-payment', {
-        body: { amount, walletAddress }
+        body: { amount, walletAddress, currency }
       });
       
       if (error) {
@@ -123,7 +125,8 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
         qrCodeUrl: data.qrCodeUrl,
         statusUrl: data.statusUrl,
         expiresAt: data.expiresAt,
-        externalTransactionId: data.externalTransactionId
+        externalTransactionId: data.externalTransactionId,
+        currency: data.currency || currency
       });
       
       setShowCryptoDialog(true);

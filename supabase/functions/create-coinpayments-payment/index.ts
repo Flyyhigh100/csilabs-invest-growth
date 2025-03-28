@@ -90,7 +90,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Creating CoinPayments payment for amount: $${amount}, wallet: ${walletAddress}`);
+    console.log(`Creating CoinPayments payment for amount: $${amount}, wallet: ${walletAddress}, currency: ${currency}`);
     
     // Create Supabase client to record the transaction
     const supabaseClient = createClient(
@@ -116,7 +116,7 @@ serve(async (req) => {
       amount: amount.toString(),
       txn_id: `CP${Date.now()}`,
       timeout: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
-      qrcode_url: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=ethereum:0x${Array.from({length: 40}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`,
+      qrcode_url: `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=ethereum:0x${Array.from({length: 40}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`,
       status_url: `https://www.coinpayments.net/index.php?cmd=status&id=CP${Date.now()}`
     };
     
@@ -168,6 +168,7 @@ serve(async (req) => {
         qrCodeUrl: paymentData.qrcode_url,
         statusUrl: paymentData.status_url,
         expiresAt: new Date(paymentData.timeout * 1000).toISOString(),
+        currency: currency,
         instructions: `Please send ${paymentData.amount} ${currency} to the address above to complete your purchase.`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }

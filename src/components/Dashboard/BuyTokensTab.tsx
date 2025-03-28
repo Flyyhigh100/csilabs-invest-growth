@@ -4,6 +4,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Info, CreditCard, Wallet, CreditCardIcon } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import PaymentOption from './PaymentOption';
 import PurchaseAmountInput from './PurchaseAmountInput';
 import ProcessingIndicator from './ProcessingIndicator';
@@ -16,6 +18,8 @@ interface BuyTokensTabProps {
 
 const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
   const [amount, setAmount] = useState<number>(100);
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("USDT");
+  
   const {
     isProcessing,
     showCryptoDialog,
@@ -40,6 +44,10 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
     }
     return null;
   };
+  
+  const handleCoinPaymentWithCurrency = () => {
+    handleCoinPaymentsPayment(amount, selectedCurrency);
+  };
 
   return (
     <>
@@ -61,6 +69,27 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
                 onChange={setAmount} 
                 disabled={isProcessing} 
               />
+              
+              <div className="space-y-2">
+                <Label htmlFor="crypto-currency">Cryptocurrency (for CoinPayments)</Label>
+                <Select
+                  value={selectedCurrency}
+                  onValueChange={setSelectedCurrency}
+                  disabled={isProcessing}
+                >
+                  <SelectTrigger id="crypto-currency" className="w-full">
+                    <SelectValue placeholder="Select cryptocurrency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USDT">USDT (Tether)</SelectItem>
+                    <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
+                    <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
+                    <SelectItem value="USDC">USD Coin (USDC)</SelectItem>
+                    <SelectItem value="DOGE">Dogecoin (DOGE)</SelectItem>
+                    <SelectItem value="XRP">Ripple (XRP)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             
               <PaymentOption 
                 title="Credit/Debit Card" 
@@ -73,9 +102,9 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
               
               <PaymentOption 
                 title="CoinPayments" 
-                description="Pay with multiple cryptocurrencies including BTC, ETH, USDT and more"
+                description={`Pay with multiple cryptocurrencies including ${selectedCurrency} and more`}
                 icon={<CreditCardIcon className="h-6 w-6 text-cbis-blue" />}
-                onClick={() => handleCoinPaymentsPayment(amount)}
+                onClick={handleCoinPaymentWithCurrency}
                 disabled={isProcessing}
               />
               
