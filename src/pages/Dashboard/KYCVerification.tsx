@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { useKycVerification } from '@/hooks/useKycVerification';
+import { useKycVerification, KycFormData } from '@/hooks/useKycVerification';
 import PersonalInfoForm, { PersonalInfoValues } from '@/components/KYC/PersonalInfoForm';
 import DocumentVerification from '@/components/KYC/DocumentVerification';
 import VerificationStatus from '@/components/KYC/VerificationStatus';
@@ -35,7 +35,19 @@ const KYCVerification = () => {
 
   const handlePersonalInfoSubmit = async (values: PersonalInfoValues) => {
     try {
-      await savePersonalInfo.mutateAsync(values);
+      // Ensure all required fields are present and convert to KycFormData type
+      const formData: KycFormData = {
+        first_name: values.first_name,
+        last_name: values.last_name,
+        date_of_birth: values.date_of_birth,
+        nationality: values.nationality,
+        address: values.address,
+        city: values.city,
+        postal_code: values.postal_code,
+        country: values.country
+      };
+      
+      await savePersonalInfo.mutateAsync(formData);
       setActiveTab("document-verification");
     } catch (error) {
       toast.error("Failed to save personal information");
