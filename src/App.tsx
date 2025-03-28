@@ -19,34 +19,52 @@ import ProtectedAdminRoute from './components/Admin/ProtectedAdminRoute';
 import AdminDashboard from './pages/Admin/Dashboard';
 import AdminTransactions from './pages/Admin/Transactions'; 
 import AdminUsers from './pages/Admin/Users';
+import ForgotPassword from './pages/Auth/ForgotPassword';
 
+// We'll create a root layout component that includes the AuthProvider
+const RootLayout = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <AuthProvider>
+      {children}
+    </AuthProvider>
+  );
+};
+
+// Then we'll create routes that use this layout
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Index />,
+    element: <RootLayout><Index /></RootLayout>,
     errorElement: <NotFound />,
   },
   {
     path: "/login",
-    element: <Login />,
+    element: <RootLayout><Login /></RootLayout>,
     errorElement: <NotFound />,
   },
   {
     path: "/register",
-    element: <Register />,
+    element: <RootLayout><Register /></RootLayout>,
     errorElement: <NotFound />,
   },
   {
     path: "/reset-password",
-    element: <ResetPassword />,
+    element: <RootLayout><ResetPassword /></RootLayout>,
+    errorElement: <NotFound />,
+  },
+  {
+    path: "/forgot-password",
+    element: <RootLayout><ForgotPassword /></RootLayout>,
     errorElement: <NotFound />,
   },
   {
     path: "/dashboard",
     element: (
-      <ProtectedRoute>
-        <Dashboard />
-      </ProtectedRoute>
+      <RootLayout>
+        <ProtectedRoute>
+          <Dashboard />
+        </ProtectedRoute>
+      </RootLayout>
     ),
     errorElement: <NotFound />,
     children: [
@@ -69,35 +87,37 @@ const router = createBrowserRouter([
   {
     path: "/admin",
     element: (
-      <ProtectedAdminRoute>
-        <AdminDashboard />
-      </ProtectedAdminRoute>
+      <RootLayout>
+        <ProtectedAdminRoute>
+          <AdminDashboard />
+        </ProtectedAdminRoute>
+      </RootLayout>
     ),
   },
   {
     path: "/admin/transactions",
     element: (
-      <ProtectedAdminRoute>
-        <AdminTransactions />
-      </ProtectedAdminRoute>
+      <RootLayout>
+        <ProtectedAdminRoute>
+          <AdminTransactions />
+        </ProtectedAdminRoute>
+      </RootLayout>
     ),
   },
   {
     path: "/admin/users",
     element: (
-      <ProtectedAdminRoute>
-        <AdminUsers />
-      </ProtectedAdminRoute>
+      <RootLayout>
+        <ProtectedAdminRoute>
+          <AdminUsers />
+        </ProtectedAdminRoute>
+      </RootLayout>
     ),
   },
 ]);
 
 function App() {
-  return (
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;
