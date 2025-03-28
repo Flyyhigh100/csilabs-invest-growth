@@ -74,8 +74,8 @@ serve(async (req) => {
       },
     });
 
-    // Log the transaction in your database (optional but recommended)
-    await supabaseClient.from('transactions').insert({
+    // Log the transaction in your database
+    const { error: insertError } = await supabaseClient.from('transactions').insert({
       user_id: user.id,
       amount: amount,
       wallet_address: walletAddress,
@@ -83,6 +83,11 @@ serve(async (req) => {
       status: 'pending',
       transaction_id: session.id,
     });
+
+    if (insertError) {
+      console.error('Error inserting transaction record:', insertError);
+      throw new Error('Failed to record transaction');
+    }
 
     return new Response(
       JSON.stringify({ url: session.url }),

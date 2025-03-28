@@ -52,8 +52,8 @@ serve(async (req) => {
     // Generate a unique transaction ID
     const transactionId = crypto.randomUUID();
 
-    // Log the transaction in your database
-    await supabaseClient.from('transactions').insert({
+    // Log the transaction in the transactions table
+    const { error: insertError } = await supabaseClient.from('transactions').insert({
       user_id: user.id,
       amount: amount,
       wallet_address: walletAddress,
@@ -62,6 +62,11 @@ serve(async (req) => {
       transaction_id: transactionId,
       payment_address: paymentAddress
     });
+
+    if (insertError) {
+      console.error('Error inserting transaction record:', insertError);
+      throw new Error('Failed to record transaction');
+    }
 
     return new Response(
       JSON.stringify({ 
