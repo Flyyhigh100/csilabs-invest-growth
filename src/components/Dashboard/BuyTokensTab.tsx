@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Info, CreditCard, Wallet, CreditCardIcon } from 'lucide-react';
+import { Info, CreditCard, CreditCardIcon } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,6 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
     setShowCryptoDialog,
     cryptoPaymentDetails,
     handleStripePayment,
-    handleCryptoPayment,
     handleCoinPaymentsPayment
   } = usePaymentHandlers(walletAddress);
 
@@ -105,14 +104,6 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
                 description={`Pay with multiple cryptocurrencies including ${selectedCurrency} and more`}
                 icon={<CreditCardIcon className="h-6 w-6 text-cbis-blue" />}
                 onClick={handleCoinPaymentWithCurrency}
-                disabled={isProcessing}
-              />
-              
-              <PaymentOption 
-                title="USDC on Polygon" 
-                description="Pay with USDC directly on the Polygon network"
-                icon={<Wallet className="h-6 w-6 text-cbis-blue" />}
-                onClick={() => handleCryptoPayment(amount)}
                 disabled={isProcessing}
               />
               

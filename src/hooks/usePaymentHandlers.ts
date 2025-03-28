@@ -62,42 +62,6 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
       setIsProcessing(false);
     }
   };
-  
-  const handleCryptoPayment = async (amount: number) => {
-    if (!validatePaymentRequest(amount)) return;
-    
-    setIsProcessing(true);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('create-crypto-payment', {
-        body: { amount, walletAddress }
-      });
-      
-      if (error) {
-        console.error("Crypto payment error:", error);
-        throw new Error(error.message || "Failed to create crypto payment");
-      }
-      
-      if (!data) {
-        throw new Error("No payment data received");
-      }
-      
-      setCryptoPaymentDetails({
-        paymentAddress: data.paymentAddress,
-        transactionId: data.transactionId,
-        instructions: data.instructions,
-        currency: 'USDC'
-      });
-      
-      setShowCryptoDialog(true);
-      toast.success("Crypto payment details generated");
-    } catch (error: any) {
-      console.error("Error creating crypto payment:", error);
-      toast.error(error.message || "Failed to create crypto payment. Please try again.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   const handleCoinPaymentsPayment = async (amount: number, currency: string = 'USDT') => {
     if (!validatePaymentRequest(amount)) return;
@@ -145,7 +109,6 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
     setShowCryptoDialog,
     cryptoPaymentDetails,
     handleStripePayment,
-    handleCryptoPayment,
     handleCoinPaymentsPayment
   };
 };
