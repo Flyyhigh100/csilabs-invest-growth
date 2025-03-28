@@ -22,6 +22,7 @@ import AdminDashboard from './pages/Admin/Dashboard';
 import AdminTransactions from './pages/Admin/Transactions'; 
 import AdminUsers from './pages/Admin/Users';
 import ForgotPassword from './pages/Auth/ForgotPassword';
+import TokenInfo from './pages/TokenInfo';
 
 // We'll create a root layout component that includes the AuthProvider and QueryClientProvider
 const RootLayout = ({ children }: { children: React.ReactNode }) => {
@@ -49,6 +50,11 @@ const router = createBrowserRouter([
   {
     path: "/register",
     element: <RootLayout><Register /></RootLayout>,
+    errorElement: <NotFound />,
+  },
+  {
+    path: "/token-info",
+    element: <RootLayout><TokenInfo /></RootLayout>,
     errorElement: <NotFound />,
   },
   {
