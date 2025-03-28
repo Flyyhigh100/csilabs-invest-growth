@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Info, ExternalLink, Copy, CheckCircle } from 'lucide-react';
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from 'sonner';
 
@@ -46,9 +45,10 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
     : null;
     
   const isExpired = expiryDate ? new Date() > expiryDate : false;
-  // Use the selected currency from props, fallback to the one from paymentDetails if available
-  const currency = selectedCurrency || paymentDetails.currency || 'USDT';
-  const networkName = currency === 'LTCT' ? 'Litecoin Testnet' : 'Polygon';
+  
+  // Use the currency from paymentDetails if available, otherwise fall back to the selectedCurrency from props
+  const currency = paymentDetails.currency || selectedCurrency;
+  const networkName = getNetworkForCurrency(currency);
   
   const handleCopyAddress = () => {
     if (paymentDetails.paymentAddress) {
@@ -64,6 +64,25 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
         });
     }
   };
+  
+  // Helper function to determine the network name based on the currency
+  function getNetworkForCurrency(currencyCode: string): string {
+    switch (currencyCode) {
+      case 'BTC':
+        return 'Bitcoin';
+      case 'ETH':
+        return 'Ethereum';
+      case 'DOGE':
+        return 'Dogecoin';
+      case 'XRP':
+        return 'Ripple';
+      case 'LTCT':
+        return 'Litecoin Testnet';
+      case 'USDT':
+      default:
+        return 'Polygon';
+    }
+  }
   
   return (
     <>
@@ -130,7 +149,7 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
               <Info className="h-5 w-5" />
               <AlertTitle>Important</AlertTitle>
               <AlertDescription>
-                {paymentDetails.instructions}
+                {paymentDetails.instructions || `Please send ${amount} ${currency} to the address above to complete your purchase.`}
               </AlertDescription>
             </Alert>
             
