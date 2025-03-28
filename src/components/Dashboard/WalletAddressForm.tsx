@@ -21,14 +21,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
-// Define the schema for wallet address validation
+// Define the schema for wallet address validation - only ERC-20 addresses
 const walletFormSchema = z.object({
   walletAddress: z
     .string()
-    .min(26, { message: "Wallet address is too short" })
-    .max(128, { message: "Wallet address is too long" })
-    .regex(/^(0x[a-fA-F0-9]{40}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})$/, {
-      message: "Please enter a valid Ethereum or Bitcoin wallet address",
+    .min(42, { message: "ERC-20 wallet address must be 42 characters long" })
+    .max(42, { message: "ERC-20 wallet address must be 42 characters long" })
+    .regex(/^0x[a-fA-F0-9]{40}$/, {
+      message: "Please enter a valid ERC-20 wallet address (starting with 0x)",
     }),
 });
 
@@ -82,10 +82,10 @@ const WalletAddressForm = ({ existingWalletAddress, onWalletUpdated }: {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Wallet className="h-5 w-5" />
-          Token Wallet Address
+          Polygon Wallet Address
         </CardTitle>
         <CardDescription>
-          Enter the wallet address where you want to receive your CSi tokens
+          Enter the ERC-20 wallet address where you want to receive your CSi tokens on the Polygon network
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -96,12 +96,12 @@ const WalletAddressForm = ({ existingWalletAddress, onWalletUpdated }: {
               name="walletAddress"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Wallet Address</FormLabel>
+                  <FormLabel>ERC-20 Wallet Address</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your ERC20 or BTC wallet address" {...field} />
+                    <Input placeholder="Enter your ERC-20 wallet address (0x...)" {...field} />
                   </FormControl>
                   <FormDescription>
-                    This address will be used to send your purchased CSi tokens
+                    This address will be used to send your purchased CSi tokens on the Polygon network
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -115,7 +115,7 @@ const WalletAddressForm = ({ existingWalletAddress, onWalletUpdated }: {
       </CardContent>
       <CardFooter className="flex flex-col items-start text-sm text-muted-foreground">
         <p>
-          Make sure you enter the correct wallet address. Transactions sent to incorrect addresses cannot be recovered.
+          Make sure to enter a valid ERC-20 wallet address that supports the Polygon network. Transactions sent to incorrect addresses cannot be recovered.
         </p>
       </CardFooter>
     </Card>

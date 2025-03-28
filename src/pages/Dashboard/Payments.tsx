@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, CreditCard, Bitcoin, ChevronRight, Info, Check, Wallet } from 'lucide-react';
+import { AlertTriangle, CreditCard, Info, Check, Wallet, ChevronRight } from 'lucide-react';
 import { useKycVerification } from '@/hooks/useKycVerification';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -128,9 +128,9 @@ const Payments = () => {
     
     // Implement CoinPayments checkout here
     toast.info("Preparing crypto payment options...");
-    // In a real implementation, you would redirect to your CoinPayments checkout or show payment addresses
+    // In a real implementation, you would redirect to your crypto payment provider or show payment addresses
     setTimeout(() => {
-      toast.success("This is a demo. In production, users would see crypto payment options.");
+      toast.success("This is a demo. In production, users would see crypto payment options for Polygon network.");
     }, 1500);
   };
   
@@ -195,7 +195,7 @@ const Payments = () => {
                       <Info className="h-5 w-5" />
                       <AlertTitle>Wallet Address Required</AlertTitle>
                       <AlertDescription>
-                        Please add your wallet address above before proceeding with payment.
+                        Please add your Polygon wallet address above before proceeding with payment.
                       </AlertDescription>
                     </Alert>
                   ) : (
@@ -210,8 +210,8 @@ const Payments = () => {
                       
                       <PaymentOption 
                         title="Cryptocurrency" 
-                        description="Pay with Bitcoin, Ethereum, or other popular cryptocurrencies"
-                        icon={<Bitcoin className="h-6 w-6 text-cbis-blue" />}
+                        description="Pay with cryptocurrency and receive tokens on Polygon"
+                        icon={<Wallet className="h-6 w-6 text-cbis-blue" />}
                         onClick={handleCryptoPayment}
                       />
                     </>
