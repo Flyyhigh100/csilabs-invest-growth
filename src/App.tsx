@@ -24,6 +24,7 @@ import KYCVerification from "./pages/Dashboard/KYCVerification";
 import Transactions from "./pages/Dashboard/Transactions";
 import Documents from "./pages/Dashboard/Documents";
 import Profile from "./pages/Dashboard/Profile";
+import Payments from "./pages/Dashboard/Payments";
 
 // Create a new QueryClient instance inside the component to ensure it's created in the React component tree
 const App = () => {
@@ -70,6 +71,14 @@ const App = () => {
                 element={
                   <ProtectedRoute>
                     <Transactions />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/payments" 
+                element={
+                  <ProtectedRoute>
+                    <Payments />
                   </ProtectedRoute>
                 } 
               />

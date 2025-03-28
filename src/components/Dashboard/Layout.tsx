@@ -12,7 +12,8 @@ import {
   UserCheck, 
   LayoutDashboard,
   Menu,
-  X
+  X,
+  DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -47,6 +48,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
 
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
+    { name: 'Buy Tokens', href: '/dashboard/payments', icon: <DollarSign className="h-5 w-5" /> },
     { name: 'KYC Verification', href: '/dashboard/kyc', icon: <UserCheck className="h-5 w-5" /> },
     { name: 'Transactions', href: '/dashboard/transactions', icon: <CreditCard className="h-5 w-5" /> },
     { name: 'Documents', href: '/dashboard/documents', icon: <FileText className="h-5 w-5" /> },
