@@ -83,7 +83,6 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
                     <SelectItem value="USDT">USDT (Tether)</SelectItem>
                     <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
                     <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
-                    <SelectItem value="USDC">USD Coin (USDC)</SelectItem>
                     <SelectItem value="DOGE">Dogecoin (DOGE)</SelectItem>
                     <SelectItem value="XRP">Ripple (XRP)</SelectItem>
                   </SelectContent>
@@ -101,7 +100,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
               
               <PaymentOption 
                 title="CoinPayments" 
-                description={`Pay with multiple cryptocurrencies including ${selectedCurrency} and more`}
+                description={`Pay with ${selectedCurrency} and other cryptocurrencies`}
                 icon={<CreditCardIcon className="h-6 w-6 text-cbis-blue" />}
                 onClick={handleCoinPaymentWithCurrency}
                 disabled={isProcessing}
