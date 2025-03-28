@@ -1,84 +1,213 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Info, CreditCard, Wallet } from 'lucide-react';
+import { Info, CreditCard, Wallet, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import PaymentOption from './PaymentOption';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface BuyTokensTabProps {
   walletAddress: string | null;
 }
 
 const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
-  const handleStripePayment = () => {
+  const { user } = useAuth();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showCryptoDialog, setShowCryptoDialog] = useState(false);
+  const [amount, setAmount] = useState<number>(100);
+  const [cryptoPaymentDetails, setCryptoPaymentDetails] = useState<{
+    paymentAddress: string;
+    transactionId: string;
+    instructions: string;
+  } | null>(null);
+
+  const handleStripePayment = async () => {
     if (!walletAddress) {
       toast.error("Please add a wallet address before proceeding with payment");
       return;
     }
     
-    // Implement Stripe checkout here
-    toast.info("Redirecting to Stripe checkout...");
-    // In a real implementation, you would redirect to your Stripe checkout page or modal
-    setTimeout(() => {
-      toast.success("This is a demo. In production, users would be redirected to Stripe.");
-    }, 1500);
+    if (!amount || amount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    
+    setIsProcessing(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
+        body: { amount, walletAddress }
+      });
+      
+      if (error) throw error;
+      
+      if (data.url) {
+        // Redirect to Stripe checkout
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL received");
+      }
+    } catch (error) {
+      console.error("Error creating Stripe checkout:", error);
+      toast.error("Failed to create payment session. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
   
-  const handleCryptoPayment = () => {
+  const handleCryptoPayment = async () => {
     if (!walletAddress) {
       toast.error("Please add a wallet address before proceeding with payment");
       return;
     }
     
-    // Implement CoinPayments checkout here
-    toast.info("Preparing crypto payment options...");
-    // In a real implementation, you would redirect to your crypto payment provider or show payment addresses
-    setTimeout(() => {
-      toast.success("This is a demo. In production, users would see crypto payment options for Polygon network.");
-    }, 1500);
+    if (!amount || amount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    
+    setIsProcessing(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('create-crypto-payment', {
+        body: { amount, walletAddress }
+      });
+      
+      if (error) throw error;
+      
+      setCryptoPaymentDetails({
+        paymentAddress: data.paymentAddress,
+        transactionId: data.transactionId,
+        instructions: data.instructions
+      });
+      
+      setShowCryptoDialog(true);
+    } catch (error) {
+      console.error("Error creating crypto payment:", error);
+      toast.error("Failed to create crypto payment. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Purchase CSi Tokens</CardTitle>
-        <CardDescription>Select your preferred payment method</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {!walletAddress ? (
-          <Alert className="mb-4">
-            <Info className="h-5 w-5" />
-            <AlertTitle>Wallet Address Required</AlertTitle>
-            <AlertDescription>
-              Please add your Polygon wallet address above before proceeding with payment.
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <>
-            <PaymentOption 
-              title="Credit/Debit Card" 
-              description="Pay securely with Stripe using any major credit or debit card"
-              icon={<CreditCard className="h-6 w-6 text-cbis-blue" />}
-              onClick={handleStripePayment}
-              recommended={true}
-            />
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Purchase CSi Tokens</CardTitle>
+          <CardDescription>Select your preferred payment method</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!walletAddress ? (
+            <Alert className="mb-4">
+              <Info className="h-5 w-5" />
+              <AlertTitle>Wallet Address Required</AlertTitle>
+              <AlertDescription>
+                Please add your Polygon wallet address above before proceeding with payment.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <>
+              <div className="mb-6">
+                <Label htmlFor="amount">Purchase Amount (USD)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(parseFloat(e.target.value))}
+                  min={10}
+                  step={10}
+                  className="mt-1"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Minimum purchase: $10 USD
+                </p>
+              </div>
             
-            <PaymentOption 
-              title="Cryptocurrency" 
-              description="Pay with cryptocurrency and receive tokens on Polygon"
-              icon={<Wallet className="h-6 w-6 text-cbis-blue" />}
-              onClick={handleCryptoPayment}
-            />
-          </>
-        )}
-      </CardContent>
-      <CardFooter className="flex flex-col items-start">
-        <p className="text-sm text-gray-500">
-          By proceeding with payment, you agree to our terms and conditions. All transactions are secure and encrypted.
-        </p>
-      </CardFooter>
-    </Card>
+              <PaymentOption 
+                title="Credit/Debit Card" 
+                description="Pay securely with Stripe using any major credit or debit card"
+                icon={<CreditCard className="h-6 w-6 text-cbis-blue" />}
+                onClick={handleStripePayment}
+                recommended={true}
+                disabled={isProcessing}
+              />
+              
+              <PaymentOption 
+                title="Cryptocurrency" 
+                description="Pay with cryptocurrency and receive tokens on Polygon"
+                icon={<Wallet className="h-6 w-6 text-cbis-blue" />}
+                onClick={handleCryptoPayment}
+                disabled={isProcessing}
+              />
+              
+              {isProcessing && (
+                <div className="flex justify-center items-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-cbis-blue mr-2" />
+                  <span>Processing payment request...</span>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+        <CardFooter className="flex flex-col items-start">
+          <p className="text-sm text-gray-500">
+            By proceeding with payment, you agree to our terms and conditions. All transactions are secure and encrypted.
+          </p>
+        </CardFooter>
+      </Card>
+      
+      <Dialog open={showCryptoDialog} onOpenChange={setShowCryptoDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cryptocurrency Payment</DialogTitle>
+            <DialogDescription>
+              Follow these instructions to complete your purchase
+            </DialogDescription>
+          </DialogHeader>
+          
+          {cryptoPaymentDetails && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Payment Address (USDC on Polygon)</Label>
+                <div className="p-2 bg-gray-100 rounded-md font-mono text-sm break-all">
+                  {cryptoPaymentDetails.paymentAddress}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Amount</Label>
+                <div className="p-2 bg-gray-100 rounded-md">
+                  {amount} USDC
+                </div>
+              </div>
+              
+              <Alert>
+                <Info className="h-5 w-5" />
+                <AlertTitle>Important</AlertTitle>
+                <AlertDescription>
+                  {cryptoPaymentDetails.instructions}
+                </AlertDescription>
+              </Alert>
+              
+              <p className="text-sm text-muted-foreground">
+                Transaction ID: {cryptoPaymentDetails.transactionId}
+              </p>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button onClick={() => setShowCryptoDialog(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

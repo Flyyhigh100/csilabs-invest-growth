@@ -3,10 +3,12 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Info, AlertTriangle } from 'lucide-react';
+import { Info, CheckCircle, XCircle } from 'lucide-react';
 import { useKycVerification } from '@/hooks/useKycVerification';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import WalletAddressForm from '@/components/Dashboard/WalletAddressForm';
 import BuyTokensTab from '@/components/Dashboard/BuyTokensTab';
 import SellTokensTab from '@/components/Dashboard/SellTokensTab';
@@ -18,12 +20,25 @@ const Payments = () => {
   const [activeTab, setActiveTab] = useState('buy');
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [isLoadingWallet, setIsLoadingWallet] = useState(true);
+  const [searchParams] = useSearchParams();
   
   const isKycPending = kycData?.status === 'pending';
   const isKycApproved = kycData?.status === 'approved';
   const isKycRejected = kycData?.status === 'rejected';
   // For testing purposes - we're allowing payments even without KYC approval
   const allowPaymentsWithoutKYC = true;
+  
+  useEffect(() => {
+    // Check for payment status in URL
+    const success = searchParams.get('success');
+    const canceled = searchParams.get('canceled');
+    
+    if (success === 'true') {
+      toast.success("Payment successful! Your tokens will be sent to your wallet shortly.");
+    } else if (canceled === 'true') {
+      toast.error("Payment was canceled. No charges were made.");
+    }
+  }, [searchParams]);
   
   useEffect(() => {
     const fetchWalletAddress = async () => {
@@ -104,7 +119,7 @@ const Payments = () => {
             </TabsContent>
             
             <TabsContent value="sell" className="mt-6">
-              <SellTokensTab />
+              <SellTokensTab walletAddress={walletAddress} />
             </TabsContent>
           </Tabs>
         </>
