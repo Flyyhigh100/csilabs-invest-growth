@@ -2,16 +2,15 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Info, CreditCard, Wallet, Loader2 } from 'lucide-react';
+import { Info, CreditCard, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import PaymentOption from './PaymentOption';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import PurchaseAmountInput from './PurchaseAmountInput';
+import ProcessingIndicator from './ProcessingIndicator';
+import CryptoPaymentDialog from './CryptoPaymentDialog';
 
 interface BuyTokensTabProps {
   walletAddress: string | null;
@@ -98,6 +97,21 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
     }
   };
 
+  const renderWalletAlert = () => {
+    if (!walletAddress) {
+      return (
+        <Alert className="mb-4">
+          <Info className="h-5 w-5" />
+          <AlertTitle>Wallet Address Required</AlertTitle>
+          <AlertDescription>
+            Please add your Polygon wallet address above before proceeding with payment.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    return null;
+  };
+
   return (
     <>
       <Card>
@@ -109,31 +123,15 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
           <CardDescription>Select your preferred payment method</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!walletAddress ? (
-            <Alert className="mb-4">
-              <Info className="h-5 w-5" />
-              <AlertTitle>Wallet Address Required</AlertTitle>
-              <AlertDescription>
-                Please add your Polygon wallet address above before proceeding with payment.
-              </AlertDescription>
-            </Alert>
-          ) : (
+          {renderWalletAlert()}
+          
+          {walletAddress && (
             <>
-              <div className="mb-6">
-                <Label htmlFor="amount">Purchase Amount (USD)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(parseFloat(e.target.value))}
-                  min={10}
-                  step={10}
-                  className="mt-1"
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  Minimum purchase: $10 USD
-                </p>
-              </div>
+              <PurchaseAmountInput 
+                amount={amount} 
+                onChange={setAmount} 
+                disabled={isProcessing} 
+              />
             
               <PaymentOption 
                 title="Credit/Debit Card" 
@@ -152,12 +150,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
                 disabled={isProcessing}
               />
               
-              {isProcessing && (
-                <div className="flex justify-center items-center py-4">
-                  <Loader2 className="h-6 w-6 animate-spin text-cbis-blue mr-2" />
-                  <span>Processing payment request...</span>
-                </div>
-              )}
+              {isProcessing && <ProcessingIndicator />}
             </>
           )}
         </CardContent>
@@ -172,50 +165,12 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
         </CardFooter>
       </Card>
       
-      <Dialog open={showCryptoDialog} onOpenChange={setShowCryptoDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cryptocurrency Payment</DialogTitle>
-            <DialogDescription>
-              Follow these instructions to complete your purchase
-            </DialogDescription>
-          </DialogHeader>
-          
-          {cryptoPaymentDetails && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Payment Address (USDC on Polygon)</Label>
-                <div className="p-2 bg-gray-100 rounded-md font-mono text-sm break-all">
-                  {cryptoPaymentDetails.paymentAddress}
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Amount</Label>
-                <div className="p-2 bg-gray-100 rounded-md">
-                  {amount} USDC
-                </div>
-              </div>
-              
-              <Alert>
-                <Info className="h-5 w-5" />
-                <AlertTitle>Important</AlertTitle>
-                <AlertDescription>
-                  {cryptoPaymentDetails.instructions}
-                </AlertDescription>
-              </Alert>
-              
-              <p className="text-sm text-muted-foreground">
-                Transaction ID: {cryptoPaymentDetails.transactionId}
-              </p>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button onClick={() => setShowCryptoDialog(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CryptoPaymentDialog 
+        open={showCryptoDialog} 
+        onOpenChange={setShowCryptoDialog}
+        paymentDetails={cryptoPaymentDetails}
+        amount={amount}
+      />
     </>
   );
 };
