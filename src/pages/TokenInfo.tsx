@@ -1,11 +1,10 @@
-
 import React, { useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import FadeInSection from '@/components/FadeInSection';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { ExternalLink, PieChart, TrendingUp, Shield, ArrowRight } from 'lucide-react';
+import { ExternalLink, PieChart, TrendingUp, Shield, ArrowRight, DollarSign, ShieldCheck } from 'lucide-react';
 
 const TokenInfo: React.FC = () => {
   useEffect(() => {
@@ -24,7 +23,7 @@ const TokenInfo: React.FC = () => {
                 $CSi-EDP/Labs FC <span className="text-cbis-blue">(CSL)</span> Token
               </h1>
               <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                The CSi Labs token is designed to fund our groundbreaking cancer research while providing investors with growth potential through our innovative Lab Series model.
+                The CSi Labs token is designed to fund our affordable cancer treatments, making them accessible to millions who cannot afford today's high-priced drugs, while providing investors with growth potential.
               </p>
             </div>
           </FadeInSection>
@@ -80,7 +79,7 @@ const TokenInfo: React.FC = () => {
                     </a>
                   </div>
                 </div>
-                <div className="relative rounded-xl overflow-hidden bg-gradient-to-br from-cbis-blue/10 to-cbis-teal/10 p-8 flex flex-col items-center justify-center text-center h-full min-h-[320px]">
+                <div className="relative rounded-xl overflow-hidden bg-gradient-to-br from-cbis-blue to-cbis-teal text-white p-8 flex flex-col items-center justify-center h-full min-h-[320px]">
                   <div className="absolute inset-0 bg-white/40 backdrop-blur-sm"></div>
                   <div className="relative z-10">
                     <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-r from-cbis-blue to-cbis-teal flex items-center justify-center">
@@ -107,20 +106,19 @@ const TokenInfo: React.FC = () => {
             <FadeInSection delay={200}>
               <div className="glass-card p-6 rounded-xl h-full">
                 <div className="mb-4 p-3 bg-blue-50 rounded-lg inline-block">
-                  <Shield className="h-6 w-6 text-cbis-blue" />
+                  <DollarSign className="h-6 w-6 text-cbis-blue" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3 text-cbis-dark">Secure Investment</h3>
+                <h3 className="text-xl font-semibold mb-3 text-cbis-dark">Affordable Cancer Treatment</h3>
                 <p className="text-gray-600">
-                  All token purchases are securely processed with state-of-the-art payment systems. We accept both credit card payments via Stripe and cryptocurrency payments through CoinPayments.net.
+                  Unlike existing cancer drugs that cost patients thousands monthly, our mission is to create affordable treatments accessible to millions of patients worldwide who cannot afford today's high-cost therapies.
                 </p>
                 <div className="mt-4 pt-4 border-t border-gray-100">
-                  <h4 className="font-medium mb-2 text-cbis-dark">Supported Payment Methods:</h4>
+                  <h4 className="font-medium mb-2 text-cbis-dark">What Makes Us Different:</h4>
                   <ul className="text-gray-600 space-y-1">
-                    <li>• Credit/Debit Cards (via Stripe)</li>
-                    <li>• Bitcoin (BTC)</li>
-                    <li>• Ethereum (ETH)</li>
-                    <li>• USDC/USDT</li>
-                    <li>• And more cryptocurrencies</li>
+                    <li>• Low-cost treatment model</li>
+                    <li>• Non-chemical cancer-killing approach</li>
+                    <li>• Wider accessibility for patients</li>
+                    <li>• Focus on quality of life during treatment</li>
                   </ul>
                 </div>
               </div>
@@ -129,11 +127,11 @@ const TokenInfo: React.FC = () => {
             <FadeInSection delay={300}>
               <div className="glass-card p-6 rounded-xl h-full">
                 <div className="mb-4 p-3 bg-blue-50 rounded-lg inline-block">
-                  <TrendingUp className="h-6 w-6 text-cbis-blue" />
+                  <ShieldCheck className="h-6 w-6 text-cbis-blue" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3 text-cbis-dark">Value Proposition</h3>
+                <h3 className="text-xl font-semibold mb-3 text-cbis-dark">Treatments Without Side Effects</h3>
                 <p className="text-gray-600 mb-4">
-                  The CSi Labs token is backed by our groundbreaking research and laboratory acquisitions, with plans for multiple drug development pipelines.
+                  Our cannabinoid-based treatments eliminate cancer cells without the debilitating side effects associated with traditional chemical therapies, maintaining patient quality of life.
                 </p>
                 <div className="space-y-3">
                   <div className="p-3 bg-gray-50 rounded-lg">
@@ -202,10 +200,10 @@ const TokenInfo: React.FC = () => {
           <FadeInSection>
             <div className="text-center">
               <h2 className="text-2xl md:text-3xl font-bold mb-4 text-cbis-dark">
-                Ready to Invest in the Future of Cancer Treatment?
+                Ready to Help Make Cancer Treatment Affordable?
               </h2>
               <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
-                Join our token sale to help fund groundbreaking research while potentially creating value through our innovative Lab Series model.
+                Join our token sale to help fund low-cost cancer treatments without harsh side effects, making them accessible to millions of patients worldwide.
               </p>
               <Button size="lg" className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white" asChild>
                 <Link to="/register">

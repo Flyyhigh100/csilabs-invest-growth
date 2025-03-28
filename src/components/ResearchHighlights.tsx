@@ -2,7 +2,7 @@
 import React from 'react';
 import FadeInSection from './FadeInSection';
 import FeatureCard from './FeatureCard';
-import { BeakerIcon, BrainCircuit, FilePieChart, TrendingUp } from 'lucide-react';
+import { BeakerIcon, BrainCircuit, FilePieChart, TrendingUp, DollarSign, ShieldCheck } from 'lucide-react';
 
 const ResearchHighlights: React.FC = () => {
   return (
@@ -11,13 +11,13 @@ const ResearchHighlights: React.FC = () => {
         <FadeInSection>
           <div className="text-center mb-16 max-w-3xl mx-auto">
             <div className="inline-block px-3 py-1 mb-4 text-xs font-medium tracking-wider uppercase rounded-full text-cbis-blue bg-blue-50 border border-blue-100">
-              Proven Cancer-Fighting Results
+              Affordable Cancer Treatment
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-cbis-dark">
-              Our Research Has Already Killed Cancer Cells
+              Making Cancer Treatment Affordable For Millions
             </h2>
             <p className="text-gray-600">
-              Our cannabinoid-based treatments have demonstrated remarkable efficacy in eliminating cancer cells across multiple studies. We're now advancing toward FDA-approved clinical trials.
+              Our treatments are designed to be accessible to the millions of cancer patients who cannot afford today's high-cost drugs, providing effective cancer cell elimination without the harsh side effects of chemical therapies.
             </p>
           </div>
         </FadeInSection>
@@ -25,33 +25,33 @@ const ResearchHighlights: React.FC = () => {
         <div className="grid md:grid-cols-2 gap-8">
           <FadeInSection delay={100} direction="left">
             <FeatureCard
-              title="Cancer Cell Elimination"
-              description="Laboratory studies have confirmed our compounds successfully eliminate cancer cells, with particular efficacy against breast, prostate, and colon cancer cell lines."
-              icon={<BeakerIcon className="h-8 w-8" />}
+              title="Affordable Treatment"
+              description="Unlike traditional cancer drugs that cost patients thousands per month, our treatments are designed to be affordable and accessible to millions of patients worldwide."
+              icon={<DollarSign className="h-8 w-8" />}
             />
           </FadeInSection>
 
           <FadeInSection delay={200} direction="right">
             <FeatureCard
-              title="Harvard Research Validation"
-              description="Our research methodologies and preliminary results have been validated by Harvard Medical School researchers, confirming the scientific rigor of our approach."
-              icon={<BrainCircuit className="h-8 w-8" />}
+              title="No Harsh Side Effects"
+              description="Our cannabinoid-based treatments work without the debilitating side effects commonly associated with chemical cancer therapies, improving patient quality of life."
+              icon={<ShieldCheck className="h-8 w-8" />}
             />
           </FadeInSection>
 
           <FadeInSection delay={300} direction="left">
             <FeatureCard
               title="FDA Clinical Trial Pathway"
-              description="We've established a clear regulatory pathway with the FDA for our cancer treatments, with pre-IND meetings scheduled and clinical trial protocols in development."
+              description="We've established a clear regulatory pathway with the FDA for our affordable cancer treatments, with pre-IND meetings scheduled and clinical trial protocols in development."
               icon={<FilePieChart className="h-8 w-8" />}
             />
           </FadeInSection>
 
           <FadeInSection delay={400} direction="right">
             <FeatureCard
-              title="Advancing to Human Trials"
-              description="Funds raised through our token sale will directly support Phase I clinical trials, the critical next step in bringing our cancer-fighting treatments to patients worldwide."
-              icon={<TrendingUp className="h-8 w-8" />}
+              title="Proven Cancer Cell Elimination"
+              description="Laboratory studies have confirmed our compounds successfully eliminate cancer cells, with results validated by Harvard Medical School researchers."
+              icon={<BeakerIcon className="h-8 w-8" />}
             />
           </FadeInSection>
         </div>
