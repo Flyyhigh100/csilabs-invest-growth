@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 interface BuyTokensTabProps {
   walletAddress: string | null;
@@ -48,6 +49,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
       if (error) throw error;
       
       if (data.url) {
+        toast.info("Redirecting to Stripe checkout...");
         // Redirect to Stripe checkout
         window.location.href = data.url;
       } else {
@@ -100,7 +102,10 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Purchase CSi Tokens</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            Purchase CSi Tokens
+            <Badge variant="success" className="ml-2">Test Mode</Badge>
+          </CardTitle>
           <CardDescription>Select your preferred payment method</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -157,9 +162,13 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
           )}
         </CardContent>
         <CardFooter className="flex flex-col items-start">
-          <p className="text-sm text-gray-500">
-            By proceeding with payment, you agree to our terms and conditions. All transactions are secure and encrypted.
-          </p>
+          <Alert className="w-full bg-blue-50 text-blue-800 border-blue-200">
+            <Info className="h-5 w-5" />
+            <AlertTitle>Test Mode Active</AlertTitle>
+            <AlertDescription>
+              For testing, use Stripe test card: 4242 4242 4242 4242, any future date, any 3 digits CVC, and any postal code.
+            </AlertDescription>
+          </Alert>
         </CardFooter>
       </Card>
       

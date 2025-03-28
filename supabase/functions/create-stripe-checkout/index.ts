@@ -43,36 +43,37 @@ serve(async (req) => {
       throw new Error('Error getting user or user not found');
     }
 
-    // Initialize Stripe
+    // Initialize Stripe with your secret key
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
     });
 
-    // Create a Stripe checkout session
+    console.log('Creating Stripe checkout session...');
+    console.log(`Amount: $${amount}, Wallet: ${walletAddress}`);
+
+    // Calculate token amount (1:1 ratio with USD for simplicity)
+    const tokenAmount = amount;
+    
+    // Create a Stripe checkout session with your specific price ID
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'CSi Tokens',
-              description: `Tokens will be sent to wallet: ${walletAddress}`,
-            },
-            unit_amount: Math.round(amount * 100), // Convert to cents
-          },
+          price: 'price_1R7fnYKS9PaYdpqtMpwwqsNw', // Your specific price ID
           quantity: 1,
         },
       ],
       mode: 'payment',
-      success_url: `${req.headers.get('origin')}/dashboard/payments?success=true`,
-      cancel_url: `${req.headers.get('origin')}/dashboard/payments?canceled=true`,
+      success_url: `${req.headers.get('origin')}/dashboard/transactions?success=true`,
+      cancel_url: `${req.headers.get('origin')}/dashboard/transactions?canceled=true`,
       metadata: {
         user_id: user.id,
         wallet_address: walletAddress,
-        token_amount: amount,
+        token_amount: tokenAmount.toString(),
       },
     });
+
+    console.log('Checkout session created:', session.id);
 
     // Log the transaction in your database
     const { error: insertError } = await supabaseClient.from('transactions').insert({
