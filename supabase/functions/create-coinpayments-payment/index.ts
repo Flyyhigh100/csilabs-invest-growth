@@ -149,7 +149,8 @@ serve(async (req) => {
         status: 'pending',
         transaction_id: transactionId,
         payment_address: paymentData.address,
-        external_transaction_id: paymentData.txn_id
+        external_transaction_id: paymentData.txn_id,
+        currency: currency
       });
 
       if (insertError) {
@@ -197,7 +198,8 @@ serve(async (req) => {
         status: 'pending',
         transaction_id: transactionId,
         payment_address: mockPaymentData.address,
-        external_transaction_id: mockPaymentData.txn_id
+        external_transaction_id: mockPaymentData.txn_id,
+        currency: currency
       });
 
       if (insertError) {

@@ -127,6 +127,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
         onOpenChange={setShowCryptoDialog}
         paymentDetails={cryptoPaymentDetails}
         amount={amount}
+        selectedCurrency={selectedCurrency}
       />
     </>
   );

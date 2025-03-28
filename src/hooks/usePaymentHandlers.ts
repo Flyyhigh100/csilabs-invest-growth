@@ -69,6 +69,8 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
     setIsProcessing(true);
     
     try {
+      console.log(`Creating CoinPayments payment with currency: ${currency}`);
+      
       const { data, error } = await supabase.functions.invoke('create-coinpayments-payment', {
         body: { amount, walletAddress, currency }
       });

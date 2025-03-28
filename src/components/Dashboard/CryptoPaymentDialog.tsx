@@ -26,13 +26,15 @@ interface CryptoPaymentDialogProps {
   onOpenChange: (open: boolean) => void;
   paymentDetails: CryptoPaymentDetailsType | null;
   amount: number;
+  selectedCurrency: string;
 }
 
 const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
   open,
   onOpenChange,
   paymentDetails,
-  amount
+  amount,
+  selectedCurrency
 }) => {
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
   const [showQrExpanded, setShowQrExpanded] = useState<boolean>(false);
@@ -44,7 +46,9 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
     : null;
     
   const isExpired = expiryDate ? new Date() > expiryDate : false;
-  const currency = paymentDetails.currency || (paymentDetails.externalTransactionId ? 'USDT' : 'USDC');
+  // Use the selected currency from props, fallback to the one from paymentDetails if available
+  const currency = selectedCurrency || paymentDetails.currency || 'USDT';
+  const networkName = currency === 'LTCT' ? 'Litecoin Testnet' : 'Polygon';
   
   const handleCopyAddress = () => {
     if (paymentDetails.paymentAddress) {
@@ -87,7 +91,7 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
             )}
             
             <div className="space-y-2">
-              <Label>Payment Address ({currency} on Polygon)</Label>
+              <Label>Payment Address ({currency} on {networkName})</Label>
               <div className="flex items-center">
                 <div className="p-2 bg-gray-100 rounded-md font-mono text-sm break-all flex-1 mr-2">
                   {paymentDetails.paymentAddress}
