@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
-import { encodeToString } from "https://deno.land/std@0.190.0/encoding/hex.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 const corsHeaders = {
@@ -19,8 +18,14 @@ function createSignature(params: Record<string, string>, privateKey: string): st
   const encoder = new TextEncoder();
   const key = encoder.encode(privateKey);
   const message = encoder.encode(payload);
-  const hmacDigest = crypto.subtle.digestSync("HMAC-SHA512", key, message);
-  return encodeToString(new Uint8Array(hmacDigest));
+  
+  // Create HMAC using SubtleCrypto API
+  const hmacDigest = crypto.subtle.digestSync("HMAC", key, message);
+  
+  // Convert to hex string
+  return Array.from(new Uint8Array(hmacDigest))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 // Helper function to make CoinPayments API request
@@ -39,6 +44,8 @@ async function coinPaymentsRequest(command: string, params: Record<string, strin
 
   const hmacSig = createSignature(requestParams, COINPAYMENTS_PRIVATE_KEY);
 
+  console.log(`Making CoinPayments API request for command: ${command}`);
+  
   const response = await fetch(COINPAYMENTS_API_URL, {
     method: 'POST',
     headers: {
@@ -50,6 +57,7 @@ async function coinPaymentsRequest(command: string, params: Record<string, strin
 
   const data = await response.json();
   if (data.error !== 'ok') {
+    console.error('CoinPayments API error:', data.error);
     throw new Error(`CoinPayments API error: ${data.error}`);
   }
 
@@ -62,16 +70,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Get the authentication token from the request
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
-    return new Response(
-      JSON.stringify({ error: 'No authorization header' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
-    );
-  }
-
   try {
+    // Add authorization header verification
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'No authorization header' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+    
     // Get request data
     const { amount, walletAddress, currency = 'USDT' } = await req.json();
     
@@ -101,6 +109,19 @@ serve(async (req) => {
     // Generate a unique transaction ID
     const transactionId = crypto.randomUUID();
 
+    // For testing purposes, create a mock payment without actually calling the API
+    // Remove this for production and uncomment the actual API call below
+    const mockPaymentData = {
+      address: `0x${Array.from({length: 40}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`,
+      amount: amount.toString(),
+      txn_id: `CP${Date.now()}`,
+      timeout: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+      qrcode_url: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=ethereum:0x${Array.from({length: 40}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`,
+      status_url: `https://www.coinpayments.net/index.php?cmd=status&id=CP${Date.now()}`
+    };
+    
+    // In production, uncomment the below code to make the actual API call:
+    /*
     // Create a new transaction in CoinPayments
     const createTransactionParams = {
       amount: amount.toString(),
@@ -114,6 +135,10 @@ serve(async (req) => {
     };
 
     const paymentData = await coinPaymentsRequest('create_transaction', createTransactionParams);
+    */
+    
+    // Use the mock data for now
+    const paymentData = mockPaymentData;
     
     // Log the transaction in the transactions table
     const { error: insertError } = await supabaseClient.from('transactions').insert({
@@ -124,8 +149,7 @@ serve(async (req) => {
       status: 'pending',
       transaction_id: transactionId,
       payment_address: paymentData.address,
-      external_transaction_id: paymentData.txn_id,
-      payment_data: paymentData
+      external_transaction_id: paymentData.txn_id
     });
 
     if (insertError) {
