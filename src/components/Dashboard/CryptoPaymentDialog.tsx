@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Info, ExternalLink } from 'lucide-react';
+import { Info, ExternalLink, Copy, CheckCircle } from 'lucide-react';
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { toast } from 'sonner';
 
 interface CryptoPaymentDetailsType {
   paymentAddress: string;
@@ -30,6 +31,8 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
   paymentDetails,
   amount
 }) => {
+  const [copySuccess, setCopySuccess] = useState<boolean>(false);
+  
   if (!paymentDetails) return null;
   
   const expiryDate = paymentDetails.expiresAt 
@@ -37,6 +40,21 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
     : null;
     
   const isExpired = expiryDate ? new Date() > expiryDate : false;
+  
+  const handleCopyAddress = () => {
+    if (paymentDetails.paymentAddress) {
+      navigator.clipboard.writeText(paymentDetails.paymentAddress)
+        .then(() => {
+          setCopySuccess(true);
+          toast.success('Payment address copied to clipboard');
+          setTimeout(() => setCopySuccess(false), 3000);
+        })
+        .catch(err => {
+          console.error('Failed to copy: ', err);
+          toast.error('Failed to copy address');
+        });
+    }
+  };
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -63,8 +81,20 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
           
           <div className="space-y-2">
             <Label>Payment Address {paymentDetails.externalTransactionId ? '(USDT on Polygon)' : '(USDC on Polygon)'}</Label>
-            <div className="p-2 bg-gray-100 rounded-md font-mono text-sm break-all">
-              {paymentDetails.paymentAddress}
+            <div className="flex items-center">
+              <div className="p-2 bg-gray-100 rounded-md font-mono text-sm break-all flex-1 mr-2">
+                {paymentDetails.paymentAddress}
+              </div>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                onClick={handleCopyAddress}
+                title="Copy address"
+                className="flex-shrink-0"
+              >
+                {copySuccess ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
             </div>
           </div>
           
