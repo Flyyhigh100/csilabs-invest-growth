@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -10,9 +11,11 @@ import PurchaseAmountInput from './PurchaseAmountInput';
 import ProcessingIndicator from './ProcessingIndicator';
 import CryptoPaymentDialog from './CryptoPaymentDialog';
 import { usePaymentHandlers } from '@/hooks/usePaymentHandlers';
+
 interface BuyTokensTabProps {
   walletAddress: string | null;
 }
+
 const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
   walletAddress
 }) => {
@@ -26,6 +29,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
     handleStripePayment,
     handleCoinPaymentsPayment
   } = usePaymentHandlers(walletAddress);
+
   const renderWalletAlert = () => {
     if (!walletAddress) {
       return <Alert className="mb-4">
@@ -38,9 +42,11 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
     }
     return null;
   };
+
   const handleCoinPaymentWithCurrency = () => {
     handleCoinPaymentsPayment(amount, selectedCurrency);
   };
+
   return <>
       <Card>
         <CardHeader>
@@ -56,26 +62,48 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
           {walletAddress && <>
               <PurchaseAmountInput amount={amount} onChange={setAmount} disabled={isProcessing} />
               
-              <div className="space-y-2">
-                <Label htmlFor="crypto-currency">Cryptocurrency (for CoinPayments)</Label>
-                <Select value={selectedCurrency} onValueChange={setSelectedCurrency} disabled={isProcessing}>
-                  <SelectTrigger id="crypto-currency" className="w-full">
-                    <SelectValue placeholder="Select cryptocurrency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USDT">USDT (Tether)</SelectItem>
-                    <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
-                    <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
-                    <SelectItem value="DOGE">Dogecoin (DOGE)</SelectItem>
-                    <SelectItem value="XRP">Ripple (XRP)</SelectItem>
-                    <SelectItem value="LTCT">Litecoin Testnet (LTCT)</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* Credit Card Option - Now placed above crypto options with enhanced styling */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-2">Recommended Payment Method</h3>
+                <PaymentOption 
+                  title="Credit/Debit Card" 
+                  description="Pay securely with Stripe using any major credit or debit card" 
+                  icon={<CreditCard className="h-6 w-6 text-cbis-blue" />} 
+                  onClick={() => handleStripePayment(amount)} 
+                  recommended={true} 
+                  disabled={isProcessing}
+                  highlight={true} // New prop for highlighting
+                />
               </div>
-            
-              <PaymentOption title="Credit/Debit Card" description="Pay securely with Stripe using any major credit or debit card" icon={<CreditCard className="h-6 w-6 text-cbis-blue" />} onClick={() => handleStripePayment(amount)} recommended={true} disabled={isProcessing} />
               
-              <PaymentOption title="CoinPayments" description={`Pay with ${selectedCurrency} and other cryptocurrencies`} icon={<CreditCardIcon className="h-6 w-6 text-cbis-blue" />} onClick={handleCoinPaymentWithCurrency} disabled={isProcessing} />
+              <div className="pt-4 border-t border-gray-200">
+                <h3 className="text-lg font-medium mb-2">Alternative Payment Methods</h3>
+                
+                <div className="space-y-2 mb-4">
+                  <Label htmlFor="crypto-currency">Cryptocurrency (for CoinPayments)</Label>
+                  <Select value={selectedCurrency} onValueChange={setSelectedCurrency} disabled={isProcessing}>
+                    <SelectTrigger id="crypto-currency" className="w-full">
+                      <SelectValue placeholder="Select cryptocurrency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USDT">USDT (Tether)</SelectItem>
+                      <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
+                      <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
+                      <SelectItem value="DOGE">Dogecoin (DOGE)</SelectItem>
+                      <SelectItem value="XRP">Ripple (XRP)</SelectItem>
+                      <SelectItem value="LTCT">Litecoin Testnet (LTCT)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              
+                <PaymentOption 
+                  title="CoinPayments" 
+                  description={`Pay with ${selectedCurrency} and other cryptocurrencies`} 
+                  icon={<CreditCardIcon className="h-6 w-6 text-cbis-blue" />} 
+                  onClick={handleCoinPaymentWithCurrency} 
+                  disabled={isProcessing} 
+                />
+              </div>
               
               {isProcessing && <ProcessingIndicator />}
             </>}
@@ -94,4 +122,5 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
       <CryptoPaymentDialog open={showCryptoDialog} onOpenChange={setShowCryptoDialog} paymentDetails={cryptoPaymentDetails} amount={amount} selectedCurrency={selectedCurrency} />
     </>;
 };
+
 export default BuyTokensTab;
