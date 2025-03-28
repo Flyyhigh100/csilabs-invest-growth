@@ -34,10 +34,10 @@ const Navbar: React.FC = () => {
         <div className="hidden md:flex items-center space-x-6">
           <Link to="/" className="text-gray-800 hover:text-cbis-blue transition-colors">Home</Link>
           <Link to="/token-info" className="text-gray-800 hover:text-cbis-blue transition-colors">Token Info</Link>
-          <Link to="/register" className="text-gray-800 hover:text-cbis-blue transition-colors">Register</Link>
+          <Link to="/signup" className="text-gray-800 hover:text-cbis-blue transition-colors">Register</Link>
           <Link to="/dashboard" className="text-gray-800 hover:text-cbis-blue transition-colors">Dashboard</Link>
           <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
-            <Link to="/register">Buy Tokens</Link>
+            <Link to="/signup">Buy Tokens</Link>
           </Button>
         </div>
 
@@ -72,7 +72,7 @@ const Navbar: React.FC = () => {
           Token Info
         </Link>
         <Link 
-          to="/register" 
+          to="/signup" 
           className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
           onClick={() => setIsOpen(false)}
         >
@@ -91,7 +91,7 @@ const Navbar: React.FC = () => {
             className="w-full bg-gradient-to-r from-cbis-blue to-cbis-teal text-white"
             onClick={() => setIsOpen(false)}
           >
-            <Link to="/register">Buy Tokens</Link>
+            <Link to="/signup">Buy Tokens</Link>
           </Button>
         </div>
       </div>
