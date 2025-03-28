@@ -11,6 +11,15 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 
+// Auth pages
+import Login from "./pages/Auth/Login";
+import RegisterAuth from "./pages/Auth/Register";
+import ForgotPassword from "./pages/Auth/ForgotPassword";
+
+// Dashboard pages
+import DashboardHome from "./pages/Dashboard/DashboardHome";
+import KYCVerification from "./pages/Dashboard/KYCVerification";
+
 // Create a new QueryClient instance inside the component to ensure it's created in the React component tree
 const App = () => {
   const queryClient = new QueryClient();
@@ -25,7 +34,17 @@ const App = () => {
             <Route path="/" element={<Index />} />
             <Route path="/token-info" element={<TokenInfo />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            
+            {/* Auth Routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<RegisterAuth />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            
+            {/* Dashboard Routes */}
+            <Route path="/dashboard" element={<DashboardHome />} />
+            <Route path="/dashboard/kyc" element={<KYCVerification />} />
+            <Route path="/dashboard/*" element={<Dashboard />} />
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

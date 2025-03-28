@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, LogIn } from 'lucide-react';
 
 interface HeroContentProps {
   isLoaded: boolean;
@@ -29,6 +29,11 @@ const HeroContent: React.FC<HeroContentProps> = ({ isLoaded }) => {
         <Button asChild variant="outline" size="lg" className="border-cbis-blue text-cbis-blue hover:bg-cbis-blue/5 transition-colors flex-shrink-0">
           <Link to="/token-info">
             View Research Data
+          </Link>
+        </Button>
+        <Button asChild variant="ghost" size="lg" className="text-cbis-blue hover:bg-cbis-blue/5 transition-colors flex-shrink-0">
+          <Link to="/login">
+            <LogIn className="mr-2 h-4 w-4" /> Sign In
           </Link>
         </Button>
       </div>
