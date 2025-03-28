@@ -1,15 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, CreditCard, Bitcoin, ChevronRight, Info, Check } from 'lucide-react';
+import { AlertTriangle, CreditCard, Bitcoin, ChevronRight, Info, Check, Wallet } from 'lucide-react';
 import { useKycVerification } from '@/hooks/useKycVerification';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import WalletAddressForm from '@/components/Dashboard/WalletAddressForm';
 
 const PaymentOption = ({ 
   title, 
@@ -53,6 +55,8 @@ const Payments = () => {
   const { kycData } = useKycVerification();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('buy');
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [isLoadingWallet, setIsLoadingWallet] = useState(true);
   
   const isKycPending = kycData?.status === 'pending';
   const isKycApproved = kycData?.status === 'approved';
@@ -60,7 +64,54 @@ const Payments = () => {
   // For testing purposes - we're allowing payments even without KYC approval
   const allowPaymentsWithoutKYC = true;
   
+  useEffect(() => {
+    const fetchWalletAddress = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('wallet_address')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) throw error;
+        
+        setWalletAddress(data.wallet_address);
+      } catch (error) {
+        console.error('Error fetching wallet address:', error);
+      } finally {
+        setIsLoadingWallet(false);
+      }
+    };
+    
+    fetchWalletAddress();
+  }, [user]);
+  
+  const handleWalletUpdated = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('wallet_address')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      
+      setWalletAddress(data.wallet_address);
+    } catch (error) {
+      console.error('Error fetching wallet address:', error);
+    }
+  };
+  
   const handleStripePayment = () => {
+    if (!walletAddress) {
+      toast.error("Please add a wallet address before proceeding with payment");
+      return;
+    }
+    
     // Implement Stripe checkout here
     toast.info("Redirecting to Stripe checkout...");
     // In a real implementation, you would redirect to your Stripe checkout page or modal
@@ -70,6 +121,11 @@ const Payments = () => {
   };
   
   const handleCryptoPayment = () => {
+    if (!walletAddress) {
+      toast.error("Please add a wallet address before proceeding with payment");
+      return;
+    }
+    
     // Implement CoinPayments checkout here
     toast.info("Preparing crypto payment options...");
     // In a real implementation, you would redirect to your CoinPayments checkout or show payment addresses
@@ -114,6 +170,13 @@ const Payments = () => {
             </Alert>
           )}
           
+          <div className="mb-6">
+            <WalletAddressForm 
+              existingWalletAddress={walletAddress || undefined} 
+              onWalletUpdated={handleWalletUpdated} 
+            />
+          </div>
+          
           <Tabs defaultValue="buy" value={activeTab} onValueChange={setActiveTab} className="mb-6">
             <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto">
               <TabsTrigger value="buy">Buy Tokens</TabsTrigger>
@@ -127,20 +190,32 @@ const Payments = () => {
                   <CardDescription>Select your preferred payment method</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <PaymentOption 
-                    title="Credit/Debit Card" 
-                    description="Pay securely with Stripe using any major credit or debit card"
-                    icon={<CreditCard className="h-6 w-6 text-cbis-blue" />}
-                    onClick={handleStripePayment}
-                    recommended={true}
-                  />
-                  
-                  <PaymentOption 
-                    title="Cryptocurrency" 
-                    description="Pay with Bitcoin, Ethereum, or other popular cryptocurrencies"
-                    icon={<Bitcoin className="h-6 w-6 text-cbis-blue" />}
-                    onClick={handleCryptoPayment}
-                  />
+                  {!walletAddress ? (
+                    <Alert className="mb-4">
+                      <Info className="h-5 w-5" />
+                      <AlertTitle>Wallet Address Required</AlertTitle>
+                      <AlertDescription>
+                        Please add your wallet address above before proceeding with payment.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <>
+                      <PaymentOption 
+                        title="Credit/Debit Card" 
+                        description="Pay securely with Stripe using any major credit or debit card"
+                        icon={<CreditCard className="h-6 w-6 text-cbis-blue" />}
+                        onClick={handleStripePayment}
+                        recommended={true}
+                      />
+                      
+                      <PaymentOption 
+                        title="Cryptocurrency" 
+                        description="Pay with Bitcoin, Ethereum, or other popular cryptocurrencies"
+                        icon={<Bitcoin className="h-6 w-6 text-cbis-blue" />}
+                        onClick={handleCryptoPayment}
+                      />
+                    </>
+                  )}
                 </CardContent>
                 <CardFooter className="flex flex-col items-start">
                   <p className="text-sm text-gray-500">
