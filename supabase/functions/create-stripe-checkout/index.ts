@@ -103,42 +103,6 @@ serve(async (req) => {
       throw new Error('Failed to record transaction');
     }
 
-    // Send notification to CEO about the new transaction
-    try {
-      // Get user profile information
-      const { data: profileData } = await supabaseClient
-        .from('profiles')
-        .select('first_name, last_name')
-        .eq('id', user.id)
-        .single();
-      
-      const userName = profileData ? `${profileData.first_name} ${profileData.last_name}` : 'Unknown User';
-      
-      // Call the transaction alert function
-      await fetch(
-        `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transaction-alert`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-          },
-          body: JSON.stringify({
-            transactionId: session.id,
-            amount,
-            walletAddress,
-            paymentMethod: 'stripe',
-            status: 'pending',
-            email: user.email,
-            name: userName
-          }),
-        }
-      );
-    } catch (notificationError) {
-      // Don't fail the transaction if notification fails
-      console.error('Error sending transaction notification:', notificationError);
-    }
-
     return new Response(
       JSON.stringify({ url: session.url }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
