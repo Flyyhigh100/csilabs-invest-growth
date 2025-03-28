@@ -87,7 +87,7 @@ const Payments = () => {
             <CardDescription>You need to complete KYC verification before making payments</CardDescription>
           </CardHeader>
           <CardContent>
-            <Alert variant="warning" className="mb-4">
+            <Alert variant="destructive" className="mb-4">
               <AlertTriangle className="h-5 w-5" />
               <AlertTitle>Identity Verification Required</AlertTitle>
               <AlertDescription>
