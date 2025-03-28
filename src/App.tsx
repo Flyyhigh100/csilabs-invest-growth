@@ -1,16 +1,17 @@
+
 import React from 'react';
 import {
   createBrowserRouter,
   RouterProvider,
 } from "react-router-dom";
 import Index from "@/pages/Index";
-import Login from "@/pages/Login";
-import Register from "@/pages/Register";
+import Login from "@/pages/Auth/Login";
+import Register from "@/pages/Auth/Register";
 import Dashboard from "@/pages/Dashboard";
 import Payments from "@/pages/Dashboard/Payments";
 import Transactions from "@/pages/Dashboard/Transactions";
-import Kyc from "@/pages/Dashboard/Kyc";
-import ResetPassword from './pages/ResetPassword';
+import Kyc from "@/pages/Dashboard/KYCVerification";
+import ResetPassword from '@/pages/Auth/ResetPassword';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';

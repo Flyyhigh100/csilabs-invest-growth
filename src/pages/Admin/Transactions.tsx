@@ -68,12 +68,12 @@ const AdminTransactions = () => {
         .from('transactions')
         .select(`
           *,
-          user:user_id (
-            email,
-            profiles:profiles (
-              first_name,
-              last_name
-            )
+          users:user_id (
+            email
+          ),
+          profiles:user_id (
+            first_name,
+            last_name
           )
         `)
         .order('created_at', { ascending: false });
@@ -90,9 +90,9 @@ const AdminTransactions = () => {
       const formattedData = data.map(item => ({
         ...item,
         user: {
-          email: item.user?.email || '',
-          first_name: item.user?.profiles?.first_name || '',
-          last_name: item.user?.profiles?.last_name || '',
+          email: item.users?.email || '',
+          first_name: item.profiles?.first_name || '',
+          last_name: item.profiles?.last_name || '',
         }
       }));
       
