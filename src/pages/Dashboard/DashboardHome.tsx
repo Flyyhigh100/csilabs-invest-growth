@@ -12,7 +12,7 @@ type KYCStatus = 'pending' | 'approved' | 'rejected';
 const DashboardHome = () => {
   // Mock data - would be fetched from API in a real app
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const kycStatus: KYCStatus = 'pending'; // pending, approved, rejected
+  const kycStatus: KYCStatus = 'pending'; // Explicitly typed as KYCStatus
   const transactions = []; // Mock empty transactions list
 
   const getKycStatusUi = () => {
