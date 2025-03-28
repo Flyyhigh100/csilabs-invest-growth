@@ -21,7 +21,7 @@ import { useForm } from 'react-hook-form';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useMobileDetect } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Transaction {
   id: string;
@@ -48,7 +48,7 @@ const AdminTransactions = () => {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [completingTransaction, setCompletingTransaction] = useState(false);
-  const isMobile = useMobileDetect();
+  const isMobile = useIsMobile();
   
   const form = useForm({
     defaultValues: {
@@ -66,16 +66,7 @@ const AdminTransactions = () => {
     try {
       let query = supabase
         .from('transactions')
-        .select(`
-          *,
-          users:user_id (
-            email
-          ),
-          profiles:user_id (
-            first_name,
-            last_name
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
       
       if (filter !== 'all') {
@@ -86,20 +77,65 @@ const AdminTransactions = () => {
       
       if (error) throw error;
       
-      // Format the data to match our Transaction interface
-      const formattedData = data.map(item => ({
-        ...item,
-        user: {
-          email: item.users?.email || '',
-          first_name: item.profiles?.first_name || '',
-          last_name: item.profiles?.last_name || '',
-        }
-      }));
+      // Fetch user data separately since we're having issues with the join
+      const formattedData: Transaction[] = [];
+      
+      for (const transaction of data) {
+        const { data: userData } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', transaction.user_id)
+          .single();
+          
+        const { data: authUser } = await supabase.auth.admin.getUserById(
+          transaction.user_id
+        );
+        
+        formattedData.push({
+          ...transaction,
+          user: {
+            email: authUser?.user?.email || '',
+            first_name: userData?.first_name || '',
+            last_name: userData?.last_name || ''
+          }
+        });
+      }
       
       setTransactions(formattedData);
     } catch (error) {
       console.error('Error fetching transactions:', error);
       toast.error('Failed to load transactions');
+      
+      // If there was an error, let's try a simpler approach without joins
+      try {
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (filter !== 'all' && data) {
+          const filtered = data.filter(tx => tx.status === filter);
+          setTransactions(filtered.map(tx => ({
+            ...tx,
+            user: {
+              email: 'User info unavailable',
+              first_name: '',
+              last_name: ''
+            }
+          })));
+        } else if (data) {
+          setTransactions(data.map(tx => ({
+            ...tx,
+            user: {
+              email: 'User info unavailable',
+              first_name: '',
+              last_name: ''
+            }
+          })));
+        }
+      } catch (fallbackError) {
+        console.error('Fallback error fetching transactions:', fallbackError);
+      }
     } finally {
       setLoading(false);
     }
