@@ -77,31 +77,33 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
               </div>
               
               <div className="pt-4 border-t border-gray-200">
-                <h3 className="text-lg font-medium mb-2">Alternative Payment Methods</h3>
+                <h3 className="text-lg font-medium mb-2">Pay with Crypto</h3>
                 
                 <div className="space-y-2 mb-4">
-                  <Label htmlFor="crypto-currency">Cryptocurrency (for CoinPayments)</Label>
+                  <Label htmlFor="crypto-currency" className="text-cbis-blue font-semibold">Select Cryptocurrency</Label>
                   <Select value={selectedCurrency} onValueChange={setSelectedCurrency} disabled={isProcessing}>
-                    <SelectTrigger id="crypto-currency" className="w-full">
+                    <SelectTrigger id="crypto-currency" className="w-full border-2 border-cbis-teal/50 bg-blue-50/30 focus:ring-2 focus:ring-cbis-blue focus:border-cbis-blue transition-all">
                       <SelectValue placeholder="Select cryptocurrency" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="USDT">USDT (Tether)</SelectItem>
-                      <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
-                      <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
-                      <SelectItem value="DOGE">Dogecoin (DOGE)</SelectItem>
-                      <SelectItem value="XRP">Ripple (XRP)</SelectItem>
-                      <SelectItem value="LTCT">Litecoin Testnet (LTCT)</SelectItem>
+                    <SelectContent className="bg-white border-2 border-cbis-teal/50 shadow-lg z-50">
+                      <SelectItem value="USDT" className="hover:bg-blue-50">USDT (Tether)</SelectItem>
+                      <SelectItem value="BTC" className="hover:bg-blue-50">Bitcoin (BTC)</SelectItem>
+                      <SelectItem value="ETH" className="hover:bg-blue-50">Ethereum (ETH)</SelectItem>
+                      <SelectItem value="DOGE" className="hover:bg-blue-50">Dogecoin (DOGE)</SelectItem>
+                      <SelectItem value="XRP" className="hover:bg-blue-50">Ripple (XRP)</SelectItem>
+                      <SelectItem value="LTCT" className="hover:bg-blue-50">Litecoin Testnet (LTCT)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               
                 <PaymentOption 
-                  title="CoinPayments" 
-                  description={`Pay with ${selectedCurrency} and other cryptocurrencies`} 
+                  title={`Pay with ${selectedCurrency}`} 
+                  description="Use CoinPayments to pay with your favorite cryptocurrency" 
                   icon={<CreditCardIcon className="h-6 w-6 text-cbis-blue" />} 
                   onClick={handleCoinPaymentWithCurrency} 
-                  disabled={isProcessing} 
+                  disabled={isProcessing}
+                  highlight={false}
+                  cryptoHighlight={true} // New prop for crypto highlighting
                 />
               </div>
               
