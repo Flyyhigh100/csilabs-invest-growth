@@ -6,10 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, Clock, CreditCard, FileText, UserCheck } from 'lucide-react';
 
+// Define a type for KYC status
+type KYCStatus = 'pending' | 'approved' | 'rejected';
+
 const DashboardHome = () => {
   // Mock data - would be fetched from API in a real app
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const kycStatus = 'pending'; // pending, approved, rejected
+  const kycStatus: KYCStatus = 'pending'; // pending, approved, rejected
   const transactions = []; // Mock empty transactions list
 
   const getKycStatusUi = () => {
