@@ -106,6 +106,7 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          external_transaction_id: string | null
           id: string
           payment_address: string | null
           payment_method: string
@@ -118,6 +119,7 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          external_transaction_id?: string | null
           id?: string
           payment_address?: string | null
           payment_method: string
@@ -130,6 +132,7 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          external_transaction_id?: string | null
           id?: string
           payment_address?: string | null
           payment_method?: string
