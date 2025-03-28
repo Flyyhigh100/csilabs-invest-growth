@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +14,6 @@ import { Upload, CheckCircle, Camera, AlertTriangle, Loader2 } from 'lucide-reac
 import { useKycVerification, KycFormData } from '@/hooks/useKycVerification';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Define the form schema for personal information
 const personalInfoSchema = z.object({
   first_name: z.string().min(2, { message: "First name must be at least 2 characters" }),
   last_name: z.string().min(2, { message: "Last name must be at least 2 characters" }),
@@ -29,7 +27,6 @@ const personalInfoSchema = z.object({
 
 type PersonalInfoValues = z.infer<typeof personalInfoSchema>;
 
-// Mock list of countries for the select input
 const countries = [
   { value: "us", label: "United States" },
   { value: "ca", label: "Canada" },
@@ -58,7 +55,6 @@ const KYCVerification = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // If KYC status is not 'not_started', set the tab based on status
     if (kycData) {
       if (kycData.status === 'pending' || kycData.status === 'approved' || kycData.status === 'rejected') {
         setActiveTab("verification-status");
@@ -80,7 +76,6 @@ const KYCVerification = () => {
     },
   });
 
-  // Set form default values when KYC data is loaded
   useEffect(() => {
     if (kycData) {
       personalInfoForm.reset({
@@ -119,11 +114,7 @@ const KYCVerification = () => {
 
   const handleFinalSubmit = async () => {
     if (!kycData?.id_front_url || !kycData?.id_back_url || !kycData?.selfie_url) {
-      toast({
-        title: "Missing Documents",
-        description: "Please upload all required documents.",
-        variant: "destructive",
-      });
+      toast.error("Please upload all required documents.");
       return;
     }
 
@@ -133,17 +124,12 @@ const KYCVerification = () => {
       await submitVerification.mutateAsync();
       setActiveTab("verification-status");
     } catch (error) {
-      toast({
-        title: "Submission Failed",
-        description: "An error occurred while submitting your verification. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("An error occurred while submitting your verification. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Display loading state
   if (isLoading) {
     return (
       <DashboardLayout title="KYC Verification">
@@ -155,7 +141,6 @@ const KYCVerification = () => {
     );
   }
 
-  // Check if documents are already uploaded
   const hasIdFront = !!kycData?.id_front_url;
   const hasIdBack = !!kycData?.id_back_url;
   const hasSelfie = !!kycData?.selfie_url;
