@@ -85,6 +85,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
                     <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
                     <SelectItem value="DOGE">Dogecoin (DOGE)</SelectItem>
                     <SelectItem value="XRP">Ripple (XRP)</SelectItem>
+                    <SelectItem value="LTCT">Litecoin Testnet (LTCT)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
