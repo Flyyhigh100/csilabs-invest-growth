@@ -80,7 +80,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
                 <h3 className="text-lg font-medium mb-2">Pay with Crypto</h3>
                 
                 <div className="space-y-2 mb-4">
-                  <Label htmlFor="crypto-currency" className="text-cbis-blue font-semibold">Select Cryptocurrency</Label>
+                  <Label htmlFor="crypto-currency" className="text-cbis-teal font-semibold">Select Cryptocurrency</Label>
                   <Select value={selectedCurrency} onValueChange={setSelectedCurrency} disabled={isProcessing}>
                     <SelectTrigger id="crypto-currency" className="w-full border-2 border-cbis-teal/50 bg-blue-50/30 focus:ring-2 focus:ring-cbis-blue focus:border-cbis-blue transition-all">
                       <SelectValue placeholder="Select cryptocurrency" />
