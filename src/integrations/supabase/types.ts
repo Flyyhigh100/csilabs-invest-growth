@@ -9,6 +9,72 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      kyc_verifications: {
+        Row: {
+          address: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          date_of_birth: string | null
+          first_name: string | null
+          id: string
+          id_back_url: string | null
+          id_front_url: string | null
+          last_name: string | null
+          nationality: string | null
+          postal_code: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          selfie_url: string | null
+          status: Database["public"]["Enums"]["kyc_status"]
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          first_name?: string | null
+          id?: string
+          id_back_url?: string | null
+          id_front_url?: string | null
+          last_name?: string | null
+          nationality?: string | null
+          postal_code?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          selfie_url?: string | null
+          status?: Database["public"]["Enums"]["kyc_status"]
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          first_name?: string | null
+          id?: string
+          id_back_url?: string | null
+          id_front_url?: string | null
+          last_name?: string | null
+          nationality?: string | null
+          postal_code?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          selfie_url?: string | null
+          status?: Database["public"]["Enums"]["kyc_status"]
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -41,7 +107,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      kyc_status: "not_started" | "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never

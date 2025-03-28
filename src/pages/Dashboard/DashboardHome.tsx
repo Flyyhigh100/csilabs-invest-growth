@@ -4,20 +4,83 @@ import DashboardLayout from '@/components/Dashboard/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { AlertCircle, CheckCircle2, Clock, CreditCard, FileText, UserCheck } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, CreditCard, FileText, Loader2, UserCheck } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 
 // Define a type for KYC status
-type KYCStatus = 'pending' | 'approved' | 'rejected';
+type KycStatus = Database['public']['Enums']['kyc_status'];
+
+interface KycVerificationData {
+  id: string;
+  user_id: string;
+  status: KycStatus;
+  rejection_reason: string | null;
+}
 
 const DashboardHome = () => {
-  // Mock data - would be fetched from API in a real app
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const kycStatus = 'pending' as KYCStatus; // Use type assertion to ensure proper typing
-  const transactions = []; // Mock empty transactions list
+  const { user } = useAuth();
+
+  // Fetch KYC status
+  const {
+    data: kycData,
+    isLoading: isLoadingKyc
+  } = useQuery({
+    queryKey: ['kyc-status', user?.id],
+    queryFn: async (): Promise<KycVerificationData | null> => {
+      if (!user) return null;
+      
+      const { data, error } = await supabase
+        .from('kyc_verifications')
+        .select('id, user_id, status, rejection_reason')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error fetching KYC status:', error);
+        throw error;
+      }
+      
+      // If no record exists, create one with not_started status
+      if (!data) {
+        const { data: newData, error: insertError } = await supabase
+          .from('kyc_verifications')
+          .insert({ user_id: user.id, status: 'not_started' })
+          .select('id, user_id, status, rejection_reason')
+          .single();
+        
+        if (insertError) {
+          console.error('Error creating KYC record:', insertError);
+          throw insertError;
+        }
+        
+        return newData;
+      }
+      
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Mock empty transactions list for now
+  const transactions: any[] = [];
 
   const getKycStatusUi = () => {
+    // Loading state
+    if (isLoadingKyc) {
+      return {
+        icon: <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />,
+        title: 'Loading...',
+        description: 'Fetching your verification status',
+        actionButton: null,
+        color: 'bg-gray-50'
+      };
+    }
+    
     // Use a type-safe pattern matching approach for KYCStatus
-    switch (kycStatus) {
+    switch (kycData?.status) {
       case 'approved':
         return {
           icon: <CheckCircle2 className="h-8 w-8 text-green-500" />,
@@ -30,16 +93,15 @@ const DashboardHome = () => {
         return {
           icon: <AlertCircle className="h-8 w-8 text-red-500" />,
           title: 'KYC Rejected',
-          description: 'Your identity verification was rejected. Please try again.',
+          description: `Your identity verification was rejected. ${kycData.rejection_reason ? `Reason: ${kycData.rejection_reason}` : ''}`,
           actionButton: (
-            <Button className="w-full mt-4">
-              Resubmit KYC
+            <Button className="w-full mt-4" asChild>
+              <Link to="/dashboard/kyc">Resubmit KYC</Link>
             </Button>
           ),
           color: 'bg-red-50'
         };
-      default:
-        // Default to pending
+      case 'pending':
         return {
           icon: <Clock className="h-8 w-8 text-amber-500" />,
           title: 'KYC Pending',
@@ -47,10 +109,41 @@ const DashboardHome = () => {
           actionButton: null,
           color: 'bg-amber-50'
         };
+      default:
+        // Default to not started
+        return {
+          icon: <UserCheck className="h-8 w-8 text-blue-500" />,
+          title: 'KYC Not Started',
+          description: 'You need to complete identity verification.',
+          actionButton: null,
+          color: 'bg-blue-50'
+        };
     }
   };
 
   const kycStatusUi = getKycStatusUi();
+
+  // Fetch user profile data
+  const { data: profileData, isLoading: isLoadingProfile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching profile:', error);
+        throw error;
+      }
+      
+      return data;
+    },
+    enabled: !!user,
+  });
 
   return (
     <DashboardLayout title="Dashboard">
@@ -69,7 +162,7 @@ const DashboardHome = () => {
                 <p className="text-sm text-gray-600">{kycStatusUi.description}</p>
               </div>
             </div>
-            {kycStatus === 'pending' && (
+            {kycData?.status === 'not_started' && (
               <Button className="w-full mt-4" variant="outline" asChild>
                 <Link to="/dashboard/kyc">
                   <UserCheck className="mr-2 h-4 w-4" /> Complete Verification
@@ -115,15 +208,28 @@ const DashboardHome = () => {
             <div className="space-y-2">
               <div>
                 <p className="text-sm text-gray-500">Email Address</p>
-                <p className="font-medium">{user.email || 'N/A'}</p>
+                <p className="font-medium">{user?.email || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Account Type</p>
-                <p className="font-medium capitalize">{user.role || 'Standard'}</p>
+                <p className="text-sm text-gray-500">Name</p>
+                {isLoadingProfile ? (
+                  <div className="flex items-center">
+                    <Loader2 className="h-4 w-4 text-gray-400 animate-spin mr-2" />
+                    <span className="text-gray-400">Loading...</span>
+                  </div>
+                ) : (
+                  <p className="font-medium">
+                    {profileData?.first_name || ''} {profileData?.last_name || ''}
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-sm text-gray-500">Member Since</p>
-                <p className="font-medium">Today</p>
+                <p className="font-medium">
+                  {user?.created_at 
+                    ? new Date(user.created_at).toLocaleDateString() 
+                    : 'Today'}
+                </p>
               </div>
             </div>
           </CardContent>

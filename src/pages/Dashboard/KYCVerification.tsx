@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,18 +10,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useToast } from '@/hooks/use-toast';
-import { Upload, CheckCircle, Camera, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
+import { Upload, CheckCircle, Camera, AlertTriangle, Loader2 } from 'lucide-react';
+import { useKycVerification, KycFormData } from '@/hooks/useKycVerification';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Define the form schema for personal information
 const personalInfoSchema = z.object({
-  firstName: z.string().min(2, { message: "First name must be at least 2 characters" }),
-  lastName: z.string().min(2, { message: "Last name must be at least 2 characters" }),
-  dateOfBirth: z.string().min(1, { message: "Date of birth is required" }),
+  first_name: z.string().min(2, { message: "First name must be at least 2 characters" }),
+  last_name: z.string().min(2, { message: "Last name must be at least 2 characters" }),
+  date_of_birth: z.string().min(1, { message: "Date of birth is required" }),
   nationality: z.string().min(1, { message: "Nationality is required" }),
   address: z.string().min(5, { message: "Address must be at least 5 characters" }),
   city: z.string().min(2, { message: "City must be at least 2 characters" }),
-  postalCode: z.string().min(3, { message: "Postal code must be at least 3 characters" }),
+  postal_code: z.string().min(3, { message: "Postal code must be at least 3 characters" }),
   country: z.string().min(2, { message: "Country is required" }),
 });
 
@@ -39,54 +41,84 @@ const countries = [
 ];
 
 const KYCVerification = () => {
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("personal-info");
+  const { user } = useAuth();
+  const {
+    kycData,
+    isLoading,
+    error,
+    savePersonalInfo,
+    uploadDocument,
+    submitVerification
+  } = useKycVerification();
+  
+  const [activeTab, setActiveTab] = useState<string>("personal-info");
   const [uploadedIdFront, setUploadedIdFront] = useState<File | null>(null);
   const [uploadedIdBack, setUploadedIdBack] = useState<File | null>(null);
   const [uploadedSelfie, setUploadedSelfie] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    // If KYC status is not 'not_started', set the tab based on status
+    if (kycData) {
+      if (kycData.status === 'pending' || kycData.status === 'approved' || kycData.status === 'rejected') {
+        setActiveTab("verification-status");
+      }
+    }
+  }, [kycData]);
+
   const personalInfoForm = useForm<PersonalInfoValues>({
     resolver: zodResolver(personalInfoSchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
-      dateOfBirth: "",
+      first_name: "",
+      last_name: "",
+      date_of_birth: "",
       nationality: "",
       address: "",
       city: "",
-      postalCode: "",
+      postal_code: "",
       country: "",
     },
   });
 
-  const handlePersonalInfoSubmit = (values: PersonalInfoValues) => {
-    // In a real app, send this data to your backend
-    console.log("Personal info submitted:", values);
-    
-    toast({
-      title: "Information Saved",
-      description: "Your personal information has been saved successfully.",
-    });
-    
-    // Move to the next tab
+  // Set form default values when KYC data is loaded
+  useEffect(() => {
+    if (kycData) {
+      personalInfoForm.reset({
+        first_name: kycData.first_name || "",
+        last_name: kycData.last_name || "",
+        date_of_birth: kycData.date_of_birth || "",
+        nationality: kycData.nationality || "",
+        address: kycData.address || "",
+        city: kycData.city || "",
+        postal_code: kycData.postal_code || "",
+        country: kycData.country || "",
+      });
+    }
+  }, [kycData, personalInfoForm]);
+
+  const handlePersonalInfoSubmit = async (values: PersonalInfoValues) => {
+    await savePersonalInfo.mutateAsync(values as KycFormData);
     setActiveTab("document-verification");
   };
 
-  const handleDocumentUpload = (type: 'idFront' | 'idBack' | 'selfie', file: File) => {
-    if (type === 'idFront') setUploadedIdFront(file);
-    if (type === 'idBack') setUploadedIdBack(file);
-    if (type === 'selfie') setUploadedSelfie(file);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'idFront' | 'idBack' | 'selfie') => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'id_front' | 'id_back' | 'selfie') => {
     if (e.target.files && e.target.files[0]) {
-      handleDocumentUpload(type, e.target.files[0]);
+      const file = e.target.files[0];
+      if (type === 'id_front') setUploadedIdFront(file);
+      if (type === 'id_back') setUploadedIdBack(file);
+      if (type === 'selfie') setUploadedSelfie(file);
+      
+      try {
+        await uploadDocument.mutateAsync({ file, type });
+        toast.success(`${type.replace('_', ' ')} uploaded successfully`);
+      } catch (error) {
+        console.error(`Error uploading ${type}:`, error);
+      }
     }
   };
 
   const handleFinalSubmit = async () => {
-    if (!uploadedIdFront || !uploadedIdBack || !uploadedSelfie) {
+    if (!kycData?.id_front_url || !kycData?.id_back_url || !kycData?.selfie_url) {
       toast({
         title: "Missing Documents",
         description: "Please upload all required documents.",
@@ -98,22 +130,7 @@ const KYCVerification = () => {
     setIsSubmitting(true);
 
     try {
-      // In a real app, send all data to your backend
-      console.log("Documents uploaded:", {
-        idFront: uploadedIdFront,
-        idBack: uploadedIdBack,
-        selfie: uploadedSelfie,
-      });
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      toast({
-        title: "Verification Submitted",
-        description: "Your KYC verification has been submitted successfully. We'll review your information and update you soon.",
-      });
-
-      // Move to the final tab
+      await submitVerification.mutateAsync();
       setActiveTab("verification-status");
     } catch (error) {
       toast({
@@ -125,6 +142,23 @@ const KYCVerification = () => {
       setIsSubmitting(false);
     }
   };
+
+  // Display loading state
+  if (isLoading) {
+    return (
+      <DashboardLayout title="KYC Verification">
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="animate-spin h-8 w-8 text-gray-400" />
+          <span className="ml-2 text-gray-600">Loading verification status...</span>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Check if documents are already uploaded
+  const hasIdFront = !!kycData?.id_front_url;
+  const hasIdBack = !!kycData?.id_back_url;
+  const hasSelfie = !!kycData?.selfie_url;
 
   return (
     <DashboardLayout title="KYC Verification">
@@ -138,11 +172,22 @@ const KYCVerification = () => {
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="personal-info">Personal Information</TabsTrigger>
-              <TabsTrigger value="document-verification" disabled={activeTab === "personal-info"}>
+              <TabsTrigger 
+                value="personal-info" 
+                disabled={kycData?.status !== 'not_started' && kycData?.status !== 'rejected'}
+              >
+                Personal Information
+              </TabsTrigger>
+              <TabsTrigger 
+                value="document-verification" 
+                disabled={(kycData?.status !== 'not_started' && kycData?.status !== 'rejected') || activeTab === "personal-info"}
+              >
                 Document Verification
               </TabsTrigger>
-              <TabsTrigger value="verification-status" disabled={activeTab !== "verification-status"}>
+              <TabsTrigger 
+                value="verification-status" 
+                disabled={kycData?.status === 'not_started' && activeTab !== "verification-status"}
+              >
                 Verification Status
               </TabsTrigger>
             </TabsList>
@@ -153,7 +198,7 @@ const KYCVerification = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={personalInfoForm.control}
-                      name="firstName"
+                      name="first_name"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>First Name</FormLabel>
@@ -166,7 +211,7 @@ const KYCVerification = () => {
                     />
                     <FormField
                       control={personalInfoForm.control}
-                      name="lastName"
+                      name="last_name"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Last Name</FormLabel>
@@ -179,7 +224,7 @@ const KYCVerification = () => {
                     />
                     <FormField
                       control={personalInfoForm.control}
-                      name="dateOfBirth"
+                      name="date_of_birth"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Date of Birth</FormLabel>
@@ -246,7 +291,7 @@ const KYCVerification = () => {
                     />
                     <FormField
                       control={personalInfoForm.control}
-                      name="postalCode"
+                      name="postal_code"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Postal Code</FormLabel>
@@ -283,8 +328,19 @@ const KYCVerification = () => {
                     />
                   </div>
                   
-                  <Button type="submit" className="w-full">
-                    Save and Continue
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={savePersonalInfo.isPending}
+                  >
+                    {savePersonalInfo.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save and Continue"
+                    )}
                   </Button>
                 </form>
               </Form>
@@ -303,11 +359,13 @@ const KYCVerification = () => {
                     <div className="border rounded-md p-4">
                       <h4 className="text-sm font-medium mb-2">Front of ID</h4>
                       <div className="aspect-video bg-gray-100 rounded-md flex items-center justify-center mb-3">
-                        {uploadedIdFront ? (
+                        {hasIdFront ? (
                           <div className="p-2 text-center">
                             <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                            <p className="text-sm text-gray-600 truncate">{uploadedIdFront.name}</p>
+                            <p className="text-sm text-gray-600">ID Front Uploaded</p>
                           </div>
+                        ) : uploadDocument.isPending && uploadedIdFront ? (
+                          <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
                         ) : (
                           <Upload className="h-8 w-8 text-gray-400" />
                         )}
@@ -317,16 +375,17 @@ const KYCVerification = () => {
                           type="button" 
                           variant="outline" 
                           className="w-full"
+                          disabled={uploadDocument.isPending}
                           onClick={() => document.getElementById('front-id-upload')?.click()}
                         >
-                          {uploadedIdFront ? "Replace" : "Upload"}
+                          {hasIdFront ? "Replace" : "Upload"}
                         </Button>
                         <input
                           id="front-id-upload"
                           type="file"
                           accept="image/*"
                           className="hidden"
-                          onChange={(e) => handleFileChange(e, 'idFront')}
+                          onChange={(e) => handleFileChange(e, 'id_front')}
                         />
                       </div>
                     </div>
@@ -335,11 +394,13 @@ const KYCVerification = () => {
                     <div className="border rounded-md p-4">
                       <h4 className="text-sm font-medium mb-2">Back of ID</h4>
                       <div className="aspect-video bg-gray-100 rounded-md flex items-center justify-center mb-3">
-                        {uploadedIdBack ? (
+                        {hasIdBack ? (
                           <div className="p-2 text-center">
                             <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                            <p className="text-sm text-gray-600 truncate">{uploadedIdBack.name}</p>
+                            <p className="text-sm text-gray-600">ID Back Uploaded</p>
                           </div>
+                        ) : uploadDocument.isPending && uploadedIdBack ? (
+                          <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
                         ) : (
                           <Upload className="h-8 w-8 text-gray-400" />
                         )}
@@ -349,16 +410,17 @@ const KYCVerification = () => {
                           type="button" 
                           variant="outline" 
                           className="w-full"
+                          disabled={uploadDocument.isPending}
                           onClick={() => document.getElementById('back-id-upload')?.click()}
                         >
-                          {uploadedIdBack ? "Replace" : "Upload"}
+                          {hasIdBack ? "Replace" : "Upload"}
                         </Button>
                         <input
                           id="back-id-upload"
                           type="file"
                           accept="image/*"
                           className="hidden"
-                          onChange={(e) => handleFileChange(e, 'idBack')}
+                          onChange={(e) => handleFileChange(e, 'id_back')}
                         />
                       </div>
                     </div>
@@ -367,11 +429,13 @@ const KYCVerification = () => {
                     <div className="border rounded-md p-4">
                       <h4 className="text-sm font-medium mb-2">Selfie with ID</h4>
                       <div className="aspect-video bg-gray-100 rounded-md flex items-center justify-center mb-3">
-                        {uploadedSelfie ? (
+                        {hasSelfie ? (
                           <div className="p-2 text-center">
                             <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                            <p className="text-sm text-gray-600 truncate">{uploadedSelfie.name}</p>
+                            <p className="text-sm text-gray-600">Selfie Uploaded</p>
                           </div>
+                        ) : uploadDocument.isPending && uploadedSelfie ? (
+                          <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
                         ) : (
                           <Camera className="h-8 w-8 text-gray-400" />
                         )}
@@ -381,9 +445,10 @@ const KYCVerification = () => {
                           type="button" 
                           variant="outline" 
                           className="w-full"
+                          disabled={uploadDocument.isPending}
                           onClick={() => document.getElementById('selfie-upload')?.click()}
                         >
-                          {uploadedSelfie ? "Replace" : "Upload"}
+                          {hasSelfie ? "Replace" : "Upload"}
                         </Button>
                         <input
                           id="selfie-upload"
@@ -407,10 +472,17 @@ const KYCVerification = () => {
                   </Button>
                   <Button 
                     type="button"
-                    disabled={!uploadedIdFront || !uploadedIdBack || !uploadedSelfie || isSubmitting}
+                    disabled={!hasIdFront || !hasIdBack || !hasSelfie || isSubmitting || submitVerification.isPending}
                     onClick={handleFinalSubmit}
                   >
-                    {isSubmitting ? "Submitting..." : "Submit Verification"}
+                    {submitVerification.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      "Submit Verification"
+                    )}
                   </Button>
                 </div>
               </div>
@@ -418,14 +490,67 @@ const KYCVerification = () => {
             
             <TabsContent value="verification-status" className="py-4">
               <div className="text-center py-8">
-                <div className="bg-amber-50 rounded-full p-4 w-20 h-20 mx-auto flex items-center justify-center mb-4">
-                  <AlertTriangle className="h-10 w-10 text-amber-500" />
-                </div>
-                <h3 className="text-xl font-medium mb-2">Verification in Progress</h3>
-                <p className="text-gray-600 max-w-md mx-auto mb-6">
-                  Your identity verification is currently being reviewed. This process usually takes 1-2 business days.
-                  We'll notify you once the review is complete.
-                </p>
+                {kycData?.status === 'pending' && (
+                  <>
+                    <div className="bg-amber-50 rounded-full p-4 w-20 h-20 mx-auto flex items-center justify-center mb-4">
+                      <AlertTriangle className="h-10 w-10 text-amber-500" />
+                    </div>
+                    <h3 className="text-xl font-medium mb-2">Verification in Progress</h3>
+                    <p className="text-gray-600 max-w-md mx-auto mb-6">
+                      Your identity verification is currently being reviewed. This process usually takes 1-2 business days.
+                      We'll notify you once the review is complete.
+                    </p>
+                  </>
+                )}
+                
+                {kycData?.status === 'approved' && (
+                  <>
+                    <div className="bg-green-50 rounded-full p-4 w-20 h-20 mx-auto flex items-center justify-center mb-4">
+                      <CheckCircle className="h-10 w-10 text-green-500" />
+                    </div>
+                    <h3 className="text-xl font-medium mb-2">Verification Approved</h3>
+                    <p className="text-gray-600 max-w-md mx-auto mb-6">
+                      Your identity has been successfully verified. You now have full access to all platform features.
+                    </p>
+                  </>
+                )}
+                
+                {kycData?.status === 'rejected' && (
+                  <>
+                    <div className="bg-red-50 rounded-full p-4 w-20 h-20 mx-auto flex items-center justify-center mb-4">
+                      <AlertTriangle className="h-10 w-10 text-red-500" />
+                    </div>
+                    <h3 className="text-xl font-medium mb-2">Verification Rejected</h3>
+                    <p className="text-gray-600 max-w-md mx-auto mb-6">
+                      Unfortunately, your verification was rejected. Reason: {kycData.rejection_reason || "Unspecified reason"}
+                    </p>
+                    <Button 
+                      onClick={() => setActiveTab("personal-info")} 
+                      className="mb-4"
+                    >
+                      Resubmit Verification
+                    </Button>
+                  </>
+                )}
+                
+                {kycData?.status === 'not_started' && (
+                  <>
+                    <div className="bg-blue-50 rounded-full p-4 w-20 h-20 mx-auto flex items-center justify-center mb-4">
+                      <Upload className="h-10 w-10 text-blue-500" />
+                    </div>
+                    <h3 className="text-xl font-medium mb-2">Verification Not Started</h3>
+                    <p className="text-gray-600 max-w-md mx-auto mb-6">
+                      You haven't started the verification process yet. Complete the verification to unlock all platform features.
+                    </p>
+                    <Button 
+                      onClick={() => setActiveTab("personal-info")} 
+                      className="mb-4"
+                    >
+                      Start Verification
+                    </Button>
+                  </>
+                )}
+                
                 <Button asChild variant="outline">
                   <a href="/dashboard">Return to Dashboard</a>
                 </Button>
