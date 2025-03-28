@@ -4,6 +4,8 @@ import {
   createBrowserRouter,
   RouterProvider,
 } from "react-router-dom";
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/react-query';
 import Index from "@/pages/Index";
 import Login from "@/pages/Auth/Login";
 import Register from "@/pages/Auth/Register";
@@ -21,12 +23,14 @@ import AdminTransactions from './pages/Admin/Transactions';
 import AdminUsers from './pages/Admin/Users';
 import ForgotPassword from './pages/Auth/ForgotPassword';
 
-// We'll create a root layout component that includes the AuthProvider
+// We'll create a root layout component that includes the AuthProvider and QueryClientProvider
 const RootLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <AuthProvider>
-      {children}
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        {children}
+      </AuthProvider>
+    </QueryClientProvider>
   );
 };
 
