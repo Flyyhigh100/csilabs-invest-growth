@@ -3,7 +3,7 @@ import React from 'react';
 import { Navigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Home } from 'lucide-react';
+import { Home, ArrowLeft } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -37,9 +37,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
                 Log in
               </Link>
             </Button>
-            <Button asChild variant="outline">
-              <Link to="/" className="flex items-center justify-center">
-                <Home className="mr-2 h-4 w-4" />
+            <Button asChild variant="outline" className="flex items-center justify-center gap-2">
+              <Link to="/">
+                <ArrowLeft className="h-4 w-4" />
                 Back to Home
               </Link>
             </Button>
