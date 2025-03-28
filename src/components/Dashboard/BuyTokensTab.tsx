@@ -3,99 +3,27 @@ import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Info, CreditCard, Wallet } from 'lucide-react';
-import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import PaymentOption from './PaymentOption';
 import { Badge } from "@/components/ui/badge";
+import PaymentOption from './PaymentOption';
 import PurchaseAmountInput from './PurchaseAmountInput';
 import ProcessingIndicator from './ProcessingIndicator';
 import CryptoPaymentDialog from './CryptoPaymentDialog';
+import { usePaymentHandlers } from '@/hooks/usePaymentHandlers';
 
 interface BuyTokensTabProps {
   walletAddress: string | null;
 }
 
 const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
-  const { user } = useAuth();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [showCryptoDialog, setShowCryptoDialog] = useState(false);
   const [amount, setAmount] = useState<number>(100);
-  const [cryptoPaymentDetails, setCryptoPaymentDetails] = useState<{
-    paymentAddress: string;
-    transactionId: string;
-    instructions: string;
-  } | null>(null);
-
-  const handleStripePayment = async () => {
-    if (!walletAddress) {
-      toast.error("Please add a wallet address before proceeding with payment");
-      return;
-    }
-    
-    if (!amount || amount <= 0) {
-      toast.error("Please enter a valid amount");
-      return;
-    }
-    
-    setIsProcessing(true);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
-        body: { amount, walletAddress }
-      });
-      
-      if (error) throw error;
-      
-      if (data.url) {
-        toast.info("Redirecting to Stripe checkout...");
-        // Redirect to Stripe checkout
-        window.location.href = data.url;
-      } else {
-        throw new Error("No checkout URL received");
-      }
-    } catch (error) {
-      console.error("Error creating Stripe checkout:", error);
-      toast.error("Failed to create payment session. Please try again.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-  
-  const handleCryptoPayment = async () => {
-    if (!walletAddress) {
-      toast.error("Please add a wallet address before proceeding with payment");
-      return;
-    }
-    
-    if (!amount || amount <= 0) {
-      toast.error("Please enter a valid amount");
-      return;
-    }
-    
-    setIsProcessing(true);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('create-crypto-payment', {
-        body: { amount, walletAddress }
-      });
-      
-      if (error) throw error;
-      
-      setCryptoPaymentDetails({
-        paymentAddress: data.paymentAddress,
-        transactionId: data.transactionId,
-        instructions: data.instructions
-      });
-      
-      setShowCryptoDialog(true);
-    } catch (error) {
-      console.error("Error creating crypto payment:", error);
-      toast.error("Failed to create crypto payment. Please try again.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  const {
+    isProcessing,
+    showCryptoDialog,
+    setShowCryptoDialog,
+    cryptoPaymentDetails,
+    handleStripePayment,
+    handleCryptoPayment
+  } = usePaymentHandlers(walletAddress);
 
   const renderWalletAlert = () => {
     if (!walletAddress) {
@@ -137,7 +65,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
                 title="Credit/Debit Card" 
                 description="Pay securely with Stripe using any major credit or debit card"
                 icon={<CreditCard className="h-6 w-6 text-cbis-blue" />}
-                onClick={handleStripePayment}
+                onClick={() => handleStripePayment(amount)}
                 recommended={true}
                 disabled={isProcessing}
               />
@@ -146,7 +74,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
                 title="Cryptocurrency" 
                 description="Pay with cryptocurrency and receive tokens on Polygon"
                 icon={<Wallet className="h-6 w-6 text-cbis-blue" />}
-                onClick={handleCryptoPayment}
+                onClick={() => handleCryptoPayment(amount)}
                 disabled={isProcessing}
               />
               
