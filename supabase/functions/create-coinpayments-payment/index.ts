@@ -1,83 +1,9 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-const COINPAYMENTS_API_URL = 'https://www.coinpayments.net/api.php';
-const COINPAYMENTS_PUBLIC_KEY = Deno.env.get('COINPAYMENTS_PUBLIC_KEY');
-const COINPAYMENTS_PRIVATE_KEY = Deno.env.get('COINPAYMENTS_PRIVATE_KEY');
-
-// Helper function to create HMAC signature
-async function createSignature(params: Record<string, string>, privateKey: string): Promise<string> {
-  const payload = new URLSearchParams(params).toString();
-  const encoder = new TextEncoder();
-  const key = encoder.encode(privateKey);
-  const message = encoder.encode(payload);
-  
-  // Create HMAC using SubtleCrypto API
-  const hmacKey = await crypto.subtle.importKey(
-    "raw",
-    key,
-    { name: "HMAC", hash: "SHA-512" },
-    false,
-    ["sign"]
-  );
-  
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    hmacKey,
-    message
-  );
-  
-  // Convert to hex string
-  return Array.from(new Uint8Array(signature))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-// Helper function to make CoinPayments API request
-async function coinPaymentsRequest(command: string, params: Record<string, string>) {
-  if (!COINPAYMENTS_PUBLIC_KEY || !COINPAYMENTS_PRIVATE_KEY) {
-    throw new Error('CoinPayments API keys are not configured');
-  }
-
-  const requestParams = {
-    cmd: command,
-    key: COINPAYMENTS_PUBLIC_KEY,
-    version: '1',
-    format: 'json',
-    ...params,
-  };
-
-  const hmacSig = await createSignature(requestParams, COINPAYMENTS_PRIVATE_KEY);
-
-  console.log(`Making CoinPayments API request for command: ${command}`);
-  
-  const response = await fetch(COINPAYMENTS_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'HMAC': hmacSig,
-    },
-    body: new URLSearchParams(requestParams),
-  });
-
-  const data = await response.json();
-  
-  console.log(`CoinPayments API response for ${command}:`, JSON.stringify(data));
-  
-  if (data.error !== 'ok') {
-    console.error('CoinPayments API error:', data.error);
-    throw new Error(`CoinPayments API error: ${data.error}`);
-  }
-
-  return data.result;
-}
+import { corsHeaders } from "./utils.ts";
+import { createCoinPaymentsTransaction } from "./api-client.ts";
+import { createSupabaseClient, saveTransaction } from "./db-client.ts";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -108,10 +34,7 @@ serve(async (req) => {
     console.log(`Creating CoinPayments payment for amount: $${amount}, wallet: ${walletAddress}, currency: ${currency}`);
     
     // Create Supabase client to record the transaction
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
+    const supabaseClient = createSupabaseClient();
 
     // Get the user from the authorization header
     const token = authHeader.replace('Bearer ', '');
@@ -125,155 +48,45 @@ serve(async (req) => {
     const transactionId = crypto.randomUUID();
 
     // Create a new transaction in CoinPayments API
-    const createTransactionParams = {
-      amount: amount.toString(),
-      currency1: 'USD',
-      currency2: currency,
-      buyer_email: user.email || 'customer@example.com',
-      item_name: 'CSi Tokens Purchase',
-      item_number: transactionId,
-      custom: walletAddress, // Store wallet address in custom field
-      ipn_url: `${Deno.env.get('SUPABASE_FUNCTIONS_URL')}/ipn-handler`, // Would need to implement this separately
-    };
+    const paymentData = await createCoinPaymentsTransaction(
+      amount, 
+      currency, 
+      transactionId, 
+      walletAddress, 
+      user.email
+    );
 
     try {
-      const paymentData = await coinPaymentsRequest('create_transaction', createTransactionParams);
-      console.log('CoinPayments transaction created:', JSON.stringify(paymentData));
-      
-      try {
-        // First, check if the transactions table has the currency column
-        const { error: tablesError } = await supabaseClient
-          .from('transactions')
-          .select('currency')
-          .limit(1);
-        
-        // If there's no currency column, log it but continue without trying to use it
-        const hasCurrencyColumn = !tablesError;
-        
-        // Construct the insert object based on column availability
-        const insertData: any = {
-          user_id: user.id,
-          amount: amount,
-          wallet_address: walletAddress,
-          payment_method: 'coinpayments',
-          status: 'pending',
-          transaction_id: transactionId,
-          payment_address: paymentData.address,
-          external_transaction_id: paymentData.txn_id,
-        };
-        
-        // Only add currency if the column exists
-        if (hasCurrencyColumn) {
-          insertData.currency = currency;
-        }
-        
-        // Insert the transaction record
-        const { error: insertError } = await supabaseClient
-          .from('transactions')
-          .insert(insertData);
-
-        if (insertError) {
-          console.error('Error inserting transaction record:', insertError);
-          // Continue without failing - we'll still return the payment details
-          console.log('Continuing despite database error');
-        }
-      } catch (dbError) {
-        console.error('Database operation error:', dbError);
-        // Continue without failing - we'll still return the payment details
-        console.log('Continuing despite database error');
-      }
-
-      console.log(`CoinPayments payment created with ID: ${paymentData.txn_id}`);
-
-      return new Response(
-        JSON.stringify({
-          paymentAddress: paymentData.address,
-          amount: paymentData.amount,
-          transactionId: transactionId,
-          externalTransactionId: paymentData.txn_id,
-          qrCodeUrl: paymentData.qrcode_url,
-          statusUrl: paymentData.status_url,
-          expiresAt: new Date(paymentData.timeout * 1000).toISOString(),
-          currency: currency,
-          instructions: `Please send ${paymentData.amount} ${currency} to the address above to complete your purchase.`
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      // Save transaction to database
+      await saveTransaction(
+        supabaseClient,
+        user.id,
+        amount,
+        walletAddress,
+        transactionId,
+        paymentData.address,
+        paymentData.txn_id,
+        currency
       );
-    } catch (apiError) {
-      console.error('CoinPayments API error:', apiError);
-      
-      // Fall back to mock data for testing if the API call fails
-      console.log('Falling back to mock data due to API error');
-      
-      const mockPaymentData = {
-        address: `0x${Array.from({length: 40}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`,
-        amount: amount.toString(),
-        txn_id: `CP${Date.now()}`,
-        timeout: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
-        qrcode_url: `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=ethereum:0x${Array.from({length: 40}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`,
-        status_url: `https://www.coinpayments.net/index.php?cmd=status&id=CP${Date.now()}`
-      };
-      
-      try {
-        // First, check if the transactions table has the currency column
-        const { error: tablesError } = await supabaseClient
-          .from('transactions')
-          .select('currency')
-          .limit(1);
-        
-        // If there's no currency column, log it but continue without trying to use it
-        const hasCurrencyColumn = !tablesError;
-        
-        // Construct the insert object based on column availability
-        const insertData: any = {
-          user_id: user.id,
-          amount: amount,
-          wallet_address: walletAddress,
-          payment_method: 'coinpayments',
-          status: 'pending',
-          transaction_id: transactionId,
-          payment_address: mockPaymentData.address,
-          external_transaction_id: mockPaymentData.txn_id,
-        };
-        
-        // Only add currency if the column exists
-        if (hasCurrencyColumn) {
-          insertData.currency = currency;
-        }
-        
-        // Insert the transaction record
-        const { error: insertError } = await supabaseClient
-          .from('transactions')
-          .insert(insertData);
-
-        if (insertError) {
-          console.error('Error inserting transaction record with mock data:', insertError);
-          // Continue without failing - we'll still return the payment details
-          console.log('Continuing despite database error');
-        }
-      } catch (dbError) {
-        console.error('Database operation error with mock data:', dbError);
-        // Continue without failing - we'll still return the payment details
-        console.log('Continuing despite database error');
-      }
-
-      console.log(`Mock CoinPayments payment created with ID: ${mockPaymentData.txn_id}`);
-      
-      return new Response(
-        JSON.stringify({
-          paymentAddress: mockPaymentData.address,
-          amount: mockPaymentData.amount,
-          transactionId: transactionId,
-          externalTransactionId: mockPaymentData.txn_id,
-          qrCodeUrl: mockPaymentData.qrcode_url,
-          statusUrl: mockPaymentData.status_url,
-          expiresAt: new Date(mockPaymentData.timeout * 1000).toISOString(),
-          currency: currency,
-          instructions: `Please send ${mockPaymentData.amount} ${currency} to the address above to complete your purchase.`
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
+    } catch (dbError) {
+      // Continue without failing - we'll still return the payment details
+      console.log('Continuing despite database error');
     }
+
+    return new Response(
+      JSON.stringify({
+        paymentAddress: paymentData.address,
+        amount: paymentData.amount,
+        transactionId: transactionId,
+        externalTransactionId: paymentData.txn_id,
+        qrCodeUrl: paymentData.qrcode_url,
+        statusUrl: paymentData.status_url,
+        expiresAt: new Date(paymentData.timeout * 1000).toISOString(),
+        currency: currency,
+        instructions: `Please send ${paymentData.amount} ${currency} to the address above to complete your purchase.`
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+    );
   } catch (error) {
     console.error('Error creating CoinPayments payment:', error);
     return new Response(
