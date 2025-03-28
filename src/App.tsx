@@ -22,6 +22,9 @@ import ResetPassword from "./pages/Auth/ResetPassword";
 // Dashboard pages
 import DashboardHome from "./pages/Dashboard/DashboardHome";
 import KYCVerification from "./pages/Dashboard/KYCVerification";
+import Transactions from "./pages/Dashboard/Transactions";
+import Documents from "./pages/Dashboard/Documents";
+import Profile from "./pages/Dashboard/Profile";
 
 // Create a new QueryClient instance inside the component to ensure it's created in the React component tree
 const App = () => {
@@ -59,6 +62,30 @@ const App = () => {
                 element={
                   <ProtectedRoute>
                     <KYCVerification />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/transactions" 
+                element={
+                  <ProtectedRoute>
+                    <Transactions />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/documents" 
+                element={
+                  <ProtectedRoute>
+                    <Documents />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/profile" 
+                element={
+                  <ProtectedRoute>
+                    <Profile />
                   </ProtectedRoute>
                 } 
               />
