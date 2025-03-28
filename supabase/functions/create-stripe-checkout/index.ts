@@ -44,7 +44,13 @@ serve(async (req) => {
     }
 
     // Initialize Stripe with your secret key
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+    if (!stripeSecretKey) {
+      console.error('STRIPE_SECRET_KEY is not set in environment variables');
+      throw new Error('Stripe configuration error');
+    }
+    
+    const stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2023-10-16',
     });
 
@@ -59,7 +65,14 @@ serve(async (req) => {
       payment_method_types: ['card'],
       line_items: [
         {
-          price: 'price_1R7fnYKS9PaYdpqtMpwwqsNw', // Your specific price ID
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'CSi Tokens',
+              description: `${tokenAmount} CSi Tokens`,
+            },
+            unit_amount: amount * 100, // Convert to cents
+          },
           quantity: 1,
         },
       ],

@@ -38,9 +38,12 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
         body: { amount, walletAddress }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Stripe checkout error:", error);
+        throw new Error(error.message || "Failed to create payment session");
+      }
       
-      if (data.url) {
+      if (data?.url) {
         toast.info("Redirecting to Stripe checkout...");
         // Redirect to Stripe checkout
         window.location.href = data.url;
@@ -65,7 +68,10 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
         body: { amount, walletAddress }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Crypto payment error:", error);
+        throw new Error(error.message || "Failed to create crypto payment");
+      }
       
       setCryptoPaymentDetails({
         paymentAddress: data.paymentAddress,
