@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -11,15 +10,14 @@ import PurchaseAmountInput from './PurchaseAmountInput';
 import ProcessingIndicator from './ProcessingIndicator';
 import CryptoPaymentDialog from './CryptoPaymentDialog';
 import { usePaymentHandlers } from '@/hooks/usePaymentHandlers';
-
 interface BuyTokensTabProps {
   walletAddress: string | null;
 }
-
-const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
+const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
+  walletAddress
+}) => {
   const [amount, setAmount] = useState<number>(100);
   const [selectedCurrency, setSelectedCurrency] = useState<string>("USDT");
-  
   const {
     isProcessing,
     showCryptoDialog,
@@ -28,28 +26,22 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
     handleStripePayment,
     handleCoinPaymentsPayment
   } = usePaymentHandlers(walletAddress);
-
   const renderWalletAlert = () => {
     if (!walletAddress) {
-      return (
-        <Alert className="mb-4">
+      return <Alert className="mb-4">
           <Info className="h-5 w-5" />
           <AlertTitle>Wallet Address Required</AlertTitle>
           <AlertDescription>
             Please add your Polygon wallet address above before proceeding with payment.
           </AlertDescription>
-        </Alert>
-      );
+        </Alert>;
     }
     return null;
   };
-  
   const handleCoinPaymentWithCurrency = () => {
     handleCoinPaymentsPayment(amount, selectedCurrency);
   };
-
-  return (
-    <>
+  return <>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -58,24 +50,15 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
           </CardTitle>
           <CardDescription>Select your preferred payment method</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 rounded-sm">
           {renderWalletAlert()}
           
-          {walletAddress && (
-            <>
-              <PurchaseAmountInput 
-                amount={amount} 
-                onChange={setAmount} 
-                disabled={isProcessing} 
-              />
+          {walletAddress && <>
+              <PurchaseAmountInput amount={amount} onChange={setAmount} disabled={isProcessing} />
               
               <div className="space-y-2">
                 <Label htmlFor="crypto-currency">Cryptocurrency (for CoinPayments)</Label>
-                <Select
-                  value={selectedCurrency}
-                  onValueChange={setSelectedCurrency}
-                  disabled={isProcessing}
-                >
+                <Select value={selectedCurrency} onValueChange={setSelectedCurrency} disabled={isProcessing}>
                   <SelectTrigger id="crypto-currency" className="w-full">
                     <SelectValue placeholder="Select cryptocurrency" />
                   </SelectTrigger>
@@ -90,26 +73,12 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
                 </Select>
               </div>
             
-              <PaymentOption 
-                title="Credit/Debit Card" 
-                description="Pay securely with Stripe using any major credit or debit card"
-                icon={<CreditCard className="h-6 w-6 text-cbis-blue" />}
-                onClick={() => handleStripePayment(amount)}
-                recommended={true}
-                disabled={isProcessing}
-              />
+              <PaymentOption title="Credit/Debit Card" description="Pay securely with Stripe using any major credit or debit card" icon={<CreditCard className="h-6 w-6 text-cbis-blue" />} onClick={() => handleStripePayment(amount)} recommended={true} disabled={isProcessing} />
               
-              <PaymentOption 
-                title="CoinPayments" 
-                description={`Pay with ${selectedCurrency} and other cryptocurrencies`}
-                icon={<CreditCardIcon className="h-6 w-6 text-cbis-blue" />}
-                onClick={handleCoinPaymentWithCurrency}
-                disabled={isProcessing}
-              />
+              <PaymentOption title="CoinPayments" description={`Pay with ${selectedCurrency} and other cryptocurrencies`} icon={<CreditCardIcon className="h-6 w-6 text-cbis-blue" />} onClick={handleCoinPaymentWithCurrency} disabled={isProcessing} />
               
               {isProcessing && <ProcessingIndicator />}
-            </>
-          )}
+            </>}
         </CardContent>
         <CardFooter className="flex flex-col items-start">
           <Alert className="w-full bg-blue-50 text-blue-800 border-blue-200">
@@ -122,15 +91,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({ walletAddress }) => {
         </CardFooter>
       </Card>
       
-      <CryptoPaymentDialog 
-        open={showCryptoDialog} 
-        onOpenChange={setShowCryptoDialog}
-        paymentDetails={cryptoPaymentDetails}
-        amount={amount}
-        selectedCurrency={selectedCurrency}
-      />
-    </>
-  );
+      <CryptoPaymentDialog open={showCryptoDialog} onOpenChange={setShowCryptoDialog} paymentDetails={cryptoPaymentDetails} amount={amount} selectedCurrency={selectedCurrency} />
+    </>;
 };
-
 export default BuyTokensTab;
