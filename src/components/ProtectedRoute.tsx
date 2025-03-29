@@ -30,6 +30,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminOnly = f
         } finally {
           setIsChecking(false);
         }
+      } else if (!adminOnly) {
+        setIsChecking(false);
       }
     };
     

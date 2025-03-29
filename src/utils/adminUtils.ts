@@ -22,8 +22,40 @@ export const isUserAdmin = async (): Promise<boolean> => {
     
     console.log('Checking admin status for user:', { id: userId, email: userEmail });
     
-    // First check by user ID
-    let { data: idData, error: idError } = await supabase
+    // Check if email exists in admins table (case insensitive)
+    if (userEmail) {
+      console.log('Checking admin by email (case insensitive):', userEmail);
+      const { data: emailData, error: emailError } = await supabase
+        .from('admins')
+        .select('*')
+        .ilike('email', userEmail);
+      
+      if (emailError) {
+        console.error('Error checking admin by email:', emailError);
+      } else if (Array.isArray(emailData) && emailData.length > 0) {
+        console.log('Admin confirmed by email:', emailData);
+        return true;
+      } else {
+        // Also try an exact match in case ilike doesn't work as expected
+        const { data: exactEmailData, error: exactEmailError } = await supabase
+          .from('admins')
+          .select('*')
+          .eq('email', userEmail);
+        
+        if (exactEmailError) {
+          console.error('Error checking admin by exact email:', exactEmailError);
+        } else if (Array.isArray(exactEmailData) && exactEmailData.length > 0) {
+          console.log('Admin confirmed by exact email match:', exactEmailData);
+          return true;
+        } else {
+          console.log('Admin check by email returned no results. Tried both ilike and exact match.');
+        }
+      }
+    }
+    
+    // Also check by user ID as a fallback
+    console.log('Checking admin by ID:', userId);
+    const { data: idData, error: idError } = await supabase
       .from('admins')
       .select('*')
       .eq('id', userId);
@@ -33,24 +65,20 @@ export const isUserAdmin = async (): Promise<boolean> => {
     } else if (Array.isArray(idData) && idData.length > 0) {
       console.log('Admin confirmed by ID:', idData);
       return true;
+    } else {
+      console.log('Admin check by ID returned no results');
     }
     
-    // If no match by ID, check by email
-    if (userEmail) {
-      console.log('Checking admin by email:', userEmail);
-      const { data: emailData, error: emailError } = await supabase
-        .from('admins')
-        .select('*')
-        .eq('email', userEmail);
-      
-      if (emailError) {
-        console.error('Error checking admin by email:', emailError);
-      } else if (Array.isArray(emailData) && emailData.length > 0) {
-        console.log('Admin confirmed by email:', emailData);
-        return true;
-      } else {
-        console.log('Admin check by email returned no results:', emailData);
-      }
+    // Detailed logging to help debug
+    console.log('User is not an admin. Checking admins table content for debugging:');
+    const { data: allAdmins, error: allAdminsError } = await supabase
+      .from('admins')
+      .select('*');
+    
+    if (allAdminsError) {
+      console.error('Error fetching all admins for debugging:', allAdminsError);
+    } else {
+      console.log('Current admins in the database:', allAdmins);
     }
     
     console.log('User is not an admin');
