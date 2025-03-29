@@ -101,14 +101,16 @@ export function useKycVerification() {
       console.log("KYC verification submitted successfully");
       toast.success("Verification submitted successfully! We will review it shortly.");
       
-      // Invalidate any cached KYC data to ensure fresh data
+      // Force immediate invalidation of any cached KYC data
       queryClient.invalidateQueries({ queryKey: ['kyc', user?.id] });
       
       // Also invalidate admin KYC list if the user happens to be an admin
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
       
       // Force a refetch to get the latest data with the updated status
-      refetch();
+      setTimeout(() => {
+        refetch();
+      }, 500); // Small delay to ensure database has updated
     },
     onError: (error) => {
       console.error('Error submitting verification:', error);

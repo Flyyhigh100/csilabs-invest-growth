@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import DocumentUpload from './DocumentUpload';
 import { toast } from 'sonner';
@@ -25,18 +25,41 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   onSubmit,
   onUpload,
 }) => {
+  // Local state to track submission attempts
+  const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
+
   const handleSubmitClick = async () => {
+    // Debug - log the state at button click
     console.log("Submit button clicked, starting submission process...");
+    console.log("Current document states:", { hasIdFront, hasIdBack, hasSelfie });
+    console.log("Current process states:", { isPending, isSubmitting, isAttemptingSubmit });
+    
+    // Validation check - should never happen due to button disabled state, but double-checking
+    if (!hasIdFront || !hasIdBack || !hasSelfie) {
+      toast.error("Please upload all required documents before submitting");
+      return;
+    }
+    
+    // Set local state to show immediate feedback
+    setIsAttemptingSubmit(true);
     
     try {
       toast.info("Submitting verification...");
+      console.log("Calling onSubmit function");
       await onSubmit();
       console.log("Submission completed successfully");
+      toast.success("Verification submitted successfully!");
     } catch (error) {
       console.error("Error in submission:", error);
-      toast.error("There was an error submitting your verification. Please try again.");
+      toast.error("Failed to submit verification. Please try again.");
+    } finally {
+      setIsAttemptingSubmit(false);
     }
   };
+
+  // Combined submission state for UI feedback
+  const showSubmitSpinner = isSubmitting || isAttemptingSubmit;
+  const isButtonDisabled = !hasIdFront || !hasIdBack || !hasSelfie || showSubmitSpinner || isPending;
 
   return (
     <div className="space-y-6">
@@ -78,16 +101,17 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
           type="button" 
           variant="outline"
           onClick={onBack}
+          disabled={showSubmitSpinner}
         >
           Back
         </Button>
         <Button 
           type="button"
-          disabled={!hasIdFront || !hasIdBack || !hasSelfie || isSubmitting || isPending}
+          disabled={isButtonDisabled}
           onClick={handleSubmitClick}
           className="relative"
         >
-          {isSubmitting ? (
+          {showSubmitSpinner ? (
             <>
               <span className="mr-2 h-4 w-4 animate-spin inline-block border-2 border-current border-t-transparent rounded-full"></span>
               Submitting...

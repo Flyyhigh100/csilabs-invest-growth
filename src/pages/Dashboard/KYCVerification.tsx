@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,13 +26,19 @@ const KYCVerification = () => {
   const [activeTab, setActiveTab] = useState<string>("personal-info");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Force a refetch when component mounts to ensure fresh data
+  useEffect(() => {
+    console.log("KYCVerification component mounted, fetching fresh data");
+    refetch();
+  }, [refetch]);
+
   // Monitor kycData changes to update tab selection
   useEffect(() => {
     if (kycData) {
-      console.log("KYC data updated, current status:", kycData.status);
+      console.log("KYC data updated in component, current status:", kycData.status);
       
       if (kycData.status === 'pending' || kycData.status === 'approved' || kycData.status === 'rejected') {
-        console.log("Setting active tab to verification-status based on KYC status");
+        console.log("Setting active tab to verification-status based on KYC status:", kycData.status);
         setActiveTab("verification-status");
       }
     }
@@ -40,6 +46,8 @@ const KYCVerification = () => {
 
   const handlePersonalInfoSubmit = async (values: PersonalInfoValues) => {
     try {
+      console.log("Submitting personal info form:", values);
+      
       // Ensure all required fields are present and convert to KycFormData type
       const formData: KycFormData = {
         first_name: values.first_name,
@@ -53,6 +61,7 @@ const KYCVerification = () => {
       };
       
       await savePersonalInfo.mutateAsync(formData);
+      console.log("Successfully saved personal info, moving to document verification tab");
       setActiveTab("document-verification");
     } catch (error) {
       console.error("Error saving personal info:", error);
@@ -65,16 +74,25 @@ const KYCVerification = () => {
     type: 'id_front' | 'id_back' | 'selfie'
   ) => {
     try {
+      console.log(`Uploading ${type} document:`, file.name);
       await uploadDocument.mutateAsync({ file, type });
       toast.success(`${type.replace('_', ' ')} uploaded successfully`);
+      
+      // Force a refetch to update UI with new document status
+      await refetch();
     } catch (error) {
       console.error(`Error uploading ${type}:`, error);
       toast.error(`Failed to upload ${type.replace('_', ' ')}`);
     }
   };
 
-  const handleFinalSubmit = async () => {
-    if (!kycData?.id_front_url || !kycData?.id_back_url || !kycData?.selfie_url) {
+  const handleFinalSubmit = useCallback(async () => {
+    if (!kycData) {
+      toast.error("KYC data not found. Please try again.");
+      return;
+    }
+    
+    if (!kycData.id_front_url || !kycData.id_back_url || !kycData.selfie_url) {
       toast.error("Please upload all required documents.");
       return;
     }
@@ -89,10 +107,11 @@ const KYCVerification = () => {
       // Show explicit success message to the user
       toast.success("Your verification has been submitted successfully! We will review it shortly.");
       
-      // Force a refetch to get the updated data
+      console.log("Verification submitted successfully, updating tab...");
+      
+      // Force an immediate refetch to get the updated status
       await refetch();
       
-      console.log("Verification submitted successfully, updating tab...");
       // Force the tab change to verification-status
       setActiveTab("verification-status");
       
@@ -102,7 +121,7 @@ const KYCVerification = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [kycData, submitVerification, refetch]);
 
   if (isLoading) {
     return (
@@ -135,10 +154,14 @@ const KYCVerification = () => {
   useEffect(() => {
     console.log("Initial status:", initialStatus);
     if (initialStatus === 'pending' || initialStatus === 'approved' || initialStatus === 'rejected') {
-      console.log("Setting initial tab to verification-status");
+      console.log("Setting initial tab to verification-status based on status:", initialStatus);
       setActiveTab("verification-status");
     }
   }, [initialStatus]);
+
+  console.log("Rendering KYCVerification page with status:", initialStatus);
+  console.log("Document upload status:", { hasIdFront, hasIdBack, hasSelfie });
+  console.log("Current active tab:", activeTab);
 
   return (
     <DashboardLayout title="KYC Verification">
@@ -160,7 +183,7 @@ const KYCVerification = () => {
               </TabsTrigger>
               <TabsTrigger 
                 value="document-verification" 
-                disabled={kycData?.status === 'pending' || activeTab === "personal-info"}
+                disabled={kycData?.status === 'pending' || (!kycData?.first_name && activeTab === "personal-info")}
               >
                 Document Verification
               </TabsTrigger>

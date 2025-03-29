@@ -6,6 +6,8 @@ import { KycVerificationData, KycFormData } from './types';
 export const fetchKycVerification = async (userId: string): Promise<KycVerificationData | null> => {
   if (!userId) return null;
   
+  console.log(`Fetching KYC data for user: ${userId}`);
+  
   // Check if there's an existing verification record
   const { data, error } = await supabase
     .from('kyc_verifications')
@@ -35,6 +37,7 @@ export const fetchKycVerification = async (userId: string): Promise<KycVerificat
     return newData;
   }
   
+  console.log(`Retrieved KYC data for user ${userId}:`, data);
   return data;
 };
 
@@ -44,6 +47,8 @@ export const saveKycPersonalInfo = async (
   formData: KycFormData
 ): Promise<boolean> => {
   if (!userId) throw new Error('User ID is required');
+  
+  console.log(`Saving personal info for user ${userId}:`, formData);
   
   const { error } = await supabase
     .from('kyc_verifications')
@@ -57,6 +62,8 @@ export const saveKycPersonalInfo = async (
     console.error('Error saving personal info:', error);
     throw error;
   }
+  
+  console.log(`Successfully saved personal info for user ${userId}`);
   return true;
 };
 
@@ -105,6 +112,7 @@ export const uploadKycDocument = async (
     throw updateError;
   }
   
+  console.log(`Successfully uploaded ${type} document for user ${userId}`);
   return urlData.publicUrl;
 };
 
@@ -138,16 +146,23 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     }
     
     if (!kycData.id_front_url || !kycData.id_back_url || !kycData.selfie_url) {
-      console.error('Missing required document uploads');
-      throw new Error('All documents must be uploaded before submission');
+      const error = new Error('All documents must be uploaded before submission');
+      console.error(error.message, {
+        id_front_url: kycData.id_front_url,
+        id_back_url: kycData.id_back_url,
+        selfie_url: kycData.selfie_url
+      });
+      throw error;
     }
+    
+    console.log('Pre-submission checks passed, updating status to pending...');
     
     // Perform the update operation
     const { data, error } = await supabase
       .from('kyc_verifications')
       .update(updateData)
       .eq('user_id', userId)
-      .select('*');
+      .select();
     
     if (error) {
       console.error('Error submitting KYC verification:', error);
