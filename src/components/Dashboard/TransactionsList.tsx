@@ -1,8 +1,8 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, CreditCard, DollarSign } from 'lucide-react';
+import { Loader2, CreditCard, DollarSign, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import {
@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 interface Transaction {
   id: string;
@@ -29,29 +30,85 @@ const TransactionsList = () => {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      if (!user) return;
+  const fetchTransactions = useCallback(async () => {
+    if (!user) return;
 
-      try {
-        const { data, error } = await supabase
-          .from('transactions')
-          .select('*')
-          .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        
-        setTransactions(data || []);
-      } catch (error) {
-        console.error('Error fetching transactions:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTransactions();
+      if (error) throw error;
+      
+      setTransactions(data || []);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
   }, [user]);
+
+  // Fetch transactions on component mount
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  // Check status of pending crypto transactions
+  useEffect(() => {
+    if (!transactions.length) return;
+    
+    // Only check crypto transactions that are pending
+    const pendingCryptoTransactions = transactions.filter(
+      tx => tx.status === 'pending' && (tx.payment_method === 'crypto' || tx.payment_method === 'coinpayments')
+    );
+    
+    if (!pendingCryptoTransactions.length) return;
+    
+    // Set up an interval to check status periodically
+    const intervalId = setInterval(async () => {
+      let hasStatusChanges = false;
+      
+      for (const tx of pendingCryptoTransactions) {
+        try {
+          const { data, error } = await supabase.functions.invoke('create-crypto-payment/status', {
+            body: { transactionId: tx.transaction_id }
+          });
+          
+          if (error) continue;
+          
+          // If status has changed from pending, update the local state
+          if (data?.status && data.status !== 'pending') {
+            hasStatusChanges = true;
+            
+            // Show a toast notification for status change
+            if (data.status === 'completed') {
+              toast.success(`Transaction ${tx.transaction_id.substring(0, 6)}... has been completed!`);
+            } else if (data.status === 'failed') {
+              toast.error(`Transaction ${tx.transaction_id.substring(0, 6)}... has failed.`);
+            }
+          }
+        } catch (error) {
+          console.error(`Error checking status for transaction ${tx.transaction_id}:`, error);
+        }
+      }
+      
+      // If any status changes, refresh the transactions list
+      if (hasStatusChanges) {
+        fetchTransactions();
+      }
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(intervalId);
+  }, [transactions, fetchTransactions]);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchTransactions();
+  };
 
   if (isLoading) {
     return (
@@ -80,33 +137,48 @@ const TransactionsList = () => {
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Payment Method</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {transactions.map((transaction) => (
-            <TableRow key={transaction.id}>
-              <TableCell>
-                {new Date(transaction.created_at).toLocaleDateString()}
-              </TableCell>
-              <TableCell>${transaction.amount.toFixed(2)}</TableCell>
-              <TableCell className="capitalize">
-                {transaction.payment_method}
-              </TableCell>
-              <TableCell>
-                <StatusBadge status={transaction.status} />
-              </TableCell>
+    <div>
+      <div className="flex justify-end mb-4">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
+      
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Payment Method</TableHead>
+              <TableHead>Status</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {transactions.map((transaction) => (
+              <TableRow key={transaction.id}>
+                <TableCell>
+                  {new Date(transaction.created_at).toLocaleDateString()}
+                </TableCell>
+                <TableCell>${transaction.amount.toFixed(2)}</TableCell>
+                <TableCell className="capitalize">
+                  {transaction.payment_method}
+                </TableCell>
+                <TableCell>
+                  <StatusBadge status={transaction.status} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 };
