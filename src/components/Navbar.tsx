@@ -4,10 +4,12 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -34,10 +36,18 @@ const Navbar: React.FC = () => {
         <div className="hidden md:flex items-center space-x-6">
           <Link to="/" className="text-gray-800 hover:text-cbis-blue transition-colors">Home</Link>
           <Link to="/token-info" className="text-gray-800 hover:text-cbis-blue transition-colors">Token Info</Link>
-          <Link to="/register" className="text-gray-800 hover:text-cbis-blue transition-colors">Register</Link>
-          <Link to="/dashboard" className="text-gray-800 hover:text-cbis-blue transition-colors">Dashboard</Link>
+          {!user && (
+            <Link to="/register" className="text-gray-800 hover:text-cbis-blue transition-colors">Register</Link>
+          )}
+          {user && (
+            <Link to="/dashboard" className="text-gray-800 hover:text-cbis-blue transition-colors">Dashboard</Link>
+          )}
           <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
-            <Link to="/register">Buy Tokens</Link>
+            {user ? (
+              <Link to="/dashboard/payments">Buy Tokens</Link>
+            ) : (
+              <Link to="/register">Buy Tokens</Link>
+            )}
           </Button>
         </div>
 
@@ -53,7 +63,7 @@ const Navbar: React.FC = () => {
       {/* Mobile Navigation */}
       <div 
         className={cn(
-          "fixed inset-0 bg-white bg-opacity-95 backdrop-blur-md z-40 transition-all duration-300 md:hidden flex flex-col pt-20 px-6",
+          "fixed inset-0 bg-white bg-opacity-95 backdrop-blur-md z-40 md:hidden flex flex-col pt-20 px-6",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
@@ -71,27 +81,35 @@ const Navbar: React.FC = () => {
         >
           Token Info
         </Link>
-        <Link 
-          to="/register" 
-          className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
-          onClick={() => setIsOpen(false)}
-        >
-          Register
-        </Link>
-        <Link 
-          to="/dashboard" 
-          className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
-          onClick={() => setIsOpen(false)}
-        >
-          Dashboard
-        </Link>
+        {!user && (
+          <Link 
+            to="/register" 
+            className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
+            onClick={() => setIsOpen(false)}
+          >
+            Register
+          </Link>
+        )}
+        {user && (
+          <Link 
+            to="/dashboard" 
+            className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
+            onClick={() => setIsOpen(false)}
+          >
+            Dashboard
+          </Link>
+        )}
         <div className="mt-6">
           <Button 
             asChild
             className="w-full bg-gradient-to-r from-cbis-blue to-cbis-teal text-white"
             onClick={() => setIsOpen(false)}
           >
-            <Link to="/register">Buy Tokens</Link>
+            {user ? (
+              <Link to="/dashboard/payments">Buy Tokens</Link>
+            ) : (
+              <Link to="/register">Buy Tokens</Link>
+            )}
           </Button>
         </div>
       </div>

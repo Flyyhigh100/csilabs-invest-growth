@@ -13,6 +13,8 @@ import Dashboard from '@/pages/Dashboard';
 import Payments from '@/pages/Dashboard/Payments';
 import Transactions from '@/pages/Dashboard/Transactions';
 import KYCVerification from '@/pages/Dashboard/KYCVerification';
+import Documents from '@/pages/Dashboard/Documents';
+import Profile from '@/pages/Dashboard/Profile';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import NotFound from '@/pages/NotFound';
 import { Toaster } from "@/components/ui/toaster"
@@ -32,6 +34,7 @@ const App = () => {
         <AuthProvider>
           <div className="App">
             <Routes>
+              {/* Public routes */}
               <Route path="/" element={<Index />} />
               <Route path="/token-info" element={<TokenInfo />} />
               
@@ -42,12 +45,13 @@ const App = () => {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
-                <Route index element={<Payments />} />
-                <Route path="payments" element={<Payments />} />
-                <Route path="transactions" element={<Transactions />} />
-                <Route path="kyc" element={<KYCVerification />} />
-              </Route>
+              {/* Protected dashboard routes */}
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/dashboard/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
+              <Route path="/dashboard/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
+              <Route path="/dashboard/kyc" element={<ProtectedRoute><KYCVerification /></ProtectedRoute>} />
+              <Route path="/dashboard/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+              <Route path="/dashboard/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               
               {/* Admin Routes */}
               <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
