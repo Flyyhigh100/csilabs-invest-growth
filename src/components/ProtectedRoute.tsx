@@ -22,12 +22,22 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminOnly = f
       if (user && adminOnly) {
         try {
           console.log("Checking admin status in ProtectedRoute for:", user.email);
-          const admin = await isUserAdmin();
-          console.log("Admin check result in ProtectedRoute:", admin);
-          setIsAdmin(admin);
+          // Add a small delay to ensure connection is ready
+          setTimeout(async () => {
+            try {
+              const admin = await isUserAdmin();
+              console.log("Admin check result in ProtectedRoute:", admin);
+              setIsAdmin(admin);
+            } catch (error) {
+              console.error("Error in delayed admin check:", error);
+              setIsAdmin(false);
+            } finally {
+              setIsChecking(false);
+            }
+          }, 100);
         } catch (error) {
           console.error("Error checking admin status in ProtectedRoute:", error);
-        } finally {
+          setIsAdmin(false);
           setIsChecking(false);
         }
       } else if (!adminOnly) {
