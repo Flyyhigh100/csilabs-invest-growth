@@ -1,5 +1,5 @@
 
-import { KycVerificationData } from '@/hooks/useKycVerification';
+import { KycVerificationData } from '@/hooks/kyc';
 import { Database } from '@/integrations/supabase/types';
 
 export type KycStatus = Database['public']['Enums']['kyc_status'];
