@@ -26,29 +26,61 @@ import {
 import { processKycVerification } from '@/utils/adminUtils';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { KycVerificationData } from '@/hooks/useKycVerification';
+import { Database } from '@/integrations/supabase/types';
+
+type KycStatus = Database['public']['Enums']['kyc_status'];
+
+// Define an enhanced KYC type that includes profile data
+interface KycVerificationWithProfile extends KycVerificationData {
+  profile_first_name?: string | null;
+  profile_last_name?: string | null;
+}
 
 // Fetch KYC verifications function
-const fetchKycVerifications = async () => {
+const fetchKycVerifications = async (): Promise<KycVerificationWithProfile[]> => {
   console.log('Fetching KYC verifications from database');
   
-  const { data, error } = await supabase
+  // First, get all KYC verifications
+  const { data: kycData, error: kycError } = await supabase
     .from('kyc_verifications')
-    .select('*, profiles(first_name, last_name, id)')
+    .select('*')
     .order('submitted_at', { ascending: false });
   
-  if (error) {
-    console.error('Error fetching KYC verifications:', error);
-    throw error;
+  if (kycError) {
+    console.error('Error fetching KYC verifications:', kycError);
+    throw kycError;
   }
   
-  console.log('KYC verifications fetched:', data?.length || 0);
-  return data || [];
+  // Then, for each KYC verification, fetch the associated profile data
+  const enhancedKycData: KycVerificationWithProfile[] = await Promise.all(
+    (kycData || []).map(async (kyc) => {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', kyc.user_id)
+        .maybeSingle();
+      
+      if (profileError) {
+        console.error(`Error fetching profile for user ${kyc.user_id}:`, profileError);
+      }
+      
+      return {
+        ...kyc,
+        profile_first_name: profileData?.first_name || null,
+        profile_last_name: profileData?.last_name || null
+      };
+    })
+  );
+  
+  console.log('KYC verifications fetched:', enhancedKycData.length || 0);
+  return enhancedKycData;
 };
 
 // Component for the KYC verifications admin page
 const KycVerifications = () => {
   const queryClient = useQueryClient();
-  const [selectedKyc, setSelectedKyc] = useState(null);
+  const [selectedKyc, setSelectedKyc] = useState<KycVerificationWithProfile | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('pending');
   const [rejectionReason, setRejectionReason] = useState('');
@@ -99,7 +131,7 @@ const KycVerifications = () => {
   });
   
   // Handle view verification details
-  const handleViewDetails = (kyc) => {
+  const handleViewDetails = (kyc: KycVerificationWithProfile) => {
     setSelectedKyc(kyc);
     setIsViewModalOpen(true);
   };
@@ -229,7 +261,7 @@ const KycVerifications = () => {
                                 {verification.first_name} {verification.last_name}
                               </p>
                               <p className="text-sm text-gray-500">
-                                {verification.profiles?.first_name} {verification.profiles?.last_name}
+                                {verification.profile_first_name} {verification.profile_last_name}
                               </p>
                             </div>
                           </div>

@@ -198,7 +198,7 @@ export function useKycVerification() {
       return true;
     },
     onSuccess: () => {
-      // Success is handled in the component
+      toast.success('Your verification has been submitted successfully! We will review it shortly.');
     },
     onError: (error) => {
       console.error('Error submitting verification:', error);
