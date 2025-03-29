@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -168,21 +169,36 @@ export function useKycVerification() {
     mutationFn: async () => {
       if (!user || !kycData) throw new Error('User not authenticated or KYC data not found');
       
+      const currentTimestamp = new Date().toISOString();
+      
+      // Clear any previous rejection reason if resubmitting
+      const updateData = {
+        status: 'pending' as KycStatus,
+        submitted_at: currentTimestamp,
+        updated_at: currentTimestamp,
+        rejection_reason: null
+      };
+      
       const { error } = await supabase
         .from('kyc_verifications')
-        .update({
-          status: 'pending',
-          submitted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('user_id', user.id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error submitting KYC verification:', error);
+        throw error;
+      }
+      
+      // Invalidate any cached KYC data to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['kyc', user.id] });
+      
+      // Also invalidate admin KYC list if the user happens to be an admin
+      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+      
       return true;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['kyc', user?.id] });
-      toast.success('KYC verification submitted successfully');
+      // Success is handled in the component
     },
     onError: (error) => {
       console.error('Error submitting verification:', error);

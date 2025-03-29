@@ -77,6 +77,7 @@ const KYCVerification = () => {
 
     try {
       await submitVerification.mutateAsync();
+      toast.success("Your verification documents have been submitted successfully! We'll review them shortly.");
       setActiveTab("verification-status");
     } catch (error) {
       toast.error("An error occurred while submitting your verification. Please try again.");
