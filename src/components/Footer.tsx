@@ -1,11 +1,8 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
-
 const Footer: React.FC = () => {
-  return (
-    <footer className="bg-cbis-blue text-white py-12">
+  return <footer className="bg-cbis-blue text-white py-12">
       <div className="container-custom">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
@@ -14,12 +11,7 @@ const Footer: React.FC = () => {
               Revolutionizing cancer treatment through Harvard-validated cannabinoid research.
             </p>
             <div className="flex items-center">
-              <a 
-                href="https://polygonscan.com/token/0xcba5ca199bca0af3f6046da01169035f2c6a7ff0" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-100 hover:text-white flex items-center"
-              >
+              <a href="https://polygonscan.com/token/0xcba5ca199bca0af3f6046da01169035f2c6a7ff0" target="_blank" rel="noopener noreferrer" className="text-blue-100 hover:text-white flex items-center">
                 <span>View Token on Polygonscan</span>
                 <ExternalLink className="ml-1 h-4 w-4" />
               </a>
@@ -103,13 +95,9 @@ const Footer: React.FC = () => {
         
         <div className="mt-12 pt-6 border-t border-blue-800 text-center text-blue-200">
           <p>&copy; {new Date().getFullYear()} CBIS. All rights reserved.</p>
-          <p className="mt-2 text-sm">
-            Important: Token investments involve risk. Do your own research before investing.
-          </p>
+          <p className="mt-2 text-sm">Important: Token contributions involve potential risk. Do your own research before contributing.</p>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
-
 export default Footer;
