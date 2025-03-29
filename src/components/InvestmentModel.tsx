@@ -64,9 +64,7 @@ const InvestmentModel: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold mb-2 text-cbis-dark">Long-term Vision</h3>
-                  <p className="text-gray-600">
-                    Our token is designed for public trading with future integration into our complete business ecosystem, maximizing value for early investors.
-                  </p>
+                  <p className="text-gray-600">Our token is designed for public trading with future integration into our complete business ecosystem, maximizing value for early contributors.</p>
                 </div>
               </div>
               
@@ -93,7 +91,7 @@ const InvestmentModel: React.FC = () => {
                     <div className="w-12 h-12 rounded-full bg-cbis-blue text-white flex items-center justify-center font-bold text-lg z-10">1</div>
                     <div className="flex-1 bg-gray-50 p-4 rounded-lg">
                       <h4 className="font-medium mb-2 text-cbis-dark">Token Purchase</h4>
-                      <p className="text-gray-600 text-sm">Investors purchase $CSi-EDP/Labs tokens to fund research and laboratory acquisitions.</p>
+                      <p className="text-gray-600 text-sm">Contributors purchase $CSi-EDP/Labs tokens to fund research and laboratory acquisitions.</p>
                     </div>
                   </div>
                   
