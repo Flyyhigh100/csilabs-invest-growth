@@ -52,7 +52,10 @@ export const saveKycPersonalInfo = async (
     })
     .eq('user_id', userId);
   
-  if (error) throw error;
+  if (error) {
+    console.error('Error saving personal info:', error);
+    throw error;
+  }
   return true;
 };
 
@@ -64,6 +67,8 @@ export const uploadKycDocument = async (
 ): Promise<string> => {
   if (!userId) throw new Error('User ID is required');
   
+  console.log(`Uploading ${type} document for user ${userId}...`);
+  
   // Upload file to storage
   const filePath = `${userId}/${type}_${Date.now()}.${file.name.split('.').pop()}`;
   const { data: uploadData, error: uploadError } = await supabase.storage
@@ -73,7 +78,10 @@ export const uploadKycDocument = async (
       upsert: true
     });
   
-  if (uploadError) throw uploadError;
+  if (uploadError) {
+    console.error('Storage upload error:', uploadError);
+    throw uploadError;
+  }
   
   // Get public URL
   const { data: urlData } = supabase.storage
@@ -84,12 +92,17 @@ export const uploadKycDocument = async (
   const updateData: Record<string, string> = {};
   updateData[`${type}_url`] = urlData.publicUrl;
   
+  console.log(`Updating KYC record with ${type} URL: ${urlData.publicUrl}`);
+  
   const { error: updateError } = await supabase
     .from('kyc_verifications')
     .update(updateData)
     .eq('user_id', userId);
   
-  if (updateError) throw updateError;
+  if (updateError) {
+    console.error('Database update error:', updateError);
+    throw updateError;
+  }
   
   return urlData.publicUrl;
 };
@@ -97,6 +110,8 @@ export const uploadKycDocument = async (
 // Submit KYC verification
 export const submitKycVerification = async (userId: string): Promise<boolean> => {
   if (!userId) throw new Error('User ID is required');
+  
+  console.log(`Submitting KYC verification for user ${userId}...`);
   
   const currentTimestamp = new Date().toISOString();
   
@@ -108,15 +123,18 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     rejection_reason: null
   };
   
-  const { error } = await supabase
+  // Perform the update operation
+  const { data, error } = await supabase
     .from('kyc_verifications')
     .update(updateData)
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .select('*');
   
   if (error) {
     console.error('Error submitting KYC verification:', error);
     throw error;
   }
   
+  console.log('KYC verification submitted successfully:', data);
   return true;
 };

@@ -80,14 +80,14 @@ const KYCVerification = () => {
       console.log("Submitting verification...");
       await submitVerification.mutateAsync();
       
-      // Show success message to the user
+      // Show explicit success message to the user
       toast.success("Your verification has been submitted successfully! We will review it shortly.");
       
-      // Add a refetch here to ensure we have the latest data
+      // Force a refetch to get the updated data
       await refetch();
       
       console.log("Verification submitted successfully, updating tab...");
-      // Force the tab change regardless of the status
+      // Force the tab change to verification-status
       setActiveTab("verification-status");
       
     } catch (error) {
@@ -138,13 +138,14 @@ const KYCVerification = () => {
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger 
                 value="personal-info" 
-                disabled={kycData?.status !== 'not_started' && kycData?.status !== 'rejected'}
+                disabled={activeTab === "verification-status" && kycData?.status === 'pending'}
               >
                 Personal Information
               </TabsTrigger>
               <TabsTrigger 
                 value="document-verification" 
-                disabled={(kycData?.status !== 'not_started' && kycData?.status !== 'rejected') || activeTab === "personal-info"}
+                disabled={(activeTab === "verification-status" && kycData?.status === 'pending') || 
+                          (activeTab === "personal-info")}
               >
                 Document Verification
               </TabsTrigger>

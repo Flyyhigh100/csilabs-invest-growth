@@ -27,19 +27,23 @@ export function useKycVerification() {
     queryKey: ['kyc', user?.id],
     queryFn: async (): Promise<KycVerificationData | null> => {
       if (!user) return null;
+      console.log('Fetching KYC data for user:', user.id);
       return fetchKycVerification(user.id);
     },
     enabled: !!user,
     staleTime: 0, // Always refetch when needed
+    refetchOnWindowFocus: true,
   });
   
   // Save KYC personal information
   const savePersonalInfo = useMutation({
     mutationFn: async (formData: KycFormData) => {
       if (!user || !kycData) throw new Error('User not authenticated or KYC data not found');
+      console.log('Saving personal info for user:', user.id);
       return saveKycPersonalInfo(user.id, formData);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kyc', user?.id] });
       refetch();
       toast.success('Personal information saved successfully');
     },
@@ -59,9 +63,11 @@ export function useKycVerification() {
       type: 'id_front' | 'id_back' | 'selfie' 
     }) => {
       if (!user) throw new Error('User not authenticated');
+      console.log(`Uploading ${type} document for user:`, user.id);
       return uploadKycDocument(user.id, file, type);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kyc', user?.id] });
       refetch();
     },
     onError: (error) => {
@@ -74,6 +80,7 @@ export function useKycVerification() {
   const submitVerification = useMutation({
     mutationFn: async () => {
       if (!user || !kycData) throw new Error('User not authenticated or KYC data not found');
+      console.log('Submitting verification for user:', user.id);
       const result = await submitKycVerification(user.id);
       console.log("Submission result:", result);
       return result;
@@ -85,8 +92,6 @@ export function useKycVerification() {
       
       // Also invalidate admin KYC list if the user happens to be an admin
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
-      
-      toast.success('Your verification has been submitted successfully! We will review it shortly.');
     },
     onError: (error) => {
       console.error('Error submitting verification:', error);

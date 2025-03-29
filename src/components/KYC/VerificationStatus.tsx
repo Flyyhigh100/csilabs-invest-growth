@@ -19,6 +19,8 @@ const VerificationStatus: React.FC<VerificationStatusProps> = ({
   rejectionReason,
   onStartVerification,
 }) => {
+  console.log("Current KYC status:", status);
+  
   return (
     <div className="text-center py-8">
       {status === 'pending' && (
