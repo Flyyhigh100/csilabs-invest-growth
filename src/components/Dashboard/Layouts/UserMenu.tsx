@@ -1,17 +1,18 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { LogOut, ChevronDown } from 'lucide-react';
+import { LogOut, ChevronDown, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 
 interface UserMenuProps {
   email?: string | null;
   isAdmin: boolean;
+  isChecking?: boolean;
   handleLogout: () => void;
 }
 
-const UserMenu: React.FC<UserMenuProps> = ({ email, isAdmin, handleLogout }) => {
+const UserMenu: React.FC<UserMenuProps> = ({ email, isAdmin, isChecking = false, handleLogout }) => {
   const getInitials = (email?: string | null) => {
     if (!email) return '??';
     return email.substring(0, 2).toUpperCase();
@@ -37,7 +38,12 @@ const UserMenu: React.FC<UserMenuProps> = ({ email, isAdmin, handleLogout }) => 
             <Link to="/dashboard/profile" className="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">
               Profile settings
             </Link>
-            {isAdmin && (
+            {isChecking ? (
+              <div className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Checking admin access...
+              </div>
+            ) : isAdmin && (
               <Link to="/admin" className="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">
                 Admin Portal
               </Link>

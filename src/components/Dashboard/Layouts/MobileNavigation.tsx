@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
-import { Menu, X, LogOut } from 'lucide-react';
+import { Menu, X, LogOut, Loader2 } from 'lucide-react';
 
 interface NavItem {
   name: string;
@@ -17,6 +17,7 @@ interface MobileNavigationProps {
   email?: string | null;
   navItems: NavItem[];
   isAdmin: boolean;
+  isChecking?: boolean;
   adminNavItem: NavItem;
   handleLogout: () => void;
 }
@@ -25,6 +26,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   email,
   navItems,
   isAdmin,
+  isChecking = false,
   adminNavItem,
   handleLogout
 }) => {
@@ -74,7 +76,12 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   {item.name}
                 </Link>
               ))}
-              {isAdmin && (
+              {isChecking ? (
+                <div className="flex items-center gap-3 px-3 py-2 text-sm">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Checking admin status...
+                </div>
+              ) : isAdmin && (
                 <Link
                   to={adminNavItem.href}
                   className="flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-gray-100 text-cbis-blue font-medium"

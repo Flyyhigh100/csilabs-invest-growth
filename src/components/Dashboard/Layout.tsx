@@ -16,6 +16,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
   
   // Get navigation items
   const navItems = getDashboardNavItems();
@@ -23,12 +24,26 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   
   useEffect(() => {
     const checkAdmin = async () => {
-      const admin = await isUserAdmin();
-      setIsAdmin(admin);
+      setIsChecking(true);
+      try {
+        const admin = await isUserAdmin();
+        console.log("Admin status check result:", admin);
+        setIsAdmin(admin);
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setIsAdmin(false);
+      } finally {
+        setIsChecking(false);
+      }
     };
     
-    checkAdmin();
-  }, []);
+    if (user) {
+      checkAdmin();
+    } else {
+      setIsAdmin(false);
+      setIsChecking(false);
+    }
+  }, [user]);
   
   const handleLogout = async () => {
     try {
@@ -44,6 +59,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
       <TopNavigation 
         email={user?.email}
         isAdmin={isAdmin}
+        isChecking={isChecking}
         navItems={navItems}
         adminNavItem={adminNavItem}
         handleLogout={handleLogout}
@@ -53,6 +69,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         <SidebarNavigation 
           navItems={navItems}
           isAdmin={isAdmin}
+          isChecking={isChecking}
           adminNavItem={adminNavItem}
           handleLogout={handleLogout}
         />

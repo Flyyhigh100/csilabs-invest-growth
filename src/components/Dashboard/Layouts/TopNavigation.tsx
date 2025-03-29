@@ -15,6 +15,7 @@ interface NavItem {
 interface TopNavigationProps {
   email?: string | null;
   isAdmin: boolean;
+  isChecking?: boolean;
   navItems: NavItem[];
   adminNavItem: NavItem;
   handleLogout: () => void;
@@ -23,6 +24,7 @@ interface TopNavigationProps {
 const TopNavigation: React.FC<TopNavigationProps> = ({
   email,
   isAdmin,
+  isChecking = false,
   navItems,
   adminNavItem,
   handleLogout
@@ -45,7 +47,7 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
               <Bell className="h-5 w-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </Button>
-            <UserMenu email={email} isAdmin={isAdmin} handleLogout={handleLogout} />
+            <UserMenu email={email} isAdmin={isAdmin} isChecking={isChecking} handleLogout={handleLogout} />
           </div>
           
           {/* Mobile menu button */}
@@ -53,6 +55,7 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
             email={email}
             navItems={navItems}
             isAdmin={isAdmin}
+            isChecking={isChecking}
             adminNavItem={adminNavItem}
             handleLogout={handleLogout}
           />

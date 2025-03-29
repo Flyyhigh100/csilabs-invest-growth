@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 
@@ -14,6 +14,7 @@ interface NavItem {
 interface SidebarNavigationProps {
   navItems: NavItem[];
   isAdmin: boolean;
+  isChecking?: boolean;
   adminNavItem: NavItem;
   handleLogout: () => void;
 }
@@ -21,6 +22,7 @@ interface SidebarNavigationProps {
 const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ 
   navItems, 
   isAdmin, 
+  isChecking = false,
   adminNavItem, 
   handleLogout 
 }) => {
@@ -42,7 +44,12 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             </Link>
           ))}
           
-          {isAdmin && (
+          {isChecking ? (
+            <div className="flex items-center gap-3 px-2 py-2 text-sm font-medium rounded-md">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Checking admin status...
+            </div>
+          ) : isAdmin && (
             <Link
               to={adminNavItem.href}
               className="group flex items-center gap-3 px-2 py-2 text-sm font-medium rounded-md bg-blue-50 text-cbis-blue hover:bg-blue-100"

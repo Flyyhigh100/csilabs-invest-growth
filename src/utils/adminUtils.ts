@@ -1,12 +1,22 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export const isUserAdmin = async (): Promise<boolean> => {
   try {
     // Get current session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return false;
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('Error getting session:', sessionError);
+      return false;
+    }
+    
+    if (!session || !session.user) {
+      console.log('No active session or user found');
+      return false;
+    }
+    
+    console.log('Checking admin status for user ID:', session.user.id);
     
     // Check if user exists in admins table
     const { data, error } = await supabase
@@ -16,13 +26,19 @@ export const isUserAdmin = async (): Promise<boolean> => {
       .single();
     
     if (error) {
-      console.error('Error checking admin status:', error);
+      // If error is not a "no rows returned" error
+      if (error.code !== 'PGRST116') {
+        console.error('Error checking admin status:', error);
+      } else {
+        console.log('User is not an admin');
+      }
       return false;
     }
     
+    console.log('Admin check result:', !!data);
     return !!data;
   } catch (error) {
-    console.error('Error checking admin status:', error);
+    console.error('Exception checking admin status:', error);
     return false;
   }
 };
