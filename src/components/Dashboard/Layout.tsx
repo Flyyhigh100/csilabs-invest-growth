@@ -1,4 +1,5 @@
-import React, { ReactNode } from 'react';
+
+import React, { ReactNode, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   User, 
@@ -21,7 +22,6 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState, useEffect } from 'react';
 import { isUserAdmin } from '@/utils/adminUtils';
 
 interface DashboardLayoutProps {
@@ -67,6 +67,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
     { name: 'Profile', href: '/dashboard/profile', icon: <User className="h-5 w-5" /> },
   ];
 
+  // Add Admin link for admin users
+  const adminNavItem = { name: 'Admin Portal', href: '/admin', icon: <ShieldCheck className="h-5 w-5" /> };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top navigation */}
@@ -106,6 +109,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                       <Link to="/dashboard/profile" className="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">
                         Profile settings
                       </Link>
+                      {isAdmin && (
+                        <Link to="/admin" className="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">
+                          Admin Portal
+                        </Link>
+                      )}
                       <button 
                         onClick={handleLogout} 
                         className="text-gray-700 flex w-full items-center px-4 py-2 text-sm hover:bg-gray-100"
@@ -157,6 +165,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                           {item.name}
                         </Link>
                       ))}
+                      {isAdmin && (
+                        <Link
+                          to={adminNavItem.href}
+                          className="flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-gray-100 text-cbis-blue font-medium"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          {adminNavItem.icon}
+                          {adminNavItem.name}
+                        </Link>
+                      )}
                     </nav>
                     <div className="mt-auto">
                       <Separator className="mb-4" />
@@ -195,6 +213,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                   {item.name}
                 </Link>
               ))}
+              
+              {isAdmin && (
+                <Link
+                  to={adminNavItem.href}
+                  className="group flex items-center gap-3 px-2 py-2 text-sm font-medium rounded-md bg-blue-50 text-cbis-blue hover:bg-blue-100"
+                >
+                  {adminNavItem.icon}
+                  {adminNavItem.name}
+                </Link>
+              )}
             </nav>
             <div className="border-t border-gray-200 p-4">
               <Button 
