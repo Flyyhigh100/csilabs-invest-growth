@@ -53,11 +53,11 @@ const App = () => {
               <Route path="/dashboard/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
               <Route path="/dashboard/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               
-              {/* Admin Routes */}
-              <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-              <Route path="/admin/kyc" element={<ProtectedRoute><AdminKycPage /></ProtectedRoute>} />
-              <Route path="/admin/transactions" element={<ProtectedRoute><AdminTransactionsPage /></ProtectedRoute>} />
-              <Route path="/admin/users" element={<ProtectedRoute><AdminUsersPage /></ProtectedRoute>} />
+              {/* Admin Routes - Note the adminOnly prop */}
+              <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminDashboard /></ProtectedRoute>} />
+              <Route path="/admin/kyc" element={<ProtectedRoute adminOnly={true}><AdminKycPage /></ProtectedRoute>} />
+              <Route path="/admin/transactions" element={<ProtectedRoute adminOnly={true}><AdminTransactionsPage /></ProtectedRoute>} />
+              <Route path="/admin/users" element={<ProtectedRoute adminOnly={true}><AdminUsersPage /></ProtectedRoute>} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>

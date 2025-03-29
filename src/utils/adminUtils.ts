@@ -17,39 +17,44 @@ export const isUserAdmin = async (): Promise<boolean> => {
       return false;
     }
     
-    console.log('Checking admin status for user ID:', session.user.id);
+    const userId = session.user.id;
+    const userEmail = session.user.email;
     
-    // Check if user exists in admins table
-    const { data, error } = await supabase
+    console.log('Checking admin status for user:', { id: userId, email: userEmail });
+    
+    // First check by user ID
+    let { data: idData, error: idError } = await supabase
       .from('admins')
       .select('*')
-      .eq('id', session.user.id);
+      .eq('id', userId);
     
-    if (error) {
-      console.error('Error checking admin status:', error);
-      return false;
+    if (idError) {
+      console.error('Error checking admin by ID:', idError);
+    } else if (Array.isArray(idData) && idData.length > 0) {
+      console.log('Admin confirmed by ID:', idData);
+      return true;
     }
     
-    const isAdmin = Array.isArray(data) && data.length > 0;
-    console.log('Admin check result:', isAdmin, 'Data:', data);
-    
-    // Also check by email as fallback
-    if (!isAdmin && session.user.email) {
+    // If no match by ID, check by email
+    if (userEmail) {
+      console.log('Checking admin by email:', userEmail);
       const { data: emailData, error: emailError } = await supabase
         .from('admins')
         .select('*')
-        .eq('email', session.user.email);
+        .eq('email', userEmail);
       
       if (emailError) {
         console.error('Error checking admin by email:', emailError);
+      } else if (Array.isArray(emailData) && emailData.length > 0) {
+        console.log('Admin confirmed by email:', emailData);
+        return true;
       } else {
-        const isAdminByEmail = Array.isArray(emailData) && emailData.length > 0;
-        console.log('Admin check by email result:', isAdminByEmail, 'Data:', emailData);
-        return isAdminByEmail;
+        console.log('Admin check by email returned no results:', emailData);
       }
     }
     
-    return isAdmin;
+    console.log('User is not an admin');
+    return false;
   } catch (error) {
     console.error('Exception checking admin status:', error);
     return false;
