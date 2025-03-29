@@ -1,14 +1,15 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
 import Index from '@/pages/Index';
 import TokenInfo from '@/pages/TokenInfo';
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
-import Dashboard from '@/pages/Dashboard/Index';
+import Login from '@/pages/Auth/Login';
+import Register from '@/pages/Auth/Register';
+import ForgotPassword from '@/pages/Auth/ForgotPassword';
+import ResetPassword from '@/pages/Auth/ResetPassword';
+import Dashboard from '@/pages/Dashboard';
 import Payments from '@/pages/Dashboard/Payments';
 import Transactions from '@/pages/Dashboard/Transactions';
 import KYCVerification from '@/pages/Dashboard/KYCVerification';

@@ -13,13 +13,28 @@ import {
 
 const fetchDashboardStats = async () => {
   // Fetch counts for KYC verifications by status
-  const { data: kycCountsData, error: kycError } = await supabase
+  const { data: kycData, error: kycError } = await supabase
     .from('kyc_verifications')
-    .select('status, count', { count: 'exact', head: false })
-    .throwOnError()
-    .groupBy('status');
+    .select('status')
+    .throwOnError();
   
   if (kycError) throw kycError;
+  
+  // Process KYC counts manually since groupBy is not available
+  const kycCounts = {
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    not_started: 0
+  };
+  
+  if (kycData) {
+    kycData.forEach(item => {
+      if (item.status in kycCounts) {
+        kycCounts[item.status as keyof typeof kycCounts]++;
+      }
+    });
+  }
   
   // Fetch counts for pending token transfers
   const { count: pendingTokensCount, error: pendingError } = await supabase
@@ -42,20 +57,6 @@ const fetchDashboardStats = async () => {
   const totalValue = transactionData
     ? transactionData.reduce((sum, tx) => sum + Number(tx.amount), 0)
     : 0;
-  
-  // Process KYC counts
-  const kycCounts = {
-    pending: 0,
-    approved: 0,
-    rejected: 0,
-    not_started: 0
-  };
-  
-  kycCountsData?.forEach(item => {
-    if (item.status in kycCounts) {
-      kycCounts[item.status as keyof typeof kycCounts] = item.count;
-    }
-  });
   
   return {
     kycCounts,
