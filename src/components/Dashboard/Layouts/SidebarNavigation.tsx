@@ -1,9 +1,10 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, Loader2 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Menu, X, LogOut, Loader2, ShieldCheck } from 'lucide-react';
 
 interface NavItem {
   name: string;
@@ -26,6 +27,8 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
   adminNavItem, 
   handleLogout 
 }) => {
+  console.log("SidebarNavigation props:", { isAdmin, isChecking });
+  
   return (
     <div className="hidden md:block w-64 bg-white border-r border-gray-200">
       <div className="flex flex-col h-full">

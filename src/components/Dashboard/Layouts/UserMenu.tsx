@@ -17,6 +17,8 @@ const UserMenu: React.FC<UserMenuProps> = ({ email, isAdmin, isChecking = false,
     return email.substring(0, 2).toUpperCase();
   };
 
+  console.log("UserMenu props:", { email, isAdmin, isChecking });
+
   return (
     <div className="relative group">
       <button className="flex items-center gap-2 text-sm font-medium">

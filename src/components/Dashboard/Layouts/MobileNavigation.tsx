@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
-import { Menu, X, LogOut, Loader2 } from 'lucide-react';
+import { Menu, X, LogOut, Loader2, ShieldCheck } from 'lucide-react';
 
 interface NavItem {
   name: string;
@@ -36,6 +36,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
     if (!email) return '??';
     return email.substring(0, 2).toUpperCase();
   };
+
+  console.log("MobileNavigation props:", { email, isAdmin, isChecking });
 
   return (
     <div className="md:hidden">
