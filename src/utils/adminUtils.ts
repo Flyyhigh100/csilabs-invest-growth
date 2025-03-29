@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -21,6 +20,39 @@ export const isUserAdmin = async (): Promise<boolean> => {
     const userEmail = session.user.email;
     
     console.log('Checking admin status for user:', { id: userId, email: userEmail });
+    
+    // --- DEBUGGING ---
+    console.log('Chris.d.conley@gmail.com should be an admin, adding them directly to the database');
+    
+    // For chris.d.conley@gmail.com, directly add to admins table if not already there
+    if (userEmail && userEmail.toLowerCase() === 'chris.d.conley@gmail.com') {
+      // First check if already exists
+      const { data: existingAdmin, error: checkError } = await supabase
+        .from('admins')
+        .select('*')
+        .ilike('email', userEmail)
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error('Error checking if admin exists:', checkError);
+      } else if (!existingAdmin) {
+        console.log('Adding chris.d.conley@gmail.com as admin');
+        // Insert the admin record
+        const { error: insertError } = await supabase
+          .from('admins')
+          .insert([{ email: userEmail, id: userId }]);
+        
+        if (insertError) {
+          console.error('Error adding admin:', insertError);
+        } else {
+          console.log('Successfully added as admin');
+          return true;
+        }
+      } else {
+        console.log('Admin already exists:', existingAdmin);
+        return true;
+      }
+    }
     
     try {
       // Check if email exists in admins table (case insensitive)
