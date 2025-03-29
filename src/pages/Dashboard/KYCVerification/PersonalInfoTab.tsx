@@ -3,7 +3,7 @@ import React from 'react';
 import { TabsContent } from '@/components/ui/tabs';
 import PersonalInfoForm from '@/components/KYC/PersonalInfoForm';
 import { PersonalInfoValues } from '@/components/KYC/schema/personalInfoSchema';
-import { KycVerificationData } from '@/hooks/useKycVerification';
+import { KycVerificationData } from '@/hooks/kyc/types';
 import { getDefaultPersonalInfoValues } from './TabHandlers';
 
 interface PersonalInfoTabProps {

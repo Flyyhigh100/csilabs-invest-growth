@@ -2,7 +2,7 @@
 import React from 'react';
 import { TabsContent } from '@/components/ui/tabs';
 import VerificationStatus from '@/components/KYC/VerificationStatus';
-import { KycVerificationData } from '@/hooks/useKycVerification';
+import { KycVerificationData } from '@/hooks/kyc/types';
 
 interface VerificationStatusTabProps {
   kycData: KycVerificationData | null;

@@ -2,7 +2,7 @@
 import React from 'react';
 import { TabsContent } from '@/components/ui/tabs';
 import DocumentVerification from '@/components/KYC/DocumentVerification';
-import { KycVerificationData } from '@/hooks/useKycVerification';
+import { KycVerificationData } from '@/hooks/kyc/types';
 
 interface DocumentVerificationTabProps {
   kycData: KycVerificationData | null;

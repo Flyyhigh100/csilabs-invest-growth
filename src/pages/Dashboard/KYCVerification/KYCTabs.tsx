@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useKycVerification, KycVerificationData } from '@/hooks/useKycVerification';
+import { useKycVerification } from '@/hooks/useKycVerification';
 import { toast } from 'sonner';
 import { PersonalInfoValues } from '@/components/KYC/schema/personalInfoSchema';
 import { getInitialActiveTab } from './TabHandlers';
 import PersonalInfoTab from './PersonalInfoTab';
 import DocumentVerificationTab from './DocumentVerificationTab';
 import VerificationStatusTab from './VerificationStatusTab';
+import { KycVerificationData } from '@/hooks/kyc/types';
 
 interface KYCTabsProps {
   kycData: KycVerificationData | null;
