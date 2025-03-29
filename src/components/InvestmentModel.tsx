@@ -1,10 +1,13 @@
+
 import React from 'react';
 import FadeInSection from './FadeInSection';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Beaker, TrendingUp, BarChart4, CheckCircle2 } from 'lucide-react';
+
 const InvestmentModel: React.FC = () => {
-  return <section className="section-padding bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
+  return (
+    <section className="section-padding bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-40 right-0 w-96 h-96 rounded-full bg-cbis-teal opacity-5 blur-3xl"></div>
@@ -70,8 +73,8 @@ const InvestmentModel: React.FC = () => {
               
               <div className="pt-4">
                 <Button asChild size="lg" className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
-                  <Link to="/register" className="Change button to \"Contribute Now\"">
-                    Invest Now <ArrowRight className="ml-2 h-4 w-4" />
+                  <Link to="/register">
+                    Contribute Now <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
               </div>
@@ -128,6 +131,8 @@ const InvestmentModel: React.FC = () => {
           </FadeInSection>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };
+
 export default InvestmentModel;
