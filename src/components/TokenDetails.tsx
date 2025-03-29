@@ -29,9 +29,7 @@ const TokenDetails: React.FC = () => {
                 <Shield className="h-6 w-6 text-cbis-blue" />
               </div>
               <h3 className="text-xl font-semibold mb-3 text-cbis-dark">Token Security</h3>
-              <p className="text-gray-600 mb-4">
-                Built on the Polygon blockchain, our token provides enhanced security, lower transaction costs, and faster settlement compared to traditional investment vehicles.
-              </p>
+              <p className="text-gray-600 mb-4">Built on the Polygon blockchain, our token provides enhanced security, lower transaction costs, and faster settlement compared to traditional approaches vehicles.</p>
               <div className="mt-auto">
                 <ul className="space-y-2">
                   <li className="flex items-start">
@@ -56,10 +54,8 @@ const TokenDetails: React.FC = () => {
               <div className="mb-4 p-3 bg-blue-50 rounded-lg inline-block">
                 <TrendingUp className="h-6 w-6 text-cbis-blue" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-cbis-dark">Investment Potential</h3>
-              <p className="text-gray-600 mb-4">
-                The CSi Labs token is designed for potential public trading with future dividend payouts based on the growth of our Lab Series investments and drug development success.
-              </p>
+              <h3 className="text-xl font-semibold mb-3 text-cbis-dark">Project Potential</h3>
+              <p className="text-gray-600 mb-4">The CSi Labs token is designed for potential public trading on upper markets through future offerings based on the growth of our Lab Series funding, FDA research, and drug development success.</p>
               <div className="mt-auto">
                 <ul className="space-y-2">
                   <li className="flex items-start">

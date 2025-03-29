@@ -1,13 +1,10 @@
-
 import React from 'react';
 import FadeInSection from './FadeInSection';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Beaker, TrendingUp, BarChart4, CheckCircle2 } from 'lucide-react';
-
 const InvestmentModel: React.FC = () => {
-  return (
-    <section className="section-padding bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
+  return <section className="section-padding bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-40 right-0 w-96 h-96 rounded-full bg-cbis-teal opacity-5 blur-3xl"></div>
@@ -17,12 +14,8 @@ const InvestmentModel: React.FC = () => {
       <div className="container-custom relative z-10">
         <FadeInSection>
           <div className="text-center mb-16 max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-cbis-dark">
-              The Lab Series Investment Model
-            </h2>
-            <p className="text-gray-600">
-              Our innovative Lab Series is the core of our business model, creating value for token holders through strategic research and development.
-            </p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-cbis-dark">The Lab Series Business Model</h2>
+            <p className="text-gray-600">Our innovative Lab Series token is a vital component of the CBiS ecosystem, creating value for token holders through strategic research and development.</p>
           </div>
         </FadeInSection>
 
@@ -90,9 +83,7 @@ const InvestmentModel: React.FC = () => {
           <FadeInSection direction="right" delay={200}>
             <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white p-6">
               <div className="relative z-10">
-                <h3 className="text-2xl font-bold mb-6 bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">
-                  Investment Flow
-                </h3>
+                <h3 className="text-2xl font-bold mb-6 bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">Roadmap</h3>
                 
                 <div className="space-y-8 relative">
                   {/* Vertical connection line */}
@@ -125,8 +116,8 @@ const InvestmentModel: React.FC = () => {
                   <div className="flex items-start gap-6 relative">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-r from-cbis-teal to-green-500 text-white flex items-center justify-center font-bold text-lg z-10">4</div>
                     <div className="flex-1 bg-gray-50 p-4 rounded-lg">
-                      <h4 className="font-medium mb-2 text-cbis-dark">Investor Returns</h4>
-                      <p className="text-gray-600 text-sm">Token holders receive potential dividends and benefit from asset growth and future token value appreciation.</p>
+                      <h4 className="font-medium mb-2 text-cbis-dark">Future Offerings</h4>
+                      <p className="text-gray-600 text-sm">Token holders receive incentivized access to new therapeutics and future listings on markets like NASDAQ and Tier 1 exchanges.</p>
                     </div>
                   </div>
                 </div>
@@ -139,8 +130,6 @@ const InvestmentModel: React.FC = () => {
           </FadeInSection>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default InvestmentModel;
