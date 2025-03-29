@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Home, Bell } from 'lucide-react';
+import { Home, Bell, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import UserMenu from './UserMenu';
 import MobileNavigation from './MobileNavigation';
@@ -29,6 +29,8 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
   adminNavItem,
   handleLogout
 }) => {
+  console.log("TopNavigation props:", { isAdmin, isChecking });
+  
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
       <div className="mx-auto px-4 sm:px-6 lg:px-8">
@@ -47,6 +49,15 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
               <Bell className="h-5 w-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </Button>
+            {isAdmin && !isChecking && (
+              <Link 
+                to="/admin" 
+                className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
             <UserMenu email={email} isAdmin={isAdmin} isChecking={isChecking} handleLogout={handleLogout} />
           </div>
           

@@ -22,21 +22,16 @@ export const isUserAdmin = async (): Promise<boolean> => {
     const { data, error } = await supabase
       .from('admins')
       .select('*')
-      .eq('id', session.user.id)
-      .single();
+      .eq('id', session.user.id);
     
     if (error) {
-      // If error is not a "no rows returned" error
-      if (error.code !== 'PGRST116') {
-        console.error('Error checking admin status:', error);
-      } else {
-        console.log('User is not an admin');
-      }
+      console.error('Error checking admin status:', error);
       return false;
     }
     
-    console.log('Admin check result:', !!data);
-    return !!data;
+    const isAdmin = Array.isArray(data) && data.length > 0;
+    console.log('Admin check result:', isAdmin, 'Data:', data);
+    return isAdmin;
   } catch (error) {
     console.error('Exception checking admin status:', error);
     return false;

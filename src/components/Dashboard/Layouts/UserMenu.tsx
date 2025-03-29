@@ -1,9 +1,8 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { LogOut, ChevronDown, Loader2 } from 'lucide-react';
+import { LogOut, ChevronDown, Loader2, ShieldCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 
 interface UserMenuProps {
   email?: string | null;
@@ -33,6 +32,12 @@ const UserMenu: React.FC<UserMenuProps> = ({ email, isAdmin, isChecking = false,
           <div className="px-4 py-3">
             <p className="text-sm">Signed in as</p>
             <p className="text-sm font-medium truncate">{email}</p>
+            {isAdmin && (
+              <div className="flex items-center mt-1 text-xs text-green-600">
+                <ShieldCheck className="h-3 w-3 mr-1" />
+                Admin Access
+              </div>
+            )}
           </div>
           <div className="py-1">
             <Link to="/dashboard/profile" className="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">
@@ -44,7 +49,8 @@ const UserMenu: React.FC<UserMenuProps> = ({ email, isAdmin, isChecking = false,
                 Checking admin access...
               </div>
             ) : isAdmin && (
-              <Link to="/admin" className="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">
+              <Link to="/admin" className="text-blue-600 font-medium flex items-center gap-2 px-4 py-2 text-sm hover:bg-blue-50">
+                <ShieldCheck className="h-4 w-4" />
                 Admin Portal
               </Link>
             )}

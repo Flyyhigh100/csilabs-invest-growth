@@ -6,6 +6,7 @@ import { isUserAdmin } from '@/utils/adminUtils';
 import TopNavigation from './Layouts/TopNavigation';
 import SidebarNavigation from './Layouts/SidebarNavigation';
 import { getDashboardNavItems, getAdminNavItem } from './Layouts/DashboardNav';
+import { toast } from 'sonner';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -26,8 +27,15 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
     const checkAdmin = async () => {
       setIsChecking(true);
       try {
+        if (!user) {
+          setIsAdmin(false);
+          setIsChecking(false);
+          return;
+        }
+        
+        console.log("Starting admin status check for user:", user.id);
         const admin = await isUserAdmin();
-        console.log("Admin status check result:", admin);
+        console.log("Admin status check completed:", admin);
         setIsAdmin(admin);
       } catch (error) {
         console.error("Error checking admin status:", error);
@@ -37,12 +45,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
       }
     };
     
-    if (user) {
-      checkAdmin();
-    } else {
-      setIsAdmin(false);
-      setIsChecking(false);
-    }
+    checkAdmin();
   }, [user]);
   
   const handleLogout = async () => {
@@ -53,6 +56,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
       console.error("Logout error:", error);
     }
   };
+
+  console.log("Dashboard Layout state:", { isAdmin, isChecking, userId: user?.id });
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
