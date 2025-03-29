@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import DocumentUpload from './DocumentUpload';
+import { toast } from 'sonner';
 
 interface DocumentVerificationProps {
   hasIdFront: boolean;
@@ -26,7 +27,15 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
 }) => {
   const handleSubmitClick = async () => {
     console.log("Submit button clicked, starting submission process...");
-    await onSubmit();
+    
+    try {
+      toast.info("Submitting verification...");
+      await onSubmit();
+      console.log("Submission completed successfully");
+    } catch (error) {
+      console.error("Error in submission:", error);
+      toast.error("There was an error submitting your verification. Please try again.");
+    }
   };
 
   return (
@@ -80,7 +89,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
         >
           {isSubmitting ? (
             <>
-              <span className="mr-2 h-4 w-4 animate-spin inline-block">●</span>
+              <span className="mr-2 h-4 w-4 animate-spin inline-block border-2 border-current border-t-transparent rounded-full"></span>
               Submitting...
             </>
           ) : (

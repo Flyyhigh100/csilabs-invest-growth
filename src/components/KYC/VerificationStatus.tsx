@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, CheckCircle, Clock, Upload } from 'lucide-react';
@@ -19,6 +19,11 @@ const VerificationStatus: React.FC<VerificationStatusProps> = ({
   onStartVerification,
 }) => {
   console.log("Rendering VerificationStatus component with status:", status);
+  
+  // Trigger a debugging log whenever this component renders with a new status
+  useEffect(() => {
+    console.log("VerificationStatus mounted/updated with status:", status);
+  }, [status]);
   
   return (
     <div className="text-center py-8">
@@ -65,7 +70,7 @@ const VerificationStatus: React.FC<VerificationStatusProps> = ({
         </>
       )}
       
-      {status === 'not_started' && (
+      {(status === 'not_started' || !status) && (
         <>
           <div className="bg-blue-50 rounded-full p-4 w-20 h-20 mx-auto flex items-center justify-center mb-4">
             <Upload className="h-10 w-10 text-blue-500" />

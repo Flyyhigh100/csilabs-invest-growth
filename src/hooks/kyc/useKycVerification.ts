@@ -79,8 +79,20 @@ export function useKycVerification() {
   // Submit KYC verification
   const submitVerification = useMutation({
     mutationFn: async () => {
-      if (!user || !kycData) throw new Error('User not authenticated or KYC data not found');
+      if (!user || !kycData) {
+        console.error('User not authenticated or KYC data not found');
+        throw new Error('User not authenticated or KYC data not found');
+      }
+      
       console.log('Submitting verification for user:', user.id);
+      
+      // Add additional validation
+      if (!kycData.id_front_url || !kycData.id_back_url || !kycData.selfie_url) {
+        console.error('Missing required document uploads');
+        throw new Error('All documents must be uploaded before submission');
+      }
+      
+      // Proceed with submission
       const result = await submitKycVerification(user.id);
       console.log("Submission result:", result);
       return result;
@@ -96,9 +108,7 @@ export function useKycVerification() {
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
       
       // Force a refetch to get the latest data with the updated status
-      setTimeout(() => {
-        refetch();
-      }, 500);
+      refetch();
     },
     onError: (error) => {
       console.error('Error submitting verification:', error);

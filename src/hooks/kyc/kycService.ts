@@ -125,6 +125,23 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
   };
   
   try {
+    // First get current KYC data to confirm it exists and has all required documents
+    const { data: kycData, error: fetchError } = await supabase
+      .from('kyc_verifications')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    
+    if (fetchError) {
+      console.error('Error fetching KYC data before submission:', fetchError);
+      throw fetchError;
+    }
+    
+    if (!kycData.id_front_url || !kycData.id_back_url || !kycData.selfie_url) {
+      console.error('Missing required document uploads');
+      throw new Error('All documents must be uploaded before submission');
+    }
+    
     // Perform the update operation
     const { data, error } = await supabase
       .from('kyc_verifications')

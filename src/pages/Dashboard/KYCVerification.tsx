@@ -55,6 +55,7 @@ const KYCVerification = () => {
       await savePersonalInfo.mutateAsync(formData);
       setActiveTab("document-verification");
     } catch (error) {
+      console.error("Error saving personal info:", error);
       toast.error("Failed to save personal information");
     }
   };
@@ -128,6 +129,16 @@ const KYCVerification = () => {
   const hasIdFront = !!kycData?.id_front_url;
   const hasIdBack = !!kycData?.id_back_url;
   const hasSelfie = !!kycData?.selfie_url;
+
+  // Check if the verification status is already set and adjust tab accordingly
+  const initialStatus = kycData?.status || 'not_started';
+  useEffect(() => {
+    console.log("Initial status:", initialStatus);
+    if (initialStatus === 'pending' || initialStatus === 'approved' || initialStatus === 'rejected') {
+      console.log("Setting initial tab to verification-status");
+      setActiveTab("verification-status");
+    }
+  }, [initialStatus]);
 
   return (
     <DashboardLayout title="KYC Verification">
