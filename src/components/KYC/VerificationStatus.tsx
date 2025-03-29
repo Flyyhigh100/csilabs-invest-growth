@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CheckCircle, Upload } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Upload } from 'lucide-react';
 import { KycVerificationData } from '@/hooks/useKycVerification';
 import { Database } from '@/integrations/supabase/types';
 
@@ -24,7 +24,7 @@ const VerificationStatus: React.FC<VerificationStatusProps> = ({
       {status === 'pending' && (
         <>
           <div className="bg-amber-50 rounded-full p-4 w-20 h-20 mx-auto flex items-center justify-center mb-4">
-            <AlertTriangle className="h-10 w-10 text-amber-500" />
+            <Clock className="h-10 w-10 text-amber-500" />
           </div>
           <h3 className="text-xl font-medium mb-2">Verification in Progress</h3>
           <p className="text-gray-600 max-w-md mx-auto mb-6">

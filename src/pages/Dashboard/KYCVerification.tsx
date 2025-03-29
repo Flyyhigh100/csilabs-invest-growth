@@ -80,6 +80,9 @@ const KYCVerification = () => {
       console.log("Submitting verification...");
       await submitVerification.mutateAsync();
       
+      // Show success message to the user
+      toast.success("Your verification has been submitted successfully! We will review it shortly.");
+      
       // Add a refetch here to ensure we have the latest data
       await refetch();
       
