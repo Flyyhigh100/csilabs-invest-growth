@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useKycVerification, KycVerificationData } from '@/hooks/useKycVerification';
 import { toast } from 'sonner';
-import PersonalInfoForm, { PersonalInfoValues } from '@/components/KYC/PersonalInfoForm';
-import DocumentVerification from '@/components/KYC/DocumentVerification';
-import VerificationStatus from '@/components/KYC/VerificationStatus';
+import { PersonalInfoValues } from '@/components/KYC/schema/personalInfoSchema';
+import { getInitialActiveTab } from './TabHandlers';
+import PersonalInfoTab from './PersonalInfoTab';
+import DocumentVerificationTab from './DocumentVerificationTab';
+import VerificationStatusTab from './VerificationStatusTab';
 
 interface KYCTabsProps {
   kycData: KycVerificationData | null;
@@ -19,7 +21,7 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
     refetch
   } = useKycVerification();
   
-  const [activeTab, setActiveTab] = useState<string>("personal-info");
+  const [activeTab, setActiveTab] = useState<string>(() => getInitialActiveTab(kycData));
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Monitor kycData changes to update tab selection
@@ -33,16 +35,6 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
       }
     }
   }, [kycData]);
-
-  // Check if the verification status is already set and adjust tab accordingly
-  const initialStatus = kycData?.status || 'not_started';
-  useEffect(() => {
-    console.log("Initial status:", initialStatus);
-    if (initialStatus === 'pending' || initialStatus === 'approved' || initialStatus === 'rejected') {
-      console.log("Setting initial tab to verification-status based on status:", initialStatus);
-      setActiveTab("verification-status");
-    }
-  }, [initialStatus]);
 
   const handlePersonalInfoSubmit = async (values: PersonalInfoValues) => {
     try {
@@ -123,25 +115,6 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
     }
   }, [kycData, submitVerification, refetch]);
 
-  const defaultPersonalInfoValues = {
-    first_name: kycData?.first_name || "",
-    last_name: kycData?.last_name || "",
-    date_of_birth: kycData?.date_of_birth || "",
-    nationality: kycData?.nationality || "",
-    address: kycData?.address || "",
-    city: kycData?.city || "",
-    postal_code: kycData?.postal_code || "",
-    country: kycData?.country || "",
-  };
-
-  const hasIdFront = !!kycData?.id_front_url;
-  const hasIdBack = !!kycData?.id_back_url;
-  const hasSelfie = !!kycData?.selfie_url;
-
-  console.log("Rendering KYC Tabs with status:", initialStatus);
-  console.log("Document upload status:", { hasIdFront, hasIdBack, hasSelfie });
-  console.log("Current active tab:", activeTab);
-
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
       <TabsList className="grid w-full grid-cols-3">
@@ -164,34 +137,25 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
         </TabsTrigger>
       </TabsList>
       
-      <TabsContent value="personal-info" className="py-4">
-        <PersonalInfoForm 
-          defaultValues={defaultPersonalInfoValues} 
-          onSubmit={handlePersonalInfoSubmit}
-          isPending={savePersonalInfo.isPending}
-        />
-      </TabsContent>
+      <PersonalInfoTab 
+        kycData={kycData}
+        isPending={savePersonalInfo.isPending}
+        onSubmit={handlePersonalInfoSubmit}
+      />
       
-      <TabsContent value="document-verification" className="py-4">
-        <DocumentVerification
-          hasIdFront={hasIdFront}
-          hasIdBack={hasIdBack}
-          hasSelfie={hasSelfie}
-          isPending={uploadDocument.isPending}
-          isSubmitting={isSubmitting}
-          onBack={() => setActiveTab("personal-info")}
-          onSubmit={handleFinalSubmit}
-          onUpload={handleDocumentUpload}
-        />
-      </TabsContent>
+      <DocumentVerificationTab 
+        kycData={kycData}
+        uploadPending={uploadDocument.isPending}
+        isSubmitting={isSubmitting}
+        onBack={() => setActiveTab("personal-info")}
+        onSubmit={handleFinalSubmit}
+        onUpload={handleDocumentUpload}
+      />
       
-      <TabsContent value="verification-status" className="py-4">
-        <VerificationStatus 
-          status={kycData?.status || 'not_started'}
-          rejectionReason={kycData?.rejection_reason}
-          onStartVerification={() => setActiveTab("personal-info")}
-        />
-      </TabsContent>
+      <VerificationStatusTab 
+        kycData={kycData}
+        onStartVerification={() => setActiveTab("personal-info")}
+      />
     </Tabs>
   );
 };
