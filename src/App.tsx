@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
 import Index from '@/pages/Index';
@@ -37,6 +37,8 @@ const App = () => {
               
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              {/* Add a redirect from /signup to /register */}
+              <Route path="/signup" element={<Navigate to="/register" replace />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               
