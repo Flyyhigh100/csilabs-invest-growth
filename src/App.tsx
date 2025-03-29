@@ -27,10 +27,10 @@ const App = () => {
   const queryClient = new QueryClient();
 
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClient}>
-        <div className="App">
-          <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <div className="App">
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/token-info" element={<TokenInfo />} />
@@ -56,10 +56,10 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster />
-          </BrowserRouter>
-        </div>
-      </QueryClientProvider>
-    </AuthProvider>
+          </div>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 };
 
