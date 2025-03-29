@@ -30,6 +30,7 @@ export function useKycVerification() {
       return fetchKycVerification(user.id);
     },
     enabled: !!user,
+    staleTime: 0, // Always refetch when needed
   });
   
   // Save KYC personal information
@@ -73,9 +74,12 @@ export function useKycVerification() {
   const submitVerification = useMutation({
     mutationFn: async () => {
       if (!user || !kycData) throw new Error('User not authenticated or KYC data not found');
-      return submitKycVerification(user.id);
+      const result = await submitKycVerification(user.id);
+      console.log("Submission result:", result);
+      return result;
     },
     onSuccess: () => {
+      console.log("Invalidating queries after submission");
       // Invalidate any cached KYC data to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['kyc', user?.id] });
       

@@ -19,7 +19,8 @@ const KYCVerification = () => {
     error,
     savePersonalInfo,
     uploadDocument,
-    submitVerification
+    submitVerification,
+    refetch
   } = useKycVerification();
   
   const [activeTab, setActiveTab] = useState<string>("personal-info");
@@ -76,10 +77,18 @@ const KYCVerification = () => {
     setIsSubmitting(true);
 
     try {
+      console.log("Submitting verification...");
       await submitVerification.mutateAsync();
-      toast.success("Your verification documents have been submitted successfully! We'll review them shortly.");
+      
+      // Add a refetch here to ensure we have the latest data
+      await refetch();
+      
+      console.log("Verification submitted successfully, updating tab...");
+      // Force the tab change regardless of the status
       setActiveTab("verification-status");
+      
     } catch (error) {
+      console.error("Error submitting verification:", error);
       toast.error("An error occurred while submitting your verification. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -137,8 +146,7 @@ const KYCVerification = () => {
                 Document Verification
               </TabsTrigger>
               <TabsTrigger 
-                value="verification-status" 
-                disabled={kycData?.status === 'not_started' && activeTab !== "verification-status"}
+                value="verification-status"
               >
                 Verification Status
               </TabsTrigger>
