@@ -28,7 +28,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900">Authentication Required</h2>
             <p className="mt-2 text-gray-600">
-              Please log in to access the dashboard.
+              {location.pathname.includes('/admin') 
+                ? "Please log in to access the admin area."
+                : "Please log in to access the dashboard."}
             </p>
           </div>
           <div className="flex flex-col space-y-4">

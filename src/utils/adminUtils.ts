@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -31,6 +32,23 @@ export const isUserAdmin = async (): Promise<boolean> => {
     
     const isAdmin = Array.isArray(data) && data.length > 0;
     console.log('Admin check result:', isAdmin, 'Data:', data);
+    
+    // Also check by email as fallback
+    if (!isAdmin && session.user.email) {
+      const { data: emailData, error: emailError } = await supabase
+        .from('admins')
+        .select('*')
+        .eq('email', session.user.email);
+      
+      if (emailError) {
+        console.error('Error checking admin by email:', emailError);
+      } else {
+        const isAdminByEmail = Array.isArray(emailData) && emailData.length > 0;
+        console.log('Admin check by email result:', isAdminByEmail, 'Data:', emailData);
+        return isAdminByEmail;
+      }
+    }
+    
     return isAdmin;
   } catch (error) {
     console.error('Exception checking admin status:', error);
