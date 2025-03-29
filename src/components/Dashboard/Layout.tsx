@@ -1,4 +1,3 @@
-
 import React, { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -13,7 +12,8 @@ import {
   LayoutDashboard,
   Menu,
   X,
-  DollarSign
+  DollarSign,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -21,6 +21,8 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect } from 'react';
+import { isUserAdmin } from '@/utils/adminUtils';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -31,6 +33,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const admin = await isUserAdmin();
+      setIsAdmin(admin);
+    };
+    
+    checkAdmin();
+  }, []);
   
   const handleLogout = async () => {
     try {
@@ -58,107 +70,109 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top navigation */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center">
-              <span className="text-xl font-bold text-cbis-blue">CSi Labs</span>
-            </Link>
-          </div>
-          
-          <div className="hidden md:flex items-center gap-4">
-            <Link to="/" className="text-gray-600 hover:text-cbis-blue">
-              <Home className="h-5 w-5" />
-            </Link>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </Button>
-            <div className="relative group">
-              <button className="flex items-center gap-2 text-sm font-medium">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="" alt={user?.email || "User"} />
-                  <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
-                </Avatar>
-                <span>{user?.email}</span>
-                <ChevronDown className="h-4 w-4" />
-              </button>
-              <div className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                <div className="py-1 divide-y divide-gray-100">
-                  <div className="px-4 py-3">
-                    <p className="text-sm">Signed in as</p>
-                    <p className="text-sm font-medium truncate">{user?.email}</p>
-                  </div>
-                  <div className="py-1">
-                    <Link to="/dashboard/profile" className="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">
-                      Profile settings
-                    </Link>
-                    <button 
-                      onClick={handleLogout} 
-                      className="text-gray-700 flex w-full items-center px-4 py-2 text-sm hover:bg-gray-100"
-                    >
-                      <LogOut className="mr-2 h-4 w-4" /> Sign out
-                    </button>
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <Link to="/" className="flex items-center">
+                <span className="text-xl font-bold text-cbis-blue">CSi Labs</span>
+              </Link>
+            </div>
+            
+            <div className="hidden md:flex items-center gap-4">
+              <Link to="/" className="text-gray-600 hover:text-cbis-blue">
+                <Home className="h-5 w-5" />
+              </Link>
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              </Button>
+              <div className="relative group">
+                <button className="flex items-center gap-2 text-sm font-medium">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src="" alt={user?.email || "User"} />
+                    <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
+                  </Avatar>
+                  <span>{user?.email}</span>
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+                <div className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                  <div className="py-1 divide-y divide-gray-100">
+                    <div className="px-4 py-3">
+                      <p className="text-sm">Signed in as</p>
+                      <p className="text-sm font-medium truncate">{user?.email}</p>
+                    </div>
+                    <div className="py-1">
+                      <Link to="/dashboard/profile" className="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">
+                        Profile settings
+                      </Link>
+                      <button 
+                        onClick={handleLogout} 
+                        className="text-gray-700 flex w-full items-center px-4 py-2 text-sm hover:bg-gray-100"
+                      >
+                        <LogOut className="mr-2 h-4 w-4" /> Sign out
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-          
-          {/* Mobile menu button */}
-          <div className="md:hidden">
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] sm:w-[350px]">
-                <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between py-4">
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src="" alt={user?.email || "User"} />
-                        <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm font-medium">{user?.email}</span>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <X className="h-5 w-5" />
-                    </Button>
-                  </div>
-                  <Separator />
-                  <nav className="flex flex-col gap-1 py-4">
-                    {navItems.map((item) => (
-                      <Link
-                        key={item.name}
-                        to={item.href}
-                        className="flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-gray-100"
+            
+            {/* Mobile menu button */}
+            <div className="md:hidden">
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[280px] sm:w-[350px]">
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-center justify-between py-4">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src="" alt={user?.email || "User"} />
+                          <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium">{user?.email}</span>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
-                        {item.icon}
-                        {item.name}
-                      </Link>
-                    ))}
-                  </nav>
-                  <div className="mt-auto">
-                    <Separator className="mb-4" />
-                    <Button 
-                      variant="outline" 
-                      className="w-full flex items-center gap-2"
-                      onClick={handleLogout}
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Sign out
-                    </Button>
+                        <X className="h-5 w-5" />
+                      </Button>
+                    </div>
+                    <Separator />
+                    <nav className="flex flex-col gap-1 py-4">
+                      {navItems.map((item) => (
+                        <Link
+                          key={item.name}
+                          to={item.href}
+                          className="flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-gray-100"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          {item.icon}
+                          {item.name}
+                        </Link>
+                      ))}
+                    </nav>
+                    <div className="mt-auto">
+                      <Separator className="mb-4" />
+                      <Button 
+                        variant="outline" 
+                        className="w-full flex items-center gap-2"
+                        onClick={handleLogout}
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Sign out
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </SheetContent>
-            </Sheet>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
         </div>
       </header>

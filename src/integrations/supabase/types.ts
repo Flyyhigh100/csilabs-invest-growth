@@ -9,6 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admins: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       kyc_verifications: {
         Row: {
           address: string | null
@@ -111,6 +135,7 @@ export type Database = {
           payment_address: string | null
           payment_method: string
           status: string
+          token_sent: boolean | null
           transaction_id: string
           updated_at: string
           user_id: string
@@ -124,6 +149,7 @@ export type Database = {
           payment_address?: string | null
           payment_method: string
           status: string
+          token_sent?: boolean | null
           transaction_id: string
           updated_at?: string
           user_id: string
@@ -137,6 +163,7 @@ export type Database = {
           payment_address?: string | null
           payment_method?: string
           status?: string
+          token_sent?: boolean | null
           transaction_id?: string
           updated_at?: string
           user_id?: string
