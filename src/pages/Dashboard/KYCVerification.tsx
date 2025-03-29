@@ -26,9 +26,13 @@ const KYCVerification = () => {
   const [activeTab, setActiveTab] = useState<string>("personal-info");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Monitor kycData changes to update tab selection
   useEffect(() => {
     if (kycData) {
+      console.log("KYC data updated, current status:", kycData.status);
+      
       if (kycData.status === 'pending' || kycData.status === 'approved' || kycData.status === 'rejected') {
+        console.log("Setting active tab to verification-status based on KYC status");
         setActiveTab("verification-status");
       }
     }
@@ -74,10 +78,11 @@ const KYCVerification = () => {
       return;
     }
 
+    console.log("Starting KYC submission process...");
     setIsSubmitting(true);
 
     try {
-      console.log("Submitting verification...");
+      console.log("Calling submitVerification.mutateAsync()");
       await submitVerification.mutateAsync();
       
       // Show explicit success message to the user
@@ -138,14 +143,13 @@ const KYCVerification = () => {
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger 
                 value="personal-info" 
-                disabled={activeTab === "verification-status" && kycData?.status === 'pending'}
+                disabled={kycData?.status === 'pending'}
               >
                 Personal Information
               </TabsTrigger>
               <TabsTrigger 
                 value="document-verification" 
-                disabled={(activeTab === "verification-status" && kycData?.status === 'pending') || 
-                          (activeTab === "personal-info")}
+                disabled={kycData?.status === 'pending' || activeTab === "personal-info"}
               >
                 Document Verification
               </TabsTrigger>

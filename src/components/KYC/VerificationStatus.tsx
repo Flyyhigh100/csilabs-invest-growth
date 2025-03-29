@@ -3,7 +3,6 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, CheckCircle, Clock, Upload } from 'lucide-react';
-import { KycVerificationData } from '@/hooks/useKycVerification';
 import { Database } from '@/integrations/supabase/types';
 
 type KycStatus = Database['public']['Enums']['kyc_status'];
@@ -19,7 +18,7 @@ const VerificationStatus: React.FC<VerificationStatusProps> = ({
   rejectionReason,
   onStartVerification,
 }) => {
-  console.log("Current KYC status:", status);
+  console.log("Rendering VerificationStatus component with status:", status);
   
   return (
     <div className="text-center py-8">

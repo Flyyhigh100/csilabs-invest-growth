@@ -24,6 +24,11 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   onSubmit,
   onUpload,
 }) => {
+  const handleSubmitClick = async () => {
+    console.log("Submit button clicked, starting submission process...");
+    await onSubmit();
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -70,11 +75,12 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
         <Button 
           type="button"
           disabled={!hasIdFront || !hasIdBack || !hasSelfie || isSubmitting || isPending}
-          onClick={onSubmit}
+          onClick={handleSubmitClick}
+          className="relative"
         >
           {isSubmitting ? (
             <>
-              <span className="mr-2 h-4 w-4 animate-spin">●</span>
+              <span className="mr-2 h-4 w-4 animate-spin inline-block">●</span>
               Submitting...
             </>
           ) : (

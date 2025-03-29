@@ -20,6 +20,7 @@ export const fetchKycVerification = async (userId: string): Promise<KycVerificat
   
   // If no record exists, create one with not_started status
   if (!data) {
+    console.log('No KYC record found, creating new one for user:', userId);
     const { data: newData, error: insertError } = await supabase
       .from('kyc_verifications')
       .insert({ user_id: userId, status: 'not_started' })
@@ -123,18 +124,23 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     rejection_reason: null
   };
   
-  // Perform the update operation
-  const { data, error } = await supabase
-    .from('kyc_verifications')
-    .update(updateData)
-    .eq('user_id', userId)
-    .select('*');
-  
-  if (error) {
-    console.error('Error submitting KYC verification:', error);
-    throw error;
+  try {
+    // Perform the update operation
+    const { data, error } = await supabase
+      .from('kyc_verifications')
+      .update(updateData)
+      .eq('user_id', userId)
+      .select('*');
+    
+    if (error) {
+      console.error('Error submitting KYC verification:', error);
+      throw error;
+    }
+    
+    console.log('KYC verification submitted successfully:', data);
+    return true;
+  } catch (err) {
+    console.error('Exception during KYC verification submission:', err);
+    throw err;
   }
-  
-  console.log('KYC verification submitted successfully:', data);
-  return true;
 };
