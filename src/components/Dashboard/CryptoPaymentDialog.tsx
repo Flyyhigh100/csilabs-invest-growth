@@ -20,7 +20,7 @@ interface CryptoPaymentDetailsType {
   externalTransactionId?: string;
   currency?: string;
   checkStatusUrl?: string;
-} | null;
+}
 
 interface CryptoPaymentDialogProps {
   open: boolean;
