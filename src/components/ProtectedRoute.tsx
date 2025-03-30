@@ -4,7 +4,7 @@ import { Navigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Home, ArrowLeft, ShieldCheck } from 'lucide-react';
-import { isUserAdmin } from '@/utils/adminUtils';
+import { isUserAdmin } from '@/utils/admin';
 import { toast } from 'sonner';
 
 interface ProtectedRouteProps {
@@ -25,17 +25,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminOnly = f
         try {
           console.log("Checking admin status in ProtectedRoute for:", user.email);
           
+          // Special case for chris.d.conley@gmail.com - immediate access
+          if (user.email === 'chris.d.conley@gmail.com') {
+            console.log("Chris's account detected, granting admin access directly");
+            setIsAdmin(true);
+            setIsChecking(false);
+            return;
+          }
+          
           // Add a small delay to ensure connection is ready
           setTimeout(async () => {
             try {
-              // For specific test account, force admin access
-              if (user.email === 'chris.d.conley@gmail.com') {
-                console.log("Test account detected, granting admin access directly");
-                setIsAdmin(true);
-                setIsChecking(false);
-                return;
-              }
-              
               const admin = await isUserAdmin();
               console.log("Admin check result in ProtectedRoute:", admin);
               setIsAdmin(admin);
@@ -68,15 +68,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminOnly = f
     checkAdminStatus();
   }, [user, adminOnly, attempts]);
 
-  // Special case for chris.d.conley@gmail.com on admin routes
-  useEffect(() => {
-    if (user?.email === 'chris.d.conley@gmail.com' && adminOnly && location.pathname.includes('/admin')) {
-      console.log("Chris's account detected on admin route, granting immediate access");
-      setIsAdmin(true);
-      setIsChecking(false);
-    }
-  }, [user, adminOnly, location]);
-
+  // Show loading indicator while checking admin status
   if (loading || (adminOnly && isChecking)) {
     return <div className="min-h-screen flex items-center justify-center">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cbis-blue"></div>

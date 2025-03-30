@@ -2,7 +2,7 @@
 import React, { ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { isUserAdmin } from '@/utils/adminUtils';
+import { isUserAdmin } from '@/utils/admin';
 import TopNavigation from './Layouts/TopNavigation';
 import SidebarNavigation from './Layouts/SidebarNavigation';
 import { getDashboardNavItems, getAdminNavItem } from './Layouts/DashboardNav';
@@ -29,6 +29,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
       try {
         if (!user) {
           setIsAdmin(false);
+          setIsChecking(false);
+          return;
+        }
+        
+        // Special case for chris.d.conley@gmail.com
+        if (user.email === 'chris.d.conley@gmail.com') {
+          console.log("Chris's email detected, granting admin access directly");
+          setIsAdmin(true);
           setIsChecking(false);
           return;
         }

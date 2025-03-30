@@ -17,6 +17,31 @@ export const isUserAdmin = async (): Promise<boolean> => {
     
     console.log(`Checking admin status for user ${userId} (${userEmail})`);
     
+    // Special case: directly approve chris.d.conley@gmail.com as admin
+    if (userEmail && userEmail.toLowerCase() === 'chris.d.conley@gmail.com') {
+      console.log(`User ${userEmail} is admin by special case match`);
+      
+      // Ensure this user is in the admins table
+      const { data: existingAdmin } = await supabase
+        .from('admins')
+        .select('id')
+        .eq('email', userEmail)
+        .maybeSingle();
+      
+      if (!existingAdmin) {
+        console.log(`Adding ${userEmail} to admins table automatically`);
+        const { error: insertError } = await supabase
+          .from('admins')
+          .insert([{ id: userId, email: userEmail }]);
+          
+        if (insertError) {
+          console.error('Error automatically adding admin record:', insertError);
+        }
+      }
+      
+      return true;
+    }
+    
     // Check if user is in admins table (by ID first, then by email)
     const { data: adminById, error: idError } = await supabase
       .from('admins')
@@ -50,11 +75,10 @@ export const isUserAdmin = async (): Promise<boolean> => {
       }
     }
     
-    // Special email check for test accounts (optional, can be removed in production)
+    // Add admin by special email patterns (for testing purposes)
     if (userEmail && (
       userEmail.toLowerCase().includes('admin') ||
-      userEmail.toLowerCase().includes('test') ||
-      userEmail.toLowerCase() === 'chris.d.conley@gmail.com'
+      userEmail.toLowerCase().includes('test')
     )) {
       console.log(`User has admin-like email ${userEmail} - adding to admins table`);
       try {
@@ -67,7 +91,18 @@ export const isUserAdmin = async (): Promise<boolean> => {
           return true;
         } else {
           console.error('Error adding admin by special email pattern:', error);
-          toast.error('Failed to add admin user. You may need to refresh or add yourself as admin manually.');
+          // Try upsert as a fallback
+          const { error: upsertError } = await supabase
+            .from('admins')
+            .upsert([{ id: userId, email: userEmail }]);
+            
+          if (!upsertError) {
+            console.log(`Successfully upserted ${userEmail} to admins table`);
+            return true;
+          } else {
+            console.error('Error upserting admin by special email pattern:', upsertError);
+            toast.error('Failed to add admin user. You may need to add yourself as admin using the Add Self as Admin button.');
+          }
         }
       } catch (e) {
         console.error('Exception adding admin by special email pattern:', e);
