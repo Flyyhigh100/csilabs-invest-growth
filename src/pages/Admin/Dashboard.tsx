@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
@@ -8,10 +8,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
   CheckCircle, XCircle, Clock, CreditCard, 
-  ArrowRight, DollarSign, Users, ShieldCheck
+  ArrowRight, DollarSign, Users, ShieldCheck, RefreshCw
 } from 'lucide-react';
 
 const fetchDashboardStats = async () => {
+  console.log('Fetching dashboard stats...');
+  
   // Fetch counts for KYC verifications by status
   const { data: kycData, error: kycError } = await supabase
     .from('kyc_verifications')
@@ -20,12 +22,15 @@ const fetchDashboardStats = async () => {
   
   if (kycError) throw kycError;
   
+  console.log('KYC data fetched:', kycData);
+  
   // Process KYC counts manually since groupBy is not available
   const kycCounts = {
     pending: 0,
     approved: 0,
     rejected: 0,
-    not_started: 0
+    not_started: 0,
+    needs_clarification: 0
   };
   
   if (kycData) {
@@ -35,6 +40,8 @@ const fetchDashboardStats = async () => {
       }
     });
   }
+  
+  console.log('KYC counts:', kycCounts);
   
   // Fetch counts for pending token transfers
   const { count: pendingTokensCount, error: pendingError } = await supabase
@@ -68,13 +75,36 @@ const fetchDashboardStats = async () => {
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['admin-dashboard-stats'],
     queryFn: fetchDashboardStats,
+    refetchInterval: 60000, // Refresh data every minute
   });
+  
+  useEffect(() => {
+    // Force refetch when component mounts
+    refetch();
+  }, [refetch]);
+  
+  const handleRefresh = () => {
+    refetch();
+  };
   
   return (
     <AdminLayout title="Admin Dashboard">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">Dashboard Overview</h2>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={handleRefresh}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Refresh Data
+        </Button>
+      </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">

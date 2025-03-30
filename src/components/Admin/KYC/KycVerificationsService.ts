@@ -17,6 +17,8 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
     throw kycError;
   }
   
+  console.log('Raw KYC data fetched:', kycData);
+  
   // Then, for each KYC verification, fetch the associated profile data
   const enhancedKycData: KycVerificationWithProfile[] = await Promise.all(
     (kycData || []).map(async (kyc) => {
@@ -38,6 +40,6 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
     })
   );
   
-  console.log('KYC verifications fetched:', enhancedKycData.length || 0);
+  console.log('KYC verifications fetched with profiles:', enhancedKycData.length || 0);
   return enhancedKycData;
 };

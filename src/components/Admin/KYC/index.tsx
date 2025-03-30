@@ -47,11 +47,13 @@ const KycVerifications = () => {
       status: 'approved' | 'rejected'; 
       rejectionReason?: string;
     }) => {
+      console.log('Processing KYC verification:', { kycId, status, rejectionReason });
       return processKycVerification(kycId, status, rejectionReason);
     },
     onSuccess: () => {
       setIsViewModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
       toast.success(`KYC verification processed successfully`);
     },
     onError: (error) => {
@@ -69,11 +71,13 @@ const KycVerifications = () => {
       kycId: string; 
       message: string;
     }) => {
+      console.log('Requesting clarification:', { kycId, message });
       return requestKycClarification(kycId, message);
     },
     onSuccess: () => {
       setIsViewModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
       toast.success(`Clarification request sent successfully`);
     },
     onError: (error) => {
@@ -84,6 +88,7 @@ const KycVerifications = () => {
   
   // Handle view verification details
   const handleViewDetails = (kyc: KycVerificationWithProfile) => {
+    console.log('Viewing KYC details:', kyc);
     setSelectedKyc(kyc);
     setRejectionReason('');
     setClarificationMessage('');
@@ -129,6 +134,7 @@ const KycVerifications = () => {
   
   useEffect(() => {
     // Force refetch when component mounts to ensure fresh data
+    console.log('KYC Verifications component mounted, fetching data...');
     refetch();
     
     // Clear messages when modal is closed
@@ -137,6 +143,14 @@ const KycVerifications = () => {
       setClarificationMessage('');
     }
   }, [isViewModalOpen, refetch]);
+  
+  // Log data for debugging
+  useEffect(() => {
+    if (kycVerifications) {
+      console.log('KYC verifications data:', kycVerifications);
+      console.log('Pending count:', kycVerifications.filter(v => v.status === 'pending').length);
+    }
+  }, [kycVerifications]);
   
   if (isLoading) {
     return (

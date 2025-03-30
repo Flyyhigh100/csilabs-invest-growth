@@ -129,7 +129,8 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     status: 'pending' as const,
     submitted_at: currentTimestamp,
     updated_at: currentTimestamp,
-    rejection_reason: null
+    rejection_reason: null,
+    clarification_message: null
   };
   
   try {
