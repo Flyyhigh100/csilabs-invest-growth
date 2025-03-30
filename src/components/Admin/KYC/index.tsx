@@ -1,10 +1,9 @@
 
 import React from 'react';
 import { KycProvider } from './KycContext';
-import KycVerificationsDashboard from './KycVerificationsDashboard';
+import KycVerificationsDashboard from './Dashboard';
 
-// Main component for KYC verifications
-const KycVerifications = () => {
+const KycVerifications: React.FC = () => {
   return (
     <KycProvider>
       <KycVerificationsDashboard />
