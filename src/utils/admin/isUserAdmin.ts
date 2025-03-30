@@ -7,125 +7,58 @@ export const isUserAdmin = async (): Promise<boolean> => {
     // Get current session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
-    if (sessionError) {
-      console.error('Error getting session:', sessionError);
-      return false;
-    }
-    
-    if (!session || !session.user) {
-      console.log('No active session or user found');
+    if (sessionError || !session || !session.user) {
+      console.log('No active session or session error');
       return false;
     }
     
     const userId = session.user.id;
     const userEmail = session.user.email;
     
-    console.log('Checking admin status for user:', { id: userId, email: userEmail });
-    
-    // --- DEBUGGING ---
-    console.log('Chris.d.conley@gmail.com should be an admin, adding them directly to the database');
-    
-    // For chris.d.conley@gmail.com, directly add to admins table if not already there
+    // Special case for testing account
     if (userEmail && userEmail.toLowerCase() === 'chris.d.conley@gmail.com') {
-      // First check if already exists
+      // Ensure this account is in the admins table
       const { data: existingAdmin, error: checkError } = await supabase
         .from('admins')
         .select('*')
         .ilike('email', userEmail)
         .maybeSingle();
       
-      if (checkError) {
-        console.error('Error checking if admin exists:', checkError);
-      } else if (!existingAdmin) {
-        console.log('Adding chris.d.conley@gmail.com as admin');
-        // Insert the admin record
-        const { error: insertError } = await supabase
+      if (!existingAdmin && !checkError) {
+        // Add to admins table if not already there
+        await supabase
           .from('admins')
           .insert([{ email: userEmail, id: userId }]);
-        
-        if (insertError) {
-          console.error('Error adding admin:', insertError);
-        } else {
-          console.log('Successfully added as admin');
-          return true;
-        }
-      } else {
-        console.log('Admin already exists:', existingAdmin);
-        return true;
-      }
-    }
-    
-    try {
-      // Check if email exists in admins table (case insensitive)
-      if (userEmail) {
-        console.log('Checking admin by email (case insensitive):', userEmail);
-        const { data: emailData, error: emailError } = await supabase
-          .from('admins')
-          .select('*')
-          .ilike('email', userEmail);
-        
-        if (emailError) {
-          console.error('Error checking admin by email:', emailError);
-        } else if (Array.isArray(emailData) && emailData.length > 0) {
-          console.log('Admin confirmed by email:', emailData);
-          return true;
-        } else {
-          // Also try an exact match in case ilike doesn't work as expected
-          const { data: exactEmailData, error: exactEmailError } = await supabase
-            .from('admins')
-            .select('*')
-            .eq('email', userEmail);
-          
-          if (exactEmailError) {
-            console.error('Error checking admin by exact email:', exactEmailError);
-          } else if (Array.isArray(exactEmailData) && exactEmailData.length > 0) {
-            console.log('Admin confirmed by exact email match:', exactEmailData);
-            return true;
-          } else {
-            console.log('Admin check by email returned no results. Tried both ilike and exact match.');
-          }
-        }
       }
       
-      // Also check by user ID as a fallback
-      console.log('Checking admin by ID:', userId);
-      const { data: idData, error: idError } = await supabase
+      return true;
+    }
+    
+    // Check if user is in admins table (by email first, then by ID)
+    if (userEmail) {
+      const { data: adminByEmail, error: emailError } = await supabase
         .from('admins')
         .select('*')
-        .eq('id', userId);
+        .ilike('email', userEmail);
       
-      if (idError) {
-        console.error('Error checking admin by ID:', idError);
-      } else if (Array.isArray(idData) && idData.length > 0) {
-        console.log('Admin confirmed by ID:', idData);
+      if (!emailError && Array.isArray(adminByEmail) && adminByEmail.length > 0) {
         return true;
-      } else {
-        console.log('Admin check by ID returned no results');
       }
-      
-      // Detailed logging to help debug
-      console.log('User is not an admin. Checking admins table content for debugging:');
-      const { data: allAdmins, error: allAdminsError } = await supabase
-        .from('admins')
-        .select('*');
-      
-      if (allAdminsError) {
-        console.error('Error fetching all admins for debugging:', allAdminsError);
-      } else {
-        console.log('Current admins in the database:', allAdmins);
-      }
-    } catch (fetchError) {
-      // Handle any network or unexpected errors in the database queries
-      console.error('Exception during admin checks:', fetchError);
-      // Return false instead of rethrowing to prevent promise rejection
-      return false;
     }
     
-    console.log('User is not an admin');
+    // Fall back to ID check
+    const { data: adminById, error: idError } = await supabase
+      .from('admins')
+      .select('*')
+      .eq('id', userId);
+    
+    if (!idError && Array.isArray(adminById) && adminById.length > 0) {
+      return true;
+    }
+    
     return false;
   } catch (error) {
-    console.error('Exception checking admin status:', error);
-    // Return false rather than rethrowing to prevent unhandled promise rejection
+    console.error('Error checking admin status:', error);
     return false;
   }
 };
