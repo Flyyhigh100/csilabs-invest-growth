@@ -38,12 +38,28 @@ export function useKycVerification() {
   // Save KYC personal information
   const savePersonalInfo = useMutation({
     mutationFn: async (formData: KycFormData) => {
-      if (!user || !kycData) throw new Error('User not authenticated or KYC data not found');
+      if (!user) throw new Error('User not authenticated');
+      
       console.log('Saving personal info for user:', user.id);
-      return saveKycPersonalInfo(user.id, formData);
+      
+      // CRITICAL FIX: Ensure we always create or update the KYC record
+      try {
+        // Check if KYC record exists first
+        const result = await saveKycPersonalInfo(user.id, formData);
+        console.log('KYC personal info saved:', result);
+        return result;
+      } catch (error) {
+        console.error('Error in savePersonalInfo:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kyc', user?.id] });
+      
+      // CRITICAL FIX: Also invalidate admin-related queries
+      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      
       refetch();
       toast.success('Personal information saved successfully');
     },
@@ -68,6 +84,11 @@ export function useKycVerification() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kyc', user?.id] });
+      
+      // CRITICAL FIX: Also invalidate admin-related queries
+      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      
       refetch();
     },
     onError: (error) => {
@@ -104,8 +125,9 @@ export function useKycVerification() {
       // Force immediate invalidation of any cached KYC data
       queryClient.invalidateQueries({ queryKey: ['kyc', user?.id] });
       
-      // Also invalidate admin KYC list if the user happens to be an admin
+      // Also invalidate admin KYC list and admin users
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       
       // Force a refetch to get the latest data with the updated status
       setTimeout(() => {

@@ -8,7 +8,7 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
   console.log('Fetching KYC verifications from database with admin access');
   
   try {
-    // CRITICAL FIX: Use a more direct query approach to get ALL KYC records
+    // CRITICAL FIX: Use a more direct query approach to get ALL KYC records regardless of status
     const { data: kycData, error: kycError } = await supabase
       .from('kyc_verifications')
       .select('*')
@@ -23,22 +23,35 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
     console.log(`Raw KYC data fetched: ${kycData?.length || 0} records`);
     if (kycData?.length === 0) {
       console.warn('WARNING: No KYC verifications found in database!');
+      
+      // CRITICAL FIX: Check if table exists and has proper permissions
+      const { data: tablesCheck, error: tablesError } = await supabase
+        .from('pg_tables')
+        .select('tablename')
+        .eq('tablename', 'kyc_verifications')
+        .single();
+      
+      if (tablesError) {
+        console.error('Unable to check if kyc_verifications table exists:', tablesError);
+      } else {
+        console.log('kyc_verifications table exists:', tablesCheck);
+      }
     } else {
       console.log('First few KYC records:', kycData?.slice(0, 3));
+      
+      // Log counts by status 
+      const statusCounts = kycData.reduce((counts, item) => {
+        counts[item.status] = (counts[item.status] || 0) + 1;
+        return counts;
+      }, {} as Record<string, number>);
+      
+      console.log('KYC verifications by status:', statusCounts);
     }
     
     if (!kycData || kycData.length === 0) {
       console.log('No KYC verifications found in database');
       return [];
     }
-    
-    // Log counts by status for debugging
-    const statusCounts = kycData.reduce((counts, item) => {
-      counts[item.status] = (counts[item.status] || 0) + 1;
-      return counts;
-    }, {} as Record<string, number>);
-    
-    console.log('KYC verifications by status:', statusCounts);
     
     // CRITICAL FIX: Enhanced logging for user_ids to verify we're getting the right data
     console.log('User IDs in KYC records:', kycData.map(kyc => kyc.user_id));
@@ -127,6 +140,30 @@ export const testDirectKycAccess = async (): Promise<{count: number, pendingCoun
   }
 };
 
+// CRITICAL FIX: Add function to check for kyc records with a specific user id
+export const checkUserKycRecord = async (userId: string): Promise<any> => {
+  try {
+    console.log(`Checking if KYC record exists for user: ${userId}`);
+    
+    const { data, error } = await supabase
+      .from('kyc_verifications')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error(`Error checking KYC record for user ${userId}:`, error);
+      return null;
+    }
+    
+    console.log(`KYC record check result for user ${userId}:`, data);
+    return data;
+  } catch (error) {
+    console.error(`Exception checking KYC for user ${userId}:`, error);
+    return null;
+  }
+};
+
 // Add a function to create a test KYC record for debugging
 export const createTestKycRecord = async (): Promise<boolean> => {
   try {
@@ -201,5 +238,62 @@ export const createTestKycRecord = async (): Promise<boolean> => {
   } catch (error) {
     console.error('Exception in createTestKycRecord:', error);
     return false;
+  }
+};
+
+// CRITICAL FIX: Function to list all users and their KYC status
+export const listAllUsersWithKycStatus = async (): Promise<any[]> => {
+  try {
+    console.log('Listing all users with KYC status...');
+    
+    // First get all profiles
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError);
+      throw profilesError;
+    }
+    
+    console.log(`Found ${profiles?.length || 0} user profiles`);
+    
+    // Get all KYC records
+    const { data: kycRecords, error: kycError } = await supabase
+      .from('kyc_verifications')
+      .select('*');
+    
+    if (kycError) {
+      console.error('Error fetching KYC records:', kycError);
+      throw kycError;
+    }
+    
+    console.log(`Found ${kycRecords?.length || 0} KYC records`);
+    
+    // Create a map of user_id to KYC status
+    const kycStatusMap = new Map();
+    (kycRecords || []).forEach(kyc => {
+      kycStatusMap.set(kyc.user_id, kyc);
+    });
+    
+    // Combine profile and KYC data
+    const usersWithKyc = (profiles || []).map(profile => {
+      const kycRecord = kycStatusMap.get(profile.id);
+      return {
+        ...profile,
+        kyc_record: kycRecord,
+        has_kyc: !!kycRecord,
+        kyc_status: kycRecord ? kycRecord.status : 'not_started'
+      };
+    });
+    
+    console.log('Users with KYC status:', usersWithKyc.length);
+    console.log('Sample:', usersWithKyc.slice(0, 3));
+    
+    return usersWithKyc;
+  } catch (error) {
+    console.error('Error in listAllUsersWithKycStatus:', error);
+    return [];
   }
 };
