@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Menu, X, ChevronDown, ShieldCheck } from 'lucide-react';
+import { Menu, X, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -42,10 +42,6 @@ const Navbar: React.FC = () => {
           {user && (
             <Link to="/dashboard" className="text-gray-800 hover:text-cbis-blue transition-colors">Dashboard</Link>
           )}
-          <Link to="/admin" className="text-gray-800 hover:text-cbis-blue transition-colors flex items-center gap-1">
-            <ShieldCheck className="h-4 w-4" />
-            Admin
-          </Link>
           <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
             {user ? (
               <Link to="/dashboard/payments">Buy Tokens</Link>
@@ -103,14 +99,6 @@ const Navbar: React.FC = () => {
             Dashboard
           </Link>
         )}
-        <Link 
-          to="/admin" 
-          className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue flex items-center gap-1"
-          onClick={() => setIsOpen(false)}
-        >
-          <ShieldCheck className="h-4 w-4" />
-          Admin
-        </Link>
         <div className="mt-6">
           <Button 
             asChild

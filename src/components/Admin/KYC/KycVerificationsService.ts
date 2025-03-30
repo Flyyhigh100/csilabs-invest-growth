@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { KycVerificationWithProfile } from './types';
 import { toast } from 'sonner';
@@ -8,10 +7,10 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
   console.log('Fetching KYC verifications from database');
   
   try {
-    // First, get all KYC verifications
-    const { data: kycData, error: kycError, count } = await supabase
+    // First, get all KYC verifications with direct query
+    const { data: kycData, error: kycError } = await supabase
       .from('kyc_verifications')
-      .select('*', { count: 'exact' });
+      .select('*');
     
     if (kycError) {
       console.error('Error fetching KYC verifications:', kycError);
@@ -19,27 +18,13 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
       throw kycError;
     }
     
-    console.log(`Raw KYC data fetched: ${kycData?.length || 0} records (count: ${count})`);
+    console.log(`Raw KYC data fetched: ${kycData?.length || 0} records`);
+    console.log('Sample KYC data:', kycData?.slice(0, 2));
     
     if (!kycData || kycData.length === 0) {
       console.log('No KYC verifications found in database');
-      
-      // Test if we can access the table at all
-      const { count: testCount, error: testError } = await supabase
-        .from('kyc_verifications')
-        .select('*', { count: 'exact', head: true });
-        
-      if (testError) {
-        console.error('Error in test query:', testError);
-      } else {
-        console.log(`Test query confirmed table access, found ${testCount} records`);
-      }
-      
       return [];
     }
-    
-    // Log the first few records for debugging
-    console.log('First 3 KYC records:', kycData?.slice(0, 3));
     
     // Log counts by status for debugging
     const statusCounts = kycData.reduce((counts, item) => {
@@ -71,6 +56,7 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
     );
     
     console.log('KYC verifications fetched with profiles:', enhancedKycData.length);
+    console.log('Sample enhanced KYC data:', enhancedKycData.slice(0, 2));
     
     return enhancedKycData;
   } catch (error) {
@@ -104,11 +90,7 @@ export const testDirectKycAccess = async (): Promise<{count: number, pendingCoun
     
     console.log(`Direct KYC access test results: ${count} total records, ${pendingCount} pending`);
     console.log('Status counts:', statusCounts);
-    
-    // Check if we need to create a test record
-    if (!count || count === 0) {
-      console.log('No KYC records found. Consider creating a test record.');
-    }
+    console.log('All KYC records:', data);
     
     return {
       count: count || 0,
