@@ -171,6 +171,20 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     }
     
     console.log('KYC verification submitted successfully:', data);
+    
+    // Force a query to verify the data was actually saved
+    const { data: verifyData, error: verifyError } = await supabase
+      .from('kyc_verifications')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    
+    if (verifyError) {
+      console.error('Error verifying KYC submission:', verifyError);
+    } else {
+      console.log('Verified KYC status after submission:', verifyData);
+    }
+    
     return true;
   } catch (err) {
     console.error('Exception during KYC verification submission:', err);

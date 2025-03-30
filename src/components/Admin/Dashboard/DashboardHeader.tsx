@@ -9,16 +9,20 @@ interface DashboardHeaderProps {
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onRefresh }) => {
   return (
-    <div className="flex justify-between items-center mb-4">
-      <h2 className="text-xl font-bold">Dashboard Overview</h2>
+    <div className="flex justify-between items-center mb-6">
+      <div>
+        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+        <p className="text-muted-foreground">
+          Manage KYC verifications, transactions, and user data
+        </p>
+      </div>
       <Button 
-        variant="outline" 
-        size="sm"
+        variant="outline"
         onClick={onRefresh}
         className="flex items-center gap-2"
       >
         <RefreshCw className="h-4 w-4" />
-        Refresh Data
+        Refresh Dashboard
       </Button>
     </div>
   );

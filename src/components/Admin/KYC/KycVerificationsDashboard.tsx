@@ -67,6 +67,28 @@ const KycVerificationsDashboard: React.FC = () => {
       setRejectionReason('');
       setClarificationMessage('');
     }
+    
+    // Set up realtime subscription for KYC verifications
+    const channel = supabase
+      .channel('kyc-verification-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'kyc_verifications'
+        },
+        (payload) => {
+          console.log('Realtime update received for kyc_verifications in dashboard:', payload);
+          refetch();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      // Clean up subscription when component unmounts
+      supabase.removeChannel(channel);
+    };
   }, [isViewModalOpen, refetch]);
   
   // Log data for debugging
