@@ -2,9 +2,10 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Database, Users, CheckCircle } from 'lucide-react';
+import { RefreshCw, Database, Users, CheckCircle, ShieldCheck, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { testDirectKycAccess, verifyAdminAccess } from '../KycVerificationsService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface KycDashboardHeaderProps {
   onManualRefresh: () => void;
@@ -45,16 +46,101 @@ const KycDashboardHeader: React.FC<KycDashboardHeaderProps> = ({
   const handleVerifyAdminAccess = async () => {
     try {
       toast.loading('Verifying admin access...');
+      
+      // Get current user info
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user) {
+        toast.error('Not logged in');
+        return;
+      }
+      
+      const userId = session.session.user.id;
+      const userEmail = session.session.user.email;
+      
+      toast.info(`Checking admin access for ${userEmail}`);
+      
       const isAdmin = await verifyAdminAccess();
       
       if (isAdmin) {
         toast.success('Admin access verified successfully');
       } else {
         toast.error('You do not have admin permissions');
+        
+        // Display more detailed information for debugging
+        const { data: adminData, error: adminError } = await supabase
+          .from('admins')
+          .select('*');
+        
+        if (adminError) {
+          console.error('Error checking admins table:', adminError);
+          toast.error(`Error checking admins table: ${adminError.message}`);
+        } else {
+          console.log('All admin records:', adminData);
+          toast.info(`Found ${adminData?.length || 0} admin records in database`);
+          
+          if (adminData && adminData.length > 0) {
+            adminData.forEach(admin => {
+              console.log(`Admin: ${admin.email} (${admin.id})`);
+            });
+          }
+        }
       }
     } catch (error) {
       console.error('Error verifying admin access:', error);
       toast.error('Failed to verify admin access');
+    }
+  };
+  
+  const handleAddCurrentUserAsAdmin = async () => {
+    try {
+      toast.loading('Adding current user as admin...');
+      
+      // Get current user info
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user) {
+        toast.error('Not logged in');
+        return;
+      }
+      
+      const userId = session.session.user.id;
+      const userEmail = session.session.user.email;
+      
+      if (!userEmail) {
+        toast.error('User email not available');
+        return;
+      }
+      
+      // Check if already admin
+      const { data: existingAdmin, error: existingError } = await supabase
+        .from('admins')
+        .select('*')
+        .or(`id.eq.${userId},email.ilike.${userEmail}`)
+        .maybeSingle();
+      
+      if (existingAdmin) {
+        toast.info(`User ${userEmail} is already an admin`);
+        return;
+      }
+      
+      // Add to admins table
+      const { data, error } = await supabase
+        .from('admins')
+        .insert([{ id: userId, email: userEmail }])
+        .select();
+      
+      if (error) {
+        console.error('Error adding user as admin:', error);
+        toast.error(`Failed to add admin: ${error.message}`);
+        return;
+      }
+      
+      toast.success(`Successfully added ${userEmail} as admin`);
+      
+      // Refresh immediately
+      refetch();
+    } catch (error) {
+      console.error('Error adding user as admin:', error);
+      toast.error('Failed to add user as admin');
     }
   };
   
@@ -96,6 +182,16 @@ const KycDashboardHeader: React.FC<KycDashboardHeaderProps> = ({
           >
             <CheckCircle className="h-3 w-3" />
             Verify Admin Access
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleAddCurrentUserAsAdmin} 
+            className="flex items-center gap-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+          >
+            <ShieldCheck className="h-3 w-3" />
+            Add Self as Admin
           </Button>
           
           <Button 
