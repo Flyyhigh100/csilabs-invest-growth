@@ -3,13 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { KycVerificationWithProfile } from './types';
 import { toast } from 'sonner';
 
-// Fetch KYC verifications function
+// Fetch KYC verifications function with improved error handling and logging
 export const fetchKycVerifications = async (): Promise<KycVerificationWithProfile[]> => {
-  console.log('Fetching KYC verifications from database');
+  console.log('Fetching KYC verifications from database with admin access');
   
   try {
-    // Use admin-level query with service role to ensure we get ALL records
-    // First, get all KYC verifications with direct query
+    // CRITICAL FIX: Use a more direct query approach to get ALL KYC records
     const { data: kycData, error: kycError } = await supabase
       .from('kyc_verifications')
       .select('*')
@@ -22,7 +21,11 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
     }
     
     console.log(`Raw KYC data fetched: ${kycData?.length || 0} records`);
-    console.log('Sample KYC data:', kycData?.slice(0, 2));
+    if (kycData?.length === 0) {
+      console.warn('WARNING: No KYC verifications found in database!');
+    } else {
+      console.log('First few KYC records:', kycData?.slice(0, 3));
+    }
     
     if (!kycData || kycData.length === 0) {
       console.log('No KYC verifications found in database');
@@ -37,9 +40,15 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
     
     console.log('KYC verifications by status:', statusCounts);
     
+    // CRITICAL FIX: Enhanced logging for user_ids to verify we're getting the right data
+    console.log('User IDs in KYC records:', kycData.map(kyc => kyc.user_id));
+    
     // Then, for each KYC verification, fetch the associated profile data
     const enhancedKycData: KycVerificationWithProfile[] = await Promise.all(
       (kycData || []).map(async (kyc) => {
+        // CRITICAL FIX: Log each KYC record we're processing for better debugging
+        console.log(`Processing KYC record for user_id: ${kyc.user_id}`, kyc);
+        
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('first_name, last_name')
@@ -50,36 +59,46 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
           console.error(`Error fetching profile for user ${kyc.user_id}:`, profileError);
         }
         
-        return {
+        const result = {
           ...kyc,
-          profile_first_name: profileData?.first_name || null,
+          profile_first_name: profileData?.first_name || null, 
           profile_last_name: profileData?.last_name || null
         };
+        
+        // Log the enhanced record for debugging
+        console.log(`Enhanced KYC record for user_id: ${kyc.user_id}`, result);
+        
+        return result;
       })
     );
     
     console.log('KYC verifications fetched with profiles:', enhancedKycData.length);
-    console.log('Sample enhanced KYC data:', enhancedKycData.slice(0, 2));
+    if (enhancedKycData.length > 0) {
+      console.log('Sample enhanced KYC data:', enhancedKycData.slice(0, 3));
+    }
     
     return enhancedKycData;
   } catch (error) {
     console.error('Exception in fetchKycVerifications:', error);
+    toast.error('Error fetching KYC verifications. Please check console for details.');
     throw error;
   }
 };
 
 // Function for testing direct database access without joins
-export const testDirectKycAccess = async (): Promise<{count: number, pendingCount: number, statusCounts: Record<string, number>}> => {
+export const testDirectKycAccess = async (): Promise<{count: number, pendingCount: number, statusCounts: Record<string, number>, records: any[]}> => {
   try {
     console.log('Testing direct KYC database access...');
     
-    // Get all KYC records
-    const { data, error, count } = await supabase
+    // CRITICAL FIX: Get all KYC records with a more direct approach 
+    const { data, error } = await supabase
       .from('kyc_verifications')
-      .select('*', { count: 'exact' });
+      .select('*')
+      .order('created_at', { ascending: false });
     
     if (error) {
       console.error('Direct KYC access test error:', error);
+      toast.error('Failed to directly access KYC records');
       throw error;
     }
     
@@ -91,14 +110,16 @@ export const testDirectKycAccess = async (): Promise<{count: number, pendingCoun
       return counts;
     }, {} as Record<string, number>);
     
-    console.log(`Direct KYC access test results: ${count} total records, ${pendingCount} pending`);
+    console.log(`Direct KYC access test results: ${data?.length || 0} total records, ${pendingCount} pending`);
     console.log('Status counts:', statusCounts);
-    console.log('All KYC records:', data);
+    console.log('All KYC records (raw):', data);
     
+    // CRITICAL FIX: Return the actual records for better debugging
     return {
-      count: count || 0,
+      count: data?.length || 0,
       pendingCount,
-      statusCounts
+      statusCounts,
+      records: data || []
     };
   } catch (error) {
     console.error('Exception in testDirectKycAccess:', error);

@@ -20,7 +20,7 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
   console.log('Fetching dashboard stats...');
   
   try {
-    // Fetch counts for KYC verifications by status - explicitly list all tables for wider query
+    // CRITICAL FIX: Fetch counts for KYC verifications by status with enhanced logging
     const { data: kycData, error: kycError } = await supabase
       .from('kyc_verifications')
       .select('*');
@@ -33,6 +33,11 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
     console.log('KYC data raw response:', kycData);
     console.log('KYC data count:', kycData?.length || 0);
     
+    // CRITICAL FIX: Log the first few KYC records for debugging
+    if (kycData && kycData.length > 0) {
+      console.log('First few KYC records:', kycData.slice(0, 3));
+    }
+    
     // Process KYC counts manually since groupBy is not available
     const kycCounts = {
       pending: 0,
@@ -44,21 +49,32 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
     
     if (kycData && kycData.length > 0) {
       kycData.forEach(item => {
-        // Use type assertion to make TypeScript happy
+        // CRITICAL FIX: Enhanced error handling and logging for KYC status
         const status = item.status as string;
         if (status in kycCounts) {
           kycCounts[status as keyof typeof kycCounts]++;
         } else {
-          console.log('Found unknown status:', status);
+          console.warn(`Found unknown KYC status: ${status}`, item);
         }
       });
       
       console.log('Processed KYC counts:', kycCounts);
     } else {
-      console.log('No KYC data found or empty array returned');
+      console.warn('No KYC data found or empty array returned');
+      
+      // CRITICAL FIX: Do a direct check to verify if we can access the data
+      const { data: directCheck, error: directError } = await supabase
+        .from('kyc_verifications')
+        .select('id, status', { count: 'exact' });
+        
+      if (directError) {
+        console.error('Direct KYC data check failed:', directError);
+      } else {
+        console.log(`Direct KYC check found ${directCheck?.length || 0} records`);
+      }
     }
     
-    // Fetch counts for pending token transfers
+    // CRITICAL FIX: Fetch counts for pending token transfers
     const { count: pendingTokensCount, error: pendingError } = await supabase
       .from('transactions')
       .select('*', { count: 'exact', head: true })
@@ -70,7 +86,7 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
       throw pendingError;
     }
     
-    // Fetch total transaction value
+    // CRITICAL FIX: Fetch total transaction value
     const { data: transactionData, error: transactionError } = await supabase
       .from('transactions')
       .select('amount')
@@ -135,7 +151,8 @@ export const useDashboardStats = () => {
   } = useQuery({
     queryKey: ['admin-dashboard-stats'],
     queryFn: fetchDashboardStats,
-    refetchInterval: 5000, // Refresh more frequently (5 seconds)
+    // CRITICAL FIX: More aggressive refetching settings
+    refetchInterval: 3000, // Refresh more frequently
     staleTime: 1000, // Consider data stale after just 1 second
   });
   

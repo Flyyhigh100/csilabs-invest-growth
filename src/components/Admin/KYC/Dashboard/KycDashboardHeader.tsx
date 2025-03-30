@@ -1,9 +1,11 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, DatabaseIcon, BugIcon } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { FileSpreadsheet, RefreshCw, Wrench } from 'lucide-react';
 import { testDirectKycAccess, createTestKycRecord } from '../KycVerificationsService';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface KycDashboardHeaderProps {
   onManualRefresh: () => void;
@@ -11,83 +13,115 @@ interface KycDashboardHeaderProps {
   refetch: () => void;
 }
 
-const KycDashboardHeader: React.FC<KycDashboardHeaderProps> = ({
-  onManualRefresh,
+const KycDashboardHeader: React.FC<KycDashboardHeaderProps> = ({ 
+  onManualRefresh, 
   onDirectDatabaseTest,
   refetch
 }) => {
-  // Direct database test query
-  const testDirectDatabaseQuery = async () => {
+  const queryClient = useQueryClient();
+  
+  const handleDirectDatabaseTest = async () => {
     try {
-      console.log('Running direct database test query for KYC verifications...');
+      toast.info('Testing direct database connection...');
       
-      const results = await testDirectKycAccess();
+      // CRITICAL FIX: Run direct database test to check connection
+      const testResults = await testDirectKycAccess();
       
-      onDirectDatabaseTest(JSON.stringify(results, null, 2));
+      // Format results as JSON string for display
+      const resultsJson = JSON.stringify({
+        count: testResults.count,
+        pendingCount: testResults.pendingCount,
+        statusCounts: testResults.statusCounts,
+        sample: testResults.records.slice(0, 2)
+      }, null, 2);
       
-      toast.success(`Found ${results.count} KYC records (${results.pendingCount} pending)`);
+      onDirectDatabaseTest(resultsJson);
       
-      // If data exists but none shows in the dashboard, it's likely an RLS or query issue
-      if (results.count > 0) {
-        console.warn('⚠️ Found records in database, refreshing view');
-        toast.info('Records found in database, refreshing view');
+      if (testResults.count > 0) {
+        toast.success(`Direct database test successful: Found ${testResults.count} KYC records`);
+      } else {
+        toast.warning('Direct database test successful but no KYC records found');
       }
       
-      refetch(); // Refresh the dashboard data
-    } catch (err) {
-      console.error('Error in direct database test:', err);
-      toast.error('Database test failed');
+      // CRITICAL FIX: Force invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
+      
+      // Refetch data
+      refetch();
+    } catch (error) {
+      console.error('Error testing database connection:', error);
+      toast.error('Failed to test database connection');
+      onDirectDatabaseTest(JSON.stringify({ error: 'Failed to connect to database' }));
     }
   };
   
-  // Create a test KYC record
   const handleCreateTestRecord = async () => {
     try {
       toast.info('Creating test KYC record...');
+      
       const success = await createTestKycRecord();
       
       if (success) {
-        toast.success('Created test KYC record');
-        refetch();
+        toast.success('Test KYC record created successfully');
+        
+        // CRITICAL FIX: Force invalidate queries after creating test record
+        queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
+        
+        // Refetch data after creating test record
+        setTimeout(() => {
+          refetch();
+        }, 500);
       } else {
         toast.error('Failed to create test KYC record');
       }
-    } catch (err) {
-      console.error('Error creating test record:', err);
-      toast.error('Failed to create test record');
+    } catch (error) {
+      console.error('Error creating test record:', error);
+      toast.error('Failed to create test KYC record');
     }
   };
-
+  
   return (
-    <div className="flex justify-between items-center">
-      <h3 className="text-lg font-bold">KYC Verifications</h3>
-      <div className="flex gap-2">
-        <Button 
-          variant="outline" 
-          onClick={testDirectDatabaseQuery} 
-          className="flex items-center gap-2"
-        >
-          <DatabaseIcon className="h-4 w-4" />
-          Database Test
-        </Button>
-        <Button 
-          variant="outline" 
-          onClick={handleCreateTestRecord} 
-          className="flex items-center gap-2"
-        >
-          <BugIcon className="h-4 w-4" />
-          Create Test Record
-        </Button>
-        <Button 
-          variant="outline" 
-          onClick={onManualRefresh} 
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
-    </div>
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-2xl font-bold flex items-center space-x-2">
+          <FileSpreadsheet className="h-6 w-6 text-cbis-blue" />
+          <span>KYC Verifications</span>
+        </CardTitle>
+        <CardDescription>
+          Review and process KYC verification requests
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            onClick={onManualRefresh}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh Data
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            onClick={handleDirectDatabaseTest}
+            className="flex items-center gap-2"
+          >
+            <Wrench className="h-4 w-4" />
+            Test Database Connection
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            onClick={handleCreateTestRecord}
+            className="flex items-center gap-2"
+          >
+            Create Test Record
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
