@@ -1,10 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { KycVerificationData, KycFormData } from './types';
-import { Database } from '@/integrations/supabase/types';
-
-// Type for KYC status from database schema
-type KycStatus = Database['public']['Enums']['kyc_status'];
+import { KycVerificationData, KycFormData, KycStatus } from './types';
 
 // Fetch a user's KYC verification data
 export const fetchKycVerification = async (userId: string): Promise<KycVerificationData | null> => {
@@ -25,14 +21,13 @@ export const fetchKycVerification = async (userId: string): Promise<KycVerificat
     
     console.log('KYC verification data:', data);
     
-    // CRITICAL FIX: If no KYC record exists, create one
+    // If no KYC record exists, create one
     if (!data) {
       console.log('No KYC record found, creating one...');
       
       const newKycData = {
         user_id: userId,
         status: 'not_started' as KycStatus,
-        // Set other fields to null
         first_name: null,
         last_name: null,
         date_of_birth: null,
@@ -191,7 +186,7 @@ export const uploadKycDocument = async (
       throw kycCheckError;
     }
     
-    // CRITICAL FIX: Create KYC record if it doesn't exist
+    // Create KYC record if it doesn't exist
     if (!existingKyc) {
       console.log('No KYC record exists, creating a new one');
       
@@ -423,3 +418,6 @@ export const insertTestKycVerification = async (userId: string): Promise<boolean
     return false;
   }
 };
+
+// Export the insertTestKycVerification function for VerificationStatusTab
+export { insertTestKycVerification as createTestKycRecord };

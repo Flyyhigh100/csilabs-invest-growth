@@ -4,7 +4,7 @@ import { CheckCircle2, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { KycVerificationData } from '@/hooks/kyc';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { createTestKycRecord } from '@/components/Admin/KYC/KycVerificationsService';
+import { createTestKycRecord } from '@/hooks/kyc/kycService';
 import { useAuth } from '@/contexts/AuthContext';
 import { Database } from '@/integrations/supabase/types';
 
@@ -14,7 +14,6 @@ interface VerificationStatusTabProps {
   kycData: KycVerificationData | null;
   isLoading: boolean;
   refetch: () => void;
-  // Add the missing props that KYCTabs.tsx is trying to pass
   onStartVerification?: () => void;
   onProvideMoreInfo?: () => void;
 }
@@ -88,7 +87,7 @@ const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({
     
     try {
       toast.loading('Creating test verification...');
-      await createTestKycRecord();
+      await createTestKycRecord(user.id);
       toast.success('Test verification created successfully');
       refetch();
     } catch (error) {

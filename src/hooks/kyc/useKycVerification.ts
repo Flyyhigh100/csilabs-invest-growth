@@ -10,7 +10,8 @@ import {
   fetchKycVerification,
   saveKycPersonalInfo,
   uploadKycDocument,
-  submitKycVerification
+  submitKycVerification,
+  ensureKycRecordExists
 } from './kycService';
 
 export function useKycVerification() {
@@ -28,6 +29,10 @@ export function useKycVerification() {
     queryFn: async (): Promise<KycVerificationData | null> => {
       if (!user) return null;
       console.log('Fetching KYC data for user:', user.id);
+      
+      // Ensure a KYC record exists for this user
+      await ensureKycRecordExists(user.id);
+      
       return fetchKycVerification(user.id);
     },
     enabled: !!user,
@@ -42,9 +47,11 @@ export function useKycVerification() {
       
       console.log('Saving personal info for user:', user.id);
       
-      // CRITICAL FIX: Ensure we always create or update the KYC record
+      // Ensure we always create or update the KYC record
       try {
         // Check if KYC record exists first
+        await ensureKycRecordExists(user.id);
+        
         const result = await saveKycPersonalInfo(user.id, formData);
         console.log('KYC personal info saved:', result);
         return result;
@@ -54,11 +61,11 @@ export function useKycVerification() {
       }
     },
     onSuccess: () => {
+      // Invalidate all related queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['kyc', user?.id] });
-      
-      // CRITICAL FIX: Also invalidate admin-related queries
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
       
       refetch();
       toast.success('Personal information saved successfully');
@@ -79,15 +86,19 @@ export function useKycVerification() {
       type: 'id_front' | 'id_back' | 'selfie' 
     }) => {
       if (!user) throw new Error('User not authenticated');
+      
+      // Ensure KYC record exists before uploading
+      await ensureKycRecordExists(user.id);
+      
       console.log(`Uploading ${type} document for user:`, user.id);
       return uploadKycDocument(user.id, file, type);
     },
     onSuccess: () => {
+      // Invalidate all related queries
       queryClient.invalidateQueries({ queryKey: ['kyc', user?.id] });
-      
-      // CRITICAL FIX: Also invalidate admin-related queries
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
       
       refetch();
     },
@@ -122,12 +133,11 @@ export function useKycVerification() {
       console.log("KYC verification submitted successfully");
       toast.success("Verification submitted successfully! We will review it shortly.");
       
-      // Force immediate invalidation of any cached KYC data
+      // Force immediate invalidation of all related cached data
       queryClient.invalidateQueries({ queryKey: ['kyc', user?.id] });
-      
-      // Also invalidate admin KYC list and admin users
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
       
       // Force a refetch to get the latest data with the updated status
       setTimeout(() => {

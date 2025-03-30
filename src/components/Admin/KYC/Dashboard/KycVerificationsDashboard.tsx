@@ -8,7 +8,7 @@ import KycDashboardHeader from './KycDashboardHeader';
 import KycDebugCard from './KycDebugCard';
 import KycVerificationsContainer from './KycVerificationsContainer';
 import { useQuery } from '@tanstack/react-query';
-import { fetchKycVerifications, testDirectKycAccess } from '../KycVerificationsService';
+import { fetchKycVerifications, testDirectKycAccess, listAllUsersWithKycStatus } from '../KycVerificationsService';
 import { supabase } from '@/integrations/supabase/client';
 
 const KycVerificationsDashboard: React.FC = () => {
@@ -39,6 +39,7 @@ const KycVerificationsDashboard: React.FC = () => {
   const [manualRefreshCount, setManualRefreshCount] = useState(0);
   const [realtimeEnabled, setRealtimeEnabled] = useState(false);
   const [directTestResults, setDirectTestResults] = useState<string | null>(null);
+  const [showAllUsers, setShowAllUsers] = useState(false);
   
   // CRITICAL FIX: Implement more aggressive refetching with shorter intervals
   const { 
@@ -51,16 +52,16 @@ const KycVerificationsDashboard: React.FC = () => {
     queryFn: async () => {
       console.log('Fetching KYC verifications in dashboard component...');
       try {
-        // CRITICAL FIX: Log the raw data
+        // Log the raw data
         const results = await fetchKycVerifications();
         console.log(`Fetched ${results.length} KYC verifications in dashboard component`);
         
-        // CRITICAL FIX: Log the first few records for debugging
+        // Log the first few records for debugging
         if (results.length > 0) {
           console.log('First few KYC records:', results.slice(0, 3));
         } else {
           console.warn('WARNING: No KYC records returned from fetchKycVerifications');
-          // CRITICAL FIX: Run a direct test to check if we can access the data
+          // Run a direct test to check if we can access the data
           const directTest = await testDirectKycAccess();
           console.log('Direct test results:', directTest);
           if (directTest.count > 0) {
@@ -83,10 +84,20 @@ const KycVerificationsDashboard: React.FC = () => {
         throw err;
       }
     },
-    // CRITICAL FIX: More aggressive refetching settings
+    // More aggressive refetching settings
     refetchInterval: 3000, // Refresh every 3 seconds
     refetchOnWindowFocus: true,
     staleTime: 500, // Consider data stale after 500ms
+  });
+  
+  // Query to fetch all users with KYC status for debugging
+  const { 
+    data: allUsersWithKyc = [], 
+    refetch: refetchAllUsers 
+  } = useQuery({
+    queryKey: ['admin-all-users-kyc'],
+    queryFn: listAllUsersWithKycStatus,
+    enabled: showAllUsers,
   });
   
   const handleViewDetails = (kyc: typeof selectedKyc) => {
@@ -101,7 +112,7 @@ const KycVerificationsDashboard: React.FC = () => {
     console.log('Manual refresh triggered');
     setManualRefreshCount(prev => prev + 1);
     
-    // CRITICAL FIX: Also run a direct test to debug connection issues
+    // Also run a direct test to debug connection issues
     try {
       const directTest = await testDirectKycAccess();
       setDirectTestResults(JSON.stringify({
@@ -123,11 +134,20 @@ const KycVerificationsDashboard: React.FC = () => {
     
     // Standard refetch
     refetch();
+    if (showAllUsers) refetchAllUsers();
     toast.success('Refreshing KYC data...');
   };
   
+  const toggleShowAllUsers = () => {
+    const newState = !showAllUsers;
+    setShowAllUsers(newState);
+    if (newState) {
+      refetchAllUsers();
+    }
+  };
+  
   useEffect(() => {
-    // CRITICAL FIX: Force immediate data fetch on component mount
+    // Force immediate data fetch on component mount
     console.log('KYC Verifications component mounted, fetching data...');
     handleManualRefresh();
     
@@ -152,7 +172,7 @@ const KycVerificationsDashboard: React.FC = () => {
           console.log('Realtime update received for kyc_verifications:', payload);
           setRealtimeEnabled(true);
           
-          // CRITICAL FIX: Always refetch when we get an update and show detailed toast
+          // Always refetch when we get an update and show detailed toast
           refetch();
           
           // Show informative toast notification based on the change type
@@ -183,7 +203,7 @@ const KycVerificationsDashboard: React.FC = () => {
       console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [isViewModalOpen, refetch]);
+  }, [isViewModalOpen, refetch, refetchAllUsers]);
   
   return (
     <div className="space-y-6">
@@ -191,6 +211,8 @@ const KycVerificationsDashboard: React.FC = () => {
         onManualRefresh={handleManualRefresh}
         onDirectDatabaseTest={testResults => setDirectTestResults(testResults)}
         refetch={refetch}
+        onToggleShowAllUsers={toggleShowAllUsers}
+        showAllUsers={showAllUsers}
       />
       
       <KycDebugCard
@@ -198,7 +220,47 @@ const KycVerificationsDashboard: React.FC = () => {
         realtimeEnabled={realtimeEnabled}
         kycVerifications={kycVerifications}
         directTestResults={directTestResults}
+        onRefresh={handleManualRefresh}
       />
+      
+      {showAllUsers && allUsersWithKyc.length > 0 && (
+        <Card className="bg-slate-50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">All Users with KYC Status</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="text-xs overflow-auto max-h-60">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-1">User ID</th>
+                    <th className="text-left p-1">Name</th>
+                    <th className="text-left p-1">KYC Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allUsersWithKyc.map(user => (
+                    <tr key={user.id} className="border-b">
+                      <td className="p-1 font-mono text-xs">{user.id}</td>
+                      <td className="p-1">{user.first_name} {user.last_name}</td>
+                      <td className="p-1">
+                        <span className={
+                          user.kyc_status === 'approved' ? 'text-green-600' :
+                          user.kyc_status === 'pending' ? 'text-amber-600' :
+                          user.kyc_status === 'rejected' ? 'text-red-600' :
+                          'text-gray-600'
+                        }>
+                          {user.kyc_status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       <KycVerificationsContainer
         kycVerifications={kycVerifications}

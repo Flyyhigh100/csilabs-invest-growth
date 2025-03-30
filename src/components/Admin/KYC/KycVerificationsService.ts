@@ -8,7 +8,8 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
   console.log('Fetching KYC verifications from database with admin access');
   
   try {
-    // CRITICAL FIX: Use a more direct query approach to get ALL KYC records regardless of status
+    // CRITICAL FIX: Use a more direct and simplified query approach to get ALL KYC records
+    // Remove any filters that might be restricting records
     const { data: kycData, error: kycError } = await supabase
       .from('kyc_verifications')
       .select('*')
@@ -24,15 +25,15 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
     if (kycData?.length === 0) {
       console.warn('WARNING: No KYC verifications found in database!');
       
-      // CRITICAL FIX: Use system tables check differently to avoid type issues
-      try {
-        const { count } = await supabase
-          .from('kyc_verifications')
-          .select('*', { count: 'exact', head: true });
-        
+      // Run a direct test to verify database access
+      const { count, error: countError } = await supabase
+        .from('kyc_verifications')
+        .select('*', { count: 'exact', head: true });
+      
+      if (countError) {
+        console.error('Error checking kyc_verifications count:', countError);
+      } else {
         console.log('KYC table count check:', count);
-      } catch (checkError) {
-        console.error('Error checking kyc_verifications table:', checkError);
       }
     } else {
       console.log('First few KYC records:', kycData?.slice(0, 3));
@@ -51,13 +52,13 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
       return [];
     }
     
-    // CRITICAL FIX: Enhanced logging for user_ids to verify we're getting the right data
+    // Enhanced logging for user_ids to verify we're getting the right data
     console.log('User IDs in KYC records:', kycData.map(kyc => kyc.user_id));
     
-    // Then, for each KYC verification, fetch the associated profile data
+    // For each KYC verification, fetch the associated profile data
     const enhancedKycData: KycVerificationWithProfile[] = await Promise.all(
       (kycData || []).map(async (kyc) => {
-        // CRITICAL FIX: Log each KYC record we're processing for better debugging
+        // Log each KYC record we're processing for better debugging
         console.log(`Processing KYC record for user_id: ${kyc.user_id}`, kyc);
         
         const { data: profileData, error: profileError } = await supabase
@@ -75,9 +76,6 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
           profile_first_name: profileData?.first_name || null, 
           profile_last_name: profileData?.last_name || null
         };
-        
-        // Log the enhanced record for debugging
-        console.log(`Enhanced KYC record for user_id: ${kyc.user_id}`, result);
         
         return result;
       })
@@ -101,7 +99,7 @@ export const testDirectKycAccess = async (): Promise<{count: number, pendingCoun
   try {
     console.log('Testing direct KYC database access...');
     
-    // CRITICAL FIX: Get all KYC records with a more direct approach 
+    // Get all KYC records with a more direct approach 
     const { data, error } = await supabase
       .from('kyc_verifications')
       .select('*')
@@ -125,7 +123,7 @@ export const testDirectKycAccess = async (): Promise<{count: number, pendingCoun
     console.log('Status counts:', statusCounts);
     console.log('All KYC records (raw):', data);
     
-    // CRITICAL FIX: Return the actual records for better debugging
+    // Return the actual records for better debugging
     return {
       count: data?.length || 0,
       pendingCount,
@@ -138,7 +136,7 @@ export const testDirectKycAccess = async (): Promise<{count: number, pendingCoun
   }
 };
 
-// CRITICAL FIX: Add function to check for kyc records with a specific user id
+// Function to check for kyc records with a specific user id
 export const checkUserKycRecord = async (userId: string): Promise<any> => {
   try {
     console.log(`Checking if KYC record exists for user: ${userId}`);
@@ -239,7 +237,7 @@ export const createTestKycRecord = async (): Promise<boolean> => {
   }
 };
 
-// CRITICAL FIX: Function to list all users and their KYC status
+// Function to list all users and their KYC status - useful for debugging
 export const listAllUsersWithKycStatus = async (): Promise<any[]> => {
   try {
     console.log('Listing all users with KYC status...');
@@ -286,7 +284,7 @@ export const listAllUsersWithKycStatus = async (): Promise<any[]> => {
       };
     });
     
-    console.log('Users with KYC status:', usersWithKyc.length);
+    console.log('Users with KYC status compiled:', usersWithKyc.length);
     console.log('Sample:', usersWithKyc.slice(0, 3));
     
     return usersWithKyc;

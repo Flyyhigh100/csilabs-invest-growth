@@ -1,123 +1,78 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, Database, Users } from 'lucide-react';
 import { toast } from 'sonner';
-import { FileSpreadsheet, RefreshCw, Wrench } from 'lucide-react';
-import { testDirectKycAccess, createTestKycRecord } from '../KycVerificationsService';
-import { useQueryClient } from '@tanstack/react-query';
+import { testDirectKycAccess } from '../KycVerificationsService';
 
 interface KycDashboardHeaderProps {
   onManualRefresh: () => void;
   onDirectDatabaseTest: (results: string) => void;
   refetch: () => void;
+  onToggleShowAllUsers: () => void;
+  showAllUsers: boolean;
 }
 
 const KycDashboardHeader: React.FC<KycDashboardHeaderProps> = ({ 
   onManualRefresh, 
   onDirectDatabaseTest,
-  refetch
+  refetch,
+  onToggleShowAllUsers,
+  showAllUsers
 }) => {
-  const queryClient = useQueryClient();
-  
   const handleDirectDatabaseTest = async () => {
     try {
-      toast.info('Testing direct database connection...');
-      
-      // CRITICAL FIX: Run direct database test to check connection
-      const testResults = await testDirectKycAccess();
-      
-      // Format results as JSON string for display
-      const resultsJson = JSON.stringify({
-        count: testResults.count,
-        pendingCount: testResults.pendingCount,
-        statusCounts: testResults.statusCounts,
-        sample: testResults.records.slice(0, 2)
-      }, null, 2);
-      
+      toast.loading('Testing direct database access...');
+      const results = await testDirectKycAccess();
+      const resultsJson = JSON.stringify(results, null, 2);
       onDirectDatabaseTest(resultsJson);
       
-      if (testResults.count > 0) {
-        toast.success(`Direct database test successful: Found ${testResults.count} KYC records`);
-      } else {
-        toast.warning('Direct database test successful but no KYC records found');
-      }
-      
-      // CRITICAL FIX: Force invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
-      
-      // Refetch data
-      refetch();
+      toast.success(`Found ${results.count} KYC records in database`);
     } catch (error) {
-      console.error('Error testing database connection:', error);
-      toast.error('Failed to test database connection');
-      onDirectDatabaseTest(JSON.stringify({ error: 'Failed to connect to database' }));
-    }
-  };
-  
-  const handleCreateTestRecord = async () => {
-    try {
-      toast.info('Creating test KYC record...');
-      
-      const success = await createTestKycRecord();
-      
-      if (success) {
-        toast.success('Test KYC record created successfully');
-        
-        // CRITICAL FIX: Force invalidate queries after creating test record
-        queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
-        queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
-        
-        // Refetch data after creating test record
-        setTimeout(() => {
-          refetch();
-        }, 500);
-      } else {
-        toast.error('Failed to create test KYC record');
-      }
-    } catch (error) {
-      console.error('Error creating test record:', error);
-      toast.error('Failed to create test KYC record');
+      console.error('Error testing direct database access:', error);
+      toast.error('Failed to test direct database access');
     }
   };
   
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-2xl font-bold flex items-center space-x-2">
-          <FileSpreadsheet className="h-6 w-6 text-cbis-blue" />
-          <span>KYC Verifications</span>
-        </CardTitle>
+      <CardHeader>
+        <CardTitle>KYC Verification Requests</CardTitle>
         <CardDescription>
-          Review and process KYC verification requests
+          Review and process KYC verification requests from users
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap gap-2">
           <Button 
-            onClick={onManualRefresh}
-            className="flex items-center gap-2"
+            variant="outline" 
+            size="sm" 
+            onClick={onManualRefresh} 
+            className="flex items-center gap-1"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className="h-3 w-3" />
             Refresh Data
           </Button>
           
           <Button 
             variant="outline" 
-            onClick={handleDirectDatabaseTest}
-            className="flex items-center gap-2"
+            size="sm" 
+            onClick={handleDirectDatabaseTest} 
+            className="flex items-center gap-1"
           >
-            <Wrench className="h-4 w-4" />
-            Test Database Connection
+            <Database className="h-3 w-3" />
+            Test DB Connection
           </Button>
           
           <Button 
-            variant="outline" 
-            onClick={handleCreateTestRecord}
-            className="flex items-center gap-2"
+            variant={showAllUsers ? "default" : "outline"} 
+            size="sm" 
+            onClick={onToggleShowAllUsers} 
+            className="flex items-center gap-1"
           >
-            Create Test Record
+            <Users className="h-3 w-3" />
+            {showAllUsers ? "Hide All Users" : "Show All Users"}
           </Button>
         </div>
       </CardContent>
