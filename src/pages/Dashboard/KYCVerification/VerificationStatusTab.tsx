@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { CheckCircle2, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { KycVerificationData } from '@/hooks/kyc';
@@ -6,22 +5,34 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { insertTestKycVerification } from '@/hooks/kyc/kycService';
 import { useAuth } from '@/contexts/AuthContext';
+import { Database } from '@/integrations/supabase/types';
+
+type KycStatus = Database['public']['Enums']['kyc_status'];
 
 interface VerificationStatusTabProps {
   kycData: KycVerificationData | null;
   isLoading: boolean;
   refetch: () => void;
+  // Add the missing props that KYCTabs.tsx is trying to pass
+  onStartVerification?: () => void;
+  onProvideMoreInfo?: () => void;
 }
 
 const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({ 
   kycData, 
   isLoading,
-  refetch 
+  refetch,
+  onStartVerification,
+  onProvideMoreInfo
 }) => {
   const { user } = useAuth();
   
   const getStatusContent = () => {
-    switch (kycData?.status) {
+    // Fix the type error by properly checking the status
+    // First, ensure we have a valid status from the KYC data
+    const status = kycData?.status as KycStatus | undefined;
+    
+    switch (status) {
       case 'approved':
         return {
           title: 'Verification Approved',
@@ -33,7 +44,7 @@ const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({
       case 'rejected':
         return {
           title: 'Verification Rejected',
-          description: kycData.rejection_reason 
+          description: kycData?.rejection_reason 
             ? `Your verification was rejected. Reason: ${kycData.rejection_reason}` 
             : 'Your verification was rejected. Please resubmit with correct information.',
           icon: <AlertCircle className="h-16 w-16 text-red-500" />,
@@ -48,16 +59,8 @@ const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({
           color: 'bg-amber-50 border-amber-200',
           showRefresh: true
         };
-      case 'needs_clarification':
-        return {
-          title: 'Clarification Needed',
-          description: kycData.clarification_message 
-            ? `We need additional information: ${kycData.clarification_message}` 
-            : 'We need additional information to complete your verification.',
-          icon: <AlertCircle className="h-16 w-16 text-blue-500" />,
-          color: 'bg-blue-50 border-blue-200',
-          showRefresh: true
-        };
+      // Handle as a valid case, not in the comparison
+      case 'not_started':
       default:
         return {
           title: 'Verification Not Started',
@@ -123,6 +126,20 @@ const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({
               Refresh Status
             </Button>
           </div>
+        )}
+        
+        {/* If onStartVerification is provided, and we're in not_started state, show a button */}
+        {onStartVerification && (!kycData || kycData.status === 'not_started') && (
+          <Button onClick={onStartVerification} className="mt-4">
+            Start Verification
+          </Button>
+        )}
+        
+        {/* If onProvideMoreInfo is provided and there's a clarification message, show that button */}
+        {onProvideMoreInfo && kycData?.clarification_message && (
+          <Button onClick={onProvideMoreInfo} variant="outline" className="mt-4">
+            Provide Additional Information
+          </Button>
         )}
         
         {/* Debug tools - only show in development */}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useKycVerification } from '@/hooks/kyc/useKycVerification';
@@ -116,6 +115,10 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
     }
   }, [kycData, submitVerification, refetch]);
 
+  const handleStartVerification = () => {
+    setActiveTab("personal-info");
+  };
+
   const handleProvideMoreInfo = () => {
     // Reset clarification message when user decides to provide more info
     if (kycData && kycData.clarification_message) {
@@ -165,7 +168,9 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
       
       <VerificationStatusTab 
         kycData={kycData}
-        onStartVerification={() => setActiveTab("personal-info")}
+        isLoading={isLoading}
+        refetch={refetch}
+        onStartVerification={handleStartVerification}
         onProvideMoreInfo={handleProvideMoreInfo}
       />
     </Tabs>

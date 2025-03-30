@@ -29,6 +29,7 @@ const AdminDashboard: React.FC = () => {
         pendingTokensCount={data?.pendingTokensCount || 0}
         totalTransactionValue={data?.totalTransactionValue || 0}
         isLoading={isLoading}
+        refetch={refetch}
       />
     </AdminLayout>
   );
