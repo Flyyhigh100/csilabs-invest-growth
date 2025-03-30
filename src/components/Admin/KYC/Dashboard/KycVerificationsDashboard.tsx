@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useKycContext } from '../KycContext';
 import { useKycActionHandlers } from '../KycActionHandlers';
@@ -10,6 +9,7 @@ import KycVerificationsContainer from './KycVerificationsContainer';
 import { useQuery } from '@tanstack/react-query';
 import { fetchKycVerifications, testDirectKycAccess, listAllUsersWithKycStatus } from '../KycVerificationsService';
 import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const KycVerificationsDashboard: React.FC = () => {
   // Context hooks
