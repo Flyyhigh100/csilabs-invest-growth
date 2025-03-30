@@ -1,6 +1,8 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { KycVerificationWithProfile } from './types';
 import { toast } from 'sonner';
+import { isUserAdmin } from '@/utils/admin';
 
 // Fetch KYC verifications function with improved error handling and logging
 export const fetchKycVerifications = async (): Promise<KycVerificationWithProfile[]> => {
@@ -8,7 +10,7 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
   
   try {
     // Verify admin access first
-    const isAdmin = await verifyAdminAccess();
+    const isAdmin = await isUserAdmin();
     if (!isAdmin) {
       console.error('User is not an admin. Cannot fetch all KYC verifications');
       throw new Error('Admin access required to fetch all KYC verifications');
@@ -90,7 +92,7 @@ export const testDirectKycAccess = async (): Promise<{count: number, pendingCoun
     console.log('Testing direct KYC database access with updated RLS...');
     
     // Verify admin access first
-    const isAdmin = await verifyAdminAccess();
+    const isAdmin = await isUserAdmin();
     if (!isAdmin) {
       console.error('User is not an admin. Cannot perform direct KYC database access test');
       throw new Error('Admin access required for direct database test');
@@ -233,7 +235,7 @@ export const listAllUsersWithKycStatus = async (): Promise<any[]> => {
   try {
     console.log('Listing all users with KYC status with updated RLS...');
     
-    const isAdmin = await verifyAdminAccess();
+    const isAdmin = await isUserAdmin();
     if (!isAdmin) {
       console.error('User is not an admin. Cannot list all users with KYC status');
       throw new Error('Admin access required to list all users with KYC status');
@@ -289,75 +291,5 @@ export const listAllUsersWithKycStatus = async (): Promise<any[]> => {
 
 // CRITICAL FIX: Add function to check admin permissions with more robust logic
 export const verifyAdminAccess = async (): Promise<boolean> => {
-  try {
-    console.log('Verifying admin access with updated RLS policies...');
-    
-    const { data: session } = await supabase.auth.getSession();
-    if (!session?.session?.user) {
-      console.error('No authenticated user found');
-      return false;
-    }
-    
-    const userId = session.session.user.id;
-    const userEmail = session.session.user.email;
-    
-    console.log(`Checking admin access for user ${userId} (${userEmail})`);
-    
-    if (userEmail && userEmail.toLowerCase() === 'chris.d.conley@gmail.com') {
-      console.log('Special test account detected - granting admin access directly');
-      return true;
-    }
-    
-    if (userEmail) {
-      const { data: adminByEmail, error: emailError } = await supabase
-        .from('admins')
-        .select('*')
-        .ilike('email', userEmail)
-        .maybeSingle();
-      
-      if (!emailError && adminByEmail) {
-        console.log(`User found in admins table by email: ${userEmail}`);
-        return true;
-      } else {
-        console.log(`User NOT found in admins table by email (${emailError?.message || 'no error'})`);
-      }
-    }
-    
-    const { data: adminById, error: idError } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-    
-    if (!idError && adminById) {
-      console.log(`User found in admins table by ID: ${userId}`);
-      return true;
-    } else {
-      console.log(`User NOT found in admins table by ID (${idError?.message || 'no error'})`);
-    }
-    
-    if (userEmail && (
-      userEmail.toLowerCase().includes('admin') || 
-      userEmail.toLowerCase() === 'chris.d.conley@gmail.com'
-    )) {
-      console.log(`Adding special admin email ${userEmail} to admins table`);
-      const { data, error } = await supabase
-        .from('admins')
-        .insert([{ id: userId, email: userEmail }])
-        .select();
-      
-      if (!error) {
-        console.log('Successfully added user to admins table');
-        return true;
-      } else {
-        console.error('Error adding user to admins table:', error);
-      }
-    }
-    
-    console.log(`Admin check result: ${false} for user ${userId}`);
-    return false;
-  } catch (error) {
-    console.error('Error verifying admin access with updated RLS:', error);
-    return false;
-  }
+  return isUserAdmin();
 };

@@ -17,43 +17,7 @@ export const isUserAdmin = async (): Promise<boolean> => {
     
     console.log(`Checking admin status for user ${userId} (${userEmail})`);
     
-    // Special case for testing account
-    if (userEmail && userEmail.toLowerCase() === 'chris.d.conley@gmail.com') {
-      console.log('Special test account detected - granting admin access directly');
-      
-      // Ensure this account is in the admins table
-      const { data: existingAdmin, error: checkError } = await supabase
-        .from('admins')
-        .select('*')
-        .or(`id.eq.${userId},email.ilike.${userEmail}`)
-        .maybeSingle();
-      
-      if (!existingAdmin && !checkError) {
-        // Add to admins table if not already there
-        console.log(`Adding special test account ${userEmail} to admins table`);
-        await supabase
-          .from('admins')
-          .insert([{ email: userEmail, id: userId }]);
-      }
-      
-      return true;
-    }
-    
-    // Check if user is in admins table (by email first, then by ID)
-    if (userEmail) {
-      const { data: adminByEmail, error: emailError } = await supabase
-        .from('admins')
-        .select('*')
-        .ilike('email', userEmail)
-        .maybeSingle();
-      
-      if (!emailError && adminByEmail) {
-        console.log(`User found in admins table by email: ${userEmail}`);
-        return true;
-      }
-    }
-    
-    // Fall back to ID check
+    // Check if user is in admins table (by ID first, then by email)
     const { data: adminById, error: idError } = await supabase
       .from('admins')
       .select('*')
@@ -65,22 +29,48 @@ export const isUserAdmin = async (): Promise<boolean> => {
       return true;
     }
     
-    // As a fallback for development, check email patterns
+    // Fall back to email check
+    if (userEmail) {
+      const { data: adminByEmail, error: emailError } = await supabase
+        .from('admins')
+        .select('*')
+        .ilike('email', userEmail)
+        .maybeSingle();
+      
+      if (!emailError && adminByEmail) {
+        console.log(`User found in admins table by email: ${userEmail}`);
+        // Update the admin record with the user's ID if it's missing
+        if (!adminByEmail.id) {
+          await supabase
+            .from('admins')
+            .update({ id: userId })
+            .eq('email', userEmail);
+        }
+        return true;
+      }
+    }
+    
+    // Special email check for test accounts (optional, can be removed in production)
     if (userEmail && (
       userEmail.toLowerCase().includes('admin') ||
-      userEmail.toLowerCase().includes('test')
+      userEmail.toLowerCase().includes('test') ||
+      userEmail.toLowerCase() === 'chris.d.conley@gmail.com'
     )) {
-      console.log(`Adding user with admin-like email ${userEmail} to admins table`);
+      console.log(`User has admin-like email ${userEmail} - adding to admins table`);
       try {
         const { error } = await supabase
           .from('admins')
           .insert([{ id: userId, email: userEmail }]);
           
         if (!error) {
+          console.log(`Successfully added ${userEmail} to admins table`);
           return true;
+        } else {
+          console.error('Error adding admin by special email pattern:', error);
+          toast.error('Failed to add admin user. You may need to refresh or add yourself as admin manually.');
         }
       } catch (e) {
-        console.error('Error adding admin by pattern match:', e);
+        console.error('Exception adding admin by special email pattern:', e);
       }
     }
     
@@ -88,6 +78,7 @@ export const isUserAdmin = async (): Promise<boolean> => {
     return false;
   } catch (error) {
     console.error('Error checking admin status:', error);
+    toast.error('Failed to verify admin status');
     return false;
   }
 };
