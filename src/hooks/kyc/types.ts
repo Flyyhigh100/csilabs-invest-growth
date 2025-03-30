@@ -19,6 +19,7 @@ export interface KycVerificationData {
   id_back_url: string | null;
   selfie_url: string | null;
   rejection_reason: string | null;
+  clarification_message: string | null;  // Added this property
   submitted_at: string | null;
   reviewed_at: string | null;
   created_at: string;
