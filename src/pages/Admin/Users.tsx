@@ -22,9 +22,11 @@ interface User {
   first_name: string | null;
   last_name: string | null;
   wallet_address: string | null;
-  email?: string;
-  kyc_status?: string;
   created_at: string;
+  updated_at: string;
+  kyc_status?: string;
+  // Define types for auth data which isn't in profiles table
+  auth_email?: string | null;
 }
 
 const AdminUsersPage: React.FC = () => {
@@ -68,13 +70,29 @@ const AdminUsersPage: React.FC = () => {
       });
       
       // Create a map of user ID to KYC status for faster lookups
-      const kycStatusMap = (kycData || []).reduce((map, kyc) => {
-        map[kyc.user_id] = kyc.status;
-        return map;
+      const kycStatusMap = (kycData || []).reduce((acc, kyc) => {
+        acc[kyc.user_id] = kyc.status;
+        return acc;
       }, {} as Record<string, string>);
       
       // CRITICAL FIX: Log the status map
       console.log('KYC status map by user ID:', kycStatusMap);
+      
+      // CRITICAL FIX: Get auth users to obtain email information
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) {
+        console.error('Error fetching auth users:', authError);
+        // Don't throw here, we'll just proceed without emails
+      }
+      
+      // Create a map of user ID to email for faster lookups
+      const emailMap = (authUsers?.users || []).reduce((acc, user) => {
+        acc[user.id] = user.email;
+        return acc;
+      }, {} as Record<string, string | undefined>);
+      
+      console.log('Email map by user ID:', emailMap);
       
       // Enhance users with KYC status from the map
       const enhancedUsers = (profiles || []).map(profile => {
@@ -88,7 +106,8 @@ const AdminUsersPage: React.FC = () => {
         
         return {
           ...profile,
-          kyc_status: userStatus
+          kyc_status: userStatus,
+          auth_email: emailMap[profile.id] || null
         };
       });
       
@@ -175,7 +194,7 @@ const AdminUsersPage: React.FC = () => {
     return (
       (user.first_name && user.first_name.toLowerCase().includes(searchLower)) ||
       (user.last_name && user.last_name.toLowerCase().includes(searchLower)) ||
-      (user.email && user.email.toLowerCase().includes(searchLower)) ||
+      (user.auth_email && user.auth_email.toLowerCase().includes(searchLower)) ||
       (user.wallet_address && user.wallet_address.toLowerCase().includes(searchLower))
     );
   });
@@ -336,7 +355,7 @@ const AdminUsersPage: React.FC = () => {
                         <TableCell className="font-medium">
                           {user.first_name} {user.last_name}
                         </TableCell>
-                        <TableCell>{user.email || 'N/A'}</TableCell>
+                        <TableCell>{user.auth_email || 'N/A'}</TableCell>
                         <TableCell>
                           <div className="font-mono text-xs truncate max-w-[150px]">
                             {user.wallet_address || 'Not set'}
