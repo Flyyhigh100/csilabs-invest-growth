@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { CheckCircle2, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { KycVerificationData } from '@/hooks/kyc';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { insertTestKycVerification } from '@/hooks/kyc/kycService';
+import { createTestKycRecord } from '@/components/Admin/KYC/KycVerificationsService';
 import { useAuth } from '@/contexts/AuthContext';
 import { Database } from '@/integrations/supabase/types';
 
@@ -87,7 +88,7 @@ const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({
     
     try {
       toast.loading('Creating test verification...');
-      await insertTestKycVerification(user.id);
+      await createTestKycRecord();
       toast.success('Test verification created successfully');
       refetch();
     } catch (error) {

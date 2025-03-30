@@ -24,17 +24,15 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
     if (kycData?.length === 0) {
       console.warn('WARNING: No KYC verifications found in database!');
       
-      // CRITICAL FIX: Check if table exists and has proper permissions
-      const { data: tablesCheck, error: tablesError } = await supabase
-        .from('pg_tables')
-        .select('tablename')
-        .eq('tablename', 'kyc_verifications')
-        .single();
-      
-      if (tablesError) {
-        console.error('Unable to check if kyc_verifications table exists:', tablesError);
-      } else {
-        console.log('kyc_verifications table exists:', tablesCheck);
+      // CRITICAL FIX: Use system tables check differently to avoid type issues
+      try {
+        const { count } = await supabase
+          .from('kyc_verifications')
+          .select('*', { count: 'exact', head: true });
+        
+        console.log('KYC table count check:', count);
+      } catch (checkError) {
+        console.error('Error checking kyc_verifications table:', checkError);
       }
     } else {
       console.log('First few KYC records:', kycData?.slice(0, 3));
