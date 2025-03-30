@@ -18,13 +18,13 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
     savePersonalInfo,
     uploadDocument,
     submitVerification,
-    refetch
+    refetch,
+    isLoading
   } = useKycVerification();
   
   const [activeTab, setActiveTab] = useState<string>(() => getInitialActiveTab(kycData));
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Monitor kycData changes to update tab selection
   useEffect(() => {
     if (kycData) {
       console.log("KYC data updated in component, current status:", kycData.status);
@@ -40,7 +40,6 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
     try {
       console.log("Submitting personal info form:", values);
       
-      // Ensure all required fields are present and convert to KycFormData type
       const formData = {
         first_name: values.first_name,
         last_name: values.last_name,
@@ -70,7 +69,6 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
       await uploadDocument.mutateAsync({ file, type });
       toast.success(`${type.replace('_', ' ')} uploaded successfully`);
       
-      // Force a refetch to update UI with new document status
       await refetch();
     } catch (error) {
       console.error(`Error uploading ${type}:`, error);
@@ -96,15 +94,12 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
       console.log("Calling submitVerification.mutateAsync()");
       await submitVerification.mutateAsync();
       
-      // Show explicit success message to the user
       toast.success("Your verification has been submitted successfully! We will review it shortly.");
       
       console.log("Verification submitted successfully, updating tab...");
       
-      // Force an immediate refetch to get the updated status
       await refetch();
       
-      // Force the tab change to verification-status
       setActiveTab("verification-status");
       
     } catch (error) {
@@ -120,10 +115,7 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
   };
 
   const handleProvideMoreInfo = () => {
-    // Reset clarification message when user decides to provide more info
     if (kycData && kycData.clarification_message) {
-      // This will be implemented in a future update
-      // For now, just take them back to personal info
       toast.info("Please update your information and resubmit your verification");
       setActiveTab("personal-info");
     }
