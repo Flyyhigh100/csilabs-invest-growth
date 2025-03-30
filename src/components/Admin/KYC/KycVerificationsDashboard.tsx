@@ -6,13 +6,17 @@ import {
   CardHeader, CardTitle 
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, DatabaseIcon, BugIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 import { useKycContext } from './KycContext';
 import { useKycActionHandlers } from './KycActionHandlers';
-import { fetchKycVerifications } from './KycVerificationsService';
+import { 
+  fetchKycVerifications, 
+  testDirectKycAccess,
+  createTestKycRecord 
+} from './KycVerificationsService';
 import KycVerificationsTabs from './KycVerificationsTabs';
 import KycDetailModal from './KycDetailModal';
 
@@ -21,6 +25,7 @@ const KycVerificationsDashboard: React.FC = () => {
   const [lastFetchTime, setLastFetchTime] = useState<string | null>(null);
   const [manualRefreshCount, setManualRefreshCount] = useState(0);
   const [realtimeEnabled, setRealtimeEnabled] = useState(false);
+  const [directTestResults, setDirectTestResults] = useState<string | null>(null);
   
   const {
     selectedKyc,
@@ -75,7 +80,9 @@ const KycVerificationsDashboard: React.FC = () => {
         throw err;
       }
     },
-    refetchInterval: 15000, // Refresh every 15 seconds instead of 30
+    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchOnWindowFocus: true,
+    staleTime: 5000, // Consider data stale after 5 seconds
   });
   
   // Handle view verification details
@@ -100,27 +107,14 @@ const KycVerificationsDashboard: React.FC = () => {
     try {
       console.log('Running direct database test query for KYC verifications...');
       
-      // Query all KYC verifications directly
-      const { data, error: queryError, count } = await supabase
-        .from('kyc_verifications')
-        .select('*', { count: 'exact' });
+      const results = await testDirectKycAccess();
       
-      if (queryError) {
-        console.error('Direct query error:', queryError);
-        toast.error('Failed to query database directly');
-        return;
-      }
+      setDirectTestResults(JSON.stringify(results, null, 2));
       
-      // Count pending verifications
-      const pendingCount = data?.filter(item => item.status === 'pending').length || 0;
-      
-      console.log(`Direct database query results: ${data?.length} total KYC records, ${pendingCount} pending`);
-      console.log('First 5 records:', data?.slice(0, 5));
-      
-      toast.success(`Found ${data?.length} KYC records (${pendingCount} pending)`);
+      toast.success(`Found ${results.count} KYC records (${results.pendingCount} pending)`);
       
       // If data exists but none shows in the dashboard, it's likely an RLS or query issue
-      if (data?.length && kycVerifications.length === 0) {
+      if (results.count > 0 && kycVerifications.length === 0) {
         console.warn('⚠️ Data exists in database but not showing in dashboard. Possible RLS or query issue.');
         toast.warning('Data exists but not showing in dashboard. Possible permissions issue.');
       }
@@ -129,6 +123,24 @@ const KycVerificationsDashboard: React.FC = () => {
     } catch (err) {
       console.error('Error in direct database test:', err);
       toast.error('Database test failed');
+    }
+  };
+  
+  // Create a test KYC record
+  const handleCreateTestRecord = async () => {
+    try {
+      toast.info('Creating test KYC record...');
+      const success = await createTestKycRecord();
+      
+      if (success) {
+        toast.success('Created test KYC record');
+        refetch();
+      } else {
+        toast.error('Failed to create test KYC record');
+      }
+    } catch (err) {
+      console.error('Error creating test record:', err);
+      toast.error('Failed to create test record');
     }
   };
   
@@ -220,7 +232,16 @@ const KycVerificationsDashboard: React.FC = () => {
             onClick={testDirectDatabaseQuery} 
             className="flex items-center gap-2"
           >
+            <DatabaseIcon className="h-4 w-4" />
             Database Test
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleCreateTestRecord} 
+            className="flex items-center gap-2"
+          >
+            <BugIcon className="h-4 w-4" />
+            Create Test Record
           </Button>
           <Button 
             variant="outline" 
@@ -240,6 +261,15 @@ const KycVerificationsDashboard: React.FC = () => {
             <p><strong>Status:</strong> {realtimeEnabled ? '✅ Realtime enabled' : '❌ Realtime not connected'}</p>
             <p><strong>Last fetch:</strong> {lastFetchTime ? new Date(lastFetchTime).toLocaleTimeString() : 'Never'}</p>
             <p><strong>KYC records:</strong> {kycVerifications.length} total, {kycVerifications.filter(v => v.status === 'pending').length} pending</p>
+            
+            {directTestResults && (
+              <div className="mt-2">
+                <p><strong>Direct database test results:</strong></p>
+                <pre className="bg-slate-100 p-2 rounded text-xs overflow-auto max-h-32">
+                  {directTestResults}
+                </pre>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

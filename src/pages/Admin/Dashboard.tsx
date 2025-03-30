@@ -1,18 +1,33 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import DashboardHeader from '@/components/Admin/Dashboard/DashboardHeader';
 import StatCards from '@/components/Admin/Dashboard/StatCards';
 import DetailCards from '@/components/Admin/Dashboard/DetailCards';
 import { useDashboardStats } from '@/components/Admin/Dashboard/useDashboardStats';
+import { toast } from 'sonner';
 
 const AdminDashboard: React.FC = () => {
   const { data, isLoading, error, refetch } = useDashboardStats();
   
+  // Force refetch on initial load
+  useEffect(() => {
+    console.log('Admin Dashboard mounted, fetching data...');
+    refetch();
+  }, [refetch]);
+  
   const handleRefresh = () => {
     console.log('Manual dashboard refresh triggered');
     refetch();
+    toast.info('Refreshing dashboard data...');
   };
+  
+  // Log dashboard data when it changes
+  useEffect(() => {
+    if (data) {
+      console.log('Dashboard data updated:', data);
+    }
+  }, [data]);
   
   return (
     <AdminLayout title="Admin Dashboard">
@@ -38,6 +53,13 @@ const AdminDashboard: React.FC = () => {
         isLoading={isLoading}
         refetch={refetch}
       />
+      
+      {error && (
+        <div className="mt-6 p-4 bg-red-50 text-red-800 rounded-md">
+          <h3 className="font-bold">Error loading dashboard data</h3>
+          <p>{(error as Error).message}</p>
+        </div>
+      )}
     </AdminLayout>
   );
 };

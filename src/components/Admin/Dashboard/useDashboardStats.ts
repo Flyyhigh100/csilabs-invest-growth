@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 
 interface DashboardStats {
   kycCounts: {
@@ -29,7 +30,7 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
       throw kycError;
     }
     
-    console.log('KYC data fetched for dashboard:', kycData);
+    console.log('KYC data raw response:', kycData);
     
     // Process KYC counts manually since groupBy is not available
     const kycCounts = {
@@ -40,15 +41,17 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
       needs_clarification: 0
     };
     
-    if (kycData) {
+    if (kycData && kycData.length > 0) {
       kycData.forEach(item => {
         if (item.status in kycCounts) {
           kycCounts[item.status as keyof typeof kycCounts]++;
         }
       });
+      
+      console.log('Processed KYC counts:', kycCounts);
+    } else {
+      console.log('No KYC data found or empty array returned');
     }
-    
-    console.log('KYC counts for dashboard:', kycCounts);
     
     // Fetch counts for pending token transfers
     const { count: pendingTokensCount, error: pendingError } = await supabase
@@ -77,6 +80,34 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
     const totalValue = transactionData
       ? transactionData.reduce((sum, tx) => sum + Number(tx.amount), 0)
       : 0;
+    
+    // For debugging, log direct database query with counts
+    const { data: kycDebug, error: kycDebugError } = await supabase
+      .from('kyc_verifications')
+      .select('status', { count: 'exact' });
+      
+    if (kycDebugError) {
+      console.error('Error in direct KYC debug query:', kycDebugError);
+    } else {
+      console.log(`Direct KYC debug query found ${kycDebug?.length || 0} records`);
+      
+      // Count by status for debugging
+      const debugCounts = {
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        not_started: 0,
+        needs_clarification: 0
+      };
+      
+      kycDebug?.forEach(item => {
+        if (item.status in debugCounts) {
+          debugCounts[item.status as keyof typeof debugCounts]++;
+        }
+      });
+      
+      console.log('Debug KYC counts by status:', debugCounts);
+    }
     
     return {
       kycCounts,
@@ -117,10 +148,18 @@ export const useDashboardStats = () => {
         },
         (payload) => {
           console.log('Realtime update received for kyc_verifications:', payload);
+          toast.info('KYC verification updated');
           refetch();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status for dashboard:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to realtime updates for admin dashboard');
+        } else {
+          console.log('❌ Failed to subscribe to realtime updates for admin dashboard');
+        }
+      });
     
     return () => {
       // Clean up subscription when component unmounts
