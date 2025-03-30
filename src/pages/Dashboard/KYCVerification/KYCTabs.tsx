@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useKycVerification } from '@/hooks/useKycVerification';
+import { useKycVerification } from '@/hooks/kyc/useKycVerification';
 import { toast } from 'sonner';
 import { PersonalInfoValues } from '@/components/KYC/schema/personalInfoSchema';
 import { getInitialActiveTab } from './TabHandlers';

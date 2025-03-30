@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { useKycVerification } from '@/hooks/useKycVerification';
+import { useKycVerification } from '@/hooks/kyc/useKycVerification';
 import KYCTabs from './KYCTabs';
 
 const KYCVerificationPage = () => {

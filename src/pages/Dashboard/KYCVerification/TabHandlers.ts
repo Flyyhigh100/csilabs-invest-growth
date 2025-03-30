@@ -1,5 +1,5 @@
 
-import { KycVerificationData } from '@/hooks/useKycVerification';
+import { KycVerificationData } from '@/hooks/kyc/types';
 
 // Helper function to determine the initial active tab based on KYC status
 export const getInitialActiveTab = (kycData: KycVerificationData | null): string => {
