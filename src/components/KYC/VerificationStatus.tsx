@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CheckCircle, Clock, Upload } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Upload, AlertCircle } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 
 type KycStatus = Database['public']['Enums']['kyc_status'];
@@ -10,13 +10,17 @@ type KycStatus = Database['public']['Enums']['kyc_status'];
 interface VerificationStatusProps {
   status: KycStatus;
   rejectionReason?: string | null;
+  clarificationMessage?: string | null;
   onStartVerification: () => void;
+  onProvideMoreInfo?: () => void;
 }
 
 const VerificationStatus: React.FC<VerificationStatusProps> = ({
   status,
   rejectionReason,
+  clarificationMessage,
   onStartVerification,
+  onProvideMoreInfo,
 }) => {
   console.log("Rendering VerificationStatus component with status:", status);
   
@@ -68,6 +72,27 @@ const VerificationStatus: React.FC<VerificationStatusProps> = ({
             Resubmit Verification
           </Button>
         </>
+      )}
+      
+      {clarificationMessage && (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6 max-w-md mx-auto text-left">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-blue-800">Additional Information Requested</h4>
+              <p className="text-blue-700 text-sm mt-1">{clarificationMessage}</p>
+            </div>
+          </div>
+          {onProvideMoreInfo && (
+            <Button 
+              onClick={onProvideMoreInfo}
+              variant="outline" 
+              className="mt-2 text-blue-600 border-blue-300 hover:bg-blue-50"
+            >
+              Provide Additional Information
+            </Button>
+          )}
+        </div>
       )}
       
       {(status === 'not_started' || !status) && (

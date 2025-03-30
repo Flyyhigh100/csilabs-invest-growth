@@ -104,6 +104,26 @@ serve(async (req) => {
         result = { kyc: kycData };
         break;
 
+      case "requestKycClarification":
+        const { kycId: clarifyKycId, message } = data;
+        
+        const { data: clarifyData, error: clarifyError } = await supabase
+          .from("kyc_verifications")
+          .update({
+            clarification_message: message,
+            reviewed_at: new Date().toISOString(),
+          })
+          .eq("id", clarifyKycId)
+          .select()
+          .single();
+        
+        if (clarifyError) {
+          throw clarifyError;
+        }
+        
+        result = { kyc: clarifyData };
+        break;
+
       case "markTokensSent":
         const { transactionId } = data;
         

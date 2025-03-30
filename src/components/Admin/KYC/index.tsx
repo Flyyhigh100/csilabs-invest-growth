@@ -13,7 +13,7 @@ import { fetchKycVerifications } from './KycVerificationsService';
 import { KycVerificationWithProfile } from './types';
 import KycVerificationsTabs from './KycVerificationsTabs';
 import KycDetailModal from './KycDetailModal';
-import { processKycVerification } from '@/utils/adminUtils';
+import { processKycVerification, requestKycClarification } from '@/utils/adminUtils';
 
 // Main component for KYC verifications
 const KycVerifications = () => {
@@ -22,6 +22,7 @@ const KycVerifications = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('pending');
   const [rejectionReason, setRejectionReason] = useState('');
+  const [clarificationMessage, setClarificationMessage] = useState('');
   
   // Fetch KYC verifications
   const { 
@@ -59,9 +60,33 @@ const KycVerifications = () => {
     },
   });
   
+  // Request clarification from user
+  const clarificationMutation = useMutation({
+    mutationFn: ({ 
+      kycId, 
+      message 
+    }: { 
+      kycId: string; 
+      message: string;
+    }) => {
+      return requestKycClarification(kycId, message);
+    },
+    onSuccess: () => {
+      setIsViewModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+      toast.success(`Clarification request sent successfully`);
+    },
+    onError: (error) => {
+      console.error('Error sending clarification request:', error);
+      toast.error('Failed to send clarification request');
+    },
+  });
+  
   // Handle view verification details
   const handleViewDetails = (kyc: KycVerificationWithProfile) => {
     setSelectedKyc(kyc);
+    setRejectionReason('');
+    setClarificationMessage('');
     setIsViewModalOpen(true);
   };
   
@@ -89,13 +114,27 @@ const KycVerifications = () => {
     });
   };
   
+  // Handle request clarification
+  const handleRequestClarification = () => {
+    if (!selectedKyc || !clarificationMessage.trim()) {
+      toast.error('Please provide clarification details');
+      return;
+    }
+    
+    clarificationMutation.mutate({
+      kycId: selectedKyc.id,
+      message: clarificationMessage.trim()
+    });
+  };
+  
   useEffect(() => {
     // Force refetch when component mounts to ensure fresh data
     refetch();
     
-    // Clear rejection reason when modal is closed
+    // Clear messages when modal is closed
     if (!isViewModalOpen) {
       setRejectionReason('');
+      setClarificationMessage('');
     }
   }, [isViewModalOpen, refetch]);
   
@@ -134,7 +173,7 @@ const KycVerifications = () => {
         <CardHeader>
           <CardTitle>KYC Verification Requests</CardTitle>
           <CardDescription>
-            Review and approve or reject KYC verification requests
+            Review and process KYC verification requests
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -154,9 +193,12 @@ const KycVerifications = () => {
         selectedKyc={selectedKyc}
         rejectionReason={rejectionReason}
         setRejectionReason={setRejectionReason}
+        clarificationMessage={clarificationMessage}
+        setClarificationMessage={setClarificationMessage}
         onApprove={handleApprove}
         onReject={handleReject}
-        isPending={processMutation.isPending}
+        onRequestClarification={handleRequestClarification}
+        isPending={processMutation.isPending || clarificationMutation.isPending}
       />
     </div>
   );

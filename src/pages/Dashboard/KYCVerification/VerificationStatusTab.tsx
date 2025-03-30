@@ -7,18 +7,22 @@ import { KycVerificationData } from '@/hooks/kyc/types';
 interface VerificationStatusTabProps {
   kycData: KycVerificationData | null;
   onStartVerification: () => void;
+  onProvideMoreInfo?: () => void;
 }
 
 const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({
   kycData,
-  onStartVerification
+  onStartVerification,
+  onProvideMoreInfo
 }) => {
   return (
     <TabsContent value="verification-status" className="py-4">
       <VerificationStatus 
         status={kycData?.status || 'not_started'}
         rejectionReason={kycData?.rejection_reason}
+        clarificationMessage={kycData?.clarification_message}
         onStartVerification={onStartVerification}
+        onProvideMoreInfo={onProvideMoreInfo}
       />
     </TabsContent>
   );

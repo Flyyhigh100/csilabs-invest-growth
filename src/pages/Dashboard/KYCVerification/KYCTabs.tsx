@@ -116,6 +116,16 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
     }
   }, [kycData, submitVerification, refetch]);
 
+  const handleProvideMoreInfo = () => {
+    // Reset clarification message when user decides to provide more info
+    if (kycData && kycData.clarification_message) {
+      // This will be implemented in a future update
+      // For now, just take them back to personal info
+      toast.info("Please update your information and resubmit your verification");
+      setActiveTab("personal-info");
+    }
+  };
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
       <TabsList className="grid w-full grid-cols-3">
@@ -156,6 +166,7 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
       <VerificationStatusTab 
         kycData={kycData}
         onStartVerification={() => setActiveTab("personal-info")}
+        onProvideMoreInfo={handleProvideMoreInfo}
       />
     </Tabs>
   );
