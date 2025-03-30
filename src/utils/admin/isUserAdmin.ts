@@ -52,6 +52,35 @@ export const isUserAdmin = async (): Promise<boolean> => {
       return true;
     }
     
+    // Use the new database function to check admin status
+    const { data, error } = await supabase.rpc('is_admin');
+    
+    if (error) {
+      console.error('Error checking admin status with is_admin() function:', error);
+      
+      // Fall back to the original method if the RPC call fails
+      return fallbackAdminCheck(userId, userEmail);
+    }
+    
+    console.log(`Admin check using is_admin() function returned: ${data}`);
+    
+    if (data === true) {
+      return true;
+    }
+    
+    // If the function returns false, try the fallback method as well
+    // This ensures smooth transition if some admin entries aren't properly set up
+    return await fallbackAdminCheck(userId, userEmail);
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    toast.error('Failed to verify admin status');
+    return false;
+  }
+};
+
+// Fallback method that checks the admins table directly
+const fallbackAdminCheck = async (userId: string, userEmail?: string): Promise<boolean> => {
+  try {
     // Check if user is in admins table (by ID first, then by email)
     const { data: adminById, error: idError } = await supabase
       .from('admins')
@@ -85,12 +114,10 @@ export const isUserAdmin = async (): Promise<boolean> => {
       }
     }
     
-    // Add a function to add current user to admins
     console.log(`User ${userId} (${userEmail}) is not an admin`);
     return false;
   } catch (error) {
-    console.error('Error checking admin status:', error);
-    toast.error('Failed to verify admin status');
+    console.error('Error in fallback admin check:', error);
     return false;
   }
 };
