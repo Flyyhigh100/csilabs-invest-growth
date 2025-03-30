@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client'; // Added this import
 
 import { useKycContext } from './KycContext';
 import { useKycActionHandlers } from './KycActionHandlers';
