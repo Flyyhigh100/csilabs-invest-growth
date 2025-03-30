@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { KycVerificationWithProfile } from './types';
 import { toast } from 'sonner';
@@ -7,6 +8,13 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
   console.log('Fetching KYC verifications from database with updated RLS policies');
   
   try {
+    // Verify admin access first
+    const isAdmin = await verifyAdminAccess();
+    if (!isAdmin) {
+      console.error('User is not an admin. Cannot fetch all KYC verifications');
+      throw new Error('Admin access required to fetch all KYC verifications');
+    }
+    
     // Use a simple, direct query now that RLS policies have been fixed
     const { data: kycData, error: kycError } = await supabase
       .from('kyc_verifications')
@@ -21,7 +29,7 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
     
     console.log(`KYC data fetched with updated RLS: ${kycData?.length || 0} records`);
     if (kycData?.length === 0) {
-      console.warn('WARNING: No KYC verifications found even with updated RLS!');
+      console.warn('WARNING: No KYC verifications found with updated RLS!');
       
       // Double-check database access
       const { count, error: countError } = await supabase
@@ -34,7 +42,7 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
         console.log('KYC table count check with updated RLS:', count);
       }
     } else {
-      console.log('First few KYC records with new RLS:', kycData?.slice(0, 3));
+      console.log('First few KYC records with updated RLS:', kycData?.slice(0, 3));
       
       // Log counts by status 
       const statusCounts = kycData.reduce((counts, item) => {
@@ -46,18 +54,18 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
     }
     
     if (!kycData || kycData.length === 0) {
-      console.log('No KYC verifications found after RLS update');
+      console.log('No KYC verifications found with updated RLS');
       return [];
     }
     
     // Enhanced logging for user_ids to verify we're getting the right data
-    console.log('User IDs in KYC records after RLS update:', kycData.map(kyc => kyc.user_id));
+    console.log('User IDs in KYC records with updated RLS:', kycData.map(kyc => kyc.user_id));
     
     // Fetch profile data for each KYC verification
     const enhancedKycData: KycVerificationWithProfile[] = await Promise.all(
       (kycData || []).map(async (kyc) => {
         // Log each KYC record we're processing
-        console.log(`Processing KYC record for user_id: ${kyc.user_id} after RLS update`, kyc);
+        console.log(`Processing KYC record for user_id: ${kyc.user_id} with updated RLS`, kyc);
         
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
@@ -77,14 +85,14 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
       })
     );
     
-    console.log('KYC verifications fetched with profiles after RLS update:', enhancedKycData.length);
+    console.log('KYC verifications fetched with profiles and updated RLS:', enhancedKycData.length);
     if (enhancedKycData.length > 0) {
-      console.log('Sample enhanced KYC data after RLS update:', enhancedKycData.slice(0, 3));
+      console.log('Sample enhanced KYC data with updated RLS:', enhancedKycData.slice(0, 3));
     }
     
     return enhancedKycData;
   } catch (error) {
-    console.error('Exception in fetchKycVerifications after RLS update:', error);
+    console.error('Exception in fetchKycVerifications with updated RLS:', error);
     toast.error('Error fetching KYC verifications. Please check console for details.');
     throw error;
   }
@@ -93,7 +101,14 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
 // Function for testing direct database access without joins
 export const testDirectKycAccess = async (): Promise<{count: number, pendingCount: number, statusCounts: Record<string, number>, records: any[]}> => {
   try {
-    console.log('Testing direct KYC database access...');
+    console.log('Testing direct KYC database access with updated RLS...');
+    
+    // Verify admin access first
+    const isAdmin = await verifyAdminAccess();
+    if (!isAdmin) {
+      console.error('User is not an admin. Cannot perform direct KYC database access test');
+      throw new Error('Admin access required for direct database test');
+    }
     
     // Get all KYC records with a more direct approach 
     const { data, error } = await supabase
@@ -102,7 +117,7 @@ export const testDirectKycAccess = async (): Promise<{count: number, pendingCoun
       .order('created_at', { ascending: false });
     
     if (error) {
-      console.error('Direct KYC access test error:', error);
+      console.error('Direct KYC access test error with updated RLS:', error);
       toast.error('Failed to directly access KYC records');
       throw error;
     }
@@ -115,9 +130,9 @@ export const testDirectKycAccess = async (): Promise<{count: number, pendingCoun
       return counts;
     }, {} as Record<string, number>);
     
-    console.log(`Direct KYC access test results: ${data?.length || 0} total records, ${pendingCount} pending`);
-    console.log('Status counts:', statusCounts);
-    console.log('All KYC records (raw):', data);
+    console.log(`Direct KYC access test results with updated RLS: ${data?.length || 0} total records, ${pendingCount} pending`);
+    console.log('Status counts with updated RLS:', statusCounts);
+    console.log('All KYC records (raw) with updated RLS:', data);
     
     // Return the actual records for better debugging
     return {
@@ -127,7 +142,7 @@ export const testDirectKycAccess = async (): Promise<{count: number, pendingCoun
       records: data || []
     };
   } catch (error) {
-    console.error('Exception in testDirectKycAccess:', error);
+    console.error('Exception in testDirectKycAccess with updated RLS:', error);
     throw error;
   }
 };
@@ -236,7 +251,14 @@ export const createTestKycRecord = async (): Promise<boolean> => {
 // Function to list all users and their KYC status - useful for debugging
 export const listAllUsersWithKycStatus = async (): Promise<any[]> => {
   try {
-    console.log('Listing all users with KYC status...');
+    console.log('Listing all users with KYC status with updated RLS...');
+    
+    // Verify admin access first
+    const isAdmin = await verifyAdminAccess();
+    if (!isAdmin) {
+      console.error('User is not an admin. Cannot list all users with KYC status');
+      throw new Error('Admin access required to list all users with KYC status');
+    }
     
     // First get all profiles
     const { data: profiles, error: profilesError } = await supabase
@@ -245,11 +267,11 @@ export const listAllUsersWithKycStatus = async (): Promise<any[]> => {
       .order('created_at', { ascending: false });
     
     if (profilesError) {
-      console.error('Error fetching profiles:', profilesError);
+      console.error('Error fetching profiles with updated RLS:', profilesError);
       throw profilesError;
     }
     
-    console.log(`Found ${profiles?.length || 0} user profiles`);
+    console.log(`Found ${profiles?.length || 0} user profiles with updated RLS`);
     
     // Get all KYC records
     const { data: kycRecords, error: kycError } = await supabase
@@ -257,11 +279,11 @@ export const listAllUsersWithKycStatus = async (): Promise<any[]> => {
       .select('*');
     
     if (kycError) {
-      console.error('Error fetching KYC records:', kycError);
+      console.error('Error fetching KYC records with updated RLS:', kycError);
       throw kycError;
     }
     
-    console.log(`Found ${kycRecords?.length || 0} KYC records`);
+    console.log(`Found ${kycRecords?.length || 0} KYC records with updated RLS`);
     
     // Create a map of user_id to KYC status
     const kycStatusMap = new Map();
@@ -280,12 +302,12 @@ export const listAllUsersWithKycStatus = async (): Promise<any[]> => {
       };
     });
     
-    console.log('Users with KYC status compiled:', usersWithKyc.length);
-    console.log('Sample:', usersWithKyc.slice(0, 3));
+    console.log('Users with KYC status compiled with updated RLS:', usersWithKyc.length);
+    console.log('Sample with updated RLS:', usersWithKyc.slice(0, 3));
     
     return usersWithKyc;
   } catch (error) {
-    console.error('Error in listAllUsersWithKycStatus:', error);
+    console.error('Error in listAllUsersWithKycStatus with updated RLS:', error);
     return [];
   }
 };
@@ -312,30 +334,30 @@ export const verifyAdminAccess = async (): Promise<boolean> => {
       .maybeSingle();
     
     if (adminError) {
-      console.error('Error checking admin status:', adminError);
+      console.error('Error checking admin status with updated RLS:', adminError);
       return false;
     }
     
     const isAdmin = !!adminData;
-    console.log(`User ${userId} admin status: ${isAdmin}`);
+    console.log(`User ${userId} admin status with updated RLS: ${isAdmin}`);
     
-    // Test KYC record access
+    // Test KYC record access if admin
     if (isAdmin) {
       const { count, error: countError } = await supabase
         .from('kyc_verifications')
         .select('*', { count: 'exact', head: true });
       
       if (countError) {
-        console.error('Admin cannot access KYC records:', countError);
+        console.error('Admin cannot access KYC records with updated RLS:', countError);
         return false;
       }
       
-      console.log(`Admin can access ${count} KYC records`);
+      console.log(`Admin can access ${count} KYC records with updated RLS`);
     }
     
     return isAdmin;
   } catch (error) {
-    console.error('Error verifying admin access:', error);
+    console.error('Error verifying admin access with updated RLS:', error);
     return false;
   }
 };

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useKycContext } from '../KycContext';
 import { useKycActionHandlers } from '../KycActionHandlers';
@@ -7,7 +8,7 @@ import KycDashboardHeader from './KycDashboardHeader';
 import KycDebugCard from './KycDebugCard';
 import KycVerificationsContainer from './KycVerificationsContainer';
 import { useQuery } from '@tanstack/react-query';
-import { fetchKycVerifications, testDirectKycAccess, listAllUsersWithKycStatus } from '../KycVerificationsService';
+import { fetchKycVerifications, testDirectKycAccess, listAllUsersWithKycStatus, verifyAdminAccess } from '../KycVerificationsService';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -40,6 +41,22 @@ const KycVerificationsDashboard: React.FC = () => {
   const [realtimeEnabled, setRealtimeEnabled] = useState(false);
   const [directTestResults, setDirectTestResults] = useState<string | null>(null);
   const [showAllUsers, setShowAllUsers] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  
+  // Check admin access on component mount
+  useEffect(() => {
+    const checkAdminAccess = async () => {
+      const isAdminUser = await verifyAdminAccess();
+      setIsAdmin(isAdminUser);
+      if (!isAdminUser) {
+        toast.error('You do not have admin permissions to view KYC verifications');
+      } else {
+        toast.success('Admin access verified - you can view all KYC submissions');
+      }
+    };
+    
+    checkAdminAccess();
+  }, []);
   
   // CRITICAL FIX: Implement more aggressive refetching with shorter intervals and better logging
   const { 
@@ -51,14 +68,23 @@ const KycVerificationsDashboard: React.FC = () => {
     queryKey: ['admin-kyc-verifications', manualRefreshCount],
     queryFn: async () => {
       console.log('Fetching KYC verifications with admin access - after RLS policy update');
+      
+      // First verify admin access
+      const adminAccess = await verifyAdminAccess();
+      if (!adminAccess) {
+        console.error('User does not have admin access to KYC verifications');
+        toast.error('Admin access required to view KYC verifications');
+        return [];
+      }
+      
       try {
         const results = await fetchKycVerifications();
-        console.log(`Fetched ${results.length} KYC verifications after RLS policy update`);
+        console.log(`Fetched ${results.length} KYC verifications with updated RLS policies`);
         
         if (results.length > 0) {
           console.log('First few KYC records:', results.slice(0, 3));
         } else {
-          console.warn('WARNING: Still no KYC records returned after RLS policy update');
+          console.warn('WARNING: No KYC records returned with updated RLS policies');
           
           // Force a direct test to check database access
           const directTest = await testDirectKycAccess();
@@ -76,20 +102,21 @@ const KycVerificationsDashboard: React.FC = () => {
           return counts;
         }, {} as Record<string, number>);
         
-        console.log('KYC verification status counts after RLS update:', statusCounts);
+        console.log('KYC verification status counts with updated RLS:', statusCounts);
         
         setLastFetchTime(new Date().toISOString());
         return results;
       } catch (err) {
-        console.error('Error fetching KYC verifications after RLS update:', err);
+        console.error('Error fetching KYC verifications with updated RLS:', err);
         toast.error('Failed to fetch KYC verifications. Check console for details.');
         throw err;
       }
     },
     // More aggressive refetching settings
-    refetchInterval: 3000, // Refresh every 3 seconds
+    refetchInterval: 5000, // Refresh every 5 seconds
     refetchOnWindowFocus: true,
-    staleTime: 500, // Consider data stale after 500ms
+    staleTime: 1000, // Consider data stale after 1 second
+    enabled: isAdmin === true, // Only fetch if user is confirmed admin
   });
   
   // Query to fetch all users with KYC status for debugging
@@ -99,7 +126,7 @@ const KycVerificationsDashboard: React.FC = () => {
   } = useQuery({
     queryKey: ['admin-all-users-kyc'],
     queryFn: listAllUsersWithKycStatus,
-    enabled: showAllUsers,
+    enabled: showAllUsers && isAdmin === true,
   });
   
   const handleViewDetails = (kyc: typeof selectedKyc) => {
@@ -111,8 +138,18 @@ const KycVerificationsDashboard: React.FC = () => {
   };
   
   const handleManualRefresh = async () => {
-    console.log('Manual refresh triggered after RLS policy update');
+    console.log('Manual refresh triggered with updated RLS policies');
     setManualRefreshCount(prev => prev + 1);
+    
+    // Check admin access first
+    const adminAccess = await verifyAdminAccess();
+    if (!adminAccess) {
+      toast.error('You do not have admin permissions to view KYC verifications');
+      setIsAdmin(false);
+      return;
+    }
+    
+    setIsAdmin(true);
     
     // Run a direct test to verify RLS policy changes
     try {
@@ -125,19 +162,19 @@ const KycVerificationsDashboard: React.FC = () => {
       }, null, 2));
       
       if (directTest.count > 0) {
-        toast.success(`Found ${directTest.count} KYC records with new RLS policies`);
+        toast.success(`Found ${directTest.count} KYC records with RLS policies`);
       } else {
         toast.warning('No KYC records found even with updated RLS policies');
       }
     } catch (error) {
-      console.error('Error in direct database test after RLS update:', error);
+      console.error('Error in direct database test with updated RLS:', error);
       toast.error('Error running direct database test');
     }
     
     // Standard refetch
     refetch();
     if (showAllUsers) refetchAllUsers();
-    toast.success('Refreshing KYC data with new RLS policies...');
+    toast.success('Refreshing KYC data with updated RLS policies...');
   };
   
   const toggleShowAllUsers = () => {
@@ -149,8 +186,8 @@ const KycVerificationsDashboard: React.FC = () => {
   };
   
   useEffect(() => {
-    // Force immediate data fetch when component mounts to test new RLS policies
-    console.log('KYC Verifications component mounted, fetching data with new RLS policies...');
+    // Force immediate data fetch when component mounts
+    console.log('KYC Verifications component mounted, fetching data with updated RLS policies...');
     handleManualRefresh();
     
     // Clear messages when modal is closed
@@ -160,9 +197,9 @@ const KycVerificationsDashboard: React.FC = () => {
     }
     
     // Set up realtime subscription for KYC verifications with improved error handling
-    console.log('Setting up realtime subscription for kyc_verifications table with new RLS policies...');
+    console.log('Setting up realtime subscription for kyc_verifications table with updated RLS policies...');
     const channel = supabase
-      .channel('kyc-verification-updates-with-new-rls')
+      .channel('kyc-verification-updates-with-updated-rls')
       .on(
         'postgres_changes',
         {
@@ -171,7 +208,7 @@ const KycVerificationsDashboard: React.FC = () => {
           table: 'kyc_verifications'
         },
         (payload) => {
-          console.log('Realtime update received for kyc_verifications with new RLS:', payload);
+          console.log('Realtime update received for kyc_verifications with updated RLS:', payload);
           setRealtimeEnabled(true);
           
           // Always refetch when we get an update
@@ -187,11 +224,11 @@ const KycVerificationsDashboard: React.FC = () => {
         }
       )
       .subscribe((status) => {
-        console.log('Realtime subscription status with new RLS:', status);
+        console.log('Realtime subscription status with updated RLS:', status);
         
         if (status === 'SUBSCRIBED') {
           setRealtimeEnabled(true);
-          console.log('✅ Successfully subscribed to realtime updates with new RLS policies');
+          console.log('✅ Successfully subscribed to realtime updates with updated RLS policies');
           toast.success('Realtime updates enabled for KYC verifications');
         } else if (status === 'CHANNEL_ERROR') {
           setRealtimeEnabled(false);
@@ -206,6 +243,21 @@ const KycVerificationsDashboard: React.FC = () => {
       supabase.removeChannel(channel);
     };
   }, [isViewModalOpen, refetch, refetchAllUsers]);
+  
+  if (isAdmin === false) {
+    return (
+      <div className="p-8 bg-red-50 border border-red-200 rounded-md text-center">
+        <h2 className="text-xl font-bold text-red-800 mb-4">Admin Access Required</h2>
+        <p className="mb-4">You do not have admin permissions to view KYC verifications.</p>
+        <button 
+          onClick={handleManualRefresh}
+          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+        >
+          Retry Access Check
+        </button>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
