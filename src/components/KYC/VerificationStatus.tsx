@@ -3,12 +3,9 @@ import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, CheckCircle, Clock, Upload, AlertCircle } from 'lucide-react';
-import { Database } from '@/integrations/supabase/types';
-
-type KycStatus = Database['public']['Enums']['kyc_status'];
 
 interface VerificationStatusProps {
-  status: KycStatus;
+  status: string; // Changed to string to handle all status types
   rejectionReason?: string | null;
   clarificationMessage?: string | null;
   onStartVerification: () => void;
@@ -71,6 +68,18 @@ const VerificationStatus: React.FC<VerificationStatusProps> = ({
           >
             Resubmit Verification
           </Button>
+        </>
+      )}
+      
+      {status === 'needs_clarification' && (
+        <>
+          <div className="bg-blue-50 rounded-full p-4 w-20 h-20 mx-auto flex items-center justify-center mb-4">
+            <AlertCircle className="h-10 w-10 text-blue-500" />
+          </div>
+          <h3 className="text-xl font-medium mb-2">Additional Information Needed</h3>
+          <p className="text-gray-600 max-w-md mx-auto mb-6">
+            We need some clarification on your submitted documents.
+          </p>
         </>
       )}
       

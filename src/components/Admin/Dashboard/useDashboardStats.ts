@@ -43,8 +43,10 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
     
     if (kycData && kycData.length > 0) {
       kycData.forEach(item => {
-        if (item.status in kycCounts) {
-          kycCounts[item.status as keyof typeof kycCounts]++;
+        // Use type assertion to make TypeScript happy
+        const status = item.status as string;
+        if (status in kycCounts) {
+          kycCounts[status as keyof typeof kycCounts]++;
         }
       });
       

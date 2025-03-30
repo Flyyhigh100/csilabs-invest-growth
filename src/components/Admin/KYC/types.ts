@@ -2,7 +2,7 @@
 import { KycVerificationData } from '@/hooks/kyc';
 import { Database } from '@/integrations/supabase/types';
 
-export type KycStatus = Database['public']['Enums']['kyc_status'];
+export type KycStatus = string; // Use string to handle all possible statuses including 'needs_clarification'
 
 // Enhanced KYC type that includes profile data
 export interface KycVerificationWithProfile extends KycVerificationData {

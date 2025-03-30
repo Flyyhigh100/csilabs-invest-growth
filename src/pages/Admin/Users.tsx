@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import { 
@@ -25,7 +24,7 @@ interface User {
   last_name: string | null;
   wallet_address: string | null;
   email?: string;
-  kyc_status?: KycStatus;
+  kyc_status?: string;
   created_at: string;
 }
 
@@ -35,7 +34,6 @@ const AdminUsersPage: React.FC = () => {
   const [error, setError] = useState<Error | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Function to fetch users with their KYC status
   const fetchUsers = async () => {
     setIsLoading(true);
     setError(null);
@@ -43,7 +41,6 @@ const AdminUsersPage: React.FC = () => {
     try {
       console.log('Fetching users for admin dashboard...');
       
-      // First, get all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
@@ -56,7 +53,6 @@ const AdminUsersPage: React.FC = () => {
       
       console.log(`Fetched ${profiles?.length || 0} user profiles`);
       
-      // Get all KYC verifications in a single query
       const { data: kycData, error: kycError } = await supabase
         .from('kyc_verifications')
         .select('user_id, status');
@@ -68,19 +64,15 @@ const AdminUsersPage: React.FC = () => {
       
       console.log(`Fetched ${kycData?.length || 0} KYC records`);
       
-      // Create a map of user_id to kyc_status for quick lookup
       const kycStatusMap = (kycData || []).reduce((map, kyc) => {
         map[kyc.user_id] = kyc.status;
         return map;
       }, {} as Record<string, KycStatus>);
       
-      // Batch fetch user emails from auth in chunks to avoid too many queries
       const userIds = (profiles || []).map(profile => profile.id);
       
-      // Enhanced user data with KYC status
       const enhancedUsers = await Promise.all(
         (profiles || []).map(async (profile) => {
-          // Get email from auth
           const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
           
           if (userError) {
@@ -97,7 +89,6 @@ const AdminUsersPage: React.FC = () => {
       
       console.log('Enhanced users data ready:', enhancedUsers.length);
       
-      // Log a few examples for debugging
       if (enhancedUsers.length > 0) {
         console.log('Sample user data:', enhancedUsers[0]);
       }
@@ -116,7 +107,6 @@ const AdminUsersPage: React.FC = () => {
   useEffect(() => {
     fetchUsers();
     
-    // Set up realtime subscription for KYC changes
     const channel = supabase
       .channel('admin-users-kyc-updates')
       .on(
@@ -129,7 +119,7 @@ const AdminUsersPage: React.FC = () => {
         (payload) => {
           console.log('KYC verification changed:', payload);
           toast.info('KYC verification updated');
-          fetchUsers(); // Refresh the data
+          fetchUsers();
         }
       )
       .subscribe((status) => {
@@ -153,7 +143,7 @@ const AdminUsersPage: React.FC = () => {
     );
   });
   
-  const renderKycStatusBadge = (status?: KycStatus) => {
+  const renderKycStatusBadge = (status?: string) => {
     if (!status) return null;
     
     switch (status) {
@@ -170,12 +160,10 @@ const AdminUsersPage: React.FC = () => {
     }
   };
   
-  // Function to manually test database connection
   const testDatabaseConnection = async () => {
     try {
       toast.info('Testing database connection...');
       
-      // Test direct query to profiles
       const { data: profilesTest, error: profilesError } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true });
@@ -186,7 +174,6 @@ const AdminUsersPage: React.FC = () => {
         return;
       }
       
-      // Test direct query to kyc_verifications
       const { data: kycTest, error: kycError } = await supabase
         .from('kyc_verifications')
         .select('*', { count: 'exact' });
@@ -208,7 +195,6 @@ const AdminUsersPage: React.FC = () => {
       
       toast.success(`Database connection successful. Found ${kycTest?.length || 0} KYC records`);
       
-      // Force refresh
       fetchUsers();
     } catch (err) {
       console.error('Database test error:', err);
