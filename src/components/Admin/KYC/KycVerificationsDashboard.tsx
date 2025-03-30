@@ -80,9 +80,9 @@ const KycVerificationsDashboard: React.FC = () => {
         throw err;
       }
     },
-    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchInterval: 5000, // Refresh every 5 seconds - more frequent updates
     refetchOnWindowFocus: true,
-    staleTime: 5000, // Consider data stale after 5 seconds
+    staleTime: 1000, // Consider data stale after 1 second - more aggressive refresh
   });
   
   // Handle view verification details
@@ -155,7 +155,7 @@ const KycVerificationsDashboard: React.FC = () => {
       setClarificationMessage('');
     }
     
-    // Set up realtime subscription for KYC verifications
+    // Set up realtime subscription for KYC verifications with increased logs
     console.log('Setting up realtime subscription for kyc_verifications table...');
     const channel = supabase
       .channel('kyc-verification-updates')
@@ -245,7 +245,11 @@ const KycVerificationsDashboard: React.FC = () => {
           </Button>
           <Button 
             variant="outline" 
-            onClick={handleManualRefresh} 
+            onClick={() => { 
+              setManualRefreshCount(prev => prev + 1); 
+              refetch();
+              toast.success('Refreshing KYC data...'); 
+            }} 
             className="flex items-center gap-2"
           >
             <RefreshCw className="h-4 w-4" />
@@ -274,22 +278,43 @@ const KycVerificationsDashboard: React.FC = () => {
         </CardContent>
       </Card>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>KYC Verification Requests</CardTitle>
-          <CardDescription>
-            Review and process KYC verification requests
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <KycVerificationsTabs
-            kycVerifications={kycVerifications}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            onViewDetails={handleViewDetails}
-          />
-        </CardContent>
-      </Card>
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cbis-blue"></div>
+        </div>
+      ) : error ? (
+        <div className="p-4 bg-red-50 text-red-800 rounded-md">
+          <h3 className="font-bold">Error loading KYC verifications</h3>
+          <p>{(error as Error).message}</p>
+          <Button onClick={() => refetch()} className="mt-4">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Retry
+          </Button>
+        </div>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>KYC Verification Requests</CardTitle>
+            <CardDescription>
+              Review and process KYC verification requests
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <KycVerificationsTabs
+              kycVerifications={kycVerifications}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              onViewDetails={(kyc) => {
+                console.log('Viewing KYC details:', kyc);
+                setSelectedKyc(kyc);
+                setRejectionReason('');
+                setClarificationMessage('');
+                setIsViewModalOpen(true);
+              }}
+            />
+          </CardContent>
+        </Card>
+      )}
       
       {/* View/Process KYC Verification Modal */}
       <KycDetailModal

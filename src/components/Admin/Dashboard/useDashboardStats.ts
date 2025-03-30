@@ -20,10 +20,10 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
   console.log('Fetching dashboard stats...');
   
   try {
-    // Fetch counts for KYC verifications by status
+    // Fetch counts for KYC verifications by status - explicitly list all tables for wider query
     const { data: kycData, error: kycError } = await supabase
       .from('kyc_verifications')
-      .select('status');
+      .select('*');
     
     if (kycError) {
       console.error('Error fetching KYC stats:', kycError);
@@ -31,6 +31,7 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
     }
     
     console.log('KYC data raw response:', kycData);
+    console.log('KYC data count:', kycData?.length || 0);
     
     // Process KYC counts manually since groupBy is not available
     const kycCounts = {
@@ -47,6 +48,8 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
         const status = item.status as string;
         if (status in kycCounts) {
           kycCounts[status as keyof typeof kycCounts]++;
+        } else {
+          console.log('Found unknown status:', status);
         }
       });
       
@@ -86,7 +89,7 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
     // For debugging, log direct database query with counts
     const { data: kycDebug, error: kycDebugError } = await supabase
       .from('kyc_verifications')
-      .select('status', { count: 'exact' });
+      .select('*');
       
     if (kycDebugError) {
       console.error('Error in direct KYC debug query:', kycDebugError);
@@ -109,6 +112,7 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
       });
       
       console.log('Debug KYC counts by status:', debugCounts);
+      console.log('All KYC records:', kycDebug);
     }
     
     return {
@@ -131,7 +135,8 @@ export const useDashboardStats = () => {
   } = useQuery({
     queryKey: ['admin-dashboard-stats'],
     queryFn: fetchDashboardStats,
-    refetchInterval: 15000, // Refresh data every 15 seconds (reduced from 30s)
+    refetchInterval: 5000, // Refresh more frequently (5 seconds)
+    staleTime: 1000, // Consider data stale after just 1 second
   });
   
   useEffect(() => {

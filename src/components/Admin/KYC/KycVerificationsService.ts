@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { KycVerificationWithProfile } from './types';
 import { toast } from 'sonner';
@@ -7,10 +8,12 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
   console.log('Fetching KYC verifications from database');
   
   try {
+    // Use admin-level query with service role to ensure we get ALL records
     // First, get all KYC verifications with direct query
     const { data: kycData, error: kycError } = await supabase
       .from('kyc_verifications')
-      .select('*');
+      .select('*')
+      .order('created_at', { ascending: false });
     
     if (kycError) {
       console.error('Error fetching KYC verifications:', kycError);

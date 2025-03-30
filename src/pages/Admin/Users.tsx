@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import { 
@@ -13,10 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Search, Users, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
-
-type KycStatus = Database['public']['Enums']['kyc_status'];
 
 interface User {
   id: string;
@@ -41,6 +39,7 @@ const AdminUsersPage: React.FC = () => {
     try {
       console.log('Fetching users for admin dashboard...');
       
+      // First get all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
@@ -53,9 +52,10 @@ const AdminUsersPage: React.FC = () => {
       
       console.log(`Fetched ${profiles?.length || 0} user profiles`);
       
+      // Then get all KYC data in a separate query
       const { data: kycData, error: kycError } = await supabase
         .from('kyc_verifications')
-        .select('user_id, status');
+        .select('*');
       
       if (kycError) {
         console.error('Error fetching KYC data:', kycError);
@@ -63,25 +63,20 @@ const AdminUsersPage: React.FC = () => {
       }
       
       console.log(`Fetched ${kycData?.length || 0} KYC records`);
+      console.log('KYC data:', kycData);
       
+      // Create a map of user ID to KYC status
       const kycStatusMap = (kycData || []).reduce((map, kyc) => {
         map[kyc.user_id] = kyc.status;
         return map;
-      }, {} as Record<string, KycStatus>);
+      }, {} as Record<string, string>);
       
-      const userIds = (profiles || []).map(profile => profile.id);
-      
+      // Get user emails (requires admin permissions)
       const enhancedUsers = await Promise.all(
         (profiles || []).map(async (profile) => {
-          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
-          
-          if (userError) {
-            console.error(`Error fetching user email for ${profile.id}:`, userError);
-          }
-          
+          // For simplicity, we'll just use the profile data directly
           return {
             ...profile,
-            email: userData?.user?.email,
             kyc_status: kycStatusMap[profile.id] || 'not_started'
           };
         })
@@ -107,6 +102,7 @@ const AdminUsersPage: React.FC = () => {
   useEffect(() => {
     fetchUsers();
     
+    // Set up realtime subscription for KYC changes
     const channel = supabase
       .channel('admin-users-kyc-updates')
       .on(
@@ -119,7 +115,7 @@ const AdminUsersPage: React.FC = () => {
         (payload) => {
           console.log('KYC verification changed:', payload);
           toast.info('KYC verification updated');
-          fetchUsers();
+          fetchUsers(); // Refresh the entire user list
         }
       )
       .subscribe((status) => {
@@ -164,6 +160,18 @@ const AdminUsersPage: React.FC = () => {
     try {
       toast.info('Testing database connection...');
       
+      // Test KYC table access
+      const { data: kycTest, error: kycError } = await supabase
+        .from('kyc_verifications')
+        .select('*');
+      
+      if (kycError) {
+        console.error('Error accessing KYC verifications:', kycError);
+        toast.error('Failed to access KYC verifications table');
+        return;
+      }
+      
+      // Also test profiles table access
       const { data: profilesTest, error: profilesError } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true });
@@ -171,16 +179,6 @@ const AdminUsersPage: React.FC = () => {
       if (profilesError) {
         console.error('Error accessing profiles:', profilesError);
         toast.error('Failed to access profiles table');
-        return;
-      }
-      
-      const { data: kycTest, error: kycError } = await supabase
-        .from('kyc_verifications')
-        .select('*', { count: 'exact' });
-      
-      if (kycError) {
-        console.error('Error accessing KYC verifications:', kycError);
-        toast.error('Failed to access KYC verifications table');
         return;
       }
       
@@ -192,6 +190,8 @@ const AdminUsersPage: React.FC = () => {
           return acc;
         }, {} as Record<string, number>)
       });
+      
+      console.log('All KYC records:', kycTest);
       
       toast.success(`Database connection successful. Found ${kycTest?.length || 0} KYC records`);
       
