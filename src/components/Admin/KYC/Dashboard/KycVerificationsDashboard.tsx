@@ -41,7 +41,7 @@ const KycVerificationsDashboard: React.FC = () => {
   const [directTestResults, setDirectTestResults] = useState<string | null>(null);
   const [showAllUsers, setShowAllUsers] = useState(false);
   
-  // CRITICAL FIX: Implement more aggressive refetching with shorter intervals
+  // CRITICAL FIX: Implement more aggressive refetching with shorter intervals and better logging
   const { 
     data: kycVerifications = [], 
     isLoading, 
@@ -50,22 +50,23 @@ const KycVerificationsDashboard: React.FC = () => {
   } = useQuery({
     queryKey: ['admin-kyc-verifications', manualRefreshCount],
     queryFn: async () => {
-      console.log('Fetching KYC verifications in dashboard component...');
+      console.log('Fetching KYC verifications with admin access - after RLS policy update');
       try {
-        // Log the raw data
         const results = await fetchKycVerifications();
-        console.log(`Fetched ${results.length} KYC verifications in dashboard component`);
+        console.log(`Fetched ${results.length} KYC verifications after RLS policy update`);
         
-        // Log the first few records for debugging
         if (results.length > 0) {
           console.log('First few KYC records:', results.slice(0, 3));
         } else {
-          console.warn('WARNING: No KYC records returned from fetchKycVerifications');
-          // Run a direct test to check if we can access the data
+          console.warn('WARNING: Still no KYC records returned after RLS policy update');
+          
+          // Force a direct test to check database access
           const directTest = await testDirectKycAccess();
-          console.log('Direct test results:', directTest);
+          console.log('Direct database access test results:', directTest);
+          
           if (directTest.count > 0) {
-            console.error('CRITICAL ERROR: Direct test found records but fetchKycVerifications returned none');
+            console.error('CRITICAL ERROR: Direct test found records but main query returned none');
+            toast.error('Database access issue detected. Direct query found records but main query did not.');
           }
         }
         
@@ -75,12 +76,13 @@ const KycVerificationsDashboard: React.FC = () => {
           return counts;
         }, {} as Record<string, number>);
         
-        console.log('KYC verification status counts in dashboard:', statusCounts);
+        console.log('KYC verification status counts after RLS update:', statusCounts);
         
         setLastFetchTime(new Date().toISOString());
         return results;
       } catch (err) {
-        console.error('Error fetching KYC verifications in dashboard component:', err);
+        console.error('Error fetching KYC verifications after RLS update:', err);
+        toast.error('Failed to fetch KYC verifications. Check console for details.');
         throw err;
       }
     },
@@ -109,10 +111,10 @@ const KycVerificationsDashboard: React.FC = () => {
   };
   
   const handleManualRefresh = async () => {
-    console.log('Manual refresh triggered');
+    console.log('Manual refresh triggered after RLS policy update');
     setManualRefreshCount(prev => prev + 1);
     
-    // Also run a direct test to debug connection issues
+    // Run a direct test to verify RLS policy changes
     try {
       const directTest = await testDirectKycAccess();
       setDirectTestResults(JSON.stringify({
@@ -123,19 +125,19 @@ const KycVerificationsDashboard: React.FC = () => {
       }, null, 2));
       
       if (directTest.count > 0) {
-        toast.success(`Found ${directTest.count} KYC records in direct test`);
+        toast.success(`Found ${directTest.count} KYC records with new RLS policies`);
       } else {
-        toast.warning('No KYC records found in direct test');
+        toast.warning('No KYC records found even with updated RLS policies');
       }
     } catch (error) {
-      console.error('Error in direct test:', error);
+      console.error('Error in direct database test after RLS update:', error);
       toast.error('Error running direct database test');
     }
     
     // Standard refetch
     refetch();
     if (showAllUsers) refetchAllUsers();
-    toast.success('Refreshing KYC data...');
+    toast.success('Refreshing KYC data with new RLS policies...');
   };
   
   const toggleShowAllUsers = () => {
@@ -147,8 +149,8 @@ const KycVerificationsDashboard: React.FC = () => {
   };
   
   useEffect(() => {
-    // Force immediate data fetch on component mount
-    console.log('KYC Verifications component mounted, fetching data...');
+    // Force immediate data fetch when component mounts to test new RLS policies
+    console.log('KYC Verifications component mounted, fetching data with new RLS policies...');
     handleManualRefresh();
     
     // Clear messages when modal is closed
@@ -157,10 +159,10 @@ const KycVerificationsDashboard: React.FC = () => {
       setClarificationMessage('');
     }
     
-    // Set up realtime subscription for KYC verifications
-    console.log('Setting up realtime subscription for kyc_verifications table...');
+    // Set up realtime subscription for KYC verifications with improved error handling
+    console.log('Setting up realtime subscription for kyc_verifications table with new RLS policies...');
     const channel = supabase
-      .channel('kyc-verification-updates')
+      .channel('kyc-verification-updates-with-new-rls')
       .on(
         'postgres_changes',
         {
@@ -169,13 +171,13 @@ const KycVerificationsDashboard: React.FC = () => {
           table: 'kyc_verifications'
         },
         (payload) => {
-          console.log('Realtime update received for kyc_verifications:', payload);
+          console.log('Realtime update received for kyc_verifications with new RLS:', payload);
           setRealtimeEnabled(true);
           
-          // Always refetch when we get an update and show detailed toast
+          // Always refetch when we get an update
           refetch();
           
-          // Show informative toast notification based on the change type
+          // Show informative toast notification
           if (payload.eventType === 'INSERT') {
             toast.info('New KYC verification submitted');
           } else if (payload.eventType === 'UPDATE') {
@@ -185,11 +187,11 @@ const KycVerificationsDashboard: React.FC = () => {
         }
       )
       .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
+        console.log('Realtime subscription status with new RLS:', status);
         
         if (status === 'SUBSCRIBED') {
           setRealtimeEnabled(true);
-          console.log('✅ Successfully subscribed to realtime updates for kyc_verifications');
+          console.log('✅ Successfully subscribed to realtime updates with new RLS policies');
           toast.success('Realtime updates enabled for KYC verifications');
         } else if (status === 'CHANNEL_ERROR') {
           setRealtimeEnabled(false);
