@@ -1,30 +1,164 @@
 
 import React from 'react';
-import { TabsContent } from '@/components/ui/tabs';
-import VerificationStatus from '@/components/KYC/VerificationStatus';
-import { KycVerificationData } from '@/hooks/kyc/types';
+import { CheckCircle2, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+import { KycVerificationData } from '@/hooks/kyc';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { insertTestKycVerification } from '@/hooks/kyc/kycService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface VerificationStatusTabProps {
   kycData: KycVerificationData | null;
-  onStartVerification: () => void;
-  onProvideMoreInfo?: () => void;
+  isLoading: boolean;
+  refetch: () => void;
 }
 
-const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({
-  kycData,
-  onStartVerification,
-  onProvideMoreInfo
+const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({ 
+  kycData, 
+  isLoading,
+  refetch 
 }) => {
+  const { user } = useAuth();
+  
+  const getStatusContent = () => {
+    switch (kycData?.status) {
+      case 'approved':
+        return {
+          title: 'Verification Approved',
+          description: 'Congratulations! Your identity has been verified successfully.',
+          icon: <CheckCircle2 className="h-16 w-16 text-green-500" />,
+          color: 'bg-green-50 border-green-200',
+          showRefresh: false
+        };
+      case 'rejected':
+        return {
+          title: 'Verification Rejected',
+          description: kycData.rejection_reason 
+            ? `Your verification was rejected. Reason: ${kycData.rejection_reason}` 
+            : 'Your verification was rejected. Please resubmit with correct information.',
+          icon: <AlertCircle className="h-16 w-16 text-red-500" />,
+          color: 'bg-red-50 border-red-200',
+          showRefresh: true
+        };
+      case 'pending':
+        return {
+          title: 'Verification in Progress',
+          description: 'Your verification is currently being reviewed by our team. This usually takes 1-2 business days.',
+          icon: <Clock className="h-16 w-16 text-amber-500" />,
+          color: 'bg-amber-50 border-amber-200',
+          showRefresh: true
+        };
+      case 'needs_clarification':
+        return {
+          title: 'Clarification Needed',
+          description: kycData.clarification_message 
+            ? `We need additional information: ${kycData.clarification_message}` 
+            : 'We need additional information to complete your verification.',
+          icon: <AlertCircle className="h-16 w-16 text-blue-500" />,
+          color: 'bg-blue-50 border-blue-200',
+          showRefresh: true
+        };
+      default:
+        return {
+          title: 'Verification Not Started',
+          description: 'Please complete the personal information and document upload steps to start the verification process.',
+          icon: <Clock className="h-16 w-16 text-gray-400" />,
+          color: 'bg-gray-50 border-gray-200',
+          showRefresh: false
+        };
+    }
+  };
+  
+  const content = getStatusContent();
+  
+  const handleRefresh = () => {
+    refetch();
+    toast.success('Refreshing verification status...');
+  };
+  
+  const handleDebugInsert = async () => {
+    if (!user) {
+      toast.error('No active user session');
+      return;
+    }
+    
+    try {
+      toast.loading('Creating test verification...');
+      await insertTestKycVerification(user.id);
+      toast.success('Test verification created successfully');
+      refetch();
+    } catch (error) {
+      console.error('Error creating test verification:', error);
+      toast.error('Failed to create test verification');
+    }
+  };
+  
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cbis-blue"></div>
+      </div>
+    );
+  }
+  
   return (
-    <TabsContent value="verification-status" className="py-4">
-      <VerificationStatus 
-        status={kycData?.status || 'not_started'}
-        rejectionReason={kycData?.rejection_reason}
-        clarificationMessage={kycData?.clarification_message}
-        onStartVerification={onStartVerification}
-        onProvideMoreInfo={onProvideMoreInfo}
-      />
-    </TabsContent>
+    <div className="w-full max-w-2xl mx-auto py-8">
+      <div className={`p-6 rounded-lg border ${content.color} flex flex-col items-center text-center`}>
+        <div className="mb-4">
+          {content.icon}
+        </div>
+        <h3 className="text-xl font-semibold mb-2">{content.title}</h3>
+        <p className="text-gray-600 mb-6">{content.description}</p>
+        
+        {kycData?.submitted_at && (
+          <div className="text-sm text-gray-500 mb-4">
+            Submitted: {new Date(kycData.submitted_at).toLocaleString()}
+          </div>
+        )}
+        
+        {content.showRefresh && (
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleRefresh} className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Refresh Status
+            </Button>
+          </div>
+        )}
+        
+        {/* Debug tools - only show in development */}
+        {process.env.NODE_ENV !== 'production' && (
+          <div className="mt-8 pt-4 border-t border-dashed border-gray-300 w-full">
+            <p className="text-xs text-gray-500 mb-2">Debug Tools</p>
+            <div className="flex gap-2 justify-center">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDebugInsert}
+                className="text-xs"
+              >
+                Create Test Verification
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRefresh}
+                className="text-xs"
+              >
+                Force Refresh
+              </Button>
+            </div>
+            <div className="mt-2 text-xs text-left bg-gray-100 p-2 rounded overflow-auto max-h-32">
+              <pre>{JSON.stringify({
+                id: kycData?.id,
+                status: kycData?.status,
+                submitted_at: kycData?.submitted_at,
+                reviewed_at: kycData?.reviewed_at
+              }, null, 2)}</pre>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

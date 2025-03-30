@@ -8,9 +8,9 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
   
   try {
     // First, get all KYC verifications
-    const { data: kycData, error: kycError } = await supabase
+    const { data: kycData, error: kycError, count } = await supabase
       .from('kyc_verifications')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('submitted_at', { ascending: false });
     
     if (kycError) {
@@ -18,8 +18,24 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
       throw kycError;
     }
     
-    console.log('Raw KYC data fetched:', kycData);
+    console.log(`Raw KYC data fetched: ${kycData?.length || 0} records (count: ${count})`);
     console.log('Pending KYC count:', kycData?.filter(item => item.status === 'pending').length || 0);
+    
+    if (kycData?.length === 0) {
+      // Debug: Check if there are any KYC records at all
+      const { count: totalCount, error: countError } = await supabase
+        .from('kyc_verifications')
+        .select('*', { count: 'exact', head: true });
+      
+      console.log(`Total KYC records in database: ${totalCount}`);
+      
+      if (countError) {
+        console.error('Error counting total KYC records:', countError);
+      }
+    } else {
+      // Log the first few records for debugging
+      console.log('First 3 KYC records:', kycData?.slice(0, 3));
+    }
     
     // Then, for each KYC verification, fetch the associated profile data
     const enhancedKycData: KycVerificationWithProfile[] = await Promise.all(
@@ -42,12 +58,41 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
       })
     );
     
-    console.log('KYC verifications fetched with profiles:', enhancedKycData.length || 0);
-    console.log('Pending KYC with profiles:', enhancedKycData.filter(item => item.status === 'pending').length || 0);
+    console.log('KYC verifications fetched with profiles:', enhancedKycData.length);
+    console.log('Pending KYC with profiles:', enhancedKycData.filter(item => item.status === 'pending').length);
     
     return enhancedKycData;
   } catch (error) {
     console.error('Exception in fetchKycVerifications:', error);
+    throw error;
+  }
+};
+
+// Function for testing direct database access without joins
+export const testDirectKycAccess = async (): Promise<{count: number, pendingCount: number}> => {
+  try {
+    console.log('Testing direct KYC database access...');
+    
+    // Get all KYC records
+    const { data, error, count } = await supabase
+      .from('kyc_verifications')
+      .select('*', { count: 'exact' });
+    
+    if (error) {
+      console.error('Direct KYC access test error:', error);
+      throw error;
+    }
+    
+    const pendingCount = data?.filter(item => item.status === 'pending').length || 0;
+    
+    console.log(`Direct KYC access test results: ${count} total records, ${pendingCount} pending`);
+    
+    return {
+      count: count || 0,
+      pendingCount
+    };
+  } catch (error) {
+    console.error('Exception in testDirectKycAccess:', error);
     throw error;
   }
 };
