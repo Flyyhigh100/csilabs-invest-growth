@@ -14,7 +14,7 @@ interface DetailCardsProps {
   pendingTokensCount: number;
   totalTransactionValue: number;
   isLoading: boolean;
-  refetch?: () => void; // Added the missing refetch prop with optional type
+  refetch: () => void; // Make refetch required
 }
 
 const DetailCards: React.FC<DetailCardsProps> = ({
@@ -22,7 +22,7 @@ const DetailCards: React.FC<DetailCardsProps> = ({
   pendingTokensCount,
   totalTransactionValue,
   isLoading,
-  refetch = () => {} // Provide a default empty function
+  refetch
 }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

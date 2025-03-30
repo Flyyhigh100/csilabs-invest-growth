@@ -21,21 +21,13 @@ export const fetchKycVerifications = async (): Promise<KycVerificationWithProfil
     console.log(`Raw KYC data fetched: ${kycData?.length || 0} records (count: ${count})`);
     console.log('Pending KYC count:', kycData?.filter(item => item.status === 'pending').length || 0);
     
-    if (kycData?.length === 0) {
-      // Debug: Check if there are any KYC records at all
-      const { count: totalCount, error: countError } = await supabase
-        .from('kyc_verifications')
-        .select('*', { count: 'exact', head: true });
-      
-      console.log(`Total KYC records in database: ${totalCount}`);
-      
-      if (countError) {
-        console.error('Error counting total KYC records:', countError);
-      }
-    } else {
-      // Log the first few records for debugging
-      console.log('First 3 KYC records:', kycData?.slice(0, 3));
+    if (!kycData || kycData.length === 0) {
+      console.log('No KYC verifications found in database');
+      return [];
     }
+    
+    // Log the first few records for debugging
+    console.log('First 3 KYC records:', kycData?.slice(0, 3));
     
     // Then, for each KYC verification, fetch the associated profile data
     const enhancedKycData: KycVerificationWithProfile[] = await Promise.all(

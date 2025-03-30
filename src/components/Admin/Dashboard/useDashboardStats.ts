@@ -98,7 +98,7 @@ export const useDashboardStats = () => {
   } = useQuery({
     queryKey: ['admin-dashboard-stats'],
     queryFn: fetchDashboardStats,
-    refetchInterval: 30000, // Refresh data every 30 seconds (reduced from 60s)
+    refetchInterval: 15000, // Refresh data every 15 seconds (reduced from 30s)
   });
   
   useEffect(() => {

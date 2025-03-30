@@ -55,13 +55,16 @@ const KycVerificationsDashboard: React.FC = () => {
       console.log('Fetching KYC verifications...');
       try {
         const results = await fetchKycVerifications();
+        console.log(`Fetched ${results.length} KYC verifications`);
+        
+        // Log pending verifications count
         const pendingCount = results.filter(v => v.status === 'pending').length;
-        console.log(`Fetched ${results.length} KYC verifications (${pendingCount} pending)`);
+        console.log(`Found ${pendingCount} pending verifications`);
         
         // Log the data for debugging
-        if (pendingCount === 0) {
+        if (pendingCount === 0 && results.length > 0) {
           console.log('No pending verifications found. All verifications:', results);
-        } else {
+        } else if (pendingCount > 0) {
           console.log('Pending verifications:', results.filter(v => v.status === 'pending'));
         }
         
@@ -72,7 +75,7 @@ const KycVerificationsDashboard: React.FC = () => {
         throw err;
       }
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 15000, // Refresh every 15 seconds instead of 30
   });
   
   // Handle view verification details
@@ -154,6 +157,8 @@ const KycVerificationsDashboard: React.FC = () => {
         (payload) => {
           console.log('Realtime update received for kyc_verifications:', payload);
           setRealtimeEnabled(true);
+          
+          // Always refetch when we get an update
           refetch();
           
           // Show toast notification based on the change type
@@ -183,14 +188,6 @@ const KycVerificationsDashboard: React.FC = () => {
       supabase.removeChannel(channel);
     };
   }, [isViewModalOpen, refetch]);
-  
-  // Log data for debugging
-  useEffect(() => {
-    if (kycVerifications) {
-      console.log('KYC verifications data:', kycVerifications);
-      console.log('Pending count:', kycVerifications.filter(v => v.status === 'pending').length);
-    }
-  }, [kycVerifications]);
   
   if (isLoading) {
     return (
@@ -223,7 +220,7 @@ const KycVerificationsDashboard: React.FC = () => {
             onClick={testDirectDatabaseQuery} 
             className="flex items-center gap-2"
           >
-            Test Database
+            Database Test
           </Button>
           <Button 
             variant="outline" 
