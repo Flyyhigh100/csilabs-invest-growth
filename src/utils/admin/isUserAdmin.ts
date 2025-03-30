@@ -17,7 +17,7 @@ export const isUserAdmin = async (): Promise<boolean> => {
     
     console.log(`Checking admin status for user ${userId} (${userEmail})`);
     
-    // Special case: directly approve chris.d.conley@gmail.com as admin
+    // Special case: directly approve chris.d.conley@gmail.com as admin (case insensitive)
     if (userEmail && userEmail.toLowerCase() === 'chris.d.conley@gmail.com') {
       console.log(`User ${userEmail} is admin by special case match`);
       
@@ -25,20 +25,30 @@ export const isUserAdmin = async (): Promise<boolean> => {
       const { data: existingAdmin } = await supabase
         .from('admins')
         .select('id')
-        .eq('email', userEmail)
+        .eq('email', userEmail.toLowerCase())
         .maybeSingle();
       
       if (!existingAdmin) {
         console.log(`Adding ${userEmail} to admins table automatically`);
         const { error: insertError } = await supabase
           .from('admins')
-          .insert([{ id: userId, email: userEmail }]);
+          .insert([{ id: userId, email: userEmail.toLowerCase() }]);
           
         if (insertError) {
           console.error('Error automatically adding admin record:', insertError);
+          
+          // Try upsert as a fallback
+          const { error: upsertError } = await supabase
+            .from('admins')
+            .upsert([{ id: userId, email: userEmail.toLowerCase() }]);
+            
+          if (upsertError) {
+            console.error('Error upserting admin record:', upsertError);
+          }
         }
       }
       
+      toast.success('Admin access granted for chris.d.conley@gmail.com');
       return true;
     }
     
@@ -54,7 +64,7 @@ export const isUserAdmin = async (): Promise<boolean> => {
       return true;
     }
     
-    // Fall back to email check
+    // Fall back to email check (case insensitive)
     if (userEmail) {
       const { data: adminByEmail, error: emailError } = await supabase
         .from('admins')
@@ -75,45 +85,68 @@ export const isUserAdmin = async (): Promise<boolean> => {
       }
     }
     
-    // Add admin by special email patterns (for testing purposes)
-    if (userEmail && (
-      userEmail.toLowerCase().includes('admin') ||
-      userEmail.toLowerCase().includes('test')
-    )) {
-      console.log(`User has admin-like email ${userEmail} - adding to admins table`);
-      try {
-        const { error } = await supabase
-          .from('admins')
-          .insert([{ id: userId, email: userEmail }]);
-          
-        if (!error) {
-          console.log(`Successfully added ${userEmail} to admins table`);
-          return true;
-        } else {
-          console.error('Error adding admin by special email pattern:', error);
-          // Try upsert as a fallback
-          const { error: upsertError } = await supabase
-            .from('admins')
-            .upsert([{ id: userId, email: userEmail }]);
-            
-          if (!upsertError) {
-            console.log(`Successfully upserted ${userEmail} to admins table`);
-            return true;
-          } else {
-            console.error('Error upserting admin by special email pattern:', upsertError);
-            toast.error('Failed to add admin user. You may need to add yourself as admin using the Add Self as Admin button.');
-          }
-        }
-      } catch (e) {
-        console.error('Exception adding admin by special email pattern:', e);
-      }
-    }
-    
+    // Add a function to add current user to admins
     console.log(`User ${userId} (${userEmail}) is not an admin`);
     return false;
   } catch (error) {
     console.error('Error checking admin status:', error);
     toast.error('Failed to verify admin status');
+    return false;
+  }
+};
+
+// Function to add the current user as an admin
+export const addSelfAsAdmin = async (): Promise<boolean> => {
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session || !session.user) {
+      toast.error('No active session found');
+      return false;
+    }
+    
+    const userId = session.user.id;
+    const userEmail = session.user.email || '';
+    
+    console.log(`Attempting to add self as admin: ${userId} (${userEmail})`);
+    
+    // First check if user is already an admin
+    const { data: existingAdmin } = await supabase
+      .from('admins')
+      .select('id')
+      .or(`id.eq.${userId},email.ilike.${userEmail}`)
+      .maybeSingle();
+      
+    if (existingAdmin) {
+      toast.info('You are already an admin');
+      return true;
+    }
+    
+    // Try to insert the current user as admin
+    const { error: insertError } = await supabase
+      .from('admins')
+      .insert([{ id: userId, email: userEmail.toLowerCase() }]);
+      
+    if (insertError) {
+      console.error('Error adding self as admin:', insertError);
+      
+      // Try upsert as a fallback
+      const { error: upsertError } = await supabase
+        .from('admins')
+        .upsert([{ id: userId, email: userEmail.toLowerCase() }]);
+        
+      if (upsertError) {
+        console.error('Error upserting admin record:', upsertError);
+        toast.error('Failed to add you as admin. There might be a permissions issue.');
+        return false;
+      }
+    }
+    
+    toast.success('You have been added as an admin!');
+    return true;
+  } catch (error) {
+    console.error('Error adding self as admin:', error);
+    toast.error('Failed to add you as an admin');
     return false;
   }
 };
