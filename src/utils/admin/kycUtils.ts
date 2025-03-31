@@ -1,11 +1,11 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+// Process KYC verification - approve, reject, or request clarification
 export const processKycVerification = async (
   kycId: string, 
-  status: 'approved' | 'rejected', 
-  rejectionReason?: string
+  status: 'approved' | 'rejected' | 'needs_clarification',
+  message?: string
 ): Promise<boolean> => {
   try {
     console.log(`Processing KYC verification ${kycId} with status: ${status}`);
@@ -15,8 +15,8 @@ export const processKycVerification = async (
       reviewed_at: new Date().toISOString(),
     };
     
-    if (status === 'rejected' && rejectionReason) {
-      updateData.rejection_reason = rejectionReason;
+    if (status === 'rejected' && message) {
+      updateData.rejection_reason = message;
     } else if (status === 'approved') {
       updateData.rejection_reason = null;
       updateData.clarification_message = null;
@@ -44,6 +44,7 @@ export const processKycVerification = async (
   }
 };
 
+// Request clarification from user
 export const requestKycClarification = async (
   kycId: string,
   message: string
@@ -75,5 +76,75 @@ export const requestKycClarification = async (
     console.error('Error requesting clarification:', error);
     toast.error('An error occurred while requesting clarification');
     return false;
+  }
+};
+
+// Get a signed URL for private storage bucket files, or return the public URL if it's already public
+export const getKycDocumentUrl = async (url: string | null): Promise<string | null> => {
+  if (!url) return null;
+  
+  try {
+    // Check if URL is already a valid Supabase storage URL
+    if (url.includes('storage/v1/object/public/')) {
+      console.log('URL is already a public storage URL:', url);
+      return url;
+    }
+    
+    // Check if URL is a path to a file in storage
+    if (url.startsWith('kyc/') || url.includes('/kyc/')) {
+      console.log('URL appears to be a storage path, creating signed URL:', url);
+      
+      // Extract path from the URL
+      const pathMatch = url.match(/(?:kyc\/)(.+)/);
+      const path = pathMatch ? pathMatch[1] : url;
+      
+      // Get signed URL for private storage
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(`kyc/${path}`, 60 * 5); // 5 minutes expiry
+      
+      if (error) {
+        console.error('Error creating signed URL:', error);
+        return url; // Fall back to original URL if signing fails
+      }
+      
+      console.log('Created signed URL:', data.signedUrl);
+      return data.signedUrl;
+    }
+    
+    // If URL is external (http/https), return as is
+    if (url.startsWith('http')) {
+      return url;
+    }
+    
+    // Handle any other format - try to construct a public URL
+    const publicUrl = `${supabase.storageUrl}/object/public/documents/${url}`;
+    console.log('Constructed public URL:', publicUrl);
+    return publicUrl;
+    
+  } catch (error) {
+    console.error('Error processing document URL:', error);
+    return url; // Return original URL if processing fails
+  }
+};
+
+// Verify if an image URL is valid before attempting to load it
+export const verifyImageUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  
+  try {
+    // Decode the URL to handle any URL encoding issues
+    const decodedUrl = decodeURIComponent(url);
+    
+    // Check if URL has a valid protocol
+    if (!decodedUrl.startsWith('http')) {
+      console.warn('Invalid image URL protocol:', decodedUrl);
+      return null;
+    }
+    
+    return decodedUrl;
+  } catch (error) {
+    console.error('Error verifying image URL:', error);
+    return null;
   }
 };
