@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -93,54 +92,70 @@ export const getKycDocumentUrl = async (url: string | null): Promise<string | nu
       return url;
     }
     
-    // Check if URL is a path to a file in storage (might be in kyc_documents bucket instead of documents)
-    const bucketPaths = ['kyc/', 'documents/', 'kyc_documents/'];
-    let isBucketPath = false;
-    let pathMatch = null;
-    let bucket = 'documents'; // default bucket
+    // Extract the path information - supporting multiple formats
+    let bucketName = 'documents'; // default bucket
+    let path = url;
     
-    // Try to match against different possible bucket paths
-    for (const bucketPath of bucketPaths) {
-      if (url.includes(`/${bucketPath}`) || url.startsWith(bucketPath)) {
-        isBucketPath = true;
-        // Extract the path after the bucket identifier
-        const regex = new RegExp(`(?:${bucketPath})(.+)`);
-        pathMatch = url.match(regex);
-        if (bucketPath === 'kyc_documents/') bucket = 'kyc_documents';
-        else if (bucketPath === 'kyc/') bucket = 'kyc_documents';
-        break;
+    // If URL contains a full path with bucket info, extract it
+    if (url.includes('/kyc_documents/')) {
+      bucketName = 'kyc_documents';
+      path = url.split('/kyc_documents/')[1];
+    } else if (url.includes('/documents/')) {
+      bucketName = 'documents';
+      path = url.split('/documents/')[1];
+    } else if (url.startsWith('kyc_documents/')) {
+      bucketName = 'kyc_documents';
+      path = url.replace('kyc_documents/', '');
+    } else if (url.startsWith('documents/')) {
+      bucketName = 'documents';
+      path = url.replace('documents/', '');
+    } else if (url.startsWith('kyc/')) {
+      bucketName = 'documents';
+      // Keep the 'kyc/' prefix for the path in the documents bucket
+    }
+    
+    console.log(`Using bucket: ${bucketName}, path: ${path}`);
+    
+    // Try to get a signed URL
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .createSignedUrl(path, 60 * 10); // 10 minutes expiry
+    
+    if (error) {
+      console.error('Error creating signed URL:', error);
+      
+      // Fallback 1: Try with alternate bucket if the first attempt failed
+      if (bucketName === 'documents') {
+        console.log('Trying alternate bucket: kyc_documents');
+        const altResult = await supabase.storage
+          .from('kyc_documents')
+          .createSignedUrl(path, 60 * 10);
+          
+        if (!altResult.error) {
+          console.log('Successfully created signed URL from alternate bucket');
+          return altResult.data.signedUrl;
+        }
+      } else if (bucketName === 'kyc_documents') {
+        console.log('Trying alternate bucket: documents');
+        const altResult = await supabase.storage
+          .from('documents')
+          .createSignedUrl(path, 60 * 10);
+          
+        if (!altResult.error) {
+          console.log('Successfully created signed URL from alternate bucket');
+          return altResult.data.signedUrl;
+        }
       }
+      
+      // Fallback 2: Try to construct a public URL
+      const supabaseUrl = process.env.SUPABASE_URL || 'https://hrhvliqkmetcdphnetxb.supabase.co';
+      const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucketName}/${path}`;
+      console.log('Constructed public URL as fallback:', publicUrl);
+      return publicUrl;
     }
     
-    if (isBucketPath && pathMatch) {
-      const path = pathMatch[1];
-      console.log(`URL appears to be a storage path in ${bucket} bucket:`, path);
-      
-      // Get signed URL for private storage (adjust the path based on the bucket)
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .createSignedUrl(path, 60 * 5); // 5 minutes expiry
-      
-      if (error) {
-        console.error('Error creating signed URL:', error);
-        return url; // Fall back to original URL if signing fails
-      }
-      
-      console.log('Created signed URL:', data.signedUrl);
-      return data.signedUrl;
-    }
-    
-    // If URL is external (http/https), return as is
-    if (url.startsWith('http')) {
-      return url;
-    }
-    
-    // Handle any other format - try to construct a public URL for kyc_documents bucket
-    const supabaseUrl = process.env.SUPABASE_URL || 'https://hrhvliqkmetcdphnetxb.supabase.co';
-    // Try both possible buckets
-    const publicUrl = `${supabaseUrl}/storage/v1/object/public/kyc_documents/${url}`;
-    console.log('Constructed public URL:', publicUrl);
-    return publicUrl;
+    console.log('Created signed URL:', data.signedUrl);
+    return data.signedUrl;
     
   } catch (error) {
     console.error('Error processing document URL:', error);

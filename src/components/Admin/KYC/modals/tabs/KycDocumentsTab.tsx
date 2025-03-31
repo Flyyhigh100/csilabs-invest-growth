@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { KycVerificationWithProfile } from '../../types';
 import { getKycDocumentUrl, verifyImageUrl } from '@/utils/admin/kycUtils';
-import { FileImage, ShieldAlert, ExternalLink, Maximize2 } from 'lucide-react';
+import { FileImage, ShieldAlert, ExternalLink, Maximize2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { supabase } from '@/integrations/supabase/client';
 
 interface KycDocumentsTabProps {
   kyc: KycVerificationWithProfile;
@@ -23,6 +24,7 @@ const KycDocumentImage = ({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [isBucketError, setIsBucketError] = useState(false);
   
   useEffect(() => {
     const loadImage = async () => {
@@ -35,6 +37,7 @@ const KycDocumentImage = ({
       try {
         setIsLoading(true);
         setHasError(false);
+        setIsBucketError(false);
         
         console.log('Original URL:', url);
         
@@ -78,6 +81,51 @@ const KycDocumentImage = ({
     }
   };
   
+  const checkBucketExistence = async (bucketName: string) => {
+    try {
+      const { data, error } = await supabase.storage.getBucket(bucketName);
+      if (error) {
+        console.error(`Bucket ${bucketName} not found:`, error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error(`Error checking bucket ${bucketName}:`, error);
+      return false;
+    }
+  };
+  
+  // Extract bucket name from URL
+  const getBucketFromUrl = (url: string | null): string | null => {
+    if (!url) return null;
+    const match = url.match(/\/storage\/v1\/object\/public\/([^\/]+)/);
+    return match ? match[1] : null;
+  };
+  
+  const handleDirectLinkClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!url) return;
+    
+    try {
+      // Check if it's a bucket issue
+      const bucketName = getBucketFromUrl(url) || 'kyc_documents';
+      const exists = await checkBucketExistence(bucketName);
+      
+      if (!exists) {
+        setIsBucketError(true);
+        toast.error(`Storage bucket '${bucketName}' not found. Admin needs to create this bucket.`);
+        return;
+      }
+      
+      // If bucket exists but we still have an issue, try to open it directly
+      window.open(url, '_blank');
+    } catch (error) {
+      console.error('Error with direct link:', error);
+      window.open(url, '_blank');
+    }
+  };
+  
   if (isLoading) {
     return (
       <div className="w-full h-48 flex items-center justify-center">
@@ -93,12 +141,18 @@ const KycDocumentImage = ({
         <p className="text-sm text-gray-500 text-center">
           Unable to load {alt.toLowerCase()}
         </p>
+        {isBucketError && (
+          <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700 max-w-xs text-center">
+            <AlertCircle className="h-3 w-3 inline-block mr-1" />
+            Storage bucket not found. This needs to be created in Supabase.
+          </div>
+        )}
         {url && (
           <Button 
             variant="outline" 
             size="sm" 
             className="mt-2 text-xs"
-            onClick={() => window.open(url, '_blank')}
+            onClick={handleDirectLinkClick}
           >
             Try Direct Link
             <ExternalLink className="ml-1 h-3 w-3" />
