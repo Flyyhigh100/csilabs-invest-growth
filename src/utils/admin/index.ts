@@ -6,5 +6,5 @@ export {
   getKycDocumentUrl, 
   verifyImageUrl,
   checkBucketExists 
-} from './kycUtils';
+} from './kyc';
 export { markTokensAsSent } from './transactionUtils';

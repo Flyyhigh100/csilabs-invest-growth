@@ -1,3 +1,3 @@
 
-import KYC from './KycContext';
-export default KYC;
+import { KycContext } from './KycContext';
+export default KycContext;
