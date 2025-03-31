@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -80,7 +79,7 @@ export const requestKycClarification = async (
   }
 };
 
-// Get a public URL for Supabase storage files
+// Get a public URL for Supabase storage files using getPublicUrl
 export const getKycDocumentUrl = async (url: string | null): Promise<string | null> => {
   if (!url) return null;
   
@@ -92,9 +91,6 @@ export const getKycDocumentUrl = async (url: string | null): Promise<string | nu
       console.log('URL is already in the public format:', url);
       return url;
     }
-    
-    // Get the Supabase project URL from environment or use default
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://hrhvliqkmetcdphnetxb.supabase.co';
     
     // Extract bucket and path information
     let bucketName = 'kyc_documents'; // Default to kyc_documents bucket
@@ -115,13 +111,20 @@ export const getKycDocumentUrl = async (url: string | null): Promise<string | nu
       path = url.replace('documents/', '');
     }
     
-    console.log(`Constructed path info - Bucket: ${bucketName}, Path: ${path}`);
+    console.log(`Trying to get public URL for - Bucket: ${bucketName}, Path: ${path}`);
     
-    // Create the public URL
-    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucketName}/${path}`;
-    console.log('Constructed public URL:', publicUrl);
+    // Use Supabase Storage getPublicUrl method to get the public URL
+    const { data } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(path);
     
-    return publicUrl;
+    if (data && data.publicUrl) {
+      console.log('Generated public URL:', data.publicUrl);
+      return data.publicUrl;
+    } else {
+      console.error('Failed to generate public URL');
+      return url; // Return original URL as fallback
+    }
   } catch (error) {
     console.error('Error processing document URL:', error);
     return url; // Return original URL if processing fails
@@ -158,6 +161,23 @@ export const checkBucketExists = async (bucketName: string): Promise<boolean> =>
     
     if (error) {
       console.error(`Bucket '${bucketName}' not found:`, error);
+      
+      // Check if we can list buckets to see what's available
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      
+      if (!bucketsError && buckets) {
+        console.log('Available buckets:', buckets.map(b => b.name));
+        // Check if there's a similar bucket that might be the correct one
+        const similarBucket = buckets.find(b => 
+          b.name.toLowerCase().includes('kyc') || 
+          b.name.toLowerCase().includes('document')
+        );
+        
+        if (similarBucket) {
+          console.log(`Found similar bucket: ${similarBucket.name}`);
+        }
+      }
+      
       return false;
     }
     
@@ -165,6 +185,34 @@ export const checkBucketExists = async (bucketName: string): Promise<boolean> =>
     return true;
   } catch (error) {
     console.error(`Error checking bucket '${bucketName}':`, error);
+    
+    // Try to list all buckets as a fallback
+    try {
+      const { data: buckets } = await supabase.storage.listBuckets();
+      console.log('Available buckets:', buckets?.map(b => b.name));
+    } catch (listError) {
+      console.error('Error listing buckets:', listError);
+    }
+    
     return false;
+  }
+};
+
+// List all available storage buckets - useful for debugging
+export const listAllBuckets = async (): Promise<string[]> => {
+  try {
+    const { data, error } = await supabase.storage.listBuckets();
+    
+    if (error) {
+      console.error('Error listing buckets:', error);
+      return [];
+    }
+    
+    const bucketNames = data.map(bucket => bucket.name);
+    console.log('Available storage buckets:', bucketNames);
+    return bucketNames;
+  } catch (error) {
+    console.error('Exception listing buckets:', error);
+    return [];
   }
 };

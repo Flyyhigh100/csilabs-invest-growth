@@ -6,21 +6,26 @@ interface DocumentSectionProps {
   title: string;
   imageUrl: string | null;
   onOpenFullImage: (url: string) => void;
+  onZoomImage?: (url: string) => void;
 }
 
 const DocumentSection: React.FC<DocumentSectionProps> = ({ 
   title, 
   imageUrl, 
-  onOpenFullImage 
+  onOpenFullImage,
+  onZoomImage
 }) => {
   return (
-    <div>
+    <div className="flex flex-col h-full">
       <p className="text-sm font-medium text-gray-500 mb-2">{title}</p>
-      <KycDocumentImage 
-        url={imageUrl} 
-        alt={title}
-        onOpenFullImage={onOpenFullImage}
-      />
+      <div className="flex-1">
+        <KycDocumentImage 
+          url={imageUrl} 
+          alt={title}
+          onOpenFullImage={onOpenFullImage}
+          onZoomImage={onZoomImage}
+        />
+      </div>
     </div>
   );
 };
