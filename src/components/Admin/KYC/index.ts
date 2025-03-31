@@ -1,5 +1,6 @@
 
 import { KycProvider, useKycContext } from './KycContext';
+import KycVerifications from './Dashboard';
 
 export { KycProvider, useKycContext };
-export { default } from './KycVerifications';
+export default KycVerifications;
