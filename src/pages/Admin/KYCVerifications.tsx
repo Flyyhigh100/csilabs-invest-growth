@@ -1,12 +1,15 @@
 
 import React from 'react';
 import AdminLayout from '@/components/Admin/Layout';
-import KycVerifications from '@/components/Admin/KycVerifications';
+import KycVerifications from '@/components/Admin/KYC';
+import { KycProvider } from '@/components/Admin/KYC/KycContext';
 
 const AdminKycPage: React.FC = () => {
   return (
     <AdminLayout title="KYC Verifications">
-      <KycVerifications />
+      <KycProvider>
+        <KycVerifications />
+      </KycProvider>
     </AdminLayout>
   );
 };
