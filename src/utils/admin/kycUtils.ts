@@ -85,24 +85,41 @@ export const getKycDocumentUrl = async (url: string | null): Promise<string | nu
   if (!url) return null;
   
   try {
+    console.log('Processing document URL:', url);
+    
     // Check if URL is already a valid Supabase storage URL
     if (url.includes('storage/v1/object/public/')) {
       console.log('URL is already a public storage URL:', url);
       return url;
     }
     
-    // Check if URL is a path to a file in storage
-    if (url.startsWith('kyc/') || url.includes('/kyc/')) {
-      console.log('URL appears to be a storage path, creating signed URL:', url);
+    // Check if URL is a path to a file in storage (might be in kyc_documents bucket instead of documents)
+    const bucketPaths = ['kyc/', 'documents/', 'kyc_documents/'];
+    let isBucketPath = false;
+    let pathMatch = null;
+    let bucket = 'documents'; // default bucket
+    
+    // Try to match against different possible bucket paths
+    for (const bucketPath of bucketPaths) {
+      if (url.includes(`/${bucketPath}`) || url.startsWith(bucketPath)) {
+        isBucketPath = true;
+        // Extract the path after the bucket identifier
+        const regex = new RegExp(`(?:${bucketPath})(.+)`);
+        pathMatch = url.match(regex);
+        if (bucketPath === 'kyc_documents/') bucket = 'kyc_documents';
+        else if (bucketPath === 'kyc/') bucket = 'kyc_documents';
+        break;
+      }
+    }
+    
+    if (isBucketPath && pathMatch) {
+      const path = pathMatch[1];
+      console.log(`URL appears to be a storage path in ${bucket} bucket:`, path);
       
-      // Extract path from the URL
-      const pathMatch = url.match(/(?:kyc\/)(.+)/);
-      const path = pathMatch ? pathMatch[1] : url;
-      
-      // Get signed URL for private storage
+      // Get signed URL for private storage (adjust the path based on the bucket)
       const { data, error } = await supabase.storage
-        .from('documents')
-        .createSignedUrl(`kyc/${path}`, 60 * 5); // 5 minutes expiry
+        .from(bucket)
+        .createSignedUrl(path, 60 * 5); // 5 minutes expiry
       
       if (error) {
         console.error('Error creating signed URL:', error);
@@ -118,10 +135,10 @@ export const getKycDocumentUrl = async (url: string | null): Promise<string | nu
       return url;
     }
     
-    // Handle any other format - try to construct a public URL
-    // Instead of using the protected storageUrl property, construct the URL manually
+    // Handle any other format - try to construct a public URL for kyc_documents bucket
     const supabaseUrl = process.env.SUPABASE_URL || 'https://hrhvliqkmetcdphnetxb.supabase.co';
-    const publicUrl = `${supabaseUrl}/storage/v1/object/public/documents/${url}`;
+    // Try both possible buckets
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/kyc_documents/${url}`;
     console.log('Constructed public URL:', publicUrl);
     return publicUrl;
     
@@ -145,6 +162,7 @@ export const verifyImageUrl = (url: string | null): string | null => {
       return null;
     }
     
+    console.log('Verified image URL:', decodedUrl);
     return decodedUrl;
   } catch (error) {
     console.error('Error verifying image URL:', error);

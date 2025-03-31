@@ -2,8 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { KycVerificationWithProfile } from '../../types';
 import { getKycDocumentUrl, verifyImageUrl } from '@/utils/admin/kycUtils';
-import { FileImage, ShieldAlert } from 'lucide-react';
+import { FileImage, ShieldAlert, ExternalLink, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface KycDocumentsTabProps {
   kyc: KycVerificationWithProfile;
@@ -34,8 +36,11 @@ const KycDocumentImage = ({
         setIsLoading(true);
         setHasError(false);
         
+        console.log('Original URL:', url);
+        
         // Get signed URL if needed
         const processedUrl = await getKycDocumentUrl(url);
+        console.log('Processed URL:', processedUrl);
         
         // Verify URL format
         const validUrl = verifyImageUrl(processedUrl);
@@ -75,8 +80,8 @@ const KycDocumentImage = ({
   
   if (isLoading) {
     return (
-      <div className="w-full h-48 bg-gray-100 animate-pulse rounded-md border border-gray-200 flex items-center justify-center">
-        <span className="text-sm text-gray-500">Loading...</span>
+      <div className="w-full h-48 flex items-center justify-center">
+        <Skeleton className="w-full h-48 rounded-md" />
       </div>
     );
   }
@@ -88,6 +93,17 @@ const KycDocumentImage = ({
         <p className="text-sm text-gray-500 text-center">
           Unable to load {alt.toLowerCase()}
         </p>
+        {url && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-2 text-xs"
+            onClick={() => window.open(url, '_blank')}
+          >
+            Try Direct Link
+            <ExternalLink className="ml-1 h-3 w-3" />
+          </Button>
+        )}
       </div>
     );
   }
@@ -102,7 +118,10 @@ const KycDocumentImage = ({
         onLoad={handleImageLoad}
       />
       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100">
-        <span className="text-white text-sm font-medium">Click to view</span>
+        <span className="text-white text-sm font-medium flex items-center">
+          <Maximize2 className="mr-1 h-4 w-4" />
+          View Full Image
+        </span>
       </div>
     </div>
   );
