@@ -28,6 +28,12 @@ const KycDocumentsTab: React.FC<KycDocumentsTabProps> = ({ kyc }) => {
   useEffect(() => {
     const processUrls = async () => {
       try {
+        console.log('Starting URL processing for KYC documents:', {
+          id_front_url: kyc.id_front_url,
+          id_back_url: kyc.id_back_url,
+          selfie_url: kyc.selfie_url
+        });
+        
         const [idFrontUrl, idBackUrl, selfieUrl] = await Promise.all([
           getKycDocumentUrl(kyc.id_front_url),
           getKycDocumentUrl(kyc.id_back_url),
@@ -52,7 +58,7 @@ const KycDocumentsTab: React.FC<KycDocumentsTabProps> = ({ kyc }) => {
   
   const openFullImage = (url: string) => {
     setFullImageUrl(url);
-    window.open(url, '_blank');
+    window.open(url, '_blank', 'noopener,noreferrer');
     toast.info('Opening full-size image in new tab');
   };
   

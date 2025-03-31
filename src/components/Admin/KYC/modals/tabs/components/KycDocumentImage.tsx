@@ -70,7 +70,8 @@ const KycDocumentImage: React.FC<KycDocumentImageProps> = ({
       return;
     }
     
-    window.open(url, '_blank');
+    // Open in new tab
+    window.open(url, '_blank', 'noopener,noreferrer');
     toast.info('Opening image in new tab');
   };
   
@@ -108,15 +109,16 @@ const KycDocumentImage: React.FC<KycDocumentImageProps> = ({
           </div>
         )}
         {url && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="mt-2 text-xs"
-            onClick={handleDirectLinkClick}
+          <a 
+            href={url} 
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="mt-2 inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             Try Direct Link
             <ExternalLink className="ml-1 h-3 w-3" />
-          </Button>
+          </a>
         )}
       </div>
     );

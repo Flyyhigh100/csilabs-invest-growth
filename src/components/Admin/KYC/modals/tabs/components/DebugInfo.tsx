@@ -12,12 +12,15 @@ interface DebugInfoProps {
 }
 
 const DebugInfo: React.FC<DebugInfoProps> = ({ kyc, processedUrls }) => {
-  // Only render in development environment or if explicitly enabled
-  const isDevelopment = typeof window !== 'undefined' && 
+  // Determine if we're in development mode without relying on process.env
+  const isDevelopment = typeof window !== 'undefined' && (
     window.location.hostname === 'localhost' || 
     window.location.hostname === '127.0.0.1' ||
     window.location.hostname.includes('dev') ||
-    window.location.hostname.includes('preview');
+    window.location.hostname.includes('preview') ||
+    window.location.hostname.includes('staging') ||
+    window.location.hostname.includes('test')
+  );
 
   if (!isDevelopment) {
     return null;

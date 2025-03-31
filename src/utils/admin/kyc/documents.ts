@@ -34,7 +34,7 @@ export const getKycDocumentUrl = async (url: string | null): Promise<string | nu
     
     console.log(`Generating public URL - Bucket: ${bucketName}, Path: ${path}`);
     
-    // Use Supabase Storage getPublicUrl method
+    // Use Supabase Storage getPublicUrl method - direct approach without async
     const { data } = supabase.storage
       .from(bucketName)
       .getPublicUrl(path);
