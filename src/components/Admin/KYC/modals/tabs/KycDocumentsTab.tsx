@@ -1,12 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { KycVerificationWithProfile } from '../../types';
-import { getKycDocumentUrl, verifyImageUrl } from '@/utils/admin/kycUtils';
-import { FileImage, ShieldAlert, ExternalLink, Maximize2, AlertCircle } from 'lucide-react';
+import { getKycDocumentUrl, verifyImageUrl, checkBucketExists } from '@/utils/admin/kycUtils';
+import { FileImage, ShieldAlert, ExternalLink, Maximize2, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { supabase } from '@/integrations/supabase/client';
 
 interface KycDocumentsTabProps {
   kyc: KycVerificationWithProfile;
@@ -25,6 +24,7 @@ const KycDocumentImage = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isBucketError, setIsBucketError] = useState(false);
+  const [isBucketChecked, setIsBucketChecked] = useState(false);
   
   useEffect(() => {
     const loadImage = async () => {
@@ -37,11 +37,10 @@ const KycDocumentImage = ({
       try {
         setIsLoading(true);
         setHasError(false);
-        setIsBucketError(false);
         
         console.log('Original URL:', url);
         
-        // Get signed URL if needed
+        // Get public URL
         const processedUrl = await getKycDocumentUrl(url);
         console.log('Processed URL:', processedUrl);
         
@@ -50,6 +49,17 @@ const KycDocumentImage = ({
         
         if (validUrl) {
           setImageUrl(validUrl);
+          
+          // Check if the bucket exists if not already checked
+          if (!isBucketChecked) {
+            const bucketName = validUrl.includes('/kyc_documents/') ? 'kyc_documents' : 'documents';
+            const exists = await checkBucketExists(bucketName);
+            if (!exists) {
+              console.warn(`Storage bucket '${bucketName}' not found!`);
+              setIsBucketError(true);
+            }
+            setIsBucketChecked(true);
+          }
         } else {
           console.error('Invalid image URL:', url);
           setHasError(true);
@@ -63,7 +73,7 @@ const KycDocumentImage = ({
     };
     
     loadImage();
-  }, [url, alt]);
+  }, [url, alt, isBucketChecked]);
   
   const handleImageError = () => {
     console.warn(`Image failed to load: ${alt}`);
@@ -81,55 +91,22 @@ const KycDocumentImage = ({
     }
   };
   
-  const checkBucketExistence = async (bucketName: string) => {
-    try {
-      const { data, error } = await supabase.storage.getBucket(bucketName);
-      if (error) {
-        console.error(`Bucket ${bucketName} not found:`, error);
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error(`Error checking bucket ${bucketName}:`, error);
-      return false;
-    }
-  };
-  
-  // Extract bucket name from URL
-  const getBucketFromUrl = (url: string | null): string | null => {
-    if (!url) return null;
-    const match = url.match(/\/storage\/v1\/object\/public\/([^\/]+)/);
-    return match ? match[1] : null;
-  };
-  
-  const handleDirectLinkClick = async (e: React.MouseEvent) => {
+  const handleDirectLinkClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    if (!url) return;
+    if (!imageUrl) return;
     
-    try {
-      // Check if it's a bucket issue
-      const bucketName = getBucketFromUrl(url) || 'kyc_documents';
-      const exists = await checkBucketExistence(bucketName);
-      
-      if (!exists) {
-        setIsBucketError(true);
-        toast.error(`Storage bucket '${bucketName}' not found. Admin needs to create this bucket.`);
-        return;
-      }
-      
-      // If bucket exists but we still have an issue, try to open it directly
-      window.open(url, '_blank');
-    } catch (error) {
-      console.error('Error with direct link:', error);
-      window.open(url, '_blank');
-    }
+    window.open(imageUrl, '_blank');
+    toast.info('Opening image in new tab');
   };
   
   if (isLoading) {
     return (
       <div className="w-full h-48 flex items-center justify-center">
         <Skeleton className="w-full h-48 rounded-md" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
+        </div>
       </div>
     );
   }
@@ -187,6 +164,7 @@ const KycDocumentsTab: React.FC<KycDocumentsTabProps> = ({ kyc }) => {
   const openFullImage = (url: string) => {
     setFullImageUrl(url);
     window.open(url, '_blank');
+    toast.info('Opening full-size image in new tab');
   };
   
   return (

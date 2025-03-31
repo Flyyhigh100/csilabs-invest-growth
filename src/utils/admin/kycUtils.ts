@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -79,24 +80,27 @@ export const requestKycClarification = async (
   }
 };
 
-// Get a signed URL for private storage bucket files, or return the public URL if it's already public
+// Get a public URL for Supabase storage files
 export const getKycDocumentUrl = async (url: string | null): Promise<string | null> => {
   if (!url) return null;
   
   try {
     console.log('Processing document URL:', url);
     
-    // Check if URL is already a valid Supabase storage URL
+    // If the URL is already in the correct format, return it
     if (url.includes('storage/v1/object/public/')) {
-      console.log('URL is already a public storage URL:', url);
+      console.log('URL is already in the public format:', url);
       return url;
     }
     
-    // Extract the path information - supporting multiple formats
-    let bucketName = 'documents'; // default bucket
+    // Get the Supabase project URL from environment or use default
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://hrhvliqkmetcdphnetxb.supabase.co';
+    
+    // Extract bucket and path information
+    let bucketName = 'kyc_documents'; // Default to kyc_documents bucket
     let path = url;
     
-    // If URL contains a full path with bucket info, extract it
+    // Handle different URL formats
     if (url.includes('/kyc_documents/')) {
       bucketName = 'kyc_documents';
       path = url.split('/kyc_documents/')[1];
@@ -109,61 +113,22 @@ export const getKycDocumentUrl = async (url: string | null): Promise<string | nu
     } else if (url.startsWith('documents/')) {
       bucketName = 'documents';
       path = url.replace('documents/', '');
-    } else if (url.startsWith('kyc/')) {
-      bucketName = 'documents';
-      // Keep the 'kyc/' prefix for the path in the documents bucket
     }
     
-    console.log(`Using bucket: ${bucketName}, path: ${path}`);
+    console.log(`Constructed path info - Bucket: ${bucketName}, Path: ${path}`);
     
-    // Try to get a signed URL
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .createSignedUrl(path, 60 * 10); // 10 minutes expiry
+    // Create the public URL
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucketName}/${path}`;
+    console.log('Constructed public URL:', publicUrl);
     
-    if (error) {
-      console.error('Error creating signed URL:', error);
-      
-      // Fallback 1: Try with alternate bucket if the first attempt failed
-      if (bucketName === 'documents') {
-        console.log('Trying alternate bucket: kyc_documents');
-        const altResult = await supabase.storage
-          .from('kyc_documents')
-          .createSignedUrl(path, 60 * 10);
-          
-        if (!altResult.error) {
-          console.log('Successfully created signed URL from alternate bucket');
-          return altResult.data.signedUrl;
-        }
-      } else if (bucketName === 'kyc_documents') {
-        console.log('Trying alternate bucket: documents');
-        const altResult = await supabase.storage
-          .from('documents')
-          .createSignedUrl(path, 60 * 10);
-          
-        if (!altResult.error) {
-          console.log('Successfully created signed URL from alternate bucket');
-          return altResult.data.signedUrl;
-        }
-      }
-      
-      // Fallback 2: Try to construct a public URL
-      const supabaseUrl = process.env.SUPABASE_URL || 'https://hrhvliqkmetcdphnetxb.supabase.co';
-      const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucketName}/${path}`;
-      console.log('Constructed public URL as fallback:', publicUrl);
-      return publicUrl;
-    }
-    
-    console.log('Created signed URL:', data.signedUrl);
-    return data.signedUrl;
-    
+    return publicUrl;
   } catch (error) {
     console.error('Error processing document URL:', error);
     return url; // Return original URL if processing fails
   }
 };
 
-// Verify if an image URL is valid before attempting to load it
+// Verify if a URL is valid before attempting to load it
 export const verifyImageUrl = (url: string | null): string | null => {
   if (!url) return null;
   
@@ -182,5 +147,24 @@ export const verifyImageUrl = (url: string | null): string | null => {
   } catch (error) {
     console.error('Error verifying image URL:', error);
     return null;
+  }
+};
+
+// Check if a bucket exists in Supabase storage
+export const checkBucketExists = async (bucketName: string): Promise<boolean> => {
+  try {
+    console.log(`Checking if bucket '${bucketName}' exists...`);
+    const { data, error } = await supabase.storage.getBucket(bucketName);
+    
+    if (error) {
+      console.error(`Bucket '${bucketName}' not found:`, error);
+      return false;
+    }
+    
+    console.log(`Bucket '${bucketName}' exists:`, data);
+    return true;
+  } catch (error) {
+    console.error(`Error checking bucket '${bucketName}':`, error);
+    return false;
   }
 };
