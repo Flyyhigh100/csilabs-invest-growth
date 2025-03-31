@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -118,7 +119,9 @@ export const getKycDocumentUrl = async (url: string | null): Promise<string | nu
     }
     
     // Handle any other format - try to construct a public URL
-    const publicUrl = `${supabase.storageUrl}/object/public/documents/${url}`;
+    // Instead of using the protected storageUrl property, construct the URL manually
+    const supabaseUrl = process.env.SUPABASE_URL || 'https://hrhvliqkmetcdphnetxb.supabase.co';
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/documents/${url}`;
     console.log('Constructed public URL:', publicUrl);
     return publicUrl;
     
