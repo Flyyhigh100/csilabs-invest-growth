@@ -1,12 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { KycVerificationWithProfile } from '../../types';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog';
 import { X, Download, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import DocumentSection from './components/DocumentSection';
 import DebugInfo from './components/DebugInfo';
+import { getKycDocumentUrl } from '@/utils/admin/kyc/documents';
 
 interface KycDocumentsTabProps {
   kyc: KycVerificationWithProfile;
@@ -16,6 +17,38 @@ const KycDocumentsTab: React.FC<KycDocumentsTabProps> = ({ kyc }) => {
   const [fullImageUrl, setFullImageUrl] = useState<string | null>(null);
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
+  
+  // Process URLs when the component mounts or when kyc changes
+  const [processedUrls, setProcessedUrls] = useState({
+    idFront: null as string | null,
+    idBack: null as string | null,
+    selfie: null as string | null
+  });
+  
+  useEffect(() => {
+    const processUrls = async () => {
+      try {
+        const [idFrontUrl, idBackUrl, selfieUrl] = await Promise.all([
+          getKycDocumentUrl(kyc.id_front_url),
+          getKycDocumentUrl(kyc.id_back_url),
+          getKycDocumentUrl(kyc.selfie_url)
+        ]);
+        
+        setProcessedUrls({
+          idFront: idFrontUrl,
+          idBack: idBackUrl,
+          selfie: selfieUrl
+        });
+        
+        console.log('Processed document URLs:', { idFrontUrl, idBackUrl, selfieUrl });
+      } catch (error) {
+        console.error('Error processing document URLs:', error);
+        toast.error('Error loading document URLs');
+      }
+    };
+    
+    processUrls();
+  }, [kyc.id_front_url, kyc.id_back_url, kyc.selfie_url]);
   
   const openFullImage = (url: string) => {
     setFullImageUrl(url);
@@ -53,27 +86,27 @@ const KycDocumentsTab: React.FC<KycDocumentsTabProps> = ({ kyc }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <DocumentSection 
           title="ID Front" 
-          imageUrl={kyc.id_front_url} 
+          imageUrl={processedUrls.idFront}
           onOpenFullImage={openFullImage}
           onZoomImage={openZoomModal}
         />
         
         <DocumentSection 
           title="ID Back" 
-          imageUrl={kyc.id_back_url} 
+          imageUrl={processedUrls.idBack}
           onOpenFullImage={openFullImage}
           onZoomImage={openZoomModal}
         />
         
         <DocumentSection 
           title="Selfie with ID" 
-          imageUrl={kyc.selfie_url} 
+          imageUrl={processedUrls.selfie}
           onOpenFullImage={openFullImage}
           onZoomImage={openZoomModal}
         />
       </div>
       
-      <DebugInfo kyc={kyc} />
+      <DebugInfo kyc={kyc} processedUrls={processedUrls} />
       
       {/* Image Zoom Modal */}
       <Dialog open={!!zoomImageUrl} onOpenChange={(open) => !open && setZoomImageUrl(null)}>

@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Eye, FileImage, ShieldAlert, ExternalLink, Loader2, AlertCircle, ZoomIn } from 'lucide-react';
+import { Eye, ShieldAlert, ExternalLink, Loader2, AlertCircle, ZoomIn } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,133 +19,82 @@ const KycDocumentImage: React.FC<KycDocumentImageProps> = ({
   onOpenFullImage,
   onZoomImage
 }) => {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   useEffect(() => {
-    const loadImage = async () => {
-      if (!url) {
-        setIsLoading(false);
-        setHasError(true);
-        setErrorMessage('No image URL provided');
-        return;
-      }
-      
-      try {
-        setIsLoading(true);
-        setHasError(false);
-        
-        console.log('Original document URL:', url);
-        
-        // Check if the URL already includes the Supabase URL
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://hrhvliqkmetcdphnetxb.supabase.co';
-        
-        // If it's already a public URL, use it directly
-        if (url.includes('storage/v1/object/public/')) {
-          console.log('URL is already in public format:', url);
-          setImageUrl(url);
-        } else {
-          // Determine the bucket and path
-          let bucketName = 'kyc_documents'; // Default bucket
-          let path = url;
-          
-          // Format the path correctly based on the URL format
-          if (url.includes('/kyc_documents/')) {
-            bucketName = 'kyc_documents';
-            path = url.split('/kyc_documents/')[1];
-          } else if (url.includes('/documents/')) {
-            bucketName = 'documents';
-            path = url.split('/documents/')[1];
-          } else if (url.startsWith('kyc_documents/')) {
-            path = url.replace('kyc_documents/', '');
-          } else if (url.startsWith('documents/')) {
-            bucketName = 'documents';
-            path = url.replace('documents/', '');
-          }
-          
-          console.log(`Using bucket: ${bucketName}, path: ${path}`);
-          
-          // Get the public URL directly from Supabase
-          const { data } = supabase.storage
-            .from(bucketName)
-            .getPublicUrl(path);
-            
-          if (data && data.publicUrl) {
-            console.log('Generated public URL:', data.publicUrl);
-            setImageUrl(data.publicUrl);
-          } else {
-            throw new Error('Failed to generate public URL');
-          }
-        }
-      } catch (error) {
-        console.error(`Error processing ${alt} image:`, error);
-        setHasError(true);
-        setErrorMessage(error instanceof Error ? error.message : 'Unknown error loading image');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadImage();
-  }, [url, alt]);
+    if (!url) {
+      setIsLoading(false);
+      setHasError(true);
+      setErrorMessage('No image URL provided');
+    } else {
+      // Reset states when URL changes
+      setIsLoading(true);
+      setHasError(false);
+      setErrorMessage(null);
+    }
+  }, [url]);
   
   const handleImageError = () => {
-    console.warn(`Image failed to load: ${alt}`);
+    console.warn(`Image failed to load: ${alt}`, url);
+    setIsLoading(false);
     setHasError(true);
     setErrorMessage('Image failed to load');
   };
   
   const handleImageLoad = () => {
+    console.log(`Image loaded successfully: ${alt}`);
     setIsLoading(false);
     setHasError(false);
   };
   
   const handleOpenFullImage = () => {
-    if (imageUrl && !hasError) {
-      onOpenFullImage(imageUrl);
+    if (url && !hasError) {
+      onOpenFullImage(url);
     }
   };
 
   const handleZoomImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (imageUrl && !hasError && onZoomImage) {
-      onZoomImage(imageUrl);
+    if (url && !hasError && onZoomImage) {
+      onZoomImage(url);
     }
   };
   
   const handleDirectLinkClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    if (!imageUrl && url) {
-      // If we don't have a processed URL but have the original, try that
-      window.open(url, '_blank');
-      toast.info('Opening original URL in new tab');
-      return;
-    }
-    
-    if (!imageUrl) {
+    if (!url) {
       toast.error('No URL available to open');
       return;
     }
     
-    window.open(imageUrl, '_blank');
+    window.open(url, '_blank');
     toast.info('Opening image in new tab');
   };
   
-  if (isLoading) {
+  if (isLoading && url) {
     return (
       <div className="w-full h-48 relative rounded-md overflow-hidden">
         <Skeleton className="w-full h-48 rounded-md" />
         <div className="absolute inset-0 flex items-center justify-center">
           <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
+          {url && (
+            <img 
+              src={url} 
+              alt={alt} 
+              className="hidden" 
+              onError={handleImageError}
+              onLoad={handleImageLoad}
+            />
+          )}
         </div>
       </div>
     );
   }
   
-  if (hasError || !imageUrl) {
+  if (hasError || !url) {
     return (
       <div className="w-full h-48 bg-gray-50 rounded-md border border-gray-200 flex flex-col items-center justify-center p-4">
         <ShieldAlert className="h-10 w-10 text-gray-400 mb-2" />
@@ -177,7 +125,7 @@ const KycDocumentImage: React.FC<KycDocumentImageProps> = ({
   return (
     <div className="relative group cursor-pointer rounded-md overflow-hidden" onClick={handleOpenFullImage}>
       <img 
-        src={imageUrl} 
+        src={url} 
         alt={alt} 
         className="w-full h-48 object-cover rounded-md border border-gray-200 transition-all duration-200 group-hover:opacity-90" 
         onError={handleImageError}
