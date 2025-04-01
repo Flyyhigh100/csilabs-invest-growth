@@ -161,6 +161,8 @@ const ResearchDocumentUploader: React.FC = () => {
     setIsDeleting(true);
     try {
       console.log('Deleting document:', documentToDelete);
+      
+      // Fixed: Use the correct endpoint for deletion and handle errors properly
       const { error } = await supabase.storage
         .from('research')
         .remove([documentToDelete]);
@@ -171,11 +173,14 @@ const ResearchDocumentUploader: React.FC = () => {
         return;
       }
 
+      // Success! Update UI and show success message
       toast.success('Document deleted successfully');
-      fetchDocuments(); // Refresh the document list
+      
+      // Refresh the document list after successful deletion
+      await fetchDocuments();
     } catch (error) {
-      console.error('Unexpected error:', error);
-      toast.error('An error occurred while deleting the document');
+      console.error('Unexpected error during deletion:', error);
+      toast.error('An unexpected error occurred while deleting the document');
     } finally {
       setIsDeleting(false);
       setDocumentToDelete(null);
@@ -183,6 +188,7 @@ const ResearchDocumentUploader: React.FC = () => {
   };
 
   const confirmDelete = (documentName: string) => {
+    console.log('Setting document to delete:', documentName);
     setDocumentToDelete(documentName);
   };
 
@@ -308,7 +314,12 @@ const ResearchDocumentUploader: React.FC = () => {
         </CardContent>
       </Card>
 
-      <AlertDialog open={!!documentToDelete} onOpenChange={(open) => !open && setDocumentToDelete(null)}>
+      <AlertDialog 
+        open={!!documentToDelete} 
+        onOpenChange={(open) => {
+          if (!open) setDocumentToDelete(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
