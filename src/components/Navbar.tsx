@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Menu, X, ChevronDown } from 'lucide-react';
+import { Menu, X, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -37,7 +37,10 @@ const Navbar: React.FC = () => {
           <Link to="/" className="text-gray-800 hover:text-cbis-blue transition-colors">Home</Link>
           <Link to="/token-info" className="text-gray-800 hover:text-cbis-blue transition-colors">Token Info</Link>
           {!user && (
-            <Link to="/register" className="text-gray-800 hover:text-cbis-blue transition-colors">Register</Link>
+            <Link to="/login" className="text-gray-800 hover:text-cbis-blue transition-colors flex items-center">
+              <LogIn className="mr-1 h-4 w-4" />
+              Sign In
+            </Link>
           )}
           {user && (
             <Link to="/dashboard/payments" className="text-gray-800 hover:text-cbis-blue transition-colors">Buy Tokens</Link>
@@ -46,7 +49,7 @@ const Navbar: React.FC = () => {
             {user ? (
               <Link to="/dashboard/payments">Buy Tokens</Link>
             ) : (
-              <Link to="/register">Buy Tokens</Link>
+              <Link to="/register">Sign Up</Link>
             )}
           </Button>
         </div>
@@ -83,11 +86,12 @@ const Navbar: React.FC = () => {
         </Link>
         {!user && (
           <Link 
-            to="/register" 
-            className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
+            to="/login" 
+            className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue flex items-center"
             onClick={() => setIsOpen(false)}
           >
-            Register
+            <LogIn className="mr-1 h-4 w-4" />
+            Sign In
           </Link>
         )}
         {user && (
@@ -108,7 +112,7 @@ const Navbar: React.FC = () => {
             {user ? (
               <Link to="/dashboard/payments">Buy Tokens</Link>
             ) : (
-              <Link to="/register">Buy Tokens</Link>
+              <Link to="/register">Sign Up</Link>
             )}
           </Button>
         </div>
