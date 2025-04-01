@@ -36,6 +36,8 @@ export type Database = {
       kyc_verifications: {
         Row: {
           address: string | null
+          approved_at: string | null
+          approved_by: string | null
           city: string | null
           clarification_message: string | null
           country: string | null
@@ -58,6 +60,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           city?: string | null
           clarification_message?: string | null
           country?: string | null
@@ -80,6 +84,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           city?: string | null
           clarification_message?: string | null
           country?: string | null
@@ -131,10 +137,14 @@ export type Database = {
       }
       transactions: {
         Row: {
+          admin_notes: string | null
           amount: number
+          approval_status: string | null
           created_at: string
           external_transaction_id: string | null
+          high_value_approval_required: boolean | null
           id: string
+          kyc_verification_id: string | null
           payment_address: string | null
           payment_method: string
           status: string
@@ -145,10 +155,14 @@ export type Database = {
           wallet_address: string
         }
         Insert: {
+          admin_notes?: string | null
           amount: number
+          approval_status?: string | null
           created_at?: string
           external_transaction_id?: string | null
+          high_value_approval_required?: boolean | null
           id?: string
+          kyc_verification_id?: string | null
           payment_address?: string | null
           payment_method: string
           status: string
@@ -159,10 +173,14 @@ export type Database = {
           wallet_address: string
         }
         Update: {
+          admin_notes?: string | null
           amount?: number
+          approval_status?: string | null
           created_at?: string
           external_transaction_id?: string | null
+          high_value_approval_required?: boolean | null
           id?: string
+          kyc_verification_id?: string | null
           payment_address?: string | null
           payment_method?: string
           status?: string

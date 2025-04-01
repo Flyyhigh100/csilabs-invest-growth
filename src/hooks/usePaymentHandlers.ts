@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 type CryptoPaymentDetails = {
   paymentAddress: string;
@@ -13,12 +14,33 @@ type CryptoPaymentDetails = {
   externalTransactionId?: string;
   currency?: string;
   checkStatusUrl?: string;
+  requiresApproval?: boolean;
 } | null;
 
 export const usePaymentHandlers = (walletAddress: string | null) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCryptoDialog, setShowCryptoDialog] = useState(false);
   const [cryptoPaymentDetails, setCryptoPaymentDetails] = useState<CryptoPaymentDetails>(null);
+
+  // Check KYC verification status
+  const { data: kycData } = useQuery({
+    queryKey: ['kyc-verification-status'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('kyc_verifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching KYC verification:', error);
+        return null;
+      }
+      
+      return data;
+    }
+  });
 
   const validatePaymentRequest = (amount: number): boolean => {
     if (!walletAddress) {
@@ -31,6 +53,12 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
       return false;
     }
     
+    // Check if KYC verification is approved
+    if (!kycData || kycData.status !== 'approved') {
+      toast.error("You must complete KYC verification before making a payment");
+      return false;
+    }
+    
     return true;
   };
 
@@ -40,8 +68,33 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
     setIsProcessing(true);
     
     try {
+      // Create a transaction record before initiating Stripe checkout
+      const { data: transactionData, error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          amount,
+          wallet_address: walletAddress,
+          payment_method: 'stripe',
+          status: 'pending',
+          transaction_id: `STRIPE-${Date.now()}`,
+          kyc_verification_id: kycData?.id,
+          approval_status: 'approved' // Stripe payments don't need approval
+        })
+        .select()
+        .single();
+      
+      if (transactionError) {
+        console.error("Transaction record creation error:", transactionError);
+        throw new Error(transactionError.message || "Failed to create transaction record");
+      }
+      
       const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
-        body: { amount, walletAddress }
+        body: { 
+          amount, 
+          walletAddress,
+          transactionId: transactionData.id
+        }
       });
       
       if (error) {
@@ -72,8 +125,53 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
     try {
       console.log(`Creating CoinPayments payment with currency: ${currency}`);
       
+      // Check if transaction amount requires approval
+      const requiresApproval = amount > 3000;
+      
+      // Create transaction record before initiating CoinPayments checkout
+      const { data: transactionData, error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          amount,
+          wallet_address: walletAddress,
+          payment_method: 'coinpayments',
+          status: 'pending',
+          transaction_id: `CP-${Date.now()}`,
+          kyc_verification_id: kycData?.id,
+          approval_status: requiresApproval ? 'pending' : 'approved'
+        })
+        .select()
+        .single();
+      
+      if (transactionError) {
+        console.error("Transaction record creation error:", transactionError);
+        throw new Error(transactionError.message || "Failed to create transaction record");
+      }
+      
+      // If transaction requires approval, show message and don't proceed with payment
+      if (requiresApproval) {
+        setCryptoPaymentDetails({
+          paymentAddress: '',
+          transactionId: transactionData.id,
+          instructions: 'Your transaction exceeds $3,000 and requires admin approval before processing. You will be notified once approved.',
+          requiresApproval: true
+        });
+        
+        setShowCryptoDialog(true);
+        toast.success("High-value transaction submitted for approval");
+        setIsProcessing(false);
+        return;
+      }
+      
+      // If no approval required, proceed with CoinPayments
       const { data, error } = await supabase.functions.invoke('create-coinpayments-payment', {
-        body: { amount, walletAddress, currency }
+        body: { 
+          amount, 
+          walletAddress, 
+          currency,
+          transactionId: transactionData.id
+        }
       });
       
       if (error) {
@@ -94,7 +192,8 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
         expiresAt: data.expiresAt,
         externalTransactionId: data.externalTransactionId,
         currency: data.currency || currency,
-        checkStatusUrl: data.checkStatusUrl
+        checkStatusUrl: data.checkStatusUrl,
+        requiresApproval: false
       });
       
       setShowCryptoDialog(true);
@@ -113,8 +212,52 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
     setIsProcessing(true);
     
     try {
+      // Check if transaction amount requires approval
+      const requiresApproval = amount > 3000;
+      
+      // Create transaction record before initiating crypto payment
+      const { data: transactionData, error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          amount,
+          wallet_address: walletAddress,
+          payment_method: 'crypto',
+          status: 'pending',
+          transaction_id: `CRYPTO-${Date.now()}`,
+          kyc_verification_id: kycData?.id,
+          approval_status: requiresApproval ? 'pending' : 'approved'
+        })
+        .select()
+        .single();
+      
+      if (transactionError) {
+        console.error("Transaction record creation error:", transactionError);
+        throw new Error(transactionError.message || "Failed to create transaction record");
+      }
+      
+      // If transaction requires approval, show message and don't proceed with payment
+      if (requiresApproval) {
+        setCryptoPaymentDetails({
+          paymentAddress: '',
+          transactionId: transactionData.id,
+          instructions: 'Your transaction exceeds $3,000 and requires admin approval before processing. You will be notified once approved.',
+          requiresApproval: true
+        });
+        
+        setShowCryptoDialog(true);
+        toast.success("High-value transaction submitted for approval");
+        setIsProcessing(false);
+        return;
+      }
+      
+      // If no approval required, proceed with crypto payment
       const { data, error } = await supabase.functions.invoke('create-crypto-payment', {
-        body: { amount, walletAddress }
+        body: { 
+          amount, 
+          walletAddress,
+          transactionId: transactionData.id
+        }
       });
       
       if (error) {
@@ -131,7 +274,8 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
         transactionId: data.transactionId,
         instructions: data.instructions,
         currency: 'USDC',
-        checkStatusUrl: data.checkStatusUrl
+        checkStatusUrl: data.checkStatusUrl,
+        requiresApproval: false
       });
       
       setShowCryptoDialog(true);
