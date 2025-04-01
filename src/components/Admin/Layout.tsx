@@ -12,7 +12,8 @@ import {
   CreditCard,
   AlertTriangle,
   Moon,
-  Sun
+  Sun,
+  Book
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +42,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
     { path: '/admin/kyc-verifications', name: 'KYC Verifications', icon: <FileCheck className="h-5 w-5" /> },
     { path: '/admin/transactions', name: 'Token Distribution', icon: <DollarSign className="h-5 w-5" /> },
     { path: '/admin/high-value-approvals', name: 'High-Value Approvals', icon: <AlertTriangle className="h-5 w-5" /> },
+    { path: '/admin/research', name: 'Research Documents', icon: <Book className="h-5 w-5" /> },
   ];
 
   return (
