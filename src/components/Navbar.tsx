@@ -38,7 +38,9 @@ const Navbar: React.FC = () => {
           <Link to="/token-info" className="text-gray-800 hover:text-cbis-blue transition-colors">Token Info</Link>
           
           {user ? (
-            <Link to="/dashboard/payments" className="text-gray-800 hover:text-cbis-blue transition-colors">Buy Tokens</Link>
+            <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
+              <Link to="/dashboard/payments">Buy Tokens</Link>
+            </Button>
           ) : (
             <>
               <Link to="/login" className="text-gray-800 hover:text-cbis-blue transition-colors flex items-center">
@@ -52,12 +54,6 @@ const Navbar: React.FC = () => {
                 </Link>
               </Button>
             </>
-          )}
-          
-          {user && (
-            <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
-              <Link to="/dashboard/payments">Buy Tokens</Link>
-            </Button>
           )}
         </div>
 
