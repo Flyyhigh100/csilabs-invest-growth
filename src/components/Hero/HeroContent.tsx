@@ -30,9 +30,9 @@ const HeroContent: React.FC<HeroContentProps> = ({ isLoaded }) => {
           </Link>
         </Button>
         <Button asChild variant="outline" size="lg" className="border-cbis-blue text-cbis-blue hover:bg-cbis-blue/5 transition-colors flex-shrink-0">
-          <a href="/research/csi-research-data.pdf" target="_blank" rel="noopener noreferrer">
+          <Link to="/research">
             <FileText className="mr-2 h-4 w-4" /> View Research Data
-          </a>
+          </Link>
         </Button>
       </div>
     </div>
