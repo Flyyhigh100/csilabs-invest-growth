@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { submitKycVerification } from '../services/verificationService';
-import { kycLogger } from '../utils/logger';
+import { kycLogger, LogLevel } from '../utils/logger';
 
 /**
  * Hook for submitting KYC verification
@@ -16,7 +16,7 @@ export function useVerificationSubmitMutation() {
   const submitVerification = useMutation({
     mutationFn: async (kycData: any) => {
       if (!user) {
-        kycLogger.log('error', 'User not authenticated');
+        kycLogger.log(LogLevel.ERROR, 'User not authenticated');
         throw new Error('User not authenticated or KYC data not found');
       }
       
@@ -30,7 +30,7 @@ export function useVerificationSubmitMutation() {
       
       // Proceed with submission
       const result = await submitKycVerification(user.id);
-      kycLogger.log('info', "Submission result:", result);
+      kycLogger.log(LogLevel.INFO, "Submission result:", result);
       return result;
     },
     onSuccess: () => {
