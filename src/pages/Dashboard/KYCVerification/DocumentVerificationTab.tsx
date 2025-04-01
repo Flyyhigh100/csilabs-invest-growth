@@ -6,7 +6,8 @@ import { KycVerificationData } from '@/hooks/kyc/types';
 import { toast } from 'sonner';
 import { AlertCircle, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { initializeRequiredBuckets, listAllBuckets } from '@/utils/admin/kyc/storage';
+import { checkStorageAvailability, initializeStorage, getStorageStatus } from '@/services/storage/initStorage';
+import { kycLogger, LogLevel } from '@/hooks/kyc/utils/logger';
 
 interface DocumentVerificationTabProps {
   kycData: KycVerificationData | null;
@@ -31,29 +32,40 @@ const DocumentVerificationTab: React.FC<DocumentVerificationTabProps> = ({
   
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isStorageChecking, setIsStorageChecking] = useState(false);
-  const [storageStatus, setStorageStatus] = useState<'unchecked' | 'available' | 'unavailable'>('unchecked');
+  const [storageStatus, setStorageStatus] = useState(getStorageStatus());
   
   // Check storage buckets on component mount
   useEffect(() => {
     const checkStorage = async () => {
       try {
         setIsStorageChecking(true);
-        // Try to initialize required buckets
-        await initializeRequiredBuckets();
+        kycLogger.log(LogLevel.INFO, 'Checking storage availability in DocumentVerificationTab');
         
-        // Check if any buckets exist
-        const buckets = await listAllBuckets();
+        // Check if storage is available
+        const status = await checkStorageAvailability();
         
-        if (buckets.length > 0) {
-          console.log('Storage buckets available:', buckets);
+        if (status === 'available') {
+          kycLogger.log(LogLevel.INFO, 'Storage is available');
           setStorageStatus('available');
+          setUploadError(null);
         } else {
-          console.error('No storage buckets available');
-          setStorageStatus('unavailable');
-          setUploadError('Storage is not configured correctly. Please try again later or contact support.');
+          kycLogger.log(LogLevel.WARN, 'Storage not available, attempting to initialize');
+          
+          // Try to initialize storage
+          const initialized = await initializeStorage();
+          
+          if (initialized) {
+            kycLogger.log(LogLevel.INFO, 'Storage initialized successfully');
+            setStorageStatus('available');
+            setUploadError(null);
+          } else {
+            kycLogger.log(LogLevel.ERROR, 'Storage initialization failed');
+            setStorageStatus('unavailable');
+            setUploadError('Storage service is currently unavailable. Please try again later or contact support.');
+          }
         }
       } catch (error) {
-        console.error('Error checking storage:', error);
+        kycLogger.log(LogLevel.ERROR, 'Error checking storage:', error);
         setStorageStatus('unavailable');
         setUploadError('Unable to connect to storage service. Please try again later.');
       } finally {
@@ -73,8 +85,7 @@ const DocumentVerificationTab: React.FC<DocumentVerificationTabProps> = ({
       (kycData?.selfie_url && !hasSelfie);
     
     if (hasAttemptedUpload) {
-      console.warn("Document URLs exist but files may not be accessible:");
-      console.log({
+      kycLogger.log(LogLevel.WARN, "Document URLs exist but files may not be accessible:", {
         id_front_url: kycData?.id_front_url,
         id_back_url: kycData?.id_back_url,
         selfie_url: kycData?.selfie_url,
@@ -115,7 +126,7 @@ const DocumentVerificationTab: React.FC<DocumentVerificationTabProps> = ({
       
       await onUpload(file, type);
     } catch (error) {
-      console.error(`Error uploading ${type}:`, error);
+      kycLogger.log(LogLevel.ERROR, `Error uploading ${type}:`, error);
       setUploadError(`Upload failed: ${error instanceof Error ? error.message : 'Server error'}`);
       toast.error(`Upload failed. Please try again.`);
     }
@@ -126,19 +137,26 @@ const DocumentVerificationTab: React.FC<DocumentVerificationTabProps> = ({
     setUploadError(null);
     
     try {
-      await initializeRequiredBuckets();
-      const buckets = await listAllBuckets();
+      kycLogger.log(LogLevel.INFO, 'Manually retrying storage initialization');
+      const initialized = await initializeStorage();
       
-      if (buckets.length > 0) {
-        setStorageStatus('available');
-        toast.success('Storage service is now available');
+      if (initialized) {
+        const status = await checkStorageAvailability(true);
+        setStorageStatus(status);
+        
+        if (status === 'available') {
+          toast.success('Storage service is now available');
+        } else {
+          setUploadError('Storage is still unavailable. Please try again later or contact support.');
+          toast.error('Storage service is still unavailable');
+        }
       } else {
         setStorageStatus('unavailable');
-        setUploadError('Storage is still unavailable. Please try again later or contact support.');
-        toast.error('Storage service is still unavailable');
+        setUploadError('Storage initialization failed. Please try again later or contact support.');
+        toast.error('Storage service initialization failed');
       }
     } catch (error) {
-      console.error('Error retrying storage check:', error);
+      kycLogger.log(LogLevel.ERROR, 'Error retrying storage check:', error);
       setStorageStatus('unavailable');
       setUploadError('Unable to connect to storage service. Please try again later.');
       toast.error('Storage service connection failed');

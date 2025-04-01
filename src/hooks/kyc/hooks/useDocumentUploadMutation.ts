@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { uploadKycDocument, testUpload } from '../services/documentService';
 import { ensureKycRecordExists } from '../services/personalInfoService';
 import { kycLogger, LogLevel } from '../utils/logger';
+import { checkStorageAvailability } from '@/services/storage/initStorage';
 
 /**
  * Hook for uploading KYC documents
@@ -25,10 +26,16 @@ export function useDocumentUploadMutation() {
       if (!user) throw new Error('User not authenticated');
       
       try {
+        // Check if storage is available
+        const storageStatus = await checkStorageAvailability();
+        if (storageStatus !== 'available') {
+          throw new Error('Storage service is currently unavailable. Please try again later.');
+        }
+        
         // Ensure KYC record exists before uploading
         await ensureKycRecordExists(user.id);
         
-        kycLogger.uploadingDocument(user.id, type);
+        kycLogger.log(LogLevel.INFO, `Uploading ${type} document for user:`, user.id);
         
         // Attempt a test upload first to verify storage functionality
         if (process.env.NODE_ENV === 'development') {
@@ -41,10 +48,10 @@ export function useDocumentUploadMutation() {
         
         return uploadKycDocument(user.id, file, type);
       } catch (error) {
-        kycLogger.uploadError(type, error);
+        kycLogger.log(LogLevel.ERROR, `Upload error for ${type}:`, error);
         
         // Log additional diagnostic information
-        kycLogger.diagnosticInfo({
+        kycLogger.log(LogLevel.INFO, 'Diagnostic info:', {
           fileType: file.type,
           fileSize: file.size,
           fileName: file.name
@@ -54,7 +61,7 @@ export function useDocumentUploadMutation() {
       }
     },
     onSuccess: (url, variables) => {
-      kycLogger.documentUploaded(variables.type, url);
+      kycLogger.log(LogLevel.INFO, `Document uploaded: ${variables.type}`, url);
       toast.success(`${variables.type.replace('_', ' ')} uploaded successfully`);
       
       // Invalidate all related queries
@@ -64,7 +71,7 @@ export function useDocumentUploadMutation() {
       queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
     },
     onError: (error, variables) => {
-      kycLogger.uploadError(variables.type, error);
+      kycLogger.log(LogLevel.ERROR, `Upload error for ${variables.type}:`, error);
       toast.error(`Failed to upload document: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
@@ -74,6 +81,7 @@ export function useDocumentUploadMutation() {
     try {
       if (!user) return false;
       
+      kycLogger.log(LogLevel.INFO, 'Testing storage connection');
       const testFile = new File(['test'], 'test.txt', { type: 'text/plain' });
       await testUpload(testFile);
       return true;
