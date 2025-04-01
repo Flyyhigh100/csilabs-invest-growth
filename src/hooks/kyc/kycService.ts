@@ -9,7 +9,8 @@ import {
 } from './services/personalInfoService';
 
 import {
-  uploadKycDocument
+  uploadKycDocument,
+  testUpload
 } from './services/documentService';
 
 import {
@@ -28,5 +29,6 @@ export {
   submitKycVerification,
   ensureKycRecordExists,
   insertTestKycVerification,
-  createTestKycRecord
+  createTestKycRecord,
+  testUpload
 };
