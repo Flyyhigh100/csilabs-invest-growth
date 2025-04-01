@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { KycFormData } from '../types';
 import { saveKycPersonalInfo, ensureKycRecordExists } from '../services/personalInfoService';
+import { kycLogger } from '../utils/logger';
 
 /**
  * Hook for saving KYC personal information
@@ -17,7 +18,7 @@ export function usePersonalInfoMutation() {
     mutationFn: async (formData: KycFormData) => {
       if (!user) throw new Error('User not authenticated');
       
-      console.log('Saving personal info for user:', user.id);
+      kycLogger.savingPersonalInfo(user.id);
       
       // Ensure we always create or update the KYC record
       try {
@@ -25,10 +26,10 @@ export function usePersonalInfoMutation() {
         await ensureKycRecordExists(user.id);
         
         const result = await saveKycPersonalInfo(user.id, formData);
-        console.log('KYC personal info saved:', result);
+        kycLogger.dataSaved(result);
         return result;
       } catch (error) {
-        console.error('Error in savePersonalInfo:', error);
+        kycLogger.personalInfoError(error);
         throw error;
       }
     },
@@ -42,7 +43,7 @@ export function usePersonalInfoMutation() {
       toast.success('Personal information saved successfully');
     },
     onError: (error) => {
-      console.error('Error saving personal information:', error);
+      kycLogger.log('error', 'Error saving personal information:', error);
       toast.error('Failed to save personal information');
     }
   });

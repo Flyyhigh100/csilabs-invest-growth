@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { uploadKycDocument } from '../services/documentService';
 import { ensureKycRecordExists } from '../services/personalInfoService';
+import { kycLogger } from '../utils/logger';
 
 /**
  * Hook for uploading KYC documents
@@ -27,13 +28,13 @@ export function useDocumentUploadMutation() {
         // Ensure KYC record exists before uploading
         await ensureKycRecordExists(user.id);
         
-        console.log(`Uploading ${type} document for user:`, user.id);
+        kycLogger.uploadingDocument(user.id, type);
         return uploadKycDocument(user.id, file, type);
       } catch (error) {
-        console.error(`Error in uploadDocument (${type}):`, error);
+        kycLogger.uploadError(type, error);
         
         // Log additional diagnostic information
-        console.log('Diagnostic information:', {
+        kycLogger.diagnosticInfo({
           fileType: file.type,
           fileSize: file.size,
           fileName: file.name
@@ -43,7 +44,7 @@ export function useDocumentUploadMutation() {
       }
     },
     onSuccess: (url, variables) => {
-      console.log(`Document uploaded successfully: ${variables.type}`, url);
+      kycLogger.documentUploaded(variables.type, url);
       toast.success(`${variables.type.replace('_', ' ')} uploaded successfully`);
       
       // Invalidate all related queries
@@ -53,7 +54,7 @@ export function useDocumentUploadMutation() {
       queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
     },
     onError: (error, variables) => {
-      console.error(`Error uploading document (${variables.type}):`, error);
+      kycLogger.uploadError(variables.type, error);
       toast.error(`Failed to upload document: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });

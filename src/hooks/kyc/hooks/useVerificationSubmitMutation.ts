@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { submitKycVerification } from '../services/verificationService';
+import { kycLogger } from '../utils/logger';
 
 /**
  * Hook for submitting KYC verification
@@ -15,25 +16,25 @@ export function useVerificationSubmitMutation() {
   const submitVerification = useMutation({
     mutationFn: async (kycData: any) => {
       if (!user) {
-        console.error('User not authenticated');
+        kycLogger.log('error', 'User not authenticated');
         throw new Error('User not authenticated or KYC data not found');
       }
       
-      console.log('Submitting verification for user:', user.id);
+      kycLogger.submittingVerification(user.id);
       
       // Add additional validation
       if (!kycData.id_front_url || !kycData.id_back_url || !kycData.selfie_url) {
-        console.error('Missing required document uploads');
+        kycLogger.missingDocuments();
         throw new Error('All documents must be uploaded before submission');
       }
       
       // Proceed with submission
       const result = await submitKycVerification(user.id);
-      console.log("Submission result:", result);
+      kycLogger.log('info', "Submission result:", result);
       return result;
     },
     onSuccess: () => {
-      console.log("KYC verification submitted successfully");
+      kycLogger.verificationSubmitted();
       toast.success("Verification submitted successfully! We will review it shortly.");
       
       // Force immediate invalidation of all related cached data
@@ -43,7 +44,7 @@ export function useVerificationSubmitMutation() {
       queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
     },
     onError: (error) => {
-      console.error('Error submitting verification:', error);
+      kycLogger.submissionError(error);
       toast.error(`Failed to submit verification: ${error instanceof Error ? error.message : 'Please try again.'}`);
     }
   });

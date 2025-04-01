@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { KycVerificationData } from '../types';
 import { fetchKycVerification, ensureKycRecordExists } from '../services/personalInfoService';
 import { listAllBuckets } from '@/utils/admin/kyc/storage';
+import { kycLogger } from '../utils/logger';
 
 /**
  * Hook to fetch KYC verification data
@@ -22,7 +23,7 @@ export function useKycData() {
     queryKey: ['kyc', user?.id],
     queryFn: async (): Promise<KycVerificationData | null> => {
       if (!user) return null;
-      console.log('Fetching KYC data for user:', user.id);
+      kycLogger.fetchingData(user.id);
       
       try {
         // Check available buckets for debugging
@@ -33,7 +34,7 @@ export function useKycData() {
         
         return fetchKycVerification(user.id);
       } catch (error) {
-        console.error('Error in KYC data fetch:', error);
+        kycLogger.dataFetchError(error);
         toast.error('Failed to load KYC data. Please refresh the page.');
         throw error;
       }
@@ -46,12 +47,12 @@ export function useKycData() {
   // Debug function to help diagnose upload issues
   const runStorageCheck = async () => {
     try {
-      console.log('Running storage diagnostics...');
+      kycLogger.runningStorageDiagnostics();
       const buckets = await listAllBuckets();
-      console.log('Available buckets:', buckets);
+      kycLogger.availableBuckets(buckets);
       return buckets;
     } catch (error) {
-      console.error('Error in storage diagnostics:', error);
+      kycLogger.storageDiagnosticsError(error);
       return [];
     }
   };
