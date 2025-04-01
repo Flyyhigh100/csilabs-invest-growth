@@ -29,6 +29,7 @@ import AdminKycPage from './pages/Admin/KYCVerifications';
 import AdminTransactionsPage from './pages/Admin/Transactions';
 import AdminUsersPage from './pages/Admin/Users';
 import AdminHighValueApprovalsPage from './pages/Admin/HighValueApprovals';
+import AdminResearchPage from './pages/Admin/Research';
 
 const App = () => {
   const queryClient = new QueryClient({
@@ -72,6 +73,7 @@ const App = () => {
                 <Route path="transactions" element={<AdminTransactionsPage />} />
                 <Route path="users" element={<AdminUsersPage />} />
                 <Route path="high-value-approvals" element={<AdminHighValueApprovalsPage />} />
+                <Route path="research" element={<AdminResearchPage />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />
