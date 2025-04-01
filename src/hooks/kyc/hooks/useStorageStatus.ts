@@ -4,8 +4,10 @@ import { toast } from 'sonner';
 import { kycLogger, LogLevel } from '@/hooks/kyc/utils/logger';
 import { 
   checkStorageAvailability, 
-  initializeStorage, 
+  initializeStorage,
+  testStorageConnection,
   getStorageStatus,
+  resetStorageInitialization,
   StorageStatus
 } from '@/services/storage/initStorage';
 
@@ -31,6 +33,10 @@ export function useStorageStatus() {
         kycLogger.log(LogLevel.INFO, 'Storage is available');
         setStorageStatus('available');
         setUploadError(null);
+      } else if (status === 'error') {
+        kycLogger.log(LogLevel.ERROR, 'Storage initialization previously failed');
+        setStorageStatus('error');
+        setUploadError('Storage service encountered an error. Please try to reinitialize or contact support.');
       } else {
         kycLogger.log(LogLevel.WARN, 'Storage not available, attempting to initialize');
         
@@ -62,14 +68,31 @@ export function useStorageStatus() {
     
     try {
       kycLogger.log(LogLevel.INFO, 'Manually retrying storage initialization');
+      
+      // Test connection first
+      const isConnected = await testStorageConnection();
+      
+      if (!isConnected) {
+        setStorageStatus('unavailable');
+        setUploadError('Cannot connect to storage service. Please check your network connection.');
+        toast.error('Cannot connect to storage service');
+        return;
+      }
+      
+      // Reset initialization counters to allow a fresh start
+      resetStorageInitialization();
+      
+      // Try to initialize
       const initialized = await initializeStorage();
       
       if (initialized) {
+        // Force check with latest status
         const status = await checkStorageAvailability(true);
         setStorageStatus(status);
         
         if (status === 'available') {
           toast.success('Storage service is now available');
+          setUploadError(null);
         } else {
           setUploadError('Storage is still unavailable. Please try again later or contact support.');
           toast.error('Storage service is still unavailable');

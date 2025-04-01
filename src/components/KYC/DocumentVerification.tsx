@@ -13,6 +13,7 @@ interface DocumentVerificationProps {
   isPending: boolean;
   isSubmitting: boolean;
   isStorageAvailable?: boolean;
+  uploadError?: string | null;
   onBack: () => void;
   onSubmit: () => Promise<void>;
   onUpload: (file: File, type: 'id_front' | 'id_back' | 'selfie') => Promise<void>;
@@ -25,13 +26,14 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   isPending,
   isSubmitting,
   isStorageAvailable = true,
+  uploadError = null,
   onBack,
   onSubmit,
   onUpload,
 }) => {
   // Local state to track submission attempts
   const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const handleSubmitClick = async () => {
     // Debug - log the state at button click
@@ -40,7 +42,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     console.log("Current process states:", { isPending, isSubmitting, isAttemptingSubmit });
     
     // Clear any previous errors
-    setUploadError(null);
+    setLocalError(null);
     
     // Validation check - should never happen due to button disabled state, but double-checking
     if (!hasIdFront || !hasIdBack || !hasSelfie) {
@@ -50,7 +52,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
       if (!hasSelfie) missingDocs.push("selfie");
       
       const errorMsg = `Please upload all required documents: ${missingDocs.join(", ")}`;
-      setUploadError(errorMsg);
+      setLocalError(errorMsg);
       toast.error(errorMsg);
       return;
     }
@@ -66,7 +68,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
       toast.success("Verification submitted successfully!");
     } catch (error) {
       console.error("Error in submission:", error);
-      setUploadError("Failed to submit verification. Please try again.");
+      setLocalError("Failed to submit verification. Please try again.");
       toast.error("Failed to submit verification. Please try again.");
     } finally {
       setIsAttemptingSubmit(false);
@@ -76,12 +78,15 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   // Combined submission state for UI feedback
   const showSubmitSpinner = isSubmitting || isAttemptingSubmit;
   const isButtonDisabled = !hasIdFront || !hasIdBack || !hasSelfie || showSubmitSpinner || isPending || !isStorageAvailable;
+  
+  // Combine external and local errors
+  const displayError = uploadError || localError;
 
   return (
     <div className="space-y-6">
       <DocumentVerificationHeader 
         isStorageAvailable={isStorageAvailable}
-        uploadError={uploadError}
+        uploadError={displayError}
       />
       
       <DocumentUploadsGrid 

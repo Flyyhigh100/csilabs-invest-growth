@@ -1,7 +1,11 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { kycLogger, LogLevel } from '@/hooks/kyc/utils/logger';
-import { checkStorageAvailability, initializeStorage } from '@/services/storage/initStorage';
+import { 
+  checkStorageAvailability, 
+  initializeStorage, 
+  testStorageConnection 
+} from '@/services/storage/initStorage';
 
 // Primary bucket name for KYC documents
 export const KYC_DOCUMENTS_BUCKET = 'kyc-documents';
@@ -25,7 +29,7 @@ export const checkBucketExists = async (bucketName: string): Promise<boolean> =>
     // Use the storage service to check availability first
     const storageStatus = await checkStorageAvailability();
     if (storageStatus !== 'available') {
-      kycLogger.log(LogLevel.WARN, 'Storage service is not available');
+      kycLogger.log(LogLevel.WARN, `Storage service is not available, status: ${storageStatus}`);
       return false;
     }
     
@@ -63,13 +67,128 @@ export const listAllBuckets = async (): Promise<string[]> => {
   }
 };
 
+// Test bucket accessibility by attempting a small operation
+export const testBucketAccess = async (bucketName: string): Promise<boolean> => {
+  try {
+    kycLogger.log(LogLevel.INFO, `Testing bucket '${bucketName}' accessibility...`);
+    
+    // First check if bucket exists
+    const exists = await checkBucketExists(bucketName);
+    if (!exists) {
+      kycLogger.log(LogLevel.WARN, `Bucket '${bucketName}' does not exist`);
+      return false;
+    }
+    
+    // Attempt to list files in the bucket (should work even if empty)
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .list('test', { limit: 1 });
+    
+    if (error) {
+      kycLogger.log(LogLevel.WARN, `Cannot access bucket '${bucketName}':`, error);
+      return false;
+    }
+    
+    kycLogger.log(LogLevel.INFO, `Successfully accessed bucket '${bucketName}'`);
+    return true;
+  } catch (error) {
+    kycLogger.log(LogLevel.ERROR, `Error testing bucket '${bucketName}' access:`, error);
+    return false;
+  }
+};
+
 // Ensure bucket exists before upload
 export const ensureBucketExists = async (bucketName: string): Promise<boolean> => {
   const exists = await checkBucketExists(bucketName);
   if (!exists) {
     kycLogger.log(LogLevel.INFO, `Bucket '${bucketName}' does not exist, attempting to create via initialization`);
-    return await initializeStorage();
+    
+    // Try initialization
+    const initialized = await initializeStorage();
+    if (!initialized) {
+      kycLogger.log(LogLevel.ERROR, `Failed to initialize storage for bucket '${bucketName}'`);
+      return false;
+    }
+    
+    // Verify the bucket now exists
+    const bucketCreated = await checkBucketExists(bucketName);
+    if (!bucketCreated) {
+      kycLogger.log(LogLevel.ERROR, `Bucket '${bucketName}' still doesn't exist after initialization`);
+      return false;
+    }
+    
+    // Test the bucket is accessible
+    return await testBucketAccess(bucketName);
   }
   
   return true;
+};
+
+// Comprehensive storage diagnosis utility
+export const diagnoseStorageIssues = async (): Promise<{
+  success: boolean;
+  connection: boolean;
+  buckets: string[];
+  accessibleBuckets: string[];
+  errors: string[];
+}> => {
+  const result = {
+    success: false,
+    connection: false,
+    buckets: [] as string[],
+    accessibleBuckets: [] as string[],
+    errors: [] as string[]
+  };
+  
+  try {
+    // Test basic connection
+    result.connection = await testStorageConnection();
+    if (!result.connection) {
+      result.errors.push('Cannot connect to storage service');
+      return result;
+    }
+    
+    // List available buckets
+    const buckets = await listAllBuckets();
+    result.buckets = buckets;
+    
+    if (buckets.length === 0) {
+      result.errors.push('No storage buckets found');
+      
+      // Try to initialize
+      const initialized = await initializeStorage();
+      if (!initialized) {
+        result.errors.push('Failed to initialize storage buckets');
+        return result;
+      }
+      
+      // Check again after initialization
+      const updatedBuckets = await listAllBuckets();
+      result.buckets = updatedBuckets;
+      
+      if (updatedBuckets.length === 0) {
+        result.errors.push('Still no buckets after initialization');
+        return result;
+      }
+    }
+    
+    // Test accessibility of each bucket
+    for (const bucket of result.buckets) {
+      const isAccessible = await testBucketAccess(bucket);
+      if (isAccessible) {
+        result.accessibleBuckets.push(bucket);
+      } else {
+        result.errors.push(`Bucket '${bucket}' exists but is not accessible`);
+      }
+    }
+    
+    // Overall success if we have accessible buckets and no critical errors
+    result.success = result.accessibleBuckets.length > 0;
+    
+    return result;
+  } catch (error) {
+    kycLogger.log(LogLevel.ERROR, 'Error during storage diagnosis:', error);
+    result.errors.push(`Unexpected error during diagnosis: ${error instanceof Error ? error.message : String(error)}`);
+    return result;
+  }
 };
