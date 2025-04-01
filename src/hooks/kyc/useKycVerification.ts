@@ -11,8 +11,7 @@ import {
   saveKycPersonalInfo,
   uploadKycDocument,
   submitKycVerification,
-  ensureKycRecordExists,
-  testUpload
+  ensureKycRecordExists
 } from './kycService';
 import { listAllBuckets } from '@/utils/admin/kyc/storage';
 
@@ -107,13 +106,18 @@ export function useKycVerification() {
       } catch (error) {
         console.error(`Error in uploadDocument (${type}):`, error);
         
-        // Try test upload to diagnose issues
+        // Try diagnostic upload
         try {
-          console.log('Attempting test upload to diagnose issues...');
-          const testUrl = await testUpload(file);
-          console.log('Test upload successful:', testUrl);
-        } catch (testError) {
-          console.error('Test upload also failed:', testError);
+          console.log('Attempting diagnostic upload to troubleshoot issues...');
+          // This was removed because testUpload doesn't exist
+          // Instead log additional diagnostic information
+          console.log('Diagnostic information:', {
+            fileType: file.type,
+            fileSize: file.size,
+            fileName: file.name
+          });
+        } catch (diagError) {
+          console.error('Diagnostic logging failed:', diagError);
         }
         
         throw error;
