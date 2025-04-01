@@ -1,16 +1,73 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, FileText, Check, AlertTriangle } from 'lucide-react';
+import { Upload, FileText, Check, AlertTriangle, Trash2 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+interface ResearchDocument {
+  id: string;
+  name: string;
+  created_at: string;
+  size: number;
+  url: string;
+}
 
 const ResearchDocumentUploader: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [documents, setDocuments] = useState<ResearchDocument[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, []);
+
+  const fetchDocuments = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from('research')
+        .list();
+
+      if (error) {
+        console.error('Error fetching documents:', error);
+        toast.error('Failed to load research documents');
+        return;
+      }
+
+      if (data) {
+        // Filter out any folders, only include files
+        const files = data.filter(item => !item.id.endsWith('/') && item.name.endsWith('.pdf'));
+        
+        // Get the public URLs for each file
+        const docsWithUrls = await Promise.all(files.map(async (file) => {
+          const { data: urlData } = await supabase.storage
+            .from('research')
+            .getPublicUrl(file.name);
+            
+          return {
+            id: file.id,
+            name: file.name,
+            created_at: file.created_at,
+            size: file.metadata?.size || 0,
+            url: urlData?.publicUrl || '',
+          };
+        }));
+        
+        setDocuments(docsWithUrls);
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast.error('An error occurred while loading documents');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -35,6 +92,10 @@ const ResearchDocumentUploader: React.FC = () => {
     setUploadProgress(0);
 
     try {
+      // Generate a unique file name to avoid conflicts
+      const timestamp = new Date().getTime();
+      const fileName = `${timestamp}-${selectedFile.name.replace(/\s+/g, '-')}`;
+
       // Simulate progress updates manually since onUploadProgress isn't supported
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
@@ -46,9 +107,9 @@ const ResearchDocumentUploader: React.FC = () => {
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
         .from('research')
-        .upload('csi-research-data.pdf', selectedFile, {
+        .upload(fileName, selectedFile, {
           cacheControl: '3600',
-          upsert: true,
+          upsert: false,
         });
 
       clearInterval(progressInterval);
@@ -65,15 +126,14 @@ const ResearchDocumentUploader: React.FC = () => {
       // Create a public URL for the research PDF
       const { data: publicUrlData } = await supabase.storage
         .from('research')
-        .getPublicUrl('csi-research-data.pdf');
+        .getPublicUrl(fileName);
 
       if (publicUrlData) {
         console.log('File uploaded successfully:', publicUrlData.publicUrl);
         setUploadSuccess(true);
         toast.success('Research document uploaded successfully!');
-        
-        // Update the link to the public/research folder
-        await copyToPublicFolder();
+        setSelectedFile(null);
+        fetchDocuments(); // Refresh the document list
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -83,102 +143,150 @@ const ResearchDocumentUploader: React.FC = () => {
     }
   };
 
-  // This function copies the file from Supabase storage to the public folder
-  // so it's accessible via the static URL in the app
-  const copyToPublicFolder = async () => {
+  const handleDeleteDocument = async (documentName: string) => {
     try {
-      const { data: fileData, error: fetchError } = await supabase.storage
+      const { error } = await supabase.storage
         .from('research')
-        .download('csi-research-data.pdf');
+        .remove([documentName]);
 
-      if (fetchError) {
-        console.error('Error downloading from Supabase:', fetchError);
+      if (error) {
+        console.error('Error deleting document:', error);
+        toast.error('Failed to delete document');
         return;
       }
 
-      // Return the public URL where the file will be accessible
-      const fileUrl = '/research/csi-research-data.pdf';
-      console.log('File will be accessible at:', fileUrl);
-      
-      toast.success(
-        'The research document is now available through the "View Research Data" button on the homepage', 
-        { duration: 5000 }
-      );
+      toast.success('Document deleted successfully');
+      fetchDocuments(); // Refresh the document list
     } catch (error) {
-      console.error('Error copying to public folder:', error);
+      console.error('Unexpected error:', error);
+      toast.error('An error occurred while deleting the document');
     }
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5 text-blue-600" />
-          Upload Research Document
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div 
-            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
-              ${selectedFile ? 'border-green-400 bg-green-50' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}
-            onClick={() => document.getElementById('file-upload')?.click()}
-          >
-            {selectedFile ? (
-              <div className="flex flex-col items-center">
-                <Check className="h-8 w-8 text-green-500 mb-2" />
-                <p className="text-sm font-medium">{selectedFile.name}</p>
-                <p className="text-xs text-gray-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center">
-                <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                <p className="text-sm font-medium">Click to select a PDF file</p>
-                <p className="text-xs text-gray-500">or drag and drop</p>
+    <div className="space-y-6">
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-blue-600" />
+            Upload Research Document
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div 
+              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
+                ${selectedFile ? 'border-green-400 bg-green-50' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}
+              onClick={() => document.getElementById('file-upload')?.click()}
+            >
+              {selectedFile ? (
+                <div className="flex flex-col items-center">
+                  <Check className="h-8 w-8 text-green-500 mb-2" />
+                  <p className="text-sm font-medium">{selectedFile.name}</p>
+                  <p className="text-xs text-gray-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center">
+                  <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                  <p className="text-sm font-medium">Click to select a PDF file</p>
+                  <p className="text-xs text-gray-500">or drag and drop</p>
+                </div>
+              )}
+              <input 
+                id="file-upload" 
+                type="file" 
+                accept="application/pdf" 
+                className="hidden" 
+                onChange={handleFileChange}
+                disabled={isUploading}
+              />
+            </div>
+
+            {uploadSuccess && (
+              <div className="bg-green-50 p-3 rounded-md flex items-start gap-2">
+                <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-green-800">Upload Complete</p>
+                  <p className="text-xs text-green-600">The research document has been successfully uploaded.</p>
+                </div>
               </div>
             )}
-            <input 
-              id="file-upload" 
-              type="file" 
-              accept="application/pdf" 
-              className="hidden" 
-              onChange={handleFileChange}
-              disabled={isUploading}
-            />
-          </div>
 
-          {uploadSuccess && (
-            <div className="bg-green-50 p-3 rounded-md flex items-start gap-2">
-              <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-green-800">Upload Complete</p>
-                <p className="text-xs text-green-600">The research document has been successfully uploaded.</p>
+            {isUploading && (
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div 
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+                <p className="text-xs text-gray-500 mt-1 text-right">{uploadProgress}% uploaded</p>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button
+            onClick={uploadFile}
+            disabled={!selectedFile || isUploading}
+            className="w-full"
+          >
+            {isUploading ? 'Uploading...' : 'Upload Document'}
+          </Button>
+        </CardFooter>
+      </Card>
 
-          {isUploading && (
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div 
-                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
-              <p className="text-xs text-gray-500 mt-1 text-right">{uploadProgress}% uploaded</p>
-            </div>
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Research Documents Library</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <p className="text-center py-4 text-gray-500">Loading documents...</p>
+          ) : documents.length === 0 ? (
+            <p className="text-center py-4 text-gray-500">No research documents uploaded yet.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Document Name</TableHead>
+                  <TableHead>Size</TableHead>
+                  <TableHead>Uploaded</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {documents.map((doc) => (
+                  <TableRow key={doc.id}>
+                    <TableCell className="font-medium">{doc.name.split('-').slice(1).join('-')}</TableCell>
+                    <TableCell>{(doc.size / 1024 / 1024).toFixed(2)} MB</TableCell>
+                    <TableCell>{new Date(doc.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => window.open(doc.url, '_blank')}
+                        >
+                          View
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => handleDeleteDocument(doc.name)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button
-          onClick={uploadFile}
-          disabled={!selectedFile || isUploading}
-          className="w-full"
-        >
-          {isUploading ? 'Uploading...' : 'Upload Document'}
-        </Button>
-      </CardFooter>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
 export default ResearchDocumentUploader;
+

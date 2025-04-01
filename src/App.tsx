@@ -19,6 +19,7 @@ import Transactions from '@/pages/Dashboard/Transactions';
 import KYCVerification from '@/pages/Dashboard/KYCVerification';
 import Documents from '@/pages/Dashboard/Documents';
 import Profile from '@/pages/Dashboard/Profile';
+import ResearchDocuments from '@/pages/ResearchDocuments';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import NotFound from '@/pages/NotFound';
 
@@ -50,6 +51,7 @@ const App = () => {
               {/* Public routes */}
               <Route path="/" element={<Index />} />
               <Route path="/token-info" element={<TokenInfo />} />
+              <Route path="/research" element={<ResearchDocuments />} />
               
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
@@ -87,3 +89,4 @@ const App = () => {
 };
 
 export default App;
+

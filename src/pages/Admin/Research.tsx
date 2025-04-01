@@ -23,31 +23,30 @@ const ResearchPage: React.FC = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
+      <div>
+        <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Book className="h-5 w-5 text-blue-600" />
-              Research Documents
+              Research Documents Management
             </CardTitle>
             <CardDescription>
-              Upload and manage research documents that are displayed on the website.
+              Upload and manage research documents that will be displayed to users on the website.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-500 mb-4">
-              The uploaded PDF will be available through the "View Research Data" button on the homepage.
-              Only PDF files are supported. The most recent upload will replace any previous document.
+              All uploaded PDFs will be available to users. You can upload multiple documents and manage them from here.
+              Users will be able to view these documents through the "View Research Data" button on the homepage.
             </p>
-            
-            <div className="mt-6">
-              <ResearchDocumentUploader />
-            </div>
           </CardContent>
         </Card>
+        
+        <ResearchDocumentUploader />
       </div>
     </div>
   );
 };
 
 export default ResearchPage;
+
