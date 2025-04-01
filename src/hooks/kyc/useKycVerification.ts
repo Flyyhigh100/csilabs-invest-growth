@@ -11,8 +11,10 @@ import {
   saveKycPersonalInfo,
   uploadKycDocument,
   submitKycVerification,
-  ensureKycRecordExists
+  ensureKycRecordExists,
+  testUpload
 } from './kycService';
+import { listAllBuckets } from '@/utils/admin/kyc/storage';
 
 export function useKycVerification() {
   const { user } = useAuth();
@@ -30,10 +32,19 @@ export function useKycVerification() {
       if (!user) return null;
       console.log('Fetching KYC data for user:', user.id);
       
-      // Ensure a KYC record exists for this user
-      await ensureKycRecordExists(user.id);
-      
-      return fetchKycVerification(user.id);
+      try {
+        // Check available buckets for debugging
+        await listAllBuckets();
+        
+        // Ensure a KYC record exists for this user
+        await ensureKycRecordExists(user.id);
+        
+        return fetchKycVerification(user.id);
+      } catch (error) {
+        console.error('Error in KYC data fetch:', error);
+        toast.error('Failed to load KYC data. Please refresh the page.');
+        throw error;
+      }
     },
     enabled: !!user,
     staleTime: 0, // Always refetch when needed
@@ -87,13 +98,31 @@ export function useKycVerification() {
     }) => {
       if (!user) throw new Error('User not authenticated');
       
-      // Ensure KYC record exists before uploading
-      await ensureKycRecordExists(user.id);
-      
-      console.log(`Uploading ${type} document for user:`, user.id);
-      return uploadKycDocument(user.id, file, type);
+      try {
+        // Ensure KYC record exists before uploading
+        await ensureKycRecordExists(user.id);
+        
+        console.log(`Uploading ${type} document for user:`, user.id);
+        return uploadKycDocument(user.id, file, type);
+      } catch (error) {
+        console.error(`Error in uploadDocument (${type}):`, error);
+        
+        // Try test upload to diagnose issues
+        try {
+          console.log('Attempting test upload to diagnose issues...');
+          const testUrl = await testUpload(file);
+          console.log('Test upload successful:', testUrl);
+        } catch (testError) {
+          console.error('Test upload also failed:', testError);
+        }
+        
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (url, variables) => {
+      console.log(`Document uploaded successfully: ${variables.type}`, url);
+      toast.success(`${variables.type.replace('_', ' ')} uploaded successfully`);
+      
       // Invalidate all related queries
       queryClient.invalidateQueries({ queryKey: ['kyc', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
@@ -102,9 +131,9 @@ export function useKycVerification() {
       
       refetch();
     },
-    onError: (error) => {
-      console.error('Error uploading document:', error);
-      toast.error('Failed to upload document');
+    onError: (error, variables) => {
+      console.error(`Error uploading document (${variables.type}):`, error);
+      toast.error(`Failed to upload document: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
   
@@ -146,9 +175,22 @@ export function useKycVerification() {
     },
     onError: (error) => {
       console.error('Error submitting verification:', error);
-      toast.error('Failed to submit verification. Please try again.');
+      toast.error(`Failed to submit verification: ${error instanceof Error ? error.message : 'Please try again.'}`);
     }
   });
+  
+  // Debug function to help diagnose upload issues
+  const runStorageCheck = async () => {
+    try {
+      console.log('Running storage diagnostics...');
+      const buckets = await listAllBuckets();
+      console.log('Available buckets:', buckets);
+      return buckets;
+    } catch (error) {
+      console.error('Error in storage diagnostics:', error);
+      return [];
+    }
+  };
   
   return {
     kycData,
@@ -157,6 +199,7 @@ export function useKycVerification() {
     savePersonalInfo,
     uploadDocument,
     submitVerification,
-    refetch
+    refetch,
+    runStorageCheck
   };
 }

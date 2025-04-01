@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import DocumentUpload from './DocumentUpload';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 interface DocumentVerificationProps {
   hasIdFront: boolean;
@@ -27,6 +28,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
 }) => {
   // Local state to track submission attempts
   const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleSubmitClick = async () => {
     // Debug - log the state at button click
@@ -34,9 +36,19 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     console.log("Current document states:", { hasIdFront, hasIdBack, hasSelfie });
     console.log("Current process states:", { isPending, isSubmitting, isAttemptingSubmit });
     
+    // Clear any previous errors
+    setUploadError(null);
+    
     // Validation check - should never happen due to button disabled state, but double-checking
     if (!hasIdFront || !hasIdBack || !hasSelfie) {
-      toast.error("Please upload all required documents before submitting");
+      const missingDocs = [];
+      if (!hasIdFront) missingDocs.push("front of ID");
+      if (!hasIdBack) missingDocs.push("back of ID");
+      if (!hasSelfie) missingDocs.push("selfie");
+      
+      const errorMsg = `Please upload all required documents: ${missingDocs.join(", ")}`;
+      setUploadError(errorMsg);
+      toast.error(errorMsg);
       return;
     }
     
@@ -51,6 +63,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
       toast.success("Verification submitted successfully!");
     } catch (error) {
       console.error("Error in submission:", error);
+      setUploadError("Failed to submit verification. Please try again.");
       toast.error("Failed to submit verification. Please try again.");
     } finally {
       setIsAttemptingSubmit(false);
@@ -68,6 +81,12 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
         <p className="text-sm text-gray-500 mb-4">
           Please upload clear images of your ID document (both sides) and a selfie.
         </p>
+        
+        {uploadError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+            {uploadError}
+          </div>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <DocumentUpload
@@ -94,6 +113,15 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
             onUpload={onUpload}
           />
         </div>
+        
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-700 text-sm">
+          <p><strong>Requirements:</strong></p>
+          <ul className="list-disc list-inside mt-1 space-y-1">
+            <li>Files must be clear, readable image formats (JPG, PNG)</li>
+            <li>Maximum file size: 5MB per image</li>
+            <li>For the selfie, hold your ID next to your face</li>
+          </ul>
+        </div>
       </div>
       
       <div className="mt-8 flex flex-col-reverse sm:flex-row sm:justify-between sm:space-x-2">
@@ -113,7 +141,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
         >
           {showSubmitSpinner ? (
             <>
-              <span className="mr-2 h-4 w-4 animate-spin inline-block border-2 border-current border-t-transparent rounded-full"></span>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Submitting...
             </>
           ) : (

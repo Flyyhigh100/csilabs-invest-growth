@@ -1,5 +1,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { ensureBucketExists, listAllBuckets } from '@/utils/admin/kyc/storage';
+import { toast } from 'sonner';
+
+const DOCUMENTS_BUCKET = 'documents';
 
 // Upload document for KYC verification
 export const uploadKycDocument = async (
@@ -7,21 +11,34 @@ export const uploadKycDocument = async (
   file: File,
   type: 'id_front' | 'id_back' | 'selfie'
 ): Promise<string> => {
-  console.log(`Uploading ${type} document for user:`, userId);
+  console.log(`Starting upload for ${type} document for user:`, userId);
   
   try {
+    // Check if bucket exists or create it
+    const bucketExists = await ensureBucketExists(DOCUMENTS_BUCKET);
+    
+    if (!bucketExists) {
+      console.error(`Cannot proceed with upload, bucket '${DOCUMENTS_BUCKET}' does not exist and could not be created`);
+      // List available buckets for debugging
+      await listAllBuckets();
+      throw new Error(`Storage bucket '${DOCUMENTS_BUCKET}' is not available`);
+    }
+    
     // Create a unique filename
     const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}/${type}.${fileExt}`;
+    const fileName = `${userId}/${type}_${Date.now()}.${fileExt}`;
     const filePath = `kyc/${fileName}`;
+    
+    console.log(`Uploading ${type} document to path: ${filePath}`);
     
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('documents')
+      .from(DOCUMENTS_BUCKET)
       .upload(filePath, file, { upsert: true });
     
     if (uploadError) {
       console.error(`Error uploading ${type} document:`, uploadError);
+      toast.error(`Failed to upload ${type} document: ${uploadError.message}`);
       throw uploadError;
     }
     
@@ -29,7 +46,7 @@ export const uploadKycDocument = async (
     
     // Generate a public URL
     const { data: publicUrlData } = supabase.storage
-      .from('documents')
+      .from(DOCUMENTS_BUCKET)
       .getPublicUrl(filePath);
     
     const publicUrl = publicUrlData.publicUrl;
@@ -103,6 +120,42 @@ export const uploadKycDocument = async (
     return publicUrl;
   } catch (error) {
     console.error(`Exception in uploadKycDocument (${type}):`, error);
+    throw error;
+  }
+};
+
+// Test upload function - useful for debugging
+export const testUpload = async (file: File): Promise<string> => {
+  try {
+    console.log('Testing upload with file:', file.name);
+    
+    // Ensure bucket exists
+    await ensureBucketExists(DOCUMENTS_BUCKET);
+    
+    const testPath = `test/test_${Date.now()}.${file.name.split('.').pop()}`;
+    
+    // Upload to test location
+    const { data, error } = await supabase.storage
+      .from(DOCUMENTS_BUCKET)
+      .upload(testPath, file);
+    
+    if (error) {
+      console.error('Test upload failed:', error);
+      throw error;
+    }
+    
+    console.log('Test upload succeeded:', data);
+    
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from(DOCUMENTS_BUCKET)
+      .getPublicUrl(testPath);
+    
+    console.log('Test upload URL:', urlData.publicUrl);
+    
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error('Test upload exception:', error);
     throw error;
   }
 };

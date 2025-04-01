@@ -23,10 +23,29 @@ export const checkBucketExists = async (bucketName: string): Promise<boolean> =>
         
         if (similarBucket) {
           console.log(`Found similar bucket: ${similarBucket.name}`);
+          return true; // Return true for the similar bucket to try using it
         }
       }
       
-      return false;
+      // If no bucket found, attempt to create one
+      try {
+        console.log(`Attempting to create bucket '${bucketName}'...`);
+        const { data: createData, error: createError } = await supabase.storage.createBucket(
+          bucketName,
+          { public: true }
+        );
+        
+        if (createError) {
+          console.error(`Failed to create bucket '${bucketName}':`, createError);
+          return false;
+        }
+        
+        console.log(`Successfully created bucket '${bucketName}'`, createData);
+        return true;
+      } catch (createError) {
+        console.error(`Error creating bucket '${bucketName}':`, createError);
+        return false;
+      }
     }
     
     console.log(`Bucket '${bucketName}' exists:`, data);
@@ -63,4 +82,30 @@ export const listAllBuckets = async (): Promise<string[]> => {
     console.error('Exception listing buckets:', error);
     return [];
   }
+};
+
+// Ensure bucket exists before upload
+export const ensureBucketExists = async (bucketName: string): Promise<boolean> => {
+  const exists = await checkBucketExists(bucketName);
+  if (!exists) {
+    try {
+      console.log(`Bucket '${bucketName}' does not exist, creating it...`);
+      const { error } = await supabase.storage.createBucket(bucketName, {
+        public: true,
+      });
+      
+      if (error) {
+        console.error(`Error creating bucket '${bucketName}':`, error);
+        return false;
+      }
+      
+      console.log(`Successfully created bucket '${bucketName}'`);
+      return true;
+    } catch (error) {
+      console.error(`Exception creating bucket '${bucketName}':`, error);
+      return false;
+    }
+  }
+  
+  return true;
 };
