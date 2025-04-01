@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { ArrowRight, LogIn } from 'lucide-react';
+import { ArrowRight, LogIn, UserPlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface HeroContentProps {
@@ -31,24 +31,24 @@ const HeroContent: React.FC<HeroContentProps> = ({ isLoaded }) => {
             </Link>
           </Button>
         ) : (
-          <Button asChild size="lg" className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity flex-shrink-0">
-            <Link to="/register">
-              Sign Up & Fund Our FDA Trials <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+          <>
+            <Button asChild size="lg" className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity flex-shrink-0">
+              <Link to="/register">
+                <UserPlus className="mr-2 h-4 w-4" /> Sign Up
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="border-cbis-blue text-cbis-blue hover:bg-cbis-blue/5 transition-colors flex-shrink-0">
+              <Link to="/login">
+                <LogIn className="mr-2 h-4 w-4" /> Sign In
+              </Link>
+            </Button>
+          </>
         )}
-        <Button asChild variant="outline" size="lg" className="border-cbis-blue text-cbis-blue hover:bg-cbis-blue/5 transition-colors flex-shrink-0">
+        <Button asChild variant={user ? "outline" : "ghost"} size="lg" className={user ? "border-cbis-blue text-cbis-blue hover:bg-cbis-blue/5 transition-colors flex-shrink-0" : "text-cbis-blue hover:bg-cbis-blue/5 transition-colors flex-shrink-0"}>
           <Link to="/token-info">
             View Research Data
           </Link>
         </Button>
-        {!user && (
-          <Button asChild variant="ghost" size="lg" className="text-cbis-blue hover:bg-cbis-blue/5 transition-colors flex-shrink-0">
-            <Link to="/login">
-              <LogIn className="mr-2 h-4 w-4" /> Sign In
-            </Link>
-          </Button>
-        )}
       </div>
     </div>
   );
