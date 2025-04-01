@@ -1,9 +1,12 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { ensureBucketExists, listAllBuckets } from '@/utils/admin/kyc/storage';
+import { 
+  ensureBucketExists, 
+  listAllBuckets, 
+  KYC_DOCUMENTS_BUCKET, 
+  initializeRequiredBuckets 
+} from '@/utils/admin/kyc/storage';
 import { toast } from 'sonner';
-
-const DOCUMENTS_BUCKET = 'documents';
 
 // Upload document for KYC verification
 export const uploadKycDocument = async (
@@ -14,31 +17,59 @@ export const uploadKycDocument = async (
   console.log(`Starting upload for ${type} document for user:`, userId);
   
   try {
-    // Check if bucket exists or create it
-    const bucketExists = await ensureBucketExists(DOCUMENTS_BUCKET);
+    // First, try to initialize all required buckets
+    await initializeRequiredBuckets();
+    
+    // Check if the primary bucket exists or create it
+    const bucketExists = await ensureBucketExists(KYC_DOCUMENTS_BUCKET);
     
     if (!bucketExists) {
-      console.error(`Cannot proceed with upload, bucket '${DOCUMENTS_BUCKET}' does not exist and could not be created`);
+      console.error(`Cannot proceed with upload, bucket '${KYC_DOCUMENTS_BUCKET}' does not exist and could not be created`);
       // List available buckets for debugging
-      await listAllBuckets();
-      throw new Error(`Storage bucket '${DOCUMENTS_BUCKET}' is not available`);
+      const availableBuckets = await listAllBuckets();
+      console.log('Available buckets:', availableBuckets);
+      
+      // If primary bucket failed, try the fallback bucket
+      const fallbackBucket = 'documents';
+      const fallbackExists = await ensureBucketExists(fallbackBucket);
+      
+      if (!fallbackExists) {
+        throw new Error('Storage buckets are not available. Please try again later.');
+      }
+      
+      // Use fallback bucket instead
+      return uploadToSpecificBucket(userId, file, type, fallbackBucket);
     }
     
+    return uploadToSpecificBucket(userId, file, type, KYC_DOCUMENTS_BUCKET);
+  } catch (error) {
+    console.error(`Exception in uploadKycDocument (${type}):`, error);
+    throw error;
+  }
+};
+
+// Helper function to upload to a specific bucket
+const uploadToSpecificBucket = async (
+  userId: string, 
+  file: File, 
+  type: 'id_front' | 'id_back' | 'selfie',
+  bucketName: string
+): Promise<string> => {
+  try {
     // Create a unique filename
     const fileExt = file.name.split('.').pop();
     const fileName = `${userId}/${type}_${Date.now()}.${fileExt}`;
     const filePath = `kyc/${fileName}`;
     
-    console.log(`Uploading ${type} document to path: ${filePath}`);
+    console.log(`Uploading ${type} document to bucket '${bucketName}' at path: ${filePath}`);
     
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from(DOCUMENTS_BUCKET)
+      .from(bucketName)
       .upload(filePath, file, { upsert: true });
     
     if (uploadError) {
       console.error(`Error uploading ${type} document:`, uploadError);
-      toast.error(`Failed to upload ${type} document: ${uploadError.message}`);
       throw uploadError;
     }
     
@@ -46,12 +77,29 @@ export const uploadKycDocument = async (
     
     // Generate a public URL
     const { data: publicUrlData } = supabase.storage
-      .from(DOCUMENTS_BUCKET)
+      .from(bucketName)
       .getPublicUrl(filePath);
     
     const publicUrl = publicUrlData.publicUrl;
     console.log(`Public URL for ${type}:`, publicUrl);
     
+    // Update the KYC record with the document URL
+    await updateKycRecordWithDocumentUrl(userId, type, publicUrl);
+    
+    return publicUrl;
+  } catch (error) {
+    console.error(`Error in uploadToSpecificBucket (${type}):`, error);
+    throw error;
+  }
+};
+
+// Update KYC record with document URL
+const updateKycRecordWithDocumentUrl = async (
+  userId: string,
+  type: 'id_front' | 'id_back' | 'selfie',
+  url: string
+): Promise<void> => {
+  try {
     // Ensure KYC record exists
     const { data: existingKyc, error: kycCheckError } = await supabase
       .from('kyc_verifications')
@@ -75,11 +123,11 @@ export const uploadKycDocument = async (
       
       // Set the appropriate URL field
       if (type === 'id_front') {
-        updateData.id_front_url = publicUrl;
+        updateData.id_front_url = url;
       } else if (type === 'id_back') {
-        updateData.id_back_url = publicUrl;
+        updateData.id_back_url = url;
       } else if (type === 'selfie') {
-        updateData.selfie_url = publicUrl;
+        updateData.selfie_url = url;
       }
       
       const { error: insertError } = await supabase
@@ -97,11 +145,11 @@ export const uploadKycDocument = async (
       const updateData: any = {};
       
       if (type === 'id_front') {
-        updateData.id_front_url = publicUrl;
+        updateData.id_front_url = url;
       } else if (type === 'id_back') {
-        updateData.id_back_url = publicUrl;
+        updateData.id_back_url = url;
       } else if (type === 'selfie') {
-        updateData.selfie_url = publicUrl;
+        updateData.selfie_url = url;
       }
       
       const { error: updateError } = await supabase
@@ -116,10 +164,8 @@ export const uploadKycDocument = async (
       
       console.log(`Updated ${type} URL in KYC record`);
     }
-    
-    return publicUrl;
   } catch (error) {
-    console.error(`Exception in uploadKycDocument (${type}):`, error);
+    console.error('Error updating KYC record with document URL:', error);
     throw error;
   }
 };
@@ -129,14 +175,23 @@ export const testUpload = async (file: File): Promise<string> => {
   try {
     console.log('Testing upload with file:', file.name);
     
-    // Ensure bucket exists
-    await ensureBucketExists(DOCUMENTS_BUCKET);
+    // Initialize required buckets
+    await initializeRequiredBuckets();
+    
+    // Check for any available bucket
+    const buckets = await listAllBuckets();
+    if (!buckets.length) {
+      throw new Error('No storage buckets available');
+    }
+    
+    const bucketToUse = buckets[0]; // Use first available bucket
+    console.log(`Using bucket for test upload: ${bucketToUse}`);
     
     const testPath = `test/test_${Date.now()}.${file.name.split('.').pop()}`;
     
     // Upload to test location
     const { data, error } = await supabase.storage
-      .from(DOCUMENTS_BUCKET)
+      .from(bucketToUse)
       .upload(testPath, file);
     
     if (error) {
@@ -148,7 +203,7 @@ export const testUpload = async (file: File): Promise<string> => {
     
     // Get public URL
     const { data: urlData } = supabase.storage
-      .from(DOCUMENTS_BUCKET)
+      .from(bucketToUse)
       .getPublicUrl(testPath);
     
     console.log('Test upload URL:', urlData.publicUrl);

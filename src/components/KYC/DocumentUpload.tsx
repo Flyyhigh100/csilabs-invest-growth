@@ -9,6 +9,7 @@ interface DocumentUploadProps {
   title: string;
   isUploaded: boolean;
   isPending: boolean;
+  isDisabled?: boolean;
   onUpload: (file: File, type: 'id_front' | 'id_back' | 'selfie') => Promise<void>;
 }
 
@@ -17,6 +18,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
   title,
   isUploaded,
   isPending,
+  isDisabled = false,
   onUpload,
 }) => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -65,13 +67,16 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
     if (uploadError) {
       return <AlertCircle className="h-8 w-8 text-red-500" />;
     }
+    if (isDisabled) {
+      return <AlertCircle className="h-8 w-8 text-gray-400" />;
+    }
     return documentType === 'selfie' ? 
       <Camera className="h-8 w-8 text-gray-400" /> : 
       <Upload className="h-8 w-8 text-gray-400" />;
   };
 
   return (
-    <div className="border rounded-md p-4">
+    <div className={`border rounded-md p-4 ${isDisabled ? 'opacity-70' : ''}`}>
       <h4 className="text-sm font-medium mb-2">{title}</h4>
       <div className="aspect-video bg-gray-100 rounded-md flex items-center justify-center mb-3">
         {isUploaded ? (
@@ -89,6 +94,11 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
             <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
             <p className="text-sm text-red-600">{uploadError}</p>
           </div>
+        ) : isDisabled ? (
+          <div className="p-2 text-center">
+            <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-500">Storage unavailable</p>
+          </div>
         ) : (
           <div className="p-2 text-center">
             {getIcon()}
@@ -103,7 +113,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
           type="button" 
           variant="outline" 
           className="w-full"
-          disabled={isPending}
+          disabled={isPending || isDisabled}
           onClick={() => document.getElementById(inputId)?.click()}
         >
           {isUploaded ? "Replace" : "Upload"}
@@ -115,10 +125,11 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
           className="hidden"
           onChange={handleFileChange}
           capture={documentType === 'selfie' ? 'user' : undefined}
+          disabled={isDisabled}
         />
       </div>
     </div>
   );
-};
+}
 
 export default DocumentUpload;

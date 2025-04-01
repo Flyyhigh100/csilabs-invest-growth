@@ -1,6 +1,60 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+// Primary bucket name for KYC documents
+export const KYC_DOCUMENTS_BUCKET = 'kyc-documents';
+
+// Initialize all required buckets for the application
+export const initializeRequiredBuckets = async (): Promise<boolean> => {
+  try {
+    console.log('Initializing required storage buckets...');
+    
+    // Create an array of required buckets
+    const requiredBuckets = [
+      KYC_DOCUMENTS_BUCKET,
+      'documents'  // Fallback/legacy bucket
+    ];
+    
+    // Check existing buckets
+    const { data: existingBuckets, error: listError } = await supabase.storage.listBuckets();
+    
+    if (listError) {
+      console.error('Error listing buckets:', listError);
+      return false;
+    }
+    
+    console.log('Existing buckets:', existingBuckets?.map(b => b.name) || []);
+    
+    // Create missing buckets
+    let allSuccess = true;
+    for (const bucketName of requiredBuckets) {
+      const bucketExists = existingBuckets?.some(b => b.name === bucketName);
+      
+      if (!bucketExists) {
+        console.log(`Creating bucket: ${bucketName}`);
+        const { error: createError } = await supabase.storage.createBucket(
+          bucketName,
+          { public: true }
+        );
+        
+        if (createError) {
+          console.error(`Failed to create bucket ${bucketName}:`, createError);
+          allSuccess = false;
+        } else {
+          console.log(`Successfully created bucket: ${bucketName}`);
+        }
+      } else {
+        console.log(`Bucket already exists: ${bucketName}`);
+      }
+    }
+    
+    return allSuccess;
+  } catch (error) {
+    console.error('Error initializing buckets:', error);
+    return false;
+  }
+};
+
 // Check if a bucket exists in Supabase storage
 export const checkBucketExists = async (bucketName: string): Promise<boolean> => {
   try {
@@ -9,58 +63,13 @@ export const checkBucketExists = async (bucketName: string): Promise<boolean> =>
     
     if (error) {
       console.error(`Bucket '${bucketName}' not found:`, error);
-      
-      // Check if we can list buckets to see what's available
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      
-      if (!bucketsError && buckets) {
-        console.log('Available buckets:', buckets.map(b => b.name));
-        // Check if there's a similar bucket that might be the correct one
-        const similarBucket = buckets.find(b => 
-          b.name.toLowerCase().includes('kyc') || 
-          b.name.toLowerCase().includes('document')
-        );
-        
-        if (similarBucket) {
-          console.log(`Found similar bucket: ${similarBucket.name}`);
-          return true; // Return true for the similar bucket to try using it
-        }
-      }
-      
-      // If no bucket found, attempt to create one
-      try {
-        console.log(`Attempting to create bucket '${bucketName}'...`);
-        const { data: createData, error: createError } = await supabase.storage.createBucket(
-          bucketName,
-          { public: true }
-        );
-        
-        if (createError) {
-          console.error(`Failed to create bucket '${bucketName}':`, createError);
-          return false;
-        }
-        
-        console.log(`Successfully created bucket '${bucketName}'`, createData);
-        return true;
-      } catch (createError) {
-        console.error(`Error creating bucket '${bucketName}':`, createError);
-        return false;
-      }
+      return false;
     }
     
     console.log(`Bucket '${bucketName}' exists:`, data);
     return true;
   } catch (error) {
     console.error(`Error checking bucket '${bucketName}':`, error);
-    
-    // Try to list all buckets as a fallback
-    try {
-      const { data: buckets } = await supabase.storage.listBuckets();
-      console.log('Available buckets:', buckets?.map(b => b.name));
-    } catch (listError) {
-      console.error('Error listing buckets:', listError);
-    }
-    
     return false;
   }
 };

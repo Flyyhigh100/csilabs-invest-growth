@@ -2,9 +2,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { uploadKycDocument } from '../services/documentService';
+import { uploadKycDocument, testUpload } from '../services/documentService';
 import { ensureKycRecordExists } from '../services/personalInfoService';
-import { kycLogger } from '../utils/logger';
+import { kycLogger, LogLevel } from '../utils/logger';
 
 /**
  * Hook for uploading KYC documents
@@ -29,6 +29,16 @@ export function useDocumentUploadMutation() {
         await ensureKycRecordExists(user.id);
         
         kycLogger.uploadingDocument(user.id, type);
+        
+        // Attempt a test upload first to verify storage functionality
+        if (process.env.NODE_ENV === 'development') {
+          try {
+            await testUpload(new File(['test'], 'test.txt', { type: 'text/plain' }));
+          } catch (testError) {
+            kycLogger.log(LogLevel.WARN, 'Test upload failed, but will still try actual upload:', testError);
+          }
+        }
+        
         return uploadKycDocument(user.id, file, type);
       } catch (error) {
         kycLogger.uploadError(type, error);
@@ -59,5 +69,22 @@ export function useDocumentUploadMutation() {
     }
   });
 
-  return { uploadDocument };
+  // Add a test function to check storage connectivity
+  const testStorageConnection = async (): Promise<boolean> => {
+    try {
+      if (!user) return false;
+      
+      const testFile = new File(['test'], 'test.txt', { type: 'text/plain' });
+      await testUpload(testFile);
+      return true;
+    } catch (error) {
+      kycLogger.log(LogLevel.ERROR, 'Storage connectivity test failed:', error);
+      return false;
+    }
+  };
+
+  return { 
+    uploadDocument,
+    testStorageConnection
+  };
 }

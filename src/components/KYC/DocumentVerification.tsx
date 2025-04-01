@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import DocumentUpload from './DocumentUpload';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 interface DocumentVerificationProps {
   hasIdFront: boolean;
@@ -11,6 +11,7 @@ interface DocumentVerificationProps {
   hasSelfie: boolean;
   isPending: boolean;
   isSubmitting: boolean;
+  isStorageAvailable?: boolean;
   onBack: () => void;
   onSubmit: () => Promise<void>;
   onUpload: (file: File, type: 'id_front' | 'id_back' | 'selfie') => Promise<void>;
@@ -22,6 +23,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   hasSelfie,
   isPending,
   isSubmitting,
+  isStorageAvailable = true,
   onBack,
   onSubmit,
   onUpload,
@@ -72,7 +74,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
 
   // Combined submission state for UI feedback
   const showSubmitSpinner = isSubmitting || isAttemptingSubmit;
-  const isButtonDisabled = !hasIdFront || !hasIdBack || !hasSelfie || showSubmitSpinner || isPending;
+  const isButtonDisabled = !hasIdFront || !hasIdBack || !hasSelfie || showSubmitSpinner || isPending || !isStorageAvailable;
 
   return (
     <div className="space-y-6">
@@ -81,6 +83,13 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
         <p className="text-sm text-gray-500 mb-4">
           Please upload clear images of your ID document (both sides) and a selfie.
         </p>
+        
+        {!isStorageAvailable && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm flex items-start">
+            <AlertCircle className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+            <span>Document storage is temporarily unavailable. Please try again later or contact support.</span>
+          </div>
+        )}
         
         {uploadError && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
@@ -94,6 +103,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
             title="Front of ID"
             isUploaded={hasIdFront}
             isPending={isPending}
+            isDisabled={!isStorageAvailable}
             onUpload={onUpload}
           />
           
@@ -102,6 +112,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
             title="Back of ID"
             isUploaded={hasIdBack}
             isPending={isPending}
+            isDisabled={!isStorageAvailable}
             onUpload={onUpload}
           />
           
@@ -110,6 +121,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
             title="Selfie with ID"
             isUploaded={hasSelfie}
             isPending={isPending}
+            isDisabled={!isStorageAvailable}
             onUpload={onUpload}
           />
         </div>
