@@ -10,6 +10,9 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+type TransactionStatus = 'pending' | 'completed' | 'failed';
+type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+
 interface CryptoPaymentDetailsType {
   paymentAddress: string;
   transactionId: string;
@@ -31,13 +34,13 @@ interface CryptoPaymentDialogProps {
   selectedCurrency: string;
 }
 
-interface TransactionStatus {
-  status: 'pending' | 'completed' | 'failed';
+interface TransactionStatusData {
+  status: TransactionStatus;
   transactionId: string;
   amount: number;
   paymentMethod: string;
   updatedAt: string;
-  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  approvalStatus?: ApprovalStatus;
 }
 
 const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
@@ -50,7 +53,7 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
   const [showQrExpanded, setShowQrExpanded] = useState<boolean>(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState<boolean>(false);
-  const [transactionStatus, setTransactionStatus] = useState<TransactionStatus | null>(null);
+  const [transactionStatus, setTransactionStatus] = useState<TransactionStatusData | null>(null);
   
   useEffect(() => {
     if (open && paymentDetails?.transactionId) {
@@ -108,8 +111,8 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
       
       if (data) {
         setTransactionStatus({
-          status: data.status,
-          approvalStatus: data.approval_status,
+          status: data.status as TransactionStatus,
+          approvalStatus: data.approval_status as ApprovalStatus,
           transactionId: paymentDetails.transactionId,
           amount: amount,
           paymentMethod: 'crypto',
@@ -154,7 +157,13 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
         statusData = data;
       }
       
-      setTransactionStatus(statusData);
+      setTransactionStatus({
+        status: statusData.status as TransactionStatus,
+        transactionId: statusData.transactionId,
+        amount: statusData.amount,
+        paymentMethod: statusData.paymentMethod,
+        updatedAt: statusData.updatedAt
+      });
       
       if (statusData.status === 'completed' && (!transactionStatus || transactionStatus.status !== 'completed')) {
         toast.success('Transaction completed! Your tokens will be sent to your wallet shortly.');
