@@ -35,24 +35,32 @@ const ResearchDocumentUploader: React.FC = () => {
     setUploadProgress(0);
 
     try {
+      // Simulate progress updates manually since onUploadProgress isn't supported
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          const newProgress = prev + 10;
+          return newProgress > 90 ? 90 : newProgress; // Cap at 90% until upload is confirmed
+        });
+      }, 300);
+
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
         .from('research')
         .upload('csi-research-data.pdf', selectedFile, {
           cacheControl: '3600',
           upsert: true,
-          // Progress callback for upload
-          onUploadProgress: (progress) => {
-            const percent = Math.round((progress.loaded / progress.total) * 100);
-            setUploadProgress(percent);
-          },
         });
+
+      clearInterval(progressInterval);
 
       if (error) {
         console.error('Upload error:', error);
         toast.error('Upload failed: ' + error.message);
         return;
       }
+
+      // Set to 100% when upload is confirmed successful
+      setUploadProgress(100);
 
       // Create a public URL for the research PDF
       const { data: publicUrlData } = await supabase.storage
