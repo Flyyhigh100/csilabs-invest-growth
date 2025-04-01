@@ -6,6 +6,16 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, FileText, Check, AlertTriangle, Trash2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ResearchDocument {
   id: string;
@@ -22,6 +32,8 @@ const ResearchDocumentUploader: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [documents, setDocuments] = useState<ResearchDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchDocuments();
@@ -143,15 +155,19 @@ const ResearchDocumentUploader: React.FC = () => {
     }
   };
 
-  const handleDeleteDocument = async (documentName: string) => {
+  const handleDeleteDocument = async () => {
+    if (!documentToDelete) return;
+    
+    setIsDeleting(true);
     try {
+      console.log('Deleting document:', documentToDelete);
       const { error } = await supabase.storage
         .from('research')
-        .remove([documentName]);
+        .remove([documentToDelete]);
 
       if (error) {
         console.error('Error deleting document:', error);
-        toast.error('Failed to delete document');
+        toast.error('Failed to delete document: ' + error.message);
         return;
       }
 
@@ -160,7 +176,14 @@ const ResearchDocumentUploader: React.FC = () => {
     } catch (error) {
       console.error('Unexpected error:', error);
       toast.error('An error occurred while deleting the document');
+    } finally {
+      setIsDeleting(false);
+      setDocumentToDelete(null);
     }
+  };
+
+  const confirmDelete = (documentName: string) => {
+    setDocumentToDelete(documentName);
   };
 
   return (
@@ -271,7 +294,7 @@ const ResearchDocumentUploader: React.FC = () => {
                         <Button 
                           variant="destructive" 
                           size="sm"
-                          onClick={() => handleDeleteDocument(doc.name)}
+                          onClick={() => confirmDelete(doc.name)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -284,9 +307,29 @@ const ResearchDocumentUploader: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!documentToDelete} onOpenChange={(open) => !open && setDocumentToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the research document from the storage.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteDocument}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
 
 export default ResearchDocumentUploader;
-
