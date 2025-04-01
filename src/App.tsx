@@ -3,6 +3,11 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { Toaster } from "@/components/ui/toaster";
+import Loading from '@/components/Loading';
+
+// Pages
 import Index from '@/pages/Index';
 import TokenInfo from '@/pages/TokenInfo';
 import Login from '@/pages/Auth/Login';
@@ -16,22 +21,30 @@ import Documents from '@/pages/Dashboard/Documents';
 import Profile from '@/pages/Dashboard/Profile';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import NotFound from '@/pages/NotFound';
-import { Toaster } from "@/components/ui/toaster"
 
-// Import admin pages
+// Admin pages
+import Admin from './pages/Admin';
 import AdminDashboard from './pages/Admin/Dashboard';
 import AdminKycPage from './pages/Admin/KYCVerifications';
 import AdminTransactionsPage from './pages/Admin/Transactions';
 import AdminUsersPage from './pages/Admin/Users';
+import AdminHighValueApprovalsPage from './pages/Admin/HighValueApprovals';
 
 const App = () => {
-  const queryClient = new QueryClient();
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: false,
+        retry: false,
+      },
+    },
+  });
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <div className="App">
+      <ThemeProvider>
+        <BrowserRouter>
+          <AuthProvider>
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<Index />} />
@@ -53,17 +66,20 @@ const App = () => {
               <Route path="/dashboard/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               
               {/* Admin Routes - Note the adminOnly prop */}
-              <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminDashboard /></ProtectedRoute>} />
-              <Route path="/admin/kyc" element={<ProtectedRoute adminOnly={true}><AdminKycPage /></ProtectedRoute>} />
-              <Route path="/admin/transactions" element={<ProtectedRoute adminOnly={true}><AdminTransactionsPage /></ProtectedRoute>} />
-              <Route path="/admin/users" element={<ProtectedRoute adminOnly={true}><AdminUsersPage /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute adminOnly={true}><Admin /></ProtectedRoute>}>
+                <Route path="" element={<AdminDashboard />} />
+                <Route path="kyc-verifications" element={<AdminKycPage />} />
+                <Route path="transactions" element={<AdminTransactionsPage />} />
+                <Route path="users" element={<AdminUsersPage />} />
+                <Route path="high-value-approvals" element={<AdminHighValueApprovalsPage />} />
+              </Route>
               
               <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster />
-          </div>
-        </AuthProvider>
-      </BrowserRouter>
+          </AuthProvider>
+        </BrowserRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

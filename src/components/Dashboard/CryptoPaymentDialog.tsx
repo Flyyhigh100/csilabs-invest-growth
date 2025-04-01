@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -55,14 +54,11 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
   
   useEffect(() => {
     if (open && paymentDetails?.transactionId) {
-      // For approval-required transactions, check database status
       if (paymentDetails.requiresApproval) {
         checkApprovalStatus();
         const intervalId = setInterval(checkApprovalStatus, 30000);
         return () => clearInterval(intervalId);
-      } 
-      // For normal transactions, check payment status
-      else if (paymentDetails.checkStatusUrl) {
+      } else if (paymentDetails.checkStatusUrl) {
         checkTransactionStatus();
         const intervalId = setInterval(checkTransactionStatus, 30000);
         return () => clearInterval(intervalId);
@@ -102,7 +98,6 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
     setIsCheckingStatus(true);
     
     try {
-      // Check the approval status directly from the database
       const { data, error } = await supabase
         .from('transactions')
         .select('status, approval_status, admin_notes, updated_at')
@@ -111,20 +106,21 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
       
       if (error) throw error;
       
-      setTransactionStatus({
-        status: data.status,
-        approvalStatus: data.approval_status,
-        transactionId: paymentDetails.transactionId,
-        amount: amount,
-        paymentMethod: 'crypto',
-        updatedAt: data.updated_at
-      });
-      
-      // Notify user of status changes
-      if (data.approval_status === 'approved' && (!transactionStatus || transactionStatus.approvalStatus !== 'approved')) {
-        toast.success('Your transaction has been approved! You will receive payment instructions shortly.');
-      } else if (data.approval_status === 'rejected' && (!transactionStatus || transactionStatus.approvalStatus !== 'rejected')) {
-        toast.error(`Your transaction was declined. Reason: ${data.admin_notes || 'Not provided'}`);
+      if (data) {
+        setTransactionStatus({
+          status: data.status,
+          approvalStatus: data.approval_status,
+          transactionId: paymentDetails.transactionId,
+          amount: amount,
+          paymentMethod: 'crypto',
+          updatedAt: data.updated_at
+        });
+        
+        if (data.approval_status === 'approved' && (!transactionStatus || transactionStatus.approvalStatus !== 'approved')) {
+          toast.success('Your transaction has been approved! You will receive payment instructions shortly.');
+        } else if (data.approval_status === 'rejected' && (!transactionStatus || transactionStatus.approvalStatus !== 'rejected')) {
+          toast.error(`Your transaction was declined. Reason: ${data.admin_notes || 'Not provided'}`);
+        }
       }
     } catch (error) {
       console.error('Error checking approval status:', error);
@@ -194,7 +190,6 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
   const renderStatusBadge = () => {
     if (!transactionStatus) return null;
     
-    // For approval-required transactions
     if (paymentDetails.requiresApproval) {
       switch (transactionStatus.approvalStatus) {
         case 'approved':
@@ -222,7 +217,6 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
       }
     }
     
-    // For regular transactions
     switch (transactionStatus.status) {
       case 'completed':
         return (
@@ -249,7 +243,6 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
     }
   };
   
-  // Render different content for approval-required transactions
   const renderApprovalContent = () => {
     return (
       <div className="space-y-4 py-4">
@@ -319,7 +312,6 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
     );
   };
   
-  // Render standard payment content
   const renderPaymentContent = () => {
     return (
       <div className="space-y-4 py-4">
@@ -474,7 +466,6 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
         </DialogContent>
       </Dialog>
       
-      {/* QR Code Expanded View Sheet */}
       {paymentDetails.qrCodeUrl && (
         <Sheet open={showQrExpanded} onOpenChange={setShowQrExpanded}>
           <SheetContent side="bottom" className="h-auto max-h-[90vh] overflow-auto">

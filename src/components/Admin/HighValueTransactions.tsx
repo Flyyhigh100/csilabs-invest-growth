@@ -39,6 +39,10 @@ interface HighValueTransaction {
   approval_status: 'pending' | 'approved' | 'rejected';
   admin_notes?: string;
   kyc_verification_id?: string;
+  payment_address?: string;
+  external_transaction_id?: string;
+  token_sent?: boolean;
+  updated_at: string;
 }
 
 interface UserData {
@@ -74,7 +78,7 @@ const fetchHighValueTransactions = async (): Promise<HighValueTransaction[]> => 
     .order('created_at', { ascending: false });
   
   if (error) throw error;
-  return data || [];
+  return data as HighValueTransaction[] || [];
 };
 
 const fetchUserData = async (userId: string): Promise<UserData | null> => {
@@ -453,7 +457,15 @@ const HighValueTransactions: React.FC = () => {
                             <Button 
                               variant="outline" 
                               className="w-full flex items-center justify-between"
-                              onClick={() => window.open(getKycDocumentUrl(kycData.id_front_url!), '_blank')}
+                              onClick={() => {
+                                const url = getKycDocumentUrl(kycData.id_front_url!);
+                                // Convert Promise to string before opening
+                                if (typeof url === 'string') {
+                                  window.open(url, '_blank');
+                                } else if (url instanceof Promise) {
+                                  url.then(resolvedUrl => window.open(resolvedUrl, '_blank'));
+                                }
+                              }}
                             >
                               <span className="flex items-center">
                                 <FileText className="mr-2 h-4 w-4" />
@@ -467,7 +479,15 @@ const HighValueTransactions: React.FC = () => {
                             <Button 
                               variant="outline" 
                               className="w-full flex items-center justify-between"
-                              onClick={() => window.open(getKycDocumentUrl(kycData.id_back_url!), '_blank')}
+                              onClick={() => {
+                                const url = getKycDocumentUrl(kycData.id_back_url!);
+                                // Convert Promise to string before opening
+                                if (typeof url === 'string') {
+                                  window.open(url, '_blank');
+                                } else if (url instanceof Promise) {
+                                  url.then(resolvedUrl => window.open(resolvedUrl, '_blank'));
+                                }
+                              }}
                             >
                               <span className="flex items-center">
                                 <FileText className="mr-2 h-4 w-4" />
@@ -481,7 +501,15 @@ const HighValueTransactions: React.FC = () => {
                             <Button 
                               variant="outline" 
                               className="w-full flex items-center justify-between"
-                              onClick={() => window.open(getKycDocumentUrl(kycData.selfie_url!), '_blank')}
+                              onClick={() => {
+                                const url = getKycDocumentUrl(kycData.selfie_url!);
+                                // Convert Promise to string before opening
+                                if (typeof url === 'string') {
+                                  window.open(url, '_blank');
+                                } else if (url instanceof Promise) {
+                                  url.then(resolvedUrl => window.open(resolvedUrl, '_blank'));
+                                }
+                              }}
                             >
                               <span className="flex items-center">
                                 <FileText className="mr-2 h-4 w-4" />

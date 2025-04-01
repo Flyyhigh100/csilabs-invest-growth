@@ -1,54 +1,36 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
-// Get a public URL for Supabase storage files
-export const getKycDocumentUrl = async (url: string | null): Promise<string | null> => {
-  if (!url) return null;
-  
+/**
+ * Retrieves a publicly accessible URL for a KYC document
+ * 
+ * @param documentPath The storage path of the document
+ * @returns A URL string or a Promise that resolves to a URL string
+ */
+export const getKycDocumentUrl = async (documentPath: string): Promise<string> => {
   try {
-    console.log('Processing document URL:', url);
-    
-    // If the URL is already in the correct format (contains storage/v1/object/public), return it
-    if (url.includes('storage/v1/object/public/')) {
-      console.log('URL is already in the public format:', url);
-      return url;
+    if (!documentPath) {
+      throw new Error('Document path is required');
     }
-    
-    // Extract bucket and path information
-    let bucketName = 'kyc_documents'; // Default bucket
-    let path = url;
-    
-    // Handle different URL formats
-    if (url.includes('/kyc_documents/')) {
-      bucketName = 'kyc_documents';
-      path = url.split('/kyc_documents/')[1];
-    } else if (url.includes('/documents/')) {
-      bucketName = 'documents';
-      path = url.split('/documents/')[1];
-    } else if (url.startsWith('kyc_documents/')) {
-      path = url.replace('kyc_documents/', '');
-    } else if (url.startsWith('documents/')) {
-      bucketName = 'documents';
-      path = url.replace('documents/', '');
+
+    // Extract bucket and file path from the document path
+    const parts = documentPath.split('/');
+    const bucket = parts[0] || 'kyc-documents';
+    const filePath = parts.slice(1).join('/');
+
+    // Get a public URL for the document
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(filePath, 60 * 5); // 5 minutes expiry
+
+    if (error) {
+      console.error('Error getting document URL:', error);
+      throw error;
     }
-    
-    console.log(`Generating public URL - Bucket: ${bucketName}, Path: ${path}`);
-    
-    // Use Supabase Storage getPublicUrl method - direct approach without async
-    const { data } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(path);
-    
-    if (data && data.publicUrl) {
-      console.log('Generated public URL:', data.publicUrl);
-      return data.publicUrl;
-    } else {
-      console.error('Failed to generate public URL');
-      return url; // Return original URL as fallback
-    }
+
+    return data?.signedUrl || '';
   } catch (error) {
-    console.error('Error processing document URL:', error);
-    return url; // Return original URL if processing fails
+    console.error('Error in getKycDocumentUrl:', error);
+    return '';
   }
 };
 
