@@ -40,7 +40,7 @@ const Navbar: React.FC = () => {
             <Link to="/register" className="text-gray-800 hover:text-cbis-blue transition-colors">Register</Link>
           )}
           {user && (
-            <Link to="/dashboard" className="text-gray-800 hover:text-cbis-blue transition-colors">Dashboard</Link>
+            <Link to="/dashboard/payments" className="text-gray-800 hover:text-cbis-blue transition-colors">Buy Tokens</Link>
           )}
           <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
             {user ? (
@@ -92,11 +92,11 @@ const Navbar: React.FC = () => {
         )}
         {user && (
           <Link 
-            to="/dashboard" 
+            to="/dashboard/payments" 
             className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
             onClick={() => setIsOpen(false)}
           >
-            Dashboard
+            Buy Tokens
           </Link>
         )}
         <div className="mt-6">

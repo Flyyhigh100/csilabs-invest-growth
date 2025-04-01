@@ -9,7 +9,6 @@ import Login from '@/pages/Auth/Login';
 import Register from '@/pages/Auth/Register';
 import ForgotPassword from '@/pages/Auth/ForgotPassword';
 import ResetPassword from '@/pages/Auth/ResetPassword';
-import Dashboard from '@/pages/Dashboard';
 import Payments from '@/pages/Dashboard/Payments';
 import Transactions from '@/pages/Dashboard/Transactions';
 import KYCVerification from '@/pages/Dashboard/KYCVerification';
@@ -46,7 +45,7 @@ const App = () => {
               <Route path="/reset-password" element={<ResetPassword />} />
               
               {/* Protected dashboard routes */}
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<Navigate to="/dashboard/payments" replace />} />
               <Route path="/dashboard/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
               <Route path="/dashboard/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
               <Route path="/dashboard/kyc" element={<ProtectedRoute><KYCVerification /></ProtectedRoute>} />
