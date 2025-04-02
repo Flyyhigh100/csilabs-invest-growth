@@ -1,281 +1,46 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { useToast } from "@/components/ui/use-toast"
-import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-
-// Helper function for formatting dates
-const formatDate = (dateString?: string | null): string => {
-  if (!dateString) return 'N/A';
-  try {
-    return format(parseISO(dateString), 'MMM dd, yyyy');
-  } catch (error) {
-    console.error("Date parsing error:", error);
-    return 'Invalid date';
-  }
-}
-
-const userSchema = z.object({
-  email: z.string().email(),
-  role: z.enum(['user', 'admin']),
-  status: z.enum(['active', 'inactive', 'pending']),
-  rejection_reason: z.string().optional(),
-})
-
-type UserSchemaType = z.infer<typeof userSchema>;
-type User = {
-  id: string;
-  email: string;
-  role: string;
-  status: string;
-  rejection_reason?: string;
-  created_at?: string;
-  first_name?: string;
-  last_name?: string;
-  updated_at?: string;
-  wallet_address?: string;
-  [key: string]: any;
-};
-
-type KycVerification = {
-  id: string;
-  user_id: string;
-  status: string;
-  [key: string]: any;
-};
+import UserTable from '@/components/Admin/Users/UserTable';
+import UserDetailsDialog from '@/components/Admin/Users/UserDetailsDialog';
+import SearchBar from '@/components/Admin/Users/SearchBar';
+import Pagination from '@/components/Admin/Users/Pagination';
+import { useUserManagement } from '@/hooks/useUserManagement';
+import type { UserSchemaType } from '@/components/Admin/Users/UserForm';
 
 const AdminUsersPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
+  const [pageSize] = useState(10);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const {
+    users,
+    isLoading,
+    error,
+    kycMap,
+    totalCount,
+    selectedUser,
+    setSelectedUser,
+    updateUser,
+    deleteUser,
+    isUpdating,
+    isDeleting,
+  } = useUserManagement(search, page, pageSize);
 
-  const { isLoading, error, data: users } = useQuery({
-    queryKey: ['admin-users', search, page, pageSize],
-    queryFn: async () => {
-      const { data, error, count } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact' })
-        .ilike('email', `%${search}%`)
-        .range((page - 1) * pageSize, page * pageSize - 1)
-        .order('created_at', { ascending: false });
+  const handleViewUser = (user: any) => {
+    setSelectedUser(user);
+    setIsDialogOpen(true);
+  };
 
-      if (error) {
-        throw new Error(error.message);
-      }
+  const handleSaveUser = (values: UserSchemaType) => {
+    updateUser(values);
+  };
 
-      setTotalCount(count || 0);
-      
-      // Transform the data to match User type
-      const transformedData = data?.map(profile => ({
-        ...profile,
-        // Default values for fields not in profiles table
-        email: profile.email || '',
-        role: profile.role || 'user',
-        status: profile.status || 'pending',
-      })) as User[];
-      
-      return transformedData;
-    }
-  });
-
-  const { data: kycData, isLoading: isKycLoading } = useQuery({
-    queryKey: ['admin-all-users-kyc'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('kyc_verifications')
-        .select('*');
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return data as KycVerification[];
-    }
-  });
-
-  const kycMap = React.useMemo(() => {
-    if (!kycData) return {};
-    return kycData.reduce((acc: Record<string, KycVerification>, kyc: KycVerification) => {
-      acc[kyc.user_id] = kyc;
-      return acc;
-    }, {});
-  }, [kycData]);
-
-  const form = useForm<UserSchemaType>({
-    resolver: zodResolver(userSchema),
-    defaultValues: {
-      email: selectedUser?.email || "",
-      role: selectedUser?.role as "user" | "admin" || "user",
-      status: selectedUser?.status as "active" | "inactive" | "pending" || "pending",
-      rejection_reason: selectedUser?.rejection_reason || "",
-    },
-    mode: "onChange",
-  })
-
-  useEffect(() => {
-    if (selectedUser) {
-      form.reset({
-        email: selectedUser.email || "",
-        role: selectedUser.role as "user" | "admin" || "user",
-        status: selectedUser.status as "active" | "inactive" | "pending" || "pending",
-        rejection_reason: selectedUser.rejection_reason || "",
-      });
-    }
-  }, [selectedUser, form]);
-
-  const updateUserMutation = useMutation({
-    mutationFn: async (values: UserSchemaType) => {
-      if (!selectedUser) throw new Error("No user selected");
-      
-      // First update the auth.users email if it changed
-      if (values.email !== selectedUser.email) {
-        // Note: This might require admin privileges or a server function
-        console.log(`Would update email from ${selectedUser.email} to ${values.email}`);
-      }
-      
-      // Then update the profile with role and status
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          // Make sure these fields exist in the profiles table
-          status: values.status,
-          rejection_reason: values.rejection_reason,
-          role: values.role,
-          // Don't update email in profiles if it's not part of the schema
-        })
-        .eq('id', selectedUser.id);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "User updated successfully.",
-      })
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-      setSelectedUser(null)
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message,
-      })
-    },
-  });
-
-  const deleteUserMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedUser) throw new Error("No user selected");
-      
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', selectedUser.id);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "User deleted successfully.",
-      })
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-      setSelectedUser(null)
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message,
-      })
-    },
-  });
-
-  const onSubmit = (values: UserSchemaType) => {
-    updateUserMutation.mutate(values);
-  }
-
-  if (isLoading) {
-    return (
-      <AdminLayout title="Users">
-        <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-10 w-10 animate-spin" />
-        </div>
-      </AdminLayout>
-    );
-  }
+  const handleDeleteUser = () => {
+    deleteUser();
+    setIsDialogOpen(false);
+  };
 
   if (error) {
     return (
@@ -290,188 +55,37 @@ const AdminUsersPage: React.FC = () => {
   return (
     <AdminLayout title="Users">
       <div className="container mx-auto py-10">
-        <div className="flex items-center justify-between mb-4">
-          <Input
-            type="text"
-            placeholder="Search by email..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value)
-              setPage(1) // Reset to first page on new search
-            }}
-          />
-        </div>
+        <SearchBar 
+          value={search} 
+          onChange={(value) => {
+            setSearch(value);
+            setPage(1); // Reset to first page on new search
+          }} 
+        />
 
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[100px]">ID</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>KYC Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users?.map((user: User) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.id}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.role}</TableCell>
-                  <TableCell>{user.status}</TableCell>
-                  <TableCell>
-                    {kycMap[user.id]?.status || 'Not Started'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="ghost" size="sm" onClick={() => setSelectedUser(user)}>
-                          View
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                          <DialogTitle>Edit User</DialogTitle>
-                          <DialogDescription>
-                            Make changes to the user here. Click save when you're done.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <Form {...form}>
-                          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                            <FormField
-                              control={form.control}
-                              name="email"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Email</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="shadcn@example.com" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name="role"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Role</FormLabel>
-                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select a role" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="user">User</SelectItem>
-                                      <SelectItem value="admin">Admin</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name="status"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Status</FormLabel>
-                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select a status" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="active">Active</SelectItem>
-                                      <SelectItem value="inactive">Inactive</SelectItem>
-                                      <SelectItem value="pending">Pending</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                             <FormField
-                              control={form.control}
-                              name="rejection_reason"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Rejection Reason</FormLabel>
-                                  <FormControl>
-                                    <Textarea placeholder="Enter rejection reason" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <div className="flex justify-end space-x-2">
-                              <Button type="submit" disabled={updateUserMutation.isPending}>
-                                {updateUserMutation.isPending ? (
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : (
-                                  "Save"
-                                )}
-                              </Button>
-                            </div>
-                          </form>
-                        </Form>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="destructive">Delete</Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the user
-                                and all of their data.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteUserMutation.mutate()} disabled={deleteUserMutation.isPending}>
-                                {deleteUserMutation.isPending ? (
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : (
-                                  "Delete"
-                                )}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </DialogContent>
-                    </Dialog>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <UserTable 
+          users={users} 
+          kycMap={kycMap} 
+          onViewUser={handleViewUser} 
+          isLoading={isLoading} 
+        />
 
-        <div className="flex items-center justify-between mt-4">
-          <Button
-            onClick={() => setPage(page - 1)}
-            disabled={page === 1}
-            variant="outline"
-          >
-            Previous
-          </Button>
-          <span className="text-sm text-gray-500">
-            Page {page} of {Math.ceil(totalCount / pageSize)}
-          </span>
-          <Button
-            onClick={() => setPage(page + 1)}
-            disabled={page >= Math.ceil(totalCount / pageSize)}
-            variant="outline"
-          >
-            Next
-          </Button>
-        </div>
+        <Pagination 
+          page={page} 
+          totalCount={totalCount} 
+          pageSize={pageSize} 
+          onPageChange={setPage} 
+        />
+        
+        <UserDetailsDialog 
+          user={selectedUser}
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          onSave={handleSaveUser}
+          onDelete={handleDeleteUser}
+          isSubmitting={isUpdating}
+          isDeleting={isDeleting}
+        />
       </div>
     </AdminLayout>
   );
