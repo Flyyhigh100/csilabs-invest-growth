@@ -66,13 +66,10 @@ export const useUserManagement = (search: string, page: number, pageSize: number
   });
 
   // Create a map of KYC verifications by user ID
-  const kycMap = React.useMemo(() => {
-    if (!kycData) return {};
-    return kycData.reduce((acc: Record<string, KycVerification>, kyc: KycVerification) => {
-      acc[kyc.user_id] = kyc;
-      return acc;
-    }, {});
-  }, [kycData]);
+  const kycMap = kycData?.reduce((acc: Record<string, KycVerification>, kyc: KycVerification) => {
+    acc[kyc.user_id] = kyc;
+    return acc;
+  }, {}) || {};
 
   // Update user mutation
   const updateUserMutation = useMutation({
