@@ -3,9 +3,10 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-// Add process polyfill for browser environment to fix "process is not defined" error
-if (typeof window !== 'undefined' && !window.process) {
-  window.process = { env: { NODE_ENV: 'development' } };
+// Add process.env polyfill for browser environment to fix "process is not defined" error
+if (typeof window !== 'undefined' && typeof (window as any).process === 'undefined') {
+  // Instead of creating a full process object, just add the minimal env property needed
+  (window as any).process = { env: { NODE_ENV: 'development' } };
 }
 
 const SUPABASE_URL = "https://hrhvliqkmetcdphnetxb.supabase.co";
