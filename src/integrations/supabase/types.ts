@@ -201,6 +201,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_admin_for_storage: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       kyc_status: "not_started" | "pending" | "approved" | "rejected"

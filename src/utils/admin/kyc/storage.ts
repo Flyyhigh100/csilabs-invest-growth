@@ -124,12 +124,37 @@ export const ensureBucketExists = async (bucketName: string): Promise<boolean> =
   return true;
 };
 
+// Check if RLS is enabled for the storage.objects table
+export const checkStorageRlsStatus = async (): Promise<{
+  enabled: boolean | null;
+  error: string | null;
+}> => {
+  try {
+    // This is a privileged operation, will only work for admin users
+    const { data, error } = await supabase.rpc('check_storage_rls_status');
+    
+    if (error) {
+      console.error('Error checking storage RLS status:', error);
+      return { enabled: null, error: error.message };
+    }
+    
+    return { enabled: data, error: null };
+  } catch (error) {
+    console.error('Exception in checkStorageRlsStatus:', error);
+    return { 
+      enabled: null, 
+      error: error instanceof Error ? error.message : 'Unknown error checking RLS status' 
+    };
+  }
+};
+
 // Comprehensive storage diagnosis utility
 export const diagnoseStorageIssues = async (): Promise<{
   success: boolean;
   connection: boolean;
   buckets: string[];
   accessibleBuckets: string[];
+  rlsEnabled: boolean | null;
   errors: string[];
 }> => {
   const result = {
@@ -137,6 +162,7 @@ export const diagnoseStorageIssues = async (): Promise<{
     connection: false,
     buckets: [] as string[],
     accessibleBuckets: [] as string[],
+    rlsEnabled: null as boolean | null,
     errors: [] as string[]
   };
   
@@ -146,6 +172,16 @@ export const diagnoseStorageIssues = async (): Promise<{
     if (!result.connection) {
       result.errors.push('Cannot connect to storage service');
       return result;
+    }
+    
+    // Check RLS status
+    const rlsStatus = await checkStorageRlsStatus();
+    result.rlsEnabled = rlsStatus.enabled;
+    
+    if (rlsStatus.error) {
+      result.errors.push(`RLS check error: ${rlsStatus.error}`);
+    } else if (result.rlsEnabled === true) {
+      result.errors.push('Storage RLS is enabled which may restrict access');
     }
     
     // List available buckets
