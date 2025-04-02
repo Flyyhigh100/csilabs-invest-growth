@@ -16,12 +16,24 @@ export const processKycVerification = async (
       reviewed_at: new Date().toISOString(),
     };
     
-    if (status === 'rejected' && message) {
-      updateData.rejection_reason = message;
-    } else if (status === 'approved') {
+    // Add additional fields based on status
+    if (status === 'approved') {
+      updateData.approved_at = new Date().toISOString();
+      updateData.approved_by = (await supabase.auth.getUser()).data.user?.id;
       updateData.rejection_reason = null;
       updateData.clarification_message = null;
+    } else if (status === 'rejected' && message) {
+      updateData.rejection_reason = message;
+      updateData.approved_at = null;
+      updateData.approved_by = null;
+    } else if (status === 'needs_clarification' && message) {
+      updateData.clarification_message = message;
+      updateData.approved_at = null;
+      updateData.approved_by = null;
     }
+    
+    // Debug log the update data
+    console.log('Updating KYC verification with data:', updateData);
     
     const { error, data } = await supabase
       .from('kyc_verifications')
@@ -53,26 +65,7 @@ export const requestKycClarification = async (
   try {
     console.log(`Requesting clarification for KYC ${kycId}: ${message}`);
     
-    const updateData = {
-      clarification_message: message,
-      reviewed_at: new Date().toISOString(),
-    };
-    
-    const { error, data } = await supabase
-      .from('kyc_verifications')
-      .update(updateData)
-      .eq('id', kycId)
-      .select();
-    
-    if (error) {
-      console.error('Error requesting clarification:', error);
-      toast.error('Failed to send clarification request');
-      return false;
-    }
-    
-    console.log('Clarification request sent successfully:', data);
-    toast.success('Clarification request sent');
-    return true;
+    return processKycVerification(kycId, 'needs_clarification', message);
   } catch (error) {
     console.error('Error requesting clarification:', error);
     toast.error('An error occurred while requesting clarification');

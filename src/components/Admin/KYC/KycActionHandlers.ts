@@ -2,7 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { KycVerificationWithProfile } from './types';
-import { processKycVerification, requestKycClarification } from '@/utils/adminUtils';
+import { processKycVerification, requestKycClarification } from '@/utils/admin/kyc';
 
 export const useKycActionHandlers = (
   onSuccess: () => void
@@ -25,8 +25,16 @@ export const useKycActionHandlers = (
     },
     onSuccess: () => {
       onSuccess();
+      // Invalidate all relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
+      
+      // Force a more aggressive refetch of all KYC data
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
+      }, 1000);
+      
       toast.success(`KYC verification processed successfully`);
     },
     onError: (error) => {
@@ -49,8 +57,16 @@ export const useKycActionHandlers = (
     },
     onSuccess: () => {
       onSuccess();
+      // Invalidate all relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
+      
+      // Force a more aggressive refetch of all KYC data
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
+      }, 1000);
+      
       toast.success(`Clarification request sent successfully`);
     },
     onError: (error) => {
@@ -63,6 +79,7 @@ export const useKycActionHandlers = (
   const handleApprove = (selectedKyc: KycVerificationWithProfile | null) => {
     if (!selectedKyc) return;
     
+    console.log('Approving KYC for:', selectedKyc.id);
     processMutation.mutate({
       kycId: selectedKyc.id,
       status: 'approved'
@@ -78,6 +95,7 @@ export const useKycActionHandlers = (
       return;
     }
     
+    console.log('Rejecting KYC for:', selectedKyc.id, 'with reason:', rejectionReason);
     processMutation.mutate({
       kycId: selectedKyc.id,
       status: 'rejected',
@@ -94,6 +112,7 @@ export const useKycActionHandlers = (
       return;
     }
     
+    console.log('Requesting clarification for:', selectedKyc.id, 'with message:', clarificationMessage);
     clarificationMutation.mutate({
       kycId: selectedKyc.id,
       message: clarificationMessage.trim()

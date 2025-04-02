@@ -84,11 +84,20 @@ serve(async (req) => {
           reviewed_at: new Date().toISOString(),
         };
         
-        if (status === "rejected" && rejectionReason) {
-          updateData.rejection_reason = rejectionReason;
-        } else if (status === "approved") {
+        if (status === "approved") {
+          updateData.approved_at = new Date().toISOString();
+          updateData.approved_by = user.id;
           updateData.rejection_reason = null;
+          updateData.clarification_message = null;
+        } else if (status === "rejected" && rejectionReason) {
+          updateData.rejection_reason = rejectionReason;
+          updateData.approved_at = null;
+          updateData.approved_by = null;
         }
+        
+        // Log the operation and data for debugging
+        console.log(`Admin ${user.id} processing KYC ${kycId} with status ${status}`);
+        console.log("Update data:", updateData);
         
         const { data: kycData, error: kycError } = await supabase
           .from("kyc_verifications")
@@ -98,9 +107,11 @@ serve(async (req) => {
           .single();
         
         if (kycError) {
+          console.error("KYC update error:", kycError);
           throw kycError;
         }
         
+        console.log("KYC update successful, returned data:", kycData);
         result = { kyc: kycData };
         break;
 
@@ -110,8 +121,11 @@ serve(async (req) => {
         const { data: clarifyData, error: clarifyError } = await supabase
           .from("kyc_verifications")
           .update({
+            status: "needs_clarification",
             clarification_message: message,
             reviewed_at: new Date().toISOString(),
+            approved_at: null,
+            approved_by: null
           })
           .eq("id", clarifyKycId)
           .select()
@@ -163,6 +177,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    console.error("Admin operation error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
