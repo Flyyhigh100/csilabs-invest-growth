@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import { Button } from '@/components/ui/button';
@@ -75,18 +76,36 @@ const userSchema = z.object({
   rejection_reason: z.string().optional(),
 })
 
+type UserSchemaType = z.infer<typeof userSchema>;
+type User = {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  rejection_reason?: string;
+  created_at?: string;
+  [key: string]: any;
+};
+
+type KycVerification = {
+  id: string;
+  user_id: string;
+  status: string;
+  [key: string]: any;
+};
+
 const AdminUsersPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  const { isLoading, error, data: users } = useQuery(
-    ['admin-users', search, page, pageSize],
-    async () => {
+  const { isLoading, error, data: users } = useQuery({
+    queryKey: ['admin-users', search, page, pageSize],
+    queryFn: async () => {
       const { data, error, count } = await supabase
         .from('profiles')
         .select('*', { count: 'exact' })
@@ -99,13 +118,13 @@ const AdminUsersPage: React.FC = () => {
       }
 
       setTotalCount(count || 0);
-      return data;
+      return data as User[];
     }
-  );
+  });
 
-  const { data: kycData, isLoading: isKycLoading, error: kycError } = useQuery(
-    ['admin-all-users-kyc'],
-    async () => {
+  const { data: kycData, isLoading: isKycLoading, error: kycError } = useQuery({
+    queryKey: ['admin-all-users-kyc'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('kyc_verifications')
         .select('*');
@@ -114,24 +133,24 @@ const AdminUsersPage: React.FC = () => {
         throw new Error(error.message);
       }
 
-      return data;
+      return data as KycVerification[];
     }
-  );
+  });
 
   const kycMap = React.useMemo(() => {
     if (!kycData) return {};
-    return kycData.reduce((acc: any, kyc: any) => {
+    return kycData.reduce((acc: Record<string, KycVerification>, kyc: KycVerification) => {
       acc[kyc.user_id] = kyc;
       return acc;
     }, {});
   }, [kycData]);
 
-  const form = useForm<z.infer<typeof userSchema>>({
+  const form = useForm<UserSchemaType>({
     resolver: zodResolver(userSchema),
     defaultValues: {
       email: selectedUser?.email || "",
-      role: selectedUser?.role || "user",
-      status: selectedUser?.status || "pending",
+      role: selectedUser?.role as "user" | "admin" || "user",
+      status: selectedUser?.status as "active" | "inactive" | "pending" || "pending",
       rejection_reason: selectedUser?.rejection_reason || "",
     },
     mode: "onChange",
@@ -141,22 +160,24 @@ const AdminUsersPage: React.FC = () => {
     if (selectedUser) {
       form.reset({
         email: selectedUser.email || "",
-        role: selectedUser.role || "user",
-        status: selectedUser.status || "pending",
+        role: selectedUser.role as "user" | "admin" || "user",
+        status: selectedUser.status as "active" | "inactive" | "pending" || "pending",
         rejection_reason: selectedUser.rejection_reason || "",
       });
     }
   }, [selectedUser, form]);
 
-  const { mutate: updateUser, isLoading: isUpdateLoading } = useMutation(
-    async (values: z.infer<typeof userSchema>) => {
+  const updateUserMutation = useMutation({
+    mutationFn: async (values: UserSchemaType) => {
+      if (!selectedUser) throw new Error("No user selected");
+      
       const { error } = await supabase
         .from('profiles')
         .update({
-          email: values.email,
           role: values.role,
           status: values.status,
           rejection_reason: values.rejection_reason,
+          email: values.email
         })
         .eq('id', selectedUser.id);
 
@@ -164,26 +185,26 @@ const AdminUsersPage: React.FC = () => {
         throw new Error(error.message);
       }
     },
-    {
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "User updated successfully.",
-        })
-        queryClient.invalidateQueries(['admin-users'])
-        setSelectedUser(null)
-      },
-      onError: (error: any) => {
-        toast({
-          title: "Error",
-          description: error.message,
-        })
-      },
-    }
-  )
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "User updated successfully.",
+      })
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      setSelectedUser(null)
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+      })
+    },
+  });
 
-  const { mutate: deleteUser, isLoading: isDeleteLoading } = useMutation(
-    async () => {
+  const deleteUserMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedUser) throw new Error("No user selected");
+      
       const { error } = await supabase
         .from('profiles')
         .delete()
@@ -193,26 +214,24 @@ const AdminUsersPage: React.FC = () => {
         throw new Error(error.message);
       }
     },
-    {
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "User deleted successfully.",
-        })
-        queryClient.invalidateQueries(['admin-users'])
-        setSelectedUser(null)
-      },
-      onError: (error: any) => {
-        toast({
-          title: "Error",
-          description: error.message,
-        })
-      },
-    }
-  )
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "User deleted successfully.",
+      })
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      setSelectedUser(null)
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+      })
+    },
+  });
 
-  const onSubmit = (values: z.infer<typeof userSchema>) => {
-    updateUser(values)
+  const onSubmit = (values: UserSchemaType) => {
+    updateUserMutation.mutate(values);
   }
 
   if (isLoading) {
@@ -229,7 +248,7 @@ const AdminUsersPage: React.FC = () => {
     return (
       <AdminLayout title="Users">
         <div className="flex items-center justify-center h-full text-red-500">
-          Error: {error.message}
+          Error: {(error as Error).message}
         </div>
       </AdminLayout>
     );
@@ -263,7 +282,7 @@ const AdminUsersPage: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users?.map((user: any) => (
+              {users?.map((user: User) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.id}</TableCell>
                   <TableCell>{user.email}</TableCell>
@@ -358,8 +377,8 @@ const AdminUsersPage: React.FC = () => {
                               )}
                             />
                             <div className="flex justify-end space-x-2">
-                              <Button type="submit" disabled={isUpdateLoading}>
-                                {isUpdateLoading ? (
+                              <Button type="submit" disabled={updateUserMutation.isPending}>
+                                {updateUserMutation.isPending ? (
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 ) : (
                                   "Save"
@@ -382,8 +401,8 @@ const AdminUsersPage: React.FC = () => {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteUser()} disabled={isDeleteLoading}>
-                                {isDeleteLoading ? (
+                              <AlertDialogAction onClick={() => deleteUserMutation.mutate()} disabled={deleteUserMutation.isPending}>
+                                {deleteUserMutation.isPending ? (
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 ) : (
                                   "Delete"
