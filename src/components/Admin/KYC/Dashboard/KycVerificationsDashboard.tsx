@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useKycContext } from '../KycContext';
 import { useKycActionHandlers } from '../KycActionHandlers';
@@ -45,6 +46,7 @@ const KycVerificationsDashboard: React.FC = () => {
     error,
     lastFetchTime,
     directTestResults,
+    setDirectTestResults,
     realtimeEnabled,
     manualRefreshCount, 
     setManualRefreshCount,
@@ -101,7 +103,7 @@ const KycVerificationsDashboard: React.FC = () => {
     <div className="space-y-6">
       <KycDashboardHeader 
         onManualRefresh={handleManualRefresh}
-        onDirectDatabaseTest={testResults => setDirectTestResults(testResults)}
+        onDirectDatabaseTest={results => setDirectTestResults(results)}
         refetch={refetch}
         onToggleShowAllUsers={() => setShowAllUsers(!showAllUsers)}
         showAllUsers={showAllUsers}
