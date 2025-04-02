@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Home, Bell, ShieldCheck, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import UserMenu from './UserMenu';
 import MobileNavigation from './MobileNavigation';
 import { useTheme } from '@/contexts/ThemeContext';
+import { toast } from 'sonner';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -40,6 +41,17 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
 }) => {
   console.log("TopNavigation props:", { isAdmin, isChecking, email });
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  
+  const onLogout = async () => {
+    try {
+      await handleLogout();
+      toast.success("Signed out successfully");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      toast.error("Failed to sign out. Please try again.");
+    }
+  };
   
   return (
     <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 shadow-sm">
@@ -84,7 +96,7 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
               </Link>
             )}
             
-            <UserMenu email={email} isAdmin={isAdmin} isChecking={isChecking} handleLogout={handleLogout} />
+            <UserMenu email={email} isAdmin={isAdmin} isChecking={isChecking} handleLogout={onLogout} />
           </div>
           
           {/* Mobile menu button */}
@@ -94,7 +106,7 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
             isAdmin={isAdmin}
             isChecking={isChecking}
             adminNavItem={adminNavItem}
-            handleLogout={handleLogout}
+            handleLogout={onLogout}
           />
         </div>
       </div>

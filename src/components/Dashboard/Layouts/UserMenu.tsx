@@ -30,6 +30,11 @@ const UserMenu: React.FC<UserMenuProps> = ({
     return email.substring(0, 2).toUpperCase();
   };
 
+  const onLogout = (e: React.MouseEvent) => {
+    e.preventDefault();
+    handleLogout();
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -68,7 +73,7 @@ const UserMenu: React.FC<UserMenuProps> = ({
         <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
         
         <DropdownMenuItem 
-          onClick={handleLogout}
+          onClick={onLogout}
           className="cursor-pointer text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
         >
           <LogOut className="mr-2 h-4 w-4 text-gray-500 dark:text-gray-400" />

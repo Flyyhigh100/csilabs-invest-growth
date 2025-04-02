@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -45,6 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Then check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log("Current session on load:", currentSession?.user?.email || "No session");
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       setLoading(false);
@@ -57,9 +59,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log("Signing in user:", email);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      toast.success("Signed in successfully");
     } catch (error: any) {
+      console.error("Sign in error:", error);
       toast.error(error.message || 'Failed to sign in');
       throw error;
     }
@@ -67,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
     try {
+      console.log("Signing up user:", email);
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -80,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
       toast.success('Registration successful! Please check your email to verify your account.');
     } catch (error: any) {
+      console.error("Sign up error:", error);
       toast.error(error.message || 'Failed to sign up');
       throw error;
     }
@@ -87,9 +94,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      console.log("Signing out user");
+      // Clear session data first
+      setSession(null);
+      setUser(null);
+      
+      // Then call Supabase signOut
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase sign out error:", error);
+        throw error;
+      }
+      
+      // Force navigation to home page
+      navigate('/', { replace: true });
     } catch (error: any) {
+      console.error("Sign out error:", error);
       toast.error(error.message || 'Failed to sign out');
       throw error;
     }

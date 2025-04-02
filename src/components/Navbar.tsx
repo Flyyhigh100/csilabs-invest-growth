@@ -1,17 +1,19 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Menu, X, LogIn, UserPlus, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { toast } from 'sonner';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -21,6 +23,19 @@ const Navbar: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleSignOut = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try {
+      await signOut();
+      toast.success("Signed out successfully");
+      setIsOpen(false);
+      navigate('/');
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Failed to sign out. Please try again.");
+    }
+  };
 
   return (
     <nav 
@@ -51,9 +66,18 @@ const Navbar: React.FC = () => {
           </Button>
           
           {user ? (
-            <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
-              <Link to="/dashboard/payments">Buy Tokens</Link>
-            </Button>
+            <>
+              <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
+                <Link to="/dashboard/payments">Buy Tokens</Link>
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={handleSignOut}
+                className="border-red-500 text-red-500 hover:bg-red-50 dark:border-red-400 dark:text-red-400 dark:hover:bg-red-900/20"
+              >
+                Sign Out
+              </Button>
+            </>
           ) : (
             <>
               <Link to="/login" className="text-gray-800 dark:text-gray-200 hover:text-cbis-blue dark:hover:text-cbis-teal transition-colors flex items-center">
@@ -113,13 +137,21 @@ const Navbar: React.FC = () => {
         </Link>
         
         {user ? (
-          <Link 
-            to="/dashboard/payments" 
-            className="py-3 border-b border-gray-100 dark:border-gray-800 text-gray-800 dark:text-gray-200 hover:text-cbis-blue dark:hover:text-cbis-teal"
-            onClick={() => setIsOpen(false)}
-          >
-            Dashboard
-          </Link>
+          <>
+            <Link 
+              to="/dashboard/payments" 
+              className="py-3 border-b border-gray-100 dark:border-gray-800 text-gray-800 dark:text-gray-200 hover:text-cbis-blue dark:hover:text-cbis-teal"
+              onClick={() => setIsOpen(false)}
+            >
+              Dashboard
+            </Link>
+            <button
+              onClick={handleSignOut}
+              className="py-3 border-b border-gray-100 dark:border-gray-800 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+            >
+              Sign Out
+            </button>
+          </>
         ) : (
           <>
             <Link 

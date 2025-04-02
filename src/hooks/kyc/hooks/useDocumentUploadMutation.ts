@@ -1,11 +1,12 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { uploadKycDocument, testUpload } from '../services/documentService';
 import { ensureKycRecordExists } from '../services/personalInfoService';
 import { kycLogger, LogLevel } from '../utils/logger';
-import { checkStorageAvailability, initializeStorage, simplifiedUploadDocument } from '@/services/storage/initStorage';
-import { supabase } from '@/services/supabase';
+import { checkStorageAvailability, initializeStorage } from '@/services/storage/initStorage';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Hook for uploading KYC documents
@@ -49,15 +50,8 @@ export function useDocumentUploadMutation() {
         
         kycLogger.log(LogLevel.INFO, `Uploading ${type} document for user:`, user.id);
         
-        // Try the simplified upload function first
-        try {
-          return await simplifiedUploadDocument(user.id, file, type);
-        } catch (simpleError) {
-          kycLogger.log(LogLevel.WARN, `Simplified upload failed for ${type}, falling back:`, simpleError);
-          
-          // Fall back to original upload method
-          return uploadKycDocument(user.id, file, type);
-        }
+        // Use the uploadKycDocument function directly
+        return uploadKycDocument(user.id, file, type);
       } catch (error) {
         kycLogger.log(LogLevel.ERROR, `Upload error for ${type}:`, error);
         
