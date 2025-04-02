@@ -2,7 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { KycVerificationWithProfile } from './types';
-import { processKycVerification, requestKycClarification } from '@/utils/admin/kyc';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useKycActionHandlers = (
   onSuccess: () => void
@@ -11,7 +11,7 @@ export const useKycActionHandlers = (
   
   // Process KYC verification (approve or reject)
   const processMutation = useMutation({
-    mutationFn: ({ 
+    mutationFn: async ({ 
       kycId, 
       status, 
       rejectionReason 
@@ -21,7 +21,31 @@ export const useKycActionHandlers = (
       rejectionReason?: string;
     }) => {
       console.log('Processing KYC verification:', { kycId, status, rejectionReason });
-      return processKycVerification(kycId, status, rejectionReason);
+      
+      try {
+        // Use the admin-operations edge function to bypass RLS policy issues
+        const { data, error } = await supabase.functions.invoke('admin-operations', {
+          body: {
+            action: 'processKyc',
+            data: {
+              kycId,
+              status,
+              rejectionReason
+            }
+          }
+        });
+        
+        if (error) {
+          console.error('Error from admin-operations function:', error);
+          throw new Error(error.message || 'Failed to process KYC verification');
+        }
+        
+        console.log('Admin operations response:', data);
+        return true;
+      } catch (error) {
+        console.error('Exception in processKycVerification:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       onSuccess();
@@ -45,7 +69,7 @@ export const useKycActionHandlers = (
   
   // Request clarification from user
   const clarificationMutation = useMutation({
-    mutationFn: ({ 
+    mutationFn: async ({ 
       kycId, 
       message 
     }: { 
@@ -53,7 +77,30 @@ export const useKycActionHandlers = (
       message: string;
     }) => {
       console.log('Requesting clarification:', { kycId, message });
-      return requestKycClarification(kycId, message);
+      
+      try {
+        // Use the admin-operations edge function to bypass RLS policy issues
+        const { data, error } = await supabase.functions.invoke('admin-operations', {
+          body: {
+            action: 'requestKycClarification',
+            data: {
+              kycId,
+              message
+            }
+          }
+        });
+        
+        if (error) {
+          console.error('Error from admin-operations function:', error);
+          throw new Error(error.message || 'Failed to request clarification');
+        }
+        
+        console.log('Admin operations response:', data);
+        return true;
+      } catch (error) {
+        console.error('Exception in requestKycClarification:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       onSuccess();

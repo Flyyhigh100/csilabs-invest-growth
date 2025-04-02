@@ -26,6 +26,12 @@ serve(async (req) => {
       }
     );
 
+    // Also create a special admin client using service role key for operations that need to bypass RLS
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+
     // Get the current user
     const {
       data: { user },
@@ -50,13 +56,26 @@ serve(async (req) => {
       .single();
 
     if (adminError || !adminData) {
-      return new Response(
-        JSON.stringify({ error: "Forbidden - Admin access required" }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      // Perform a secondary check using email
+      const { data: adminByEmailData, error: adminByEmailError } = await supabase
+        .from("admins")
+        .select("*")
+        .eq("email", user.email)
+        .single();
+
+      if (adminByEmailError || !adminByEmailData) {
+        console.error("Admin check failed:", adminError || adminByEmailError);
+        return new Response(
+          JSON.stringify({ 
+            error: "Forbidden - Admin access required",
+            details: "User is not registered as an admin" 
+          }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
     }
 
     // Parse the request body
@@ -67,7 +86,7 @@ serve(async (req) => {
     switch (action) {
       case "getUserDetails":
         const { userId } = data;
-        const { data: userData, error: getUserError } = await supabase.auth.admin.getUserById(userId);
+        const { data: userData, error: getUserError } = await adminClient.auth.admin.getUserById(userId);
         
         if (getUserError) {
           throw getUserError;
@@ -78,6 +97,8 @@ serve(async (req) => {
 
       case "processKyc":
         const { kycId, status, rejectionReason } = data;
+        
+        console.log(`Admin ${user.id} processing KYC ${kycId} with status ${status}`);
         
         const updateData: any = {
           status,
@@ -96,10 +117,10 @@ serve(async (req) => {
         }
         
         // Log the operation and data for debugging
-        console.log(`Admin ${user.id} processing KYC ${kycId} with status ${status}`);
-        console.log("Update data:", updateData);
+        console.log("Admin processing KYC verification with update data:", updateData);
         
-        const { data: kycData, error: kycError } = await supabase
+        // Use the admin client to bypass RLS
+        const { data: kycData, error: kycError } = await adminClient
           .from("kyc_verifications")
           .update(updateData)
           .eq("id", kycId)
@@ -118,7 +139,8 @@ serve(async (req) => {
       case "requestKycClarification":
         const { kycId: clarifyKycId, message } = data;
         
-        const { data: clarifyData, error: clarifyError } = await supabase
+        // Use the admin client to bypass RLS
+        const { data: clarifyData, error: clarifyError } = await adminClient
           .from("kyc_verifications")
           .update({
             status: "needs_clarification",
@@ -132,16 +154,19 @@ serve(async (req) => {
           .single();
         
         if (clarifyError) {
+          console.error("KYC clarification update error:", clarifyError);
           throw clarifyError;
         }
         
+        console.log("KYC clarification update successful:", clarifyData);
         result = { kyc: clarifyData };
         break;
 
       case "markTokensSent":
         const { transactionId } = data;
         
-        const { data: txData, error: txError } = await supabase
+        // Use the admin client to bypass RLS
+        const { data: txData, error: txError } = await adminClient
           .from("transactions")
           .update({
             token_sent: true,
