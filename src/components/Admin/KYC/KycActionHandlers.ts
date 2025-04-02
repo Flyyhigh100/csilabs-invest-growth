@@ -2,7 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { KycVerificationWithProfile } from './types';
-import { supabase } from '@/integrations/supabase/client';
+import { processKycVerification, requestKycClarification } from '@/utils/admin/kyc/verification';
 
 export const useKycActionHandlers = (
   onSuccess: () => void
@@ -22,30 +22,12 @@ export const useKycActionHandlers = (
     }) => {
       console.log('Processing KYC verification:', { kycId, status, rejectionReason });
       
-      try {
-        // Use the admin-operations edge function to bypass RLS policy issues
-        const { data, error } = await supabase.functions.invoke('admin-operations', {
-          body: {
-            action: 'processKyc',
-            data: {
-              kycId,
-              status,
-              rejectionReason
-            }
-          }
-        });
-        
-        if (error) {
-          console.error('Error from admin-operations function:', error);
-          throw new Error(error.message || 'Failed to process KYC verification');
-        }
-        
-        console.log('Admin operations response:', data);
-        return true;
-      } catch (error) {
-        console.error('Exception in processKycVerification:', error);
-        throw error;
+      const success = await processKycVerification(kycId, status, rejectionReason);
+      if (!success) {
+        throw new Error(`Failed to process KYC verification with status: ${status}`);
       }
+      
+      return true;
     },
     onSuccess: () => {
       onSuccess();
@@ -78,29 +60,12 @@ export const useKycActionHandlers = (
     }) => {
       console.log('Requesting clarification:', { kycId, message });
       
-      try {
-        // Use the admin-operations edge function to bypass RLS policy issues
-        const { data, error } = await supabase.functions.invoke('admin-operations', {
-          body: {
-            action: 'requestKycClarification',
-            data: {
-              kycId,
-              message
-            }
-          }
-        });
-        
-        if (error) {
-          console.error('Error from admin-operations function:', error);
-          throw new Error(error.message || 'Failed to request clarification');
-        }
-        
-        console.log('Admin operations response:', data);
-        return true;
-      } catch (error) {
-        console.error('Exception in requestKycClarification:', error);
-        throw error;
+      const success = await requestKycClarification(kycId, message);
+      if (!success) {
+        throw new Error('Failed to request clarification');
       }
+      
+      return true;
     },
     onSuccess: () => {
       onSuccess();

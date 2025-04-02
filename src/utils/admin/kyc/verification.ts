@@ -44,31 +44,5 @@ export const requestKycClarification = async (
   kycId: string,
   message: string
 ): Promise<boolean> => {
-  try {
-    console.log(`Requesting clarification for KYC ${kycId}: ${message}`);
-    
-    const { data, error } = await supabase.functions.invoke('admin-operations', {
-      body: {
-        action: 'requestKycClarification',
-        data: {
-          kycId,
-          message
-        }
-      }
-    });
-    
-    if (error) {
-      console.error('Error from admin-operations function:', error);
-      toast.error('Failed to send clarification request');
-      return false;
-    }
-    
-    console.log(`Successfully requested clarification for KYC verification`, data);
-    toast.success(`Clarification request sent successfully`);
-    return true;
-  } catch (error) {
-    console.error('Error requesting clarification:', error);
-    toast.error('An error occurred while requesting clarification');
-    return false;
-  }
+  return processKycVerification(kycId, 'needs_clarification', message);
 };

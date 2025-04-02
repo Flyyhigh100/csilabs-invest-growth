@@ -114,6 +114,10 @@ serve(async (req) => {
           updateData.rejection_reason = rejectionReason;
           updateData.approved_at = null;
           updateData.approved_by = null;
+        } else if (status === "needs_clarification") {
+          updateData.clarification_message = rejectionReason;
+          updateData.approved_at = null;
+          updateData.approved_by = null;
         }
         
         // Log the operation and data for debugging
