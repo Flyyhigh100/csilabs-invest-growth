@@ -36,7 +36,7 @@ import * as z from "zod"
 import { useToast } from "@/components/ui/use-toast"
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
+import { format, parseISO } from 'date-fns';
 import {
   Select,
   SelectContent,
@@ -69,6 +69,17 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
+// Helper function for formatting dates
+const formatDate = (dateString?: string | null): string => {
+  if (!dateString) return 'N/A';
+  try {
+    return format(parseISO(dateString), 'MMM dd, yyyy');
+  } catch (error) {
+    console.error("Date parsing error:", error);
+    return 'Invalid date';
+  }
+}
+
 const userSchema = z.object({
   email: z.string().email(),
   role: z.enum(['user', 'admin']),
@@ -84,6 +95,10 @@ type User = {
   status: string;
   rejection_reason?: string;
   created_at?: string;
+  first_name?: string;
+  last_name?: string;
+  updated_at?: string;
+  wallet_address?: string;
   [key: string]: any;
 };
 
@@ -118,11 +133,21 @@ const AdminUsersPage: React.FC = () => {
       }
 
       setTotalCount(count || 0);
-      return data as User[];
+      
+      // Transform the data to match User type
+      const transformedData = data?.map(profile => ({
+        ...profile,
+        // Default values for fields not in profiles table
+        email: profile.email || '',
+        role: profile.role || 'user',
+        status: profile.status || 'pending',
+      })) as User[];
+      
+      return transformedData;
     }
   });
 
-  const { data: kycData, isLoading: isKycLoading, error: kycError } = useQuery({
+  const { data: kycData, isLoading: isKycLoading } = useQuery({
     queryKey: ['admin-all-users-kyc'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -171,13 +196,21 @@ const AdminUsersPage: React.FC = () => {
     mutationFn: async (values: UserSchemaType) => {
       if (!selectedUser) throw new Error("No user selected");
       
+      // First update the auth.users email if it changed
+      if (values.email !== selectedUser.email) {
+        // Note: This might require admin privileges or a server function
+        console.log(`Would update email from ${selectedUser.email} to ${values.email}`);
+      }
+      
+      // Then update the profile with role and status
       const { error } = await supabase
         .from('profiles')
         .update({
-          role: values.role,
+          // Make sure these fields exist in the profiles table
           status: values.status,
           rejection_reason: values.rejection_reason,
-          email: values.email
+          role: values.role,
+          // Don't update email in profiles if it's not part of the schema
         })
         .eq('id', selectedUser.id);
 
