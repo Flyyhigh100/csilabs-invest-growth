@@ -20,26 +20,29 @@ export const useUserManagement = (search: string, page: number, pageSize: number
   } = useQuery({
     queryKey: ['admin-users', search, page, pageSize],
     queryFn: async () => {
-      const { data, error, count } = await supabase
+      // Fetch profiles from the profiles table
+      const { data: profilesData, error: profilesError, count } = await supabase
         .from('profiles')
         .select('*', { count: 'exact' })
-        .ilike('email', `%${search}%`)
+        .ilike('first_name', `%${search}%`)
+        .or(`last_name.ilike.%${search}%,wallet_address.ilike.%${search}%`)
         .range((page - 1) * pageSize, page * pageSize - 1)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        throw new Error(error.message);
+      if (profilesError) {
+        throw new Error(profilesError.message);
       }
 
       setTotalCount(count || 0);
       
-      // Transform the data to match User type
-      const transformedData = data?.map(profile => ({
+      // Transform the profiles data to match User type with defaults
+      const transformedData = profilesData?.map(profile => ({
         ...profile,
-        // Default values for fields not in profiles table
-        email: profile.email || '',
-        role: profile.role || 'user',
-        status: profile.status || 'pending',
+        // Add missing fields from User type with default values
+        email: profile.email || '', // If email is already in the profile table
+        role: profile.role || 'user', // Default role
+        status: profile.status || 'pending', // Default status
+        rejection_reason: profile.rejection_reason, // May be undefined
       })) as User[];
       
       return transformedData;
@@ -82,15 +85,20 @@ export const useUserManagement = (search: string, page: number, pageSize: number
         console.log(`Would update email from ${selectedUser.email} to ${values.email}`);
       }
       
-      // Then update the profile with role and status
+      // Then update the profile
+      // Only include fields that actually exist in the profiles table
       const { error } = await supabase
         .from('profiles')
         .update({
-          // Make sure these fields exist in the profiles table
-          status: values.status,
-          rejection_reason: values.rejection_reason,
-          role: values.role,
-          // Don't update email in profiles if it's not part of the schema
+          // Only include fields that exist in the profiles table
+          first_name: selectedUser.first_name,
+          last_name: selectedUser.last_name,
+          wallet_address: selectedUser.wallet_address,
+          // If these fields exist in the profiles table, they can be updated
+          // If not, these will need to be stored elsewhere or added to the table
+          ...(typeof selectedUser.status !== 'undefined' && { status: values.status }),
+          ...(typeof selectedUser.rejection_reason !== 'undefined' && { rejection_reason: values.rejection_reason }),
+          ...(typeof selectedUser.role !== 'undefined' && { role: values.role }),
         })
         .eq('id', selectedUser.id);
 
