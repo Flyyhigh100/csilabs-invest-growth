@@ -64,6 +64,7 @@ export function useKycVerification() {
       // Invalidate all related queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['kyc', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
       
@@ -97,6 +98,7 @@ export function useKycVerification() {
       // Invalidate all related queries
       queryClient.invalidateQueries({ queryKey: ['kyc', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
       
@@ -136,6 +138,7 @@ export function useKycVerification() {
       // Force immediate invalidation of all related cached data
       queryClient.invalidateQueries({ queryKey: ['kyc', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
       
