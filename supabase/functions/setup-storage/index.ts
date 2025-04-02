@@ -1,180 +1,122 @@
 
-import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+// Follow Supabase Edge Functions guide:
+// https://supabase.com/docs/guides/functions
+
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
   }
-  
+
   try {
-    let body = {};
-    try {
-      body = await req.json();
-    } catch {
-      // Silently handle JSON parsing errors, using defaults
-      body = {};
-    }
-    
-    const forceRecreation = body.force === true;
-    
-    // Create a Supabase client with the service role key (this has admin privileges)
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error("Missing required environment variables: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-    }
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Required buckets for the application
-    const requiredBuckets = [
-      { name: 'kyc-documents', public: true },
-      { name: 'documents', public: true }
-    ];
-    
-    const results = [];
-    
-    // First check existing buckets
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    // Get request data
+    const { force = false } = await req.json()
+    console.log('Setup storage request received, force:', force)
+
+    // Create Supabase client with service role key
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
+    )
+
+    // List existing buckets
+    const { data: existingBuckets, error: listError } = await supabaseAdmin.storage.listBuckets()
     
     if (listError) {
-      throw new Error(`Failed to list buckets: ${listError.message}`);
+      console.error('Error listing buckets:', listError)
+      throw new Error(`Cannot access storage: ${listError.message}`)
     }
+
+    console.log('Existing buckets:', existingBuckets?.map(b => b.name) || 'none')
     
-    // Optionally delete buckets if force recreation is specified
-    if (forceRecreation && buckets) {
-      console.log("Force recreation requested, attempting to recreate buckets");
-      for (const bucket of buckets) {
-        if (requiredBuckets.some(reqBucket => reqBucket.name === bucket.name)) {
-          console.log(`Deleting bucket: ${bucket.name} for recreation`);
-          try {
-            const { error: deleteError } = await supabase.storage.deleteBucket(bucket.name);
-            if (deleteError) {
-              results.push({
-                bucket: bucket.name,
-                status: 'error',
-                message: `Failed to delete bucket: ${deleteError.message}`
-              });
-            } else {
-              results.push({
-                bucket: bucket.name,
-                status: 'deleted',
-                message: 'Bucket deleted for recreation'
-              });
-            }
-          } catch (err) {
-            results.push({
-              bucket: bucket.name,
-              status: 'error',
-              message: `Exception deleting bucket: ${err.message}`
-            });
-          }
-        }
-      }
-    }
+    // Define required buckets
+    const requiredBuckets = [
+      { id: 'kyc-documents', name: 'KYC Documents', public: false },
+      { id: 'documents', name: 'General Documents', public: false },
+    ]
     
-    // Refresh bucket list after potential deletions
-    const { data: updatedBuckets, error: refreshError } = await supabase.storage.listBuckets();
-    const existingBucketNames = refreshError || !updatedBuckets ? [] : updatedBuckets.map(b => b.name);
+    // Create or update buckets
+    const results = []
     
-    // Create buckets that don't exist
     for (const bucket of requiredBuckets) {
-      const bucketExists = existingBucketNames.includes(bucket.name);
+      const bucketExists = existingBuckets?.some(b => b.id === bucket.id)
       
-      if (!bucketExists) {
-        try {
-          console.log(`Creating bucket: ${bucket.name}`);
-          const { data, error } = await supabase.storage.createBucket(
-            bucket.name, 
-            { public: bucket.public }
-          );
-          
-          if (error) {
-            results.push({
-              bucket: bucket.name,
-              status: 'error',
-              message: `Failed to create bucket: ${error.message}`
-            });
-          } else {
-            // Create RLS policy to allow uploads for authenticated users
-            try {
-              const { error: policyError } = await supabase.rpc('create_storage_policy', {
-                bucket_name: bucket.name
-              });
-              
-              results.push({
-                bucket: bucket.name,
-                status: 'created',
-                policy: policyError ? `Failed to create policy: ${policyError.message}` : 'created'
-              });
-            } catch (policyErr) {
-              results.push({
-                bucket: bucket.name,
-                status: 'created',
-                policy: `Exception creating policy: ${policyErr.message}`
-              });
-            }
-          }
-        } catch (createErr) {
-          results.push({
-            bucket: bucket.name,
-            status: 'error',
-            message: `Exception creating bucket: ${createErr.message}`
-          });
+      if (bucketExists && !force) {
+        console.log(`Bucket "${bucket.id}" already exists, skipping`)
+        results.push({ bucket: bucket.id, status: 'exists' })
+        continue
+      }
+      
+      // If force is true or bucket doesn't exist, create it (will replace if exists)
+      if (bucketExists) {
+        // Delete existing bucket first if we're forcing
+        const { error: deleteError } = await supabaseAdmin.storage.deleteBucket(bucket.id)
+        if (deleteError) {
+          console.error(`Error deleting bucket "${bucket.id}":`, deleteError)
+          results.push({ bucket: bucket.id, status: 'error', message: deleteError.message })
+          continue
         }
+      }
+      
+      // Create the bucket
+      const { data, error: createError } = await supabaseAdmin.storage.createBucket(
+        bucket.id, {
+          public: bucket.public,
+          fileSizeLimit: 5 * 1024 * 1024, // 5MB
+        }
+      )
+      
+      if (createError) {
+        console.error(`Error creating bucket "${bucket.id}":`, createError)
+        results.push({ bucket: bucket.id, status: 'error', message: createError.message })
       } else {
-        results.push({
-          bucket: bucket.name,
-          status: 'exists'
-        });
+        console.log(`Bucket "${bucket.id}" created successfully`)
+        results.push({ bucket: bucket.id, status: 'created' })
       }
     }
     
-    // Final verification - check if all buckets now exist
-    const { data: finalBuckets, error: finalError } = await supabase.storage.listBuckets();
-    const allBucketsExist = !finalError && finalBuckets && 
-      requiredBuckets.every(reqBucket => 
-        finalBuckets.some(b => b.name === reqBucket.name)
-      );
+    // List buckets after operations to confirm status
+    const { data: updatedBuckets } = await supabaseAdmin.storage.listBuckets()
     
     return new Response(
-      JSON.stringify({ 
-        success: allBucketsExist, 
+      JSON.stringify({
+        success: true,
         results,
-        buckets: finalBuckets ? finalBuckets.map(b => b.name) : [],
-        complete: allBucketsExist
+        buckets: updatedBuckets?.map(b => b.name),
+        complete: true,
       }),
       { 
         headers: { 
+          'Content-Type': 'application/json',
           ...corsHeaders,
-          "Content-Type": "application/json" 
         },
-        status: allBucketsExist ? 200 : 207 // Partial success
+        status: 200,
       }
-    );
+    )
   } catch (error) {
-    console.error("Error in setup-storage:", error);
+    console.error('Error in setup-storage function:', error)
+    
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message || "Unknown error",
-        stack: error.stack || null
+      JSON.stringify({
+        success: false,
+        error: error.message,
       }),
       { 
         headers: { 
+          'Content-Type': 'application/json',
           ...corsHeaders,
-          "Content-Type": "application/json" 
         },
-        status: 500
+        status: 500,
       }
-    );
+    )
   }
-});
+})

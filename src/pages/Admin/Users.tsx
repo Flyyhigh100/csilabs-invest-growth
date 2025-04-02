@@ -1,410 +1,426 @@
-
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
-import { 
-  Table, TableBody, TableCell, TableHead, 
-  TableHeader, TableRow 
-} from '@/components/ui/table';
-import { 
-  Card, CardContent, CardDescription, 
-  CardHeader, CardTitle 
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, Users, RefreshCw, DatabaseIcon, AlertCircle } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
+import { useToast } from "@/components/ui/use-toast"
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { listAllUsersWithKycStatus, checkUserKycRecord } from '@/components/Admin/KYC/KycVerificationsService';
+import { Loader2 } from 'lucide-react';
+import { formatDate } from '@/lib/utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
-interface User {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  wallet_address: string | null;
-  created_at: string;
-  updated_at: string;
-  kyc_status?: string;
-  // Define types for auth data which isn't in profiles table
-  auth_email?: string | null;
-  // CRITICAL FIX: Add has_kyc_record flag
-  has_kyc_record?: boolean;
-}
+const userSchema = z.object({
+  email: z.string().email(),
+  role: z.enum(['user', 'admin']),
+  status: z.enum(['active', 'inactive', 'pending']),
+  rejection_reason: z.string().optional(),
+})
 
 const AdminUsersPage: React.FC = () => {
-  const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [userKycCheckResults, setUserKycCheckResults] = useState<Record<string, boolean>>({});
-  
-  // CRITICAL FIX: Use a more direct and reliable approach to fetch users and their KYC status
-  const fetchUsers = async () => {
-    console.log('Fetching users for admin dashboard...');
-    
-    try {
-      // CRITICAL FIX: Get users with KYC status in one operation
-      const usersWithKyc = await listAllUsersWithKycStatus();
-      
-      if (!usersWithKyc || usersWithKyc.length === 0) {
-        console.warn('No users found or error fetching users with KYC status');
-      } else {
-        console.log(`Fetched ${usersWithKyc.length} users with KYC status`);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+
+  const { isLoading, error, data: users } = useQuery(
+    ['admin-users', search, page, pageSize],
+    async () => {
+      const { data, error, count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact' })
+        .ilike('email', `%${search}%`)
+        .range((page - 1) * pageSize, page * pageSize - 1)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(error.message);
       }
-      
-      // CRITICAL FIX: Get auth users to obtain email information 
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) {
-        console.error('Error fetching auth users:', authError);
-        // Don't throw here, we'll just proceed without emails
-      }
-      
-      // Create a map of user ID to email for faster lookups
-      const emailMap = (authUsers?.users || []).reduce((acc, user) => {
-        acc[user.id] = user.email;
-        return acc;
-      }, {} as Record<string, string | undefined>);
-      
-      console.log('Email map by user ID:', emailMap);
-      
-      // CRITICAL FIX: Log KYC status before sending to UI
-      usersWithKyc.forEach(user => {
-        console.log(`User ${user.id} KYC status: ${user.kyc_status}, Has KYC: ${user.has_kyc}`);
-      });
-      
-      // Enhance users with email data
-      const enhancedUsers = usersWithKyc.map(user => ({
-        ...user,
-        auth_email: emailMap[user.id] || null,
-        has_kyc_record: user.has_kyc
-      }));
-      
-      console.log('Enhanced users data ready:', enhancedUsers.length);
-      
-      return enhancedUsers;
-    } catch (err) {
-      console.error('Error in fetchUsers:', err);
-      throw err;
+
+      setTotalCount(count || 0);
+      return data;
     }
-  };
-  
-  const { 
-    data: users = [], 
-    isLoading, 
-    error, 
-    refetch 
-  } = useQuery({
-    queryKey: ['admin-users'],
-    queryFn: fetchUsers,
-    // CRITICAL FIX: More aggressive refetching settings
-    staleTime: 1000, // Consider data stale after 1 second
-    refetchInterval: 5000 // Refresh every 5 seconds
-  });
-  
-  useEffect(() => {
-    // CRITICAL FIX: Force refresh on component mount
-    refetch();
-    
-    // Set up realtime subscription for profiles changes
-    const profilesChannel = supabase
-      .channel('admin-users-profiles-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'profiles'
-        },
-        (payload) => {
-          console.log('Profile changed:', payload);
-          toast.info('User profile updated');
-          refetch();
-        }
-      )
-      .subscribe((status) => {
-        console.log('Realtime subscription status for profiles:', status);
-      });
-    
-    // Set up realtime subscription for KYC changes
-    const kycChannel = supabase
-      .channel('admin-users-kyc-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'kyc_verifications'
-        },
-        (payload) => {
-          console.log('KYC verification changed:', payload);
-          toast.info('KYC verification updated');
-          refetch();
-        }
-      )
-      .subscribe((status) => {
-        console.log('Realtime subscription status for KYC changes:', status);
-      });
-    
-    return () => {
-      supabase.removeChannel(profilesChannel);
-      supabase.removeChannel(kycChannel);
-    };
-  }, [refetch]);
-  
-  const filteredUsers = users.filter(user => {
-    if (!searchQuery) return true;
-    
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      (user.first_name && user.first_name.toLowerCase().includes(searchLower)) ||
-      (user.last_name && user.last_name.toLowerCase().includes(searchLower)) ||
-      (user.auth_email && user.auth_email.toLowerCase().includes(searchLower)) ||
-      (user.wallet_address && user.wallet_address.toLowerCase().includes(searchLower))
-    );
-  });
-  
-  const renderKycStatusBadge = (status?: string, hasKycRecord?: boolean) => {
-    // CRITICAL FIX: Show warning if no KYC record found
-    if (hasKycRecord === false) {
-      return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100 flex items-center gap-1">
-        <AlertCircle className="h-3 w-3" /> No KYC Record
-      </Badge>;
-    }
-    
-    if (!status) return null;
-    
-    // CRITICAL FIX: Make sure all status types are handled correctly
-    switch (status) {
-      case 'approved':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Approved</Badge>;
-      case 'rejected':
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Rejected</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>;
-      case 'needs_clarification':
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Needs Clarification</Badge>;
-      default:
-        return <Badge variant="outline">Not Started</Badge>;
-    }
-  };
-  
-  // CRITICAL FIX: Add function to check if a specific user has a KYC record
-  const checkUserKyc = async (userId: string) => {
-    try {
-      const result = await checkUserKycRecord(userId);
-      const hasRecord = !!result;
-      
-      setUserKycCheckResults(prev => ({
-        ...prev,
-        [userId]: hasRecord
-      }));
-      
-      toast.info(`KYC check for user ${userId}: ${hasRecord ? 'Record found' : 'No record found'}`);
-      
-      return hasRecord;
-    } catch (error) {
-      console.error(`Error checking KYC for user ${userId}:`, error);
-      return false;
-    }
-  };
-  
-  const testDatabaseConnection = async () => {
-    try {
-      toast.info('Testing database connection...');
-      
-      // CRITICAL FIX: Enhanced database test that checks RLS and permissions
-      console.log('Testing database connection for profiles and KYC tables...');
-      
-      // Test KYC table access
-      const { data: kycTest, error: kycError } = await supabase
+  );
+
+  const { data: kycData, isLoading: isKycLoading, error: kycError } = useQuery(
+    ['admin-all-users-kyc'],
+    async () => {
+      const { data, error } = await supabase
         .from('kyc_verifications')
         .select('*');
-      
-      if (kycError) {
-        console.error('Error accessing KYC verifications:', kycError);
-        toast.error('Failed to access KYC verifications table');
-        return;
+
+      if (error) {
+        throw new Error(error.message);
       }
-      
-      // Also test profiles table access
-      const { data: profilesTest, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*');
-      
-      if (profilesError) {
-        console.error('Error accessing profiles:', profilesError);
-        toast.error('Failed to access profiles table');
-        return;
-      }
-      
-      // CRITICAL FIX: Log detailed information about what we found
-      console.log('DB connection test results:', {
-        profilesCount: profilesTest?.length || 0,
-        kycCount: kycTest?.length || 0,
-        kycStatusCounts: kycTest?.reduce((acc, kyc) => {
-          acc[kyc.status] = (acc[kyc.status] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>)
-      });
-      
-      console.log('All KYC records:', kycTest);
-      console.log('All profiles:', profilesTest);
-      
-      // CRITICAL FIX: Check for missing data issues - check if profiles have corresponding KYC records
-      const profileIds = new Set(profilesTest?.map(p => p.id) || []);
-      const kycUserIds = new Set(kycTest?.map(k => k.user_id) || []);
-      
-      const profilesWithoutKyc = [...profileIds].filter(id => !kycUserIds.has(id));
-      const kycWithoutProfiles = [...kycUserIds].filter(id => !profileIds.has(id));
-      
-      console.log('Profiles without KYC records:', profilesWithoutKyc);
-      console.log('KYC records without profiles:', kycWithoutProfiles);
-      
-      // CRITICAL FIX: Create test KYC records for any profile that doesn't have one (for debugging)
-      if (profilesWithoutKyc.length > 0) {
-        console.log(`Creating test KYC records for ${profilesWithoutKyc.length} profiles without KYC...`);
-        for (const profileId of profilesWithoutKyc.slice(0, 3)) { // Limit to first 3 to avoid creating too many
-          const now = new Date().toISOString();
-          const { data, error } = await supabase
-            .from('kyc_verifications')
-            .insert({
-              user_id: profileId,
-              status: 'not_started',
-              first_name: null,
-              last_name: null,
-              created_at: now,
-              updated_at: now
-            });
-            
-          if (error) {
-            console.error(`Error creating test KYC record for profile ${profileId}:`, error);
-          } else {
-            console.log(`Created test KYC record for profile ${profileId}`);
-          }
-        }
-      }
-      
-      // Force all query invalidations
-      queryClient.invalidateQueries();
-      
-      toast.success(`Database connection successful. Found ${profilesTest?.length || 0} profiles and ${kycTest?.length || 0} KYC records`);
-      
-      // Refresh data
-      refetch();
-    } catch (err) {
-      console.error('Database test error:', err);
-      toast.error('Database test failed');
+
+      return data;
     }
-  };
-  
+  );
+
+  const kycMap = React.useMemo(() => {
+    if (!kycData) return {};
+    return kycData.reduce((acc: any, kyc: any) => {
+      acc[kyc.user_id] = kyc;
+      return acc;
+    }, {});
+  }, [kycData]);
+
+  const form = useForm<z.infer<typeof userSchema>>({
+    resolver: zodResolver(userSchema),
+    defaultValues: {
+      email: selectedUser?.email || "",
+      role: selectedUser?.role || "user",
+      status: selectedUser?.status || "pending",
+      rejection_reason: selectedUser?.rejection_reason || "",
+    },
+    mode: "onChange",
+  })
+
+  useEffect(() => {
+    if (selectedUser) {
+      form.reset({
+        email: selectedUser.email || "",
+        role: selectedUser.role || "user",
+        status: selectedUser.status || "pending",
+        rejection_reason: selectedUser.rejection_reason || "",
+      });
+    }
+  }, [selectedUser, form]);
+
+  const { mutate: updateUser, isLoading: isUpdateLoading } = useMutation(
+    async (values: z.infer<typeof userSchema>) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          email: values.email,
+          role: values.role,
+          status: values.status,
+          rejection_reason: values.rejection_reason,
+        })
+        .eq('id', selectedUser.id);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    },
+    {
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "User updated successfully.",
+        })
+        queryClient.invalidateQueries(['admin-users'])
+        setSelectedUser(null)
+      },
+      onError: (error: any) => {
+        toast({
+          title: "Error",
+          description: error.message,
+        })
+      },
+    }
+  )
+
+  const { mutate: deleteUser, isLoading: isDeleteLoading } = useMutation(
+    async () => {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', selectedUser.id);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    },
+    {
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "User deleted successfully.",
+        })
+        queryClient.invalidateQueries(['admin-users'])
+        setSelectedUser(null)
+      },
+      onError: (error: any) => {
+        toast({
+          title: "Error",
+          description: error.message,
+        })
+      },
+    }
+  )
+
+  const onSubmit = (values: z.infer<typeof userSchema>) => {
+    updateUser(values)
+  }
+
+  if (isLoading) {
+    return (
+      <AdminLayout title="Users">
+        <div className="flex items-center justify-center h-full">
+          <Loader2 className="h-10 w-10 animate-spin" />
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AdminLayout title="Users">
+        <div className="flex items-center justify-center h-full text-red-500">
+          Error: {error.message}
+        </div>
+      </AdminLayout>
+    );
+  }
+
   return (
     <AdminLayout title="Users">
-      <Card className="mb-6">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            User Management
-          </CardTitle>
-          <CardDescription>
-            View and manage all users in the system
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between mb-4">
-            <div className="relative flex items-center">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-              <Input 
-                type="search"
-                placeholder="Search users..." 
-                className="pl-8 w-[300px]"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                onClick={testDatabaseConnection}
-                className="flex items-center gap-2"
-              >
-                <DatabaseIcon className="h-4 w-4" />
-                Test DB Connection
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => refetch()}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Refresh
-              </Button>
-            </div>
-          </div>
-          
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-cbis-blue" />
-              <span className="ml-2">Loading users...</span>
-            </div>
-          ) : error ? (
-            <div className="p-4 bg-red-50 text-red-800 rounded-md">
-              <h3 className="font-bold">Error loading users</h3>
-              <p>{(error as Error).message}</p>
-            </div>
-          ) : (
-            <>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Wallet Address</TableHead>
-                      <TableHead>KYC Status</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">
-                          {user.first_name} {user.last_name}
-                        </TableCell>
-                        <TableCell>{user.auth_email || 'N/A'}</TableCell>
-                        <TableCell>
-                          <div className="font-mono text-xs truncate max-w-[150px]">
-                            {user.wallet_address || 'Not set'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {renderKycStatusBadge(user.kyc_status, user.has_kyc_record)}
-                        </TableCell>
-                        <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => checkUserKyc(user.id)}
-                          >
-                            Check KYC
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              
-              {filteredUsers.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No users match your search criteria</p>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <div className="container mx-auto py-10">
+        <div className="flex items-center justify-between mb-4">
+          <Input
+            type="text"
+            placeholder="Search by email..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setPage(1) // Reset to first page on new search
+            }}
+          />
+        </div>
+
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]">ID</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>KYC Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users?.map((user: any) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">{user.id}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.role}</TableCell>
+                  <TableCell>{user.status}</TableCell>
+                  <TableCell>
+                    {kycMap[user.id]?.status || 'Not Started'}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedUser(user)}>
+                          View
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Edit User</DialogTitle>
+                          <DialogDescription>
+                            Make changes to the user here. Click save when you're done.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <Form {...form}>
+                          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="email"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Email</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="shadcn@example.com" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="role"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Role</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select a role" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="user">User</SelectItem>
+                                      <SelectItem value="admin">Admin</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="status"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Status</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select a status" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="active">Active</SelectItem>
+                                      <SelectItem value="inactive">Inactive</SelectItem>
+                                      <SelectItem value="pending">Pending</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                             <FormField
+                              control={form.control}
+                              name="rejection_reason"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Rejection Reason</FormLabel>
+                                  <FormControl>
+                                    <Textarea placeholder="Enter rejection reason" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <div className="flex justify-end space-x-2">
+                              <Button type="submit" disabled={isUpdateLoading}>
+                                {isUpdateLoading ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                  "Save"
+                                )}
+                              </Button>
+                            </div>
+                          </form>
+                        </Form>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive">Delete</Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the user
+                                and all of their data.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteUser()} disabled={isDeleteLoading}>
+                                {isDeleteLoading ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                  "Delete"
+                                )}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DialogContent>
+                    </Dialog>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="flex items-center justify-between mt-4">
+          <Button
+            onClick={() => setPage(page - 1)}
+            disabled={page === 1}
+            variant="outline"
+          >
+            Previous
+          </Button>
+          <span className="text-sm text-gray-500">
+            Page {page} of {Math.ceil(totalCount / pageSize)}
+          </span>
+          <Button
+            onClick={() => setPage(page + 1)}
+            disabled={page >= Math.ceil(totalCount / pageSize)}
+            variant="outline"
+          >
+            Next
+          </Button>
+        </div>
+      </div>
     </AdminLayout>
   );
 };

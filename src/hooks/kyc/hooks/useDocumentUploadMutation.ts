@@ -1,11 +1,11 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { uploadKycDocument, testUpload } from '../services/documentService';
 import { ensureKycRecordExists } from '../services/personalInfoService';
 import { kycLogger, LogLevel } from '../utils/logger';
-import { checkStorageAvailability } from '@/services/storage/initStorage';
+import { checkStorageAvailability, initializeStorage, simplifiedUploadDocument } from '@/services/storage/initStorage';
+import { supabase } from '@/services/supabase';
 
 /**
  * Hook for uploading KYC documents
@@ -28,8 +28,20 @@ export function useDocumentUploadMutation() {
       try {
         // Check if storage is available
         const storageStatus = await checkStorageAvailability();
+        
+        kycLogger.log(LogLevel.INFO, `Storage status before upload: ${storageStatus}`);
+        
         if (storageStatus !== 'available') {
-          throw new Error('Storage service is currently unavailable. Please try again later.');
+          // Attempt to force storage initialization
+          await initializeStorage();
+          
+          // Check again after initialization
+          const updatedStatus = await checkStorageAvailability(true);
+          
+          if (updatedStatus !== 'available') {
+            kycLogger.log(LogLevel.ERROR, `Storage still unavailable after initialization: ${updatedStatus}`);
+            throw new Error('Storage service is currently unavailable. Please try again later.');
+          }
         }
         
         // Ensure KYC record exists before uploading
@@ -37,16 +49,15 @@ export function useDocumentUploadMutation() {
         
         kycLogger.log(LogLevel.INFO, `Uploading ${type} document for user:`, user.id);
         
-        // Attempt a test upload first to verify storage functionality
-        if (process.env.NODE_ENV === 'development') {
-          try {
-            await testUpload(new File(['test'], 'test.txt', { type: 'text/plain' }));
-          } catch (testError) {
-            kycLogger.log(LogLevel.WARN, 'Test upload failed, but will still try actual upload:', testError);
-          }
+        // Try the simplified upload function first
+        try {
+          return await simplifiedUploadDocument(user.id, file, type);
+        } catch (simpleError) {
+          kycLogger.log(LogLevel.WARN, `Simplified upload failed for ${type}, falling back:`, simpleError);
+          
+          // Fall back to original upload method
+          return uploadKycDocument(user.id, file, type);
         }
-        
-        return uploadKycDocument(user.id, file, type);
       } catch (error) {
         kycLogger.log(LogLevel.ERROR, `Upload error for ${type}:`, error);
         
@@ -82,9 +93,22 @@ export function useDocumentUploadMutation() {
       if (!user) return false;
       
       kycLogger.log(LogLevel.INFO, 'Testing storage connection');
-      const testFile = new File(['test'], 'test.txt', { type: 'text/plain' });
-      await testUpload(testFile);
-      return true;
+      
+      // First try a basic bucket list
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      
+      if (bucketsError) {
+        kycLogger.log(LogLevel.WARN, 'Cannot list buckets:', bucketsError);
+        return false;
+      }
+      
+      if (buckets && buckets.length > 0) {
+        kycLogger.log(LogLevel.INFO, 'Storage buckets found:', buckets.map(b => b.name));
+        return true;
+      }
+      
+      kycLogger.log(LogLevel.WARN, 'No buckets found, storage likely unavailable');
+      return false;
     } catch (error) {
       kycLogger.log(LogLevel.ERROR, 'Storage connectivity test failed:', error);
       return false;

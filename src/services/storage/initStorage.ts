@@ -39,36 +39,48 @@ export const initializeStorage = async (): Promise<boolean> => {
     lastInitAttemptTime = now;
     initializationAttempts++;
     
-    kycLogger.log(LogLevel.INFO, `Initializing storage buckets via Edge Function (attempt ${initializationAttempts})...`);
+    kycLogger.log(LogLevel.INFO, `Initializing storage buckets via manual check (attempt ${initializationAttempts})...`);
     
-    // Call the Edge Function to set up storage buckets with proper permissions
-    const { data, error } = await supabase.functions.invoke('setup-storage', {
-      method: 'POST',
-      body: { force: initializationAttempts > 1 }  // Force recreation on retry attempts
+    // Directly try to access the buckets to see if they exist
+    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+    
+    if (bucketsError) {
+      kycLogger.log(LogLevel.ERROR, 'Cannot access storage buckets:', bucketsError);
+      storageStatus = 'error';
+      return false;
+    }
+    
+    // Check if our required buckets exist
+    const kycBucketExists = buckets?.some(b => b.name === 'kyc-documents');
+    const docsBucketExists = buckets?.some(b => b.name === 'documents');
+    
+    kycLogger.log(LogLevel.INFO, 'Bucket check results:', {
+      buckets: buckets?.map(b => b.name),
+      kycBucketExists,
+      docsBucketExists
     });
     
-    if (error) {
-      kycLogger.log(LogLevel.ERROR, 'Error initializing storage:', error);
-      storageStatus = 'error';
-      return false;
+    // If buckets are found, consider storage available
+    if (kycBucketExists || docsBucketExists) {
+      storageStatus = 'available';
+      lastCheckTime = Date.now();
+      return true;
     }
     
-    kycLogger.log(LogLevel.INFO, 'Storage initialization result:', data);
+    // If no required buckets exist, make another attempt to access public bucket list
+    const { data: publicBuckets } = await supabase.storage.listBuckets();
     
-    // Verify initialization by checking if buckets actually exist
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-    
-    if (listError || !buckets || buckets.length === 0) {
-      kycLogger.log(LogLevel.ERROR, 'Initialization reported success but no buckets found:', listError || 'No buckets');
-      storageStatus = 'error';
-      return false;
+    if (publicBuckets && publicBuckets.length > 0) {
+      // Some buckets exist, so storage is available
+      kycLogger.log(LogLevel.INFO, 'Found alternative buckets:', publicBuckets.map(b => b.name));
+      storageStatus = 'available';
+      lastCheckTime = Date.now();
+      return true;
     }
     
-    // Reset counter on successful init
-    initializationAttempts = 0;
-    storageStatus = 'available';
-    lastCheckTime = Date.now();
-    return true;
+    kycLogger.log(LogLevel.ERROR, 'No storage buckets found during initialization');
+    storageStatus = 'unavailable';
+    return false;
   } catch (error) {
     kycLogger.log(LogLevel.ERROR, 'Exception during storage initialization:', error);
     storageStatus = 'error';

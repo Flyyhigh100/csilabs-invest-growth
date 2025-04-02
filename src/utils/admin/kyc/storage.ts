@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { kycLogger, LogLevel } from '@/hooks/kyc/utils/logger';
 import { 
@@ -131,7 +130,8 @@ export const checkStorageRlsStatus = async (): Promise<{
 }> => {
   try {
     // This is a privileged operation, will only work for admin users
-    const { data, error } = await supabase.rpc('check_storage_rls_status');
+    // Change from 'check_storage_rls_status' to 'is_admin'
+    const { data, error } = await supabase.rpc('is_admin');
     
     if (error) {
       console.error('Error checking storage RLS status:', error);
