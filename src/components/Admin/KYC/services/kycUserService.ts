@@ -1,28 +1,11 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { isUserAdmin } from '@/utils/admin';
 
-interface UserWithKycStatus {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  kyc_status: string | null;
-  has_kyc: boolean;
-}
-
-// Check if a specific user has a KYC record
+// Function to check for kyc records with a specific user id
 export const checkUserKycRecord = async (userId: string): Promise<any> => {
   try {
-    console.log(`Checking KYC record for user: ${userId}`);
-    
-    // Verify admin permissions first
-    const isAdmin = await isUserAdmin();
-    if (!isAdmin) {
-      console.error('User does not have admin permissions');
-      toast.error('Admin permissions required to check user KYC');
-      return null;
-    }
+    console.log(`Checking if KYC record exists for user: ${userId}`);
     
     const { data, error } = await supabase
       .from('kyc_verifications')
@@ -31,80 +14,73 @@ export const checkUserKycRecord = async (userId: string): Promise<any> => {
       .maybeSingle();
     
     if (error) {
-      console.error(`Error checking KYC for user ${userId}:`, error);
-      toast.error('Failed to check user KYC status');
+      console.error(`Error checking KYC record for user ${userId}:`, error);
       return null;
     }
     
-    if (!data) {
-      console.log(`No KYC record found for user ${userId}`);
-      return null;
-    }
-    
-    console.log(`Found KYC record for user ${userId}:`, data);
+    console.log(`KYC record check result for user ${userId}:`, data);
     return data;
   } catch (error) {
-    console.error('Exception in checkUserKycRecord:', error);
+    console.error(`Exception checking KYC for user ${userId}:`, error);
     return null;
   }
 };
 
-// List all users with their KYC status for debugging
-export const listAllUsersWithKycStatus = async (): Promise<UserWithKycStatus[]> => {
+// Function to list all users and their KYC status - useful for debugging
+export const listAllUsersWithKycStatus = async (): Promise<any[]> => {
   try {
-    console.log('Listing all users with KYC status');
+    console.log('Listing all users with KYC status with updated RLS...');
     
-    // Verify admin permissions first
     const isAdmin = await isUserAdmin();
     if (!isAdmin) {
-      console.error('User does not have admin permissions');
-      toast.error('Admin permissions required to list all users');
-      return [];
+      console.error('User is not an admin. Cannot list all users with KYC status');
+      throw new Error('Admin access required to list all users with KYC status');
     }
     
-    // First get all profiles
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('*');
+      .select('*')
+      .order('created_at', { ascending: false });
     
     if (profilesError) {
-      console.error('Error fetching profiles:', profilesError);
-      toast.error('Failed to fetch user profiles');
-      return [];
+      console.error('Error fetching profiles with updated RLS:', profilesError);
+      throw profilesError;
     }
     
-    // Then get all KYC verifications for mapping
-    const { data: kycVerifications, error: kycError } = await supabase
+    console.log(`Found ${profiles?.length || 0} user profiles with updated RLS`);
+    
+    const { data: kycRecords, error: kycError } = await supabase
       .from('kyc_verifications')
-      .select('user_id, status');
+      .select('*');
     
     if (kycError) {
-      console.error('Error fetching KYC verifications:', kycError);
-      toast.error('Failed to fetch KYC verifications');
-      return [];
+      console.error('Error fetching KYC records with updated RLS:', kycError);
+      throw kycError;
     }
     
-    console.log(`Found ${profiles.length} profiles and ${kycVerifications.length} KYC verifications`);
+    console.log(`Found ${kycRecords?.length || 0} KYC records with updated RLS`);
     
-    // Create a map of user ID to KYC status for faster lookups
-    const kycStatusMap = kycVerifications.reduce((acc, kyc) => {
-      acc[kyc.user_id] = kyc.status;
-      return acc;
-    }, {} as Record<string, string>);
+    const kycStatusMap = new Map();
+    (kycRecords || []).forEach(kyc => {
+      kycStatusMap.set(kyc.user_id, kyc);
+    });
     
-    // Map profiles to include KYC status
-    const usersWithKyc: UserWithKycStatus[] = profiles.map(profile => ({
-      id: profile.id,
-      first_name: profile.first_name,
-      last_name: profile.last_name,
-      kyc_status: kycStatusMap[profile.id] || null,
-      has_kyc: !!kycStatusMap[profile.id]
-    }));
+    const usersWithKyc = (profiles || []).map(profile => {
+      const kycRecord = kycStatusMap.get(profile.id);
+      return {
+        ...profile,
+        kyc_record: kycRecord,
+        has_kyc: !!kycRecord,
+        kyc_status: kycRecord ? kycRecord.status : 'not_started'
+      };
+    });
     
-    console.log('Users with KYC status:', usersWithKyc);
+    console.log('Users with KYC status compiled with updated RLS:', usersWithKyc.length);
+    console.log('Sample with updated RLS:', usersWithKyc.slice(0, 3));
+    
     return usersWithKyc;
   } catch (error) {
-    console.error('Exception in listAllUsersWithKycStatus:', error);
+    console.error('Error in listAllUsersWithKycStatus with updated RLS:', error);
     return [];
   }
 };

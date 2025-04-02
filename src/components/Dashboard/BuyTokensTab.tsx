@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Info, CreditCard, CreditCardIcon, AlertTriangle } from 'lucide-react';
+import { Info, CreditCard, CreditCardIcon } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -11,8 +11,6 @@ import PurchaseAmountInput from './PurchaseAmountInput';
 import ProcessingIndicator from './ProcessingIndicator';
 import CryptoPaymentDialog from './CryptoPaymentDialog';
 import { usePaymentHandlers } from '@/hooks/usePaymentHandlers';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 
 interface BuyTokensTabProps {
   walletAddress: string | null;
@@ -32,26 +30,6 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
     handleCoinPaymentsPayment
   } = usePaymentHandlers(walletAddress);
 
-  // Fetch KYC verification status
-  const { data: kycData, isLoading: isLoadingKyc } = useQuery({
-    queryKey: ['kyc-verification-status'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('kyc_verifications')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      
-      if (error) {
-        console.error('Error fetching KYC verification:', error);
-        return null;
-      }
-      
-      return data;
-    }
-  });
-
   const renderWalletAlert = () => {
     if (!walletAddress) {
       return <Alert className="mb-4">
@@ -64,43 +42,9 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
     }
     return null;
   };
-  
-  const renderKycAlert = () => {
-    if (!kycData || kycData.status !== 'approved') {
-      return (
-        <Alert className="mb-4 bg-amber-50 border-amber-200">
-          <AlertTriangle className="h-5 w-5 text-amber-600" />
-          <AlertTitle>KYC Verification Required</AlertTitle>
-          <AlertDescription>
-            You must complete KYC verification before making a payment. This ensures compliance with financial regulations.
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    return null;
-  };
 
   const handleCoinPaymentWithCurrency = () => {
     handleCoinPaymentsPayment(amount, selectedCurrency);
-  };
-  
-  // Determine if the current transaction would require approval
-  const requiresApproval = amount > 3000 && selectedCurrency !== 'USD';
-  
-  // Render appropriate message for crypto payments
-  const renderCryptoPaymentMessage = () => {
-    if (requiresApproval) {
-      return (
-        <Alert className="mt-4 mb-2 bg-amber-50 text-amber-800 border-amber-200">
-          <Info className="h-5 w-5" />
-          <AlertTitle>High-Value Transaction</AlertTitle>
-          <AlertDescription>
-            Crypto payments over $3,000 require admin approval and will be processed within 24 hours.
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    return null;
   };
 
   return <>
@@ -114,7 +58,6 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
         </CardHeader>
         <CardContent className="space-y-4 rounded-sm">
           {renderWalletAlert()}
-          {renderKycAlert()}
           
           {walletAddress && <>
               <PurchaseAmountInput amount={amount} onChange={setAmount} disabled={isProcessing} />
@@ -128,20 +71,9 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
                   icon={<CreditCard className="h-6 w-6 text-cbis-blue" />} 
                   onClick={() => handleStripePayment(amount)} 
                   recommended={true} 
-                  disabled={isProcessing || (kycData && kycData.status !== 'approved')}
+                  disabled={isProcessing}
                   highlight={true} // New prop for highlighting
                 />
-                
-                {/* Message for card payments if KYC is approved */}
-                {kycData && kycData.status === 'approved' && (
-                  <Alert className="mt-2 bg-blue-50 text-blue-800 border-blue-200">
-                    <Info className="h-5 w-5" />
-                    <AlertTitle>Ready for Payment</AlertTitle>
-                    <AlertDescription>
-                      Your KYC verification is approved. You can proceed with card payment immediately.
-                    </AlertDescription>
-                  </Alert>
-                )}
               </div>
               
               <div className="pt-4 border-t border-gray-200">
@@ -169,13 +101,10 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
                   description="Use CoinPayments to pay with your favorite cryptocurrency" 
                   icon={<CreditCardIcon className="h-6 w-6 text-cbis-blue" />} 
                   onClick={handleCoinPaymentWithCurrency} 
-                  disabled={isProcessing || (kycData && kycData.status !== 'approved')}
+                  disabled={isProcessing}
                   highlight={false}
                   cryptoHighlight={true} // New prop for crypto highlighting
                 />
-                
-                {/* Render message for crypto payments */}
-                {renderCryptoPaymentMessage()}
               </div>
               
               {isProcessing && <ProcessingIndicator />}

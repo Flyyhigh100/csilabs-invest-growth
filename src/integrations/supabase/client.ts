@@ -5,8 +5,8 @@ import type { Database } from './types';
 
 // Add process polyfill for browser environment to fix "process is not defined" error
 if (typeof window !== 'undefined' && !window.process) {
-  // Use a proper type assertion to avoid TypeScript errors
-  window.process = { env: { NODE_ENV: 'development' } } as any;
+  // Use a type assertion to avoid TypeScript errors about missing Process properties
+  window.process = { env: { NODE_ENV: 'development' } } as unknown as NodeJS.Process;
 }
 
 const SUPABASE_URL = "https://hrhvliqkmetcdphnetxb.supabase.co";

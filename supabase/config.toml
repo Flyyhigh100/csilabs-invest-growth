@@ -1,5 +1,1 @@
-
 project_id = "hrhvliqkmetcdphnetxb"
-
-[functions.setup-storage]
-verify_jwt = true

@@ -1,19 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Menu, X, LogIn, UserPlus, Moon, Sun } from 'lucide-react';
+import { Menu, X, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
-import { toast } from 'sonner';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { user, signOut } = useAuth();
-  const { theme, toggleTheme } = useTheme();
-  const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -24,26 +20,11 @@ const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleSignOut = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    try {
-      await signOut();
-      toast.success("Signed out successfully");
-      setIsOpen(false);
-      navigate('/');
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast.error("Failed to sign out. Please try again.");
-    }
-  };
-
   return (
     <nav 
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        scrolled 
-          ? `py-2 ${theme === 'dark' ? 'bg-gray-900/90' : 'bg-white/90'} backdrop-blur-lg shadow-subtle` 
-          : `py-4 ${theme === 'dark' ? 'bg-transparent' : 'bg-transparent'}`
+        scrolled ? "py-2 bg-white bg-opacity-80 backdrop-blur-lg shadow-subtle" : "py-4 bg-transparent"
       )}
     >
       <div className="container-custom flex items-center justify-between">
@@ -52,138 +33,85 @@ const Navbar: React.FC = () => {
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-4">
-          <Link to="/" className="text-gray-800 dark:text-gray-200 hover:text-cbis-blue dark:hover:text-cbis-teal transition-colors">Home</Link>
-          <Link to="/token-info" className="text-gray-800 dark:text-gray-200 hover:text-cbis-blue dark:hover:text-cbis-teal transition-colors">Token Info</Link>
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
-          
-          {user ? (
-            <>
-              <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
-                <Link to="/dashboard/payments">Buy Tokens</Link>
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={handleSignOut}
-                className="border-red-500 text-red-500 hover:bg-red-50 dark:border-red-400 dark:text-red-400 dark:hover:bg-red-900/20"
-              >
-                Sign Out
-              </Button>
-            </>
-          ) : (
-            <>
-              <Link to="/login" className="text-gray-800 dark:text-gray-200 hover:text-cbis-blue dark:hover:text-cbis-teal transition-colors flex items-center">
-                <LogIn className="mr-1 h-4 w-4" />
-                Sign In
-              </Link>
-              <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
-                <Link to="/register" className="flex items-center">
-                  <UserPlus className="mr-1 h-4 w-4" />
-                  Sign Up
-                </Link>
-              </Button>
-            </>
+        <div className="hidden md:flex items-center space-x-6">
+          <Link to="/" className="text-gray-800 hover:text-cbis-blue transition-colors">Home</Link>
+          <Link to="/token-info" className="text-gray-800 hover:text-cbis-blue transition-colors">Token Info</Link>
+          {!user && (
+            <Link to="/register" className="text-gray-800 hover:text-cbis-blue transition-colors">Register</Link>
           )}
+          {user && (
+            <Link to="/dashboard" className="text-gray-800 hover:text-cbis-blue transition-colors">Dashboard</Link>
+          )}
+          <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
+            {user ? (
+              <Link to="/dashboard/payments">Buy Tokens</Link>
+            ) : (
+              <Link to="/register">Buy Tokens</Link>
+            )}
+          </Button>
         </div>
 
         {/* Mobile Menu Button */}
-        <div className="md:hidden flex items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="p-2 rounded-full text-gray-700 dark:text-gray-300"
-          >
-            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
-          
-          <button 
-            className="text-gray-800 dark:text-gray-200 p-2" 
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            {isOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
+        <button 
+          className="md:hidden text-cbis-dark p-2" 
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          {isOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
       </div>
 
       {/* Mobile Navigation */}
       <div 
         className={cn(
-          "fixed inset-0 bg-white dark:bg-gray-900 bg-opacity-95 dark:bg-opacity-95 backdrop-blur-md z-40 md:hidden flex flex-col pt-20 px-6 transition-transform duration-300 ease-in-out",
+          "fixed inset-0 bg-white bg-opacity-95 backdrop-blur-md z-40 md:hidden flex flex-col pt-20 px-6",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
         <Link 
           to="/" 
-          className="py-3 border-b border-gray-100 dark:border-gray-800 text-gray-800 dark:text-gray-200 hover:text-cbis-blue dark:hover:text-cbis-teal"
+          className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
           onClick={() => setIsOpen(false)}
         >
           Home
         </Link>
         <Link 
           to="/token-info" 
-          className="py-3 border-b border-gray-100 dark:border-gray-800 text-gray-800 dark:text-gray-200 hover:text-cbis-blue dark:hover:text-cbis-teal"
+          className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
           onClick={() => setIsOpen(false)}
         >
           Token Info
         </Link>
-        
-        {user ? (
-          <>
-            <Link 
-              to="/dashboard/payments" 
-              className="py-3 border-b border-gray-100 dark:border-gray-800 text-gray-800 dark:text-gray-200 hover:text-cbis-blue dark:hover:text-cbis-teal"
-              onClick={() => setIsOpen(false)}
-            >
-              Dashboard
-            </Link>
-            <button
-              onClick={handleSignOut}
-              className="py-3 border-b border-gray-100 dark:border-gray-800 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-            >
-              Sign Out
-            </button>
-          </>
-        ) : (
-          <>
-            <Link 
-              to="/login" 
-              className="py-3 border-b border-gray-100 dark:border-gray-800 text-gray-800 dark:text-gray-200 hover:text-cbis-blue dark:hover:text-cbis-teal flex items-center"
-              onClick={() => setIsOpen(false)}
-            >
-              <LogIn className="mr-1 h-4 w-4" />
-              Sign In
-            </Link>
-            <Link 
-              to="/register" 
-              className="py-3 border-b border-gray-100 dark:border-gray-800 text-gray-800 dark:text-gray-200 hover:text-cbis-blue dark:hover:text-cbis-teal flex items-center"
-              onClick={() => setIsOpen(false)}
-            >
-              <UserPlus className="mr-1 h-4 w-4" />
-              Sign Up
-            </Link>
-          </>
+        {!user && (
+          <Link 
+            to="/register" 
+            className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
+            onClick={() => setIsOpen(false)}
+          >
+            Register
+          </Link>
         )}
-        
         {user && (
-          <div className="mt-6">
-            <Button 
-              asChild
-              className="w-full bg-gradient-to-r from-cbis-blue to-cbis-teal text-white"
-              onClick={() => setIsOpen(false)}
-            >
-              <Link to="/dashboard/payments">Buy Tokens</Link>
-            </Button>
-          </div>
+          <Link 
+            to="/dashboard" 
+            className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
+            onClick={() => setIsOpen(false)}
+          >
+            Dashboard
+          </Link>
         )}
+        <div className="mt-6">
+          <Button 
+            asChild
+            className="w-full bg-gradient-to-r from-cbis-blue to-cbis-teal text-white"
+            onClick={() => setIsOpen(false)}
+          >
+            {user ? (
+              <Link to="/dashboard/payments">Buy Tokens</Link>
+            ) : (
+              <Link to="/register">Buy Tokens</Link>
+            )}
+          </Button>
+        </div>
       </div>
     </nav>
   );

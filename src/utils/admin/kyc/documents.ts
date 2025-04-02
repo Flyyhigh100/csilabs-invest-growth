@@ -1,86 +1,54 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
-/**
- * Retrieves a publicly accessible URL for a KYC document
- * 
- * @param documentPath The storage path of the document
- * @returns A URL string or a Promise that resolves to a URL string
- */
-export const getKycDocumentUrl = async (documentPath: string): Promise<string> => {
+// Get a public URL for Supabase storage files
+export const getKycDocumentUrl = async (url: string | null): Promise<string | null> => {
+  if (!url) return null;
+  
   try {
-    if (!documentPath) {
-      throw new Error('Document path is required');
+    console.log('Processing document URL:', url);
+    
+    // If the URL is already in the correct format (contains storage/v1/object/public), return it
+    if (url.includes('storage/v1/object/public/')) {
+      console.log('URL is already in the public format:', url);
+      return url;
     }
     
-    console.log(`Getting KYC document URL for path: ${documentPath}`);
+    // Extract bucket and path information
+    let bucketName = 'kyc_documents'; // Default bucket
+    let path = url;
     
-    // Handle URLs that are already public
-    if (documentPath.startsWith('http')) {
-      console.log('Document path is already a URL:', documentPath);
-      return documentPath;
-    }
-
-    // Extract bucket and file path from the document path
-    // The format could be either "bucket_name/path/to/file" or just "path/to/file"
-    let bucket = 'kyc-documents'; // Default bucket
-    let filePath = documentPath;
-    
-    if (documentPath.includes('/')) {
-      const firstSlashIndex = documentPath.indexOf('/');
-      const possibleBucket = documentPath.substring(0, firstSlashIndex);
-      
-      // Check if the first segment is a valid bucket
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const bucketNames = buckets?.map(b => b.name) || [];
-      
-      if (bucketNames.includes(possibleBucket)) {
-        bucket = possibleBucket;
-        filePath = documentPath.substring(firstSlashIndex + 1);
-      }
+    // Handle different URL formats
+    if (url.includes('/kyc_documents/')) {
+      bucketName = 'kyc_documents';
+      path = url.split('/kyc_documents/')[1];
+    } else if (url.includes('/documents/')) {
+      bucketName = 'documents';
+      path = url.split('/documents/')[1];
+    } else if (url.startsWith('kyc_documents/')) {
+      path = url.replace('kyc_documents/', '');
+    } else if (url.startsWith('documents/')) {
+      bucketName = 'documents';
+      path = url.replace('documents/', '');
     }
     
-    console.log(`Resolved to bucket: "${bucket}", file path: "${filePath}"`);
-
-    // Get a signed URL for the document with a 30-minute expiry
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .createSignedUrl(filePath, 60 * 30);
-
-    if (error) {
-      console.error('Error getting document URL:', error);
-      
-      // Check if it's because the file doesn't exist
-      if (error.message.includes('Not Found') || error.message.includes('does not exist')) {
-        throw new Error(`File not found: ${bucket}/${filePath}`);
-      }
-      
-      // If there's an error with the signed URL, try getting a public URL as fallback
-      console.log('Trying to get public URL as fallback...');
-      const { data: publicUrlData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
-      
-      if (publicUrlData?.publicUrl) {
-        console.log('Using public URL as fallback:', publicUrlData.publicUrl);
-        return publicUrlData.publicUrl;
-      }
-      
-      throw error;
-    }
+    console.log(`Generating public URL - Bucket: ${bucketName}, Path: ${path}`);
     
-    console.log('Successfully generated signed URL:', data?.signedUrl);
-    return data?.signedUrl || '';
+    // Use Supabase Storage getPublicUrl method - direct approach without async
+    const { data } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(path);
+    
+    if (data && data.publicUrl) {
+      console.log('Generated public URL:', data.publicUrl);
+      return data.publicUrl;
+    } else {
+      console.error('Failed to generate public URL');
+      return url; // Return original URL as fallback
+    }
   } catch (error) {
-    console.error('Error in getKycDocumentUrl:', error);
-    
-    // Return original path as fallback in case of error
-    if (documentPath && documentPath.startsWith('http')) {
-      return documentPath;
-    }
-    
-    throw error;
+    console.error('Error processing document URL:', error);
+    return url; // Return original URL if processing fails
   }
 };
 
@@ -99,79 +67,5 @@ export const verifyImageUrl = (url: string | null): string | null => {
   } catch (error) {
     console.error('Error verifying image URL:', error);
     return null;
-  }
-};
-
-/**
- * Tests if a document exists and can be accessed
- */
-export const testDocumentAccess = async (documentPath: string): Promise<boolean> => {
-  try {
-    if (!documentPath) return false;
-    
-    // Handle URLs that are already public
-    if (documentPath.startsWith('http')) {
-      try {
-        const response = await fetch(documentPath, { method: 'HEAD' });
-        return response.ok;
-      } catch (error) {
-        console.error('Error testing direct URL access:', error);
-        return false;
-      }
-    }
-
-    // Extract bucket and file path
-    let bucket = 'kyc-documents'; // Default bucket
-    let filePath = documentPath;
-    
-    if (documentPath.includes('/')) {
-      const firstSlashIndex = documentPath.indexOf('/');
-      const possibleBucket = documentPath.substring(0, firstSlashIndex);
-      
-      // Check if the first segment is a valid bucket
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const bucketNames = buckets?.map(b => b.name) || [];
-      
-      if (bucketNames.includes(possibleBucket)) {
-        bucket = possibleBucket;
-        filePath = documentPath.substring(firstSlashIndex + 1);
-      }
-    }
-    
-    // Try to download the file to test access (we only need metadata)
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .download(filePath, { transform: { width: 10, height: 10 } }); // Tiny transform to minimize data transfer
-    
-    if (error) {
-      console.error(`File access test failed for ${bucket}/${filePath}:`, error);
-      return false;
-    }
-    
-    return !!data;
-  } catch (error) {
-    console.error('Error testing document access:', error);
-    return false;
-  }
-};
-
-/**
- * Lists objects in a bucket for debugging purposes
- */
-export const listBucketContents = async (bucketName: string): Promise<string[]> => {
-  try {
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .list();
-    
-    if (error) {
-      console.error(`Error listing contents of bucket ${bucketName}:`, error);
-      return [];
-    }
-    
-    return data?.map(item => item.name) || [];
-  } catch (error) {
-    console.error(`Error listing bucket ${bucketName}:`, error);
-    return [];
   }
 };

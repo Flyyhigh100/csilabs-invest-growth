@@ -22,7 +22,6 @@ const KycDocumentImage: React.FC<KycDocumentImageProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
   
   useEffect(() => {
     if (!url) {
@@ -34,17 +33,8 @@ const KycDocumentImage: React.FC<KycDocumentImageProps> = ({
       setIsLoading(true);
       setHasError(false);
       setErrorMessage(null);
-      
-      // Add a small delay to avoid flashing loading state for cached images
-      const timer = setTimeout(() => {
-        if (isLoading) {
-          console.log(`Still loading image after delay: ${alt}`);
-        }
-      }, 1000);
-      
-      return () => clearTimeout(timer);
     }
-  }, [url, alt]);
+  }, [url]);
   
   const handleImageError = () => {
     console.warn(`Image failed to load: ${alt}`, url);
@@ -85,17 +75,6 @@ const KycDocumentImage: React.FC<KycDocumentImageProps> = ({
     toast.info('Opening image in new tab');
   };
   
-  const handleRetry = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (url) {
-      setIsLoading(true);
-      setHasError(false);
-      setErrorMessage(null);
-      setRetryCount(prev => prev + 1);
-      toast.info(`Retrying image load: ${alt}`);
-    }
-  };
-  
   if (isLoading && url) {
     return (
       <div className="w-full h-48 relative rounded-md overflow-hidden">
@@ -104,7 +83,7 @@ const KycDocumentImage: React.FC<KycDocumentImageProps> = ({
           <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
           {url && (
             <img 
-              src={`${url}${url.includes('?') ? '&' : '?'}cache=${retryCount}`} 
+              src={url} 
               alt={alt} 
               className="hidden" 
               onError={handleImageError}
@@ -129,29 +108,18 @@ const KycDocumentImage: React.FC<KycDocumentImageProps> = ({
             {errorMessage}
           </div>
         )}
-        <div className="mt-2 flex space-x-2">
-          {url && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-xs"
-              onClick={handleDirectLinkClick}
-            >
-              Direct Link
-              <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-          )}
-          {url && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-xs"
-              onClick={handleRetry}
-            >
-              Retry
-            </Button>
-          )}
-        </div>
+        {url && (
+          <a 
+            href={url} 
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="mt-2 inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Try Direct Link
+            <ExternalLink className="ml-1 h-3 w-3" />
+          </a>
+        )}
       </div>
     );
   }
@@ -159,7 +127,7 @@ const KycDocumentImage: React.FC<KycDocumentImageProps> = ({
   return (
     <div className="relative group cursor-pointer rounded-md overflow-hidden" onClick={handleOpenFullImage}>
       <img 
-        src={`${url}${url.includes('?') ? '&' : '?'}cache=${retryCount}`}
+        src={url} 
         alt={alt} 
         className="w-full h-48 object-cover rounded-md border border-gray-200 transition-all duration-200 group-hover:opacity-90" 
         onError={handleImageError}

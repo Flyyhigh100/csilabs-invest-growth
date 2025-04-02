@@ -1,10 +1,8 @@
 
 import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import DocumentUpload from './DocumentUpload';
 import { toast } from 'sonner';
-import DocumentVerificationHeader from './DocumentVerificationHeader';
-import DocumentUploadsGrid from './DocumentUploadsGrid';
-import DocumentRequirements from './DocumentRequirements';
-import DocumentActionButtons from './DocumentActionButtons';
 
 interface DocumentVerificationProps {
   hasIdFront: boolean;
@@ -12,8 +10,6 @@ interface DocumentVerificationProps {
   hasSelfie: boolean;
   isPending: boolean;
   isSubmitting: boolean;
-  isStorageAvailable?: boolean;
-  uploadError?: string | null;
   onBack: () => void;
   onSubmit: () => Promise<void>;
   onUpload: (file: File, type: 'id_front' | 'id_back' | 'selfie') => Promise<void>;
@@ -25,15 +21,12 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   hasSelfie,
   isPending,
   isSubmitting,
-  isStorageAvailable = true,
-  uploadError = null,
   onBack,
   onSubmit,
   onUpload,
 }) => {
   // Local state to track submission attempts
   const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
-  const [localError, setLocalError] = useState<string | null>(null);
 
   const handleSubmitClick = async () => {
     // Debug - log the state at button click
@@ -41,19 +34,9 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     console.log("Current document states:", { hasIdFront, hasIdBack, hasSelfie });
     console.log("Current process states:", { isPending, isSubmitting, isAttemptingSubmit });
     
-    // Clear any previous errors
-    setLocalError(null);
-    
     // Validation check - should never happen due to button disabled state, but double-checking
     if (!hasIdFront || !hasIdBack || !hasSelfie) {
-      const missingDocs = [];
-      if (!hasIdFront) missingDocs.push("front of ID");
-      if (!hasIdBack) missingDocs.push("back of ID");
-      if (!hasSelfie) missingDocs.push("selfie");
-      
-      const errorMsg = `Please upload all required documents: ${missingDocs.join(", ")}`;
-      setLocalError(errorMsg);
-      toast.error(errorMsg);
+      toast.error("Please upload all required documents before submitting");
       return;
     }
     
@@ -68,7 +51,6 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
       toast.success("Verification submitted successfully!");
     } catch (error) {
       console.error("Error in submission:", error);
-      setLocalError("Failed to submit verification. Please try again.");
       toast.error("Failed to submit verification. Please try again.");
     } finally {
       setIsAttemptingSubmit(false);
@@ -77,35 +59,68 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
 
   // Combined submission state for UI feedback
   const showSubmitSpinner = isSubmitting || isAttemptingSubmit;
-  const isButtonDisabled = !hasIdFront || !hasIdBack || !hasSelfie || showSubmitSpinner || isPending || !isStorageAvailable;
-  
-  // Combine external and local errors
-  const displayError = uploadError || localError;
+  const isButtonDisabled = !hasIdFront || !hasIdBack || !hasSelfie || showSubmitSpinner || isPending;
 
   return (
     <div className="space-y-6">
-      <DocumentVerificationHeader 
-        isStorageAvailable={isStorageAvailable}
-        uploadError={displayError}
-      />
+      <div>
+        <h3 className="text-lg font-medium mb-2">ID Verification</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Please upload clear images of your ID document (both sides) and a selfie.
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <DocumentUpload
+            documentType="id_front"
+            title="Front of ID"
+            isUploaded={hasIdFront}
+            isPending={isPending}
+            onUpload={onUpload}
+          />
+          
+          <DocumentUpload
+            documentType="id_back"
+            title="Back of ID"
+            isUploaded={hasIdBack}
+            isPending={isPending}
+            onUpload={onUpload}
+          />
+          
+          <DocumentUpload
+            documentType="selfie"
+            title="Selfie with ID"
+            isUploaded={hasSelfie}
+            isPending={isPending}
+            onUpload={onUpload}
+          />
+        </div>
+      </div>
       
-      <DocumentUploadsGrid 
-        hasIdFront={hasIdFront}
-        hasIdBack={hasIdBack}
-        hasSelfie={hasSelfie}
-        isPending={isPending}
-        isStorageAvailable={isStorageAvailable}
-        onUpload={onUpload}
-      />
-      
-      <DocumentRequirements />
-      
-      <DocumentActionButtons 
-        isSubmitting={showSubmitSpinner}
-        isButtonDisabled={isButtonDisabled}
-        onBack={onBack}
-        onSubmit={handleSubmitClick}
-      />
+      <div className="mt-8 flex flex-col-reverse sm:flex-row sm:justify-between sm:space-x-2">
+        <Button 
+          type="button" 
+          variant="outline"
+          onClick={onBack}
+          disabled={showSubmitSpinner}
+        >
+          Back
+        </Button>
+        <Button 
+          type="button"
+          disabled={isButtonDisabled}
+          onClick={handleSubmitClick}
+          className="relative"
+        >
+          {showSubmitSpinner ? (
+            <>
+              <span className="mr-2 h-4 w-4 animate-spin inline-block border-2 border-current border-t-transparent rounded-full"></span>
+              Submitting...
+            </>
+          ) : (
+            "Submit Verification"
+          )}
+        </Button>
+      </div>
     </div>
   );
 };

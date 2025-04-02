@@ -7,7 +7,7 @@ import { X, Download, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import DocumentSection from './components/DocumentSection';
 import DebugInfo from './components/DebugInfo';
-import { getKycDocumentUrl, verifyImageUrl } from '@/utils/admin/kyc/documents';
+import { getKycDocumentUrl } from '@/utils/admin/kyc/documents';
 
 interface KycDocumentsTabProps {
   kyc: KycVerificationWithProfile;
@@ -22,9 +22,7 @@ const KycDocumentsTab: React.FC<KycDocumentsTabProps> = ({ kyc }) => {
   const [processedUrls, setProcessedUrls] = useState({
     idFront: null as string | null,
     idBack: null as string | null,
-    selfie: null as string | null,
-    loading: true,
-    error: null as string | null
+    selfie: null as string | null
   });
   
   useEffect(() => {
@@ -36,69 +34,25 @@ const KycDocumentsTab: React.FC<KycDocumentsTabProps> = ({ kyc }) => {
           selfie_url: kyc.selfie_url
         });
         
-        // Check if URLs are present
-        if (!kyc.id_front_url && !kyc.id_back_url && !kyc.selfie_url) {
-          console.log('No document URLs found in KYC record');
-          setProcessedUrls({
-            idFront: null,
-            idBack: null,
-            selfie: null,
-            loading: false,
-            error: 'No document URLs found in KYC record'
-          });
-          return;
-        }
+        const [idFrontUrl, idBackUrl, selfieUrl] = await Promise.all([
+          getKycDocumentUrl(kyc.id_front_url),
+          getKycDocumentUrl(kyc.id_back_url),
+          getKycDocumentUrl(kyc.selfie_url)
+        ]);
         
-        // Create direct access URLs using signed URLs for better security
-        try {
-          const [idFrontUrl, idBackUrl, selfieUrl] = await Promise.all([
-            kyc.id_front_url ? getKycDocumentUrl(kyc.id_front_url) : null,
-            kyc.id_back_url ? getKycDocumentUrl(kyc.id_back_url) : null,
-            kyc.selfie_url ? getKycDocumentUrl(kyc.selfie_url) : null
-          ]);
-          
-          console.log('Generated document URLs:', { 
-            idFrontUrl, 
-            idBackUrl, 
-            selfieUrl 
-          });
-          
-          setProcessedUrls({
-            idFront: idFrontUrl,
-            idBack: idBackUrl,
-            selfie: selfieUrl,
-            loading: false,
-            error: null
-          });
-          
-        } catch (urlError) {
-          console.error('Error generating document URLs:', urlError);
-          
-          // Fallback to direct URLs (less secure but useful for debugging)
-          setProcessedUrls({
-            idFront: verifyImageUrl(kyc.id_front_url),
-            idBack: verifyImageUrl(kyc.id_back_url),
-            selfie: verifyImageUrl(kyc.selfie_url),
-            loading: false,
-            error: `Error generating secure URLs: ${urlError.message}`
-          });
-          
-          toast.error('Failed to generate secure document URLs, using direct access instead');
-        }
+        setProcessedUrls({
+          idFront: idFrontUrl,
+          idBack: idBackUrl,
+          selfie: selfieUrl
+        });
+        
+        console.log('Processed document URLs:', { idFrontUrl, idBackUrl, selfieUrl });
       } catch (error) {
         console.error('Error processing document URLs:', error);
-        setProcessedUrls({
-          idFront: null,
-          idBack: null,
-          selfie: null,
-          loading: false,
-          error: `Error processing URLs: ${error.message}`
-        });
         toast.error('Error loading document URLs');
       }
     };
     
-    setProcessedUrls(prev => ({ ...prev, loading: true, error: null }));
     processUrls();
   }, [kyc.id_front_url, kyc.id_back_url, kyc.selfie_url]);
   
@@ -132,36 +86,6 @@ const KycDocumentsTab: React.FC<KycDocumentsTabProps> = ({ kyc }) => {
       toast.success('Document download started');
     }
   };
-
-  // Loading state
-  if (processedUrls.loading) {
-    return (
-      <div className="space-y-6">
-        <div className="text-center py-8">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite] mb-4"></div>
-          <p className="text-sm text-gray-500">Loading document URLs...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Error state
-  if (processedUrls.error && !processedUrls.idFront && !processedUrls.idBack && !processedUrls.selfie) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-amber-50 border border-amber-200 rounded-md p-4 text-amber-800">
-          <h3 className="font-medium mb-2">Failed to load documents</h3>
-          <p className="text-sm">{processedUrls.error}</p>
-          <div className="mt-4 p-3 bg-white/50 rounded border border-amber-100 text-xs font-mono overflow-auto max-h-40">
-            <p className="mb-1 font-semibold">Document URLs in database:</p>
-            <p>ID Front: {kyc.id_front_url || 'Not provided'}</p>
-            <p>ID Back: {kyc.id_back_url || 'Not provided'}</p>
-            <p>Selfie: {kyc.selfie_url || 'Not provided'}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
   
   return (
     <div className="space-y-6">
@@ -187,13 +111,6 @@ const KycDocumentsTab: React.FC<KycDocumentsTabProps> = ({ kyc }) => {
           onZoomImage={openZoomModal}
         />
       </div>
-      
-      {processedUrls.error && (
-        <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-amber-800 text-sm">
-          <p className="font-medium">Warning: {processedUrls.error}</p>
-          <p className="text-xs mt-1">Documents are displayed using direct URLs as a fallback.</p>
-        </div>
-      )}
       
       <DebugInfo kyc={kyc} processedUrls={processedUrls} />
       
