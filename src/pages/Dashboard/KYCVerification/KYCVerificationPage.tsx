@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -55,7 +54,15 @@ const KYCVerificationPage = () => {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Subscription status:", status);
+        
+        if (status === 'SUBSCRIBED') {
+          console.log("✅ Successfully subscribed to KYC updates");
+        } else {
+          console.error("❌ Failed to subscribe to KYC updates");
+        }
+      });
       
     console.log("Subscribed to KYC updates for user:", user.id);
     

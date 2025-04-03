@@ -1,10 +1,8 @@
 
 import React from 'react';
-import { TabsContent } from '@/components/ui/tabs';
 import PersonalInfoForm from '@/components/KYC/PersonalInfoForm';
 import { PersonalInfoValues } from '@/components/KYC/schema/personalInfoSchema';
 import { KycVerificationData } from '@/hooks/kyc/types';
-import { getDefaultPersonalInfoValues } from './TabHandlers';
 
 interface PersonalInfoTabProps {
   kycData: KycVerificationData | null;
@@ -17,16 +15,25 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({
   isPending, 
   onSubmit 
 }) => {
-  const defaultValues = getDefaultPersonalInfoValues(kycData);
+  const defaultValues = {
+    first_name: kycData?.first_name || "",
+    last_name: kycData?.last_name || "",
+    date_of_birth: kycData?.date_of_birth || "",
+    nationality: kycData?.nationality || "",
+    address: kycData?.address || "",
+    city: kycData?.city || "",
+    postal_code: kycData?.postal_code || "",
+    country: kycData?.country || "",
+  };
 
   return (
-    <TabsContent value="personal-info" className="py-4">
+    <div className="py-4">
       <PersonalInfoForm 
         defaultValues={defaultValues} 
         onSubmit={onSubmit}
         isPending={isPending}
       />
-    </TabsContent>
+    </div>
   );
 };
 

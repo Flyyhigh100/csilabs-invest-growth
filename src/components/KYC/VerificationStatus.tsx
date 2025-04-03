@@ -3,9 +3,12 @@ import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, CheckCircle, Clock, Upload, AlertCircle, ExternalLink } from 'lucide-react';
+import { Database } from '@/integrations/supabase/types';
+
+type KycStatus = Database['public']['Enums']['kyc_status'];
 
 interface VerificationStatusProps {
-  status: string; // Changed to string to handle all status types
+  status: KycStatus;
   rejectionReason?: string | null;
   clarificationMessage?: string | null;
   onStartVerification: () => void;

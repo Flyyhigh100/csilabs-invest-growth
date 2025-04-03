@@ -22,7 +22,11 @@ export const useKycActionHandlers = (
     }) => {
       console.log('Processing KYC verification:', { kycId, status, rejectionReason });
       
+      // Display immediate feedback
+      toast.loading(`Processing KYC verification...`);
+      
       const success = await processKycVerification(kycId, status, rejectionReason);
+      
       if (!success) {
         throw new Error(`Failed to process KYC verification with status: ${status}`);
       }
@@ -30,6 +34,8 @@ export const useKycActionHandlers = (
       return true;
     },
     onSuccess: () => {
+      toast.dismiss(); // Dismiss loading toast
+      
       // Run success callback first to close modal
       onSuccess();
       
@@ -48,6 +54,7 @@ export const useKycActionHandlers = (
       toast.success(`KYC verification processed successfully`);
     },
     onError: (error) => {
+      toast.dismiss(); // Dismiss loading toast
       console.error('Error processing KYC verification:', error);
       toast.error(`Failed to process KYC verification: ${(error as Error).message}`);
     },
@@ -69,7 +76,11 @@ export const useKycActionHandlers = (
         throw new Error('Clarification message is required');
       }
       
+      // Display immediate feedback
+      toast.loading(`Sending clarification request...`);
+      
       const success = await requestKycClarification(kycId, message);
+      
       if (!success) {
         throw new Error('Failed to request clarification');
       }
@@ -77,6 +88,8 @@ export const useKycActionHandlers = (
       return true;
     },
     onSuccess: () => {
+      toast.dismiss(); // Dismiss loading toast
+      
       // Run success callback first to close modal
       onSuccess();
       
@@ -95,6 +108,7 @@ export const useKycActionHandlers = (
       toast.success(`Clarification request sent successfully`);
     },
     onError: (error) => {
+      toast.dismiss(); // Dismiss loading toast
       console.error('Error sending clarification request:', error);
       toast.error(`Failed to send clarification request: ${(error as Error).message}`);
     },

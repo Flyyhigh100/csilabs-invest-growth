@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { TabsContent } from '@/components/ui/tabs';
 import DocumentVerification from '@/components/KYC/DocumentVerification';
 import { KycVerificationData } from '@/hooks/kyc/types';
 
@@ -24,20 +23,23 @@ const DocumentVerificationTab: React.FC<DocumentVerificationTabProps> = ({
   const hasIdFront = !!kycData?.id_front_url;
   const hasIdBack = !!kycData?.id_back_url;
   const hasSelfie = !!kycData?.selfie_url;
+  const isPending = kycData?.status === 'pending';
+  const clarificationMessage = kycData?.clarification_message;
 
   return (
-    <TabsContent value="document-verification" className="py-4">
+    <div className="py-4">
       <DocumentVerification
         hasIdFront={hasIdFront}
         hasIdBack={hasIdBack}
         hasSelfie={hasSelfie}
-        isPending={uploadPending}
+        isPending={uploadPending || isPending}
         isSubmitting={isSubmitting}
         onBack={onBack}
         onSubmit={onSubmit}
         onUpload={onUpload}
+        clarificationMessage={clarificationMessage}
       />
-    </TabsContent>
+    </div>
   );
 };
 
