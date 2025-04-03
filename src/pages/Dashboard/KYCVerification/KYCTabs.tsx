@@ -94,7 +94,6 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
         <VerificationStatusTab
           kycData={kycData}
           isLoading={false}
-          refetch={refetch}
           onStartVerification={handleRestartVerification}
           onProvideMoreInfo={() => setActiveTab('documents')}
         />

@@ -1,180 +1,138 @@
 
 import React from 'react';
-import { CheckCircle2, Clock, AlertCircle, RefreshCw } from 'lucide-react';
-import { KycVerificationData } from '@/hooks/kyc';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { createTestKycRecord } from '@/hooks/kyc/kycService';
-import { useAuth } from '@/contexts/AuthContext';
-import { Database } from '@/integrations/supabase/types';
-
-type KycStatus = Database['public']['Enums']['kyc_status'];
+import { KycVerificationData } from '@/hooks/kyc/types';
+import { AlertCircle, CheckCircle, Clock, RotateCw, FilePlus2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface VerificationStatusTabProps {
   kycData: KycVerificationData | null;
   isLoading: boolean;
-  refetch: () => void;
-  onStartVerification?: () => void;
-  onProvideMoreInfo?: () => void;
+  onStartVerification: () => void;
+  onProvideMoreInfo: () => void;
 }
 
-const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({ 
-  kycData, 
+const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({
+  kycData,
   isLoading,
-  refetch,
   onStartVerification,
   onProvideMoreInfo
 }) => {
-  const { user } = useAuth();
-  
   const getStatusContent = () => {
-    // Fix the type error by properly checking the status
-    // First, ensure we have a valid status from the KYC data
-    const status = kycData?.status as KycStatus | undefined;
-    
+    if (!kycData) {
+      return {
+        icon: <FilePlus2 className="h-12 w-12 text-blue-500" />,
+        title: 'Start Verification',
+        description: 'You have not started the verification process yet. Click the button below to begin.',
+        color: 'bg-blue-50 border-blue-200',
+        action: (
+          <Button 
+            onClick={onStartVerification}
+            className="mt-4"
+          >
+            Start Verification
+          </Button>
+        )
+      };
+    }
+
+    const status = kycData.status;
+
     switch (status) {
       case 'approved':
         return {
+          icon: <CheckCircle className="h-12 w-12 text-green-500" />,
           title: 'Verification Approved',
-          description: 'Congratulations! Your identity has been verified successfully.',
-          icon: <CheckCircle2 className="h-16 w-16 text-green-500" />,
+          description: 'Your identity has been verified successfully. You now have full access to all platform features.',
           color: 'bg-green-50 border-green-200',
-          showRefresh: false
+          action: null
         };
       case 'rejected':
         return {
+          icon: <AlertCircle className="h-12 w-12 text-red-500" />,
           title: 'Verification Rejected',
-          description: kycData?.rejection_reason 
-            ? `Your verification was rejected. Reason: ${kycData.rejection_reason}` 
-            : 'Your verification was rejected. Please resubmit with correct information.',
-          icon: <AlertCircle className="h-16 w-16 text-red-500" />,
+          description: kycData.rejection_reason 
+            ? `Your verification was rejected: ${kycData.rejection_reason}` 
+            : 'Your verification was rejected. Please restart the verification process.',
           color: 'bg-red-50 border-red-200',
-          showRefresh: true
+          action: (
+            <Button 
+              onClick={onStartVerification}
+              className="mt-4"
+              variant="destructive"
+            >
+              <RotateCw className="mr-2 h-4 w-4" />
+              Restart Verification
+            </Button>
+          )
         };
       case 'pending':
         return {
-          title: 'Verification in Progress',
-          description: 'Your verification is currently being reviewed by our team. This usually takes 1-2 business days.',
-          icon: <Clock className="h-16 w-16 text-amber-500" />,
+          icon: <Clock className="h-12 w-12 text-amber-500" />,
+          title: 'Verification Pending',
+          description: 'Your verification is being reviewed. This process typically takes 1-2 business days.',
           color: 'bg-amber-50 border-amber-200',
-          showRefresh: true
+          action: null
         };
-      // Handle as a valid case, not in the comparison
-      case 'not_started':
+      case 'needs_clarification':
+        return {
+          icon: <AlertCircle className="h-12 w-12 text-purple-500" />,
+          title: 'Additional Information Needed',
+          description: kycData.clarification_message 
+            ? `We need additional information: ${kycData.clarification_message}` 
+            : 'We need additional information to complete your verification.',
+          color: 'bg-purple-50 border-purple-200',
+          action: (
+            <Button 
+              onClick={onProvideMoreInfo}
+              className="mt-4"
+              variant="outline"
+            >
+              <FilePlus2 className="mr-2 h-4 w-4" />
+              Provide Information
+            </Button>
+          )
+        };
       default:
         return {
-          title: 'Verification Not Started',
-          description: 'Please complete the personal information and document upload steps to start the verification process.',
-          icon: <Clock className="h-16 w-16 text-gray-400" />,
-          color: 'bg-gray-50 border-gray-200',
-          showRefresh: false
+          icon: <FilePlus2 className="h-12 w-12 text-blue-500" />,
+          title: 'Start Verification',
+          description: 'You have not completed the verification process. Please provide all required information.',
+          color: 'bg-blue-50 border-blue-200',
+          action: (
+            <Button 
+              onClick={onStartVerification}
+              className="mt-4"
+            >
+              Start Verification
+            </Button>
+          )
         };
     }
   };
-  
+
   const content = getStatusContent();
-  
-  const handleRefresh = () => {
-    refetch();
-    toast.success('Refreshing verification status...');
-  };
-  
-  const handleDebugInsert = async () => {
-    if (!user) {
-      toast.error('No active user session');
-      return;
-    }
-    
-    try {
-      toast.loading('Creating test verification...');
-      await createTestKycRecord(user.id);
-      toast.success('Test verification created successfully');
-      refetch();
-    } catch (error) {
-      console.error('Error creating test verification:', error);
-      toast.error('Failed to create test verification');
-    }
-  };
-  
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cbis-blue"></div>
-      </div>
-    );
-  }
-  
+
   return (
-    <div className="w-full max-w-2xl mx-auto py-8">
-      <div className={`p-6 rounded-lg border ${content.color} flex flex-col items-center text-center`}>
-        <div className="mb-4">
-          {content.icon}
+    <div className="py-4">
+      {isLoading ? (
+        <div className="flex justify-center items-center h-48">
+          <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" />
         </div>
-        <h3 className="text-xl font-semibold mb-2">{content.title}</h3>
-        <p className="text-gray-600 mb-6">{content.description}</p>
-        
-        {kycData?.submitted_at && (
-          <div className="text-sm text-gray-500 mb-4">
-            Submitted: {new Date(kycData.submitted_at).toLocaleString()}
-          </div>
-        )}
-        
-        {content.showRefresh && (
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleRefresh} className="flex items-center gap-2">
-              <RefreshCw className="h-4 w-4" />
-              Refresh Status
-            </Button>
-          </div>
-        )}
-        
-        {/* If onStartVerification is provided, and we're in not_started state, show a button */}
-        {onStartVerification && (!kycData || kycData.status === 'not_started') && (
-          <Button onClick={onStartVerification} className="mt-4">
-            Start Verification
-          </Button>
-        )}
-        
-        {/* If onProvideMoreInfo is provided and there's a clarification message, show that button */}
-        {onProvideMoreInfo && kycData?.clarification_message && (
-          <Button onClick={onProvideMoreInfo} variant="outline" className="mt-4">
-            Provide Additional Information
-          </Button>
-        )}
-        
-        {/* Debug tools - only show in development */}
-        {process.env.NODE_ENV !== 'production' && (
-          <div className="mt-8 pt-4 border-t border-dashed border-gray-300 w-full">
-            <p className="text-xs text-gray-500 mb-2">Debug Tools</p>
-            <div className="flex gap-2 justify-center">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleDebugInsert}
-                className="text-xs"
-              >
-                Create Test Verification
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleRefresh}
-                className="text-xs"
-              >
-                Force Refresh
-              </Button>
+      ) : (
+        <div className={cn("p-6 rounded-lg border", content.color)}>
+          <div className="flex flex-col items-center text-center sm:flex-row sm:text-left sm:items-start">
+            <div className="mb-4 sm:mb-0 sm:mr-6">
+              {content.icon}
             </div>
-            <div className="mt-2 text-xs text-left bg-gray-100 p-2 rounded overflow-auto max-h-32">
-              <pre>{JSON.stringify({
-                id: kycData?.id,
-                status: kycData?.status,
-                submitted_at: kycData?.submitted_at,
-                reviewed_at: kycData?.reviewed_at
-              }, null, 2)}</pre>
+            <div>
+              <h3 className="text-xl font-semibold mb-2">{content.title}</h3>
+              <p className="text-gray-600 mb-4">{content.description}</p>
+              {content.action}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
