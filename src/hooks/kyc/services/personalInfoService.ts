@@ -25,25 +25,13 @@ export const fetchKycVerification = async (userId: string): Promise<KycVerificat
     if (!data) {
       console.log('No KYC record found, creating one...');
       
-      const newKycData = {
-        user_id: userId,
-        status: 'not_started', // Use the string literal directly
-        first_name: null,
-        last_name: null,
-        date_of_birth: null,
-        nationality: null,
-        address: null,
-        city: null,
-        postal_code: null,
-        country: null,
-        id_front_url: null,
-        id_back_url: null,
-        selfie_url: null
-      };
-      
+      // Using "not_started" as a string literal for Supabase
       const { data: newData, error: insertError } = await supabase
         .from('kyc_verifications')
-        .insert(newKycData)
+        .insert({
+          user_id: userId,
+          status: "not_started"
+        })
         .select()
         .single();
       
@@ -83,12 +71,12 @@ export const saveKycPersonalInfo = async (userId: string, formData: KycFormData)
     if (!existingRecord) {
       console.log('No KYC record exists, creating a new one');
       
-      // Create a new record
+      // Create a new record - using string literal for status
       const { data: newData, error: insertError } = await supabase
         .from('kyc_verifications')
         .insert({
           user_id: userId,
-          status: 'not_started', // Use the string literal directly
+          status: "not_started",
           first_name: formData.first_name,
           last_name: formData.last_name,
           date_of_birth: formData.date_of_birth,
@@ -157,7 +145,7 @@ export const ensureKycRecordExists = async (userId: string): Promise<boolean> =>
       throw error;
     }
     
-    // If no record exists, create one
+    // If no record exists, create one - using string literal for status
     if (!data) {
       console.log('No KYC record found, creating one...');
       
@@ -165,7 +153,7 @@ export const ensureKycRecordExists = async (userId: string): Promise<boolean> =>
         .from('kyc_verifications')
         .insert({
           user_id: userId,
-          status: 'not_started' // Use the string literal directly
+          status: "not_started"
         });
       
       if (insertError) {
