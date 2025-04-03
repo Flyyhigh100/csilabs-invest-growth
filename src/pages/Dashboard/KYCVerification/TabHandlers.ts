@@ -29,7 +29,16 @@ const TabHandlers = (
     setIsSubmitting(true);
     try {
       console.log('Submitting personal info:', values);
-      await savePersonalInfo.mutateAsync(values);
+      await savePersonalInfo.mutateAsync({
+        first_name: values.first_name,
+        last_name: values.last_name,
+        date_of_birth: values.date_of_birth,
+        nationality: values.nationality,
+        address: values.address,
+        city: values.city,
+        postal_code: values.postal_code,
+        country: values.country
+      });
       toast.success('Personal information saved successfully');
       
       // Move to the next tab

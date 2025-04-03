@@ -3,9 +3,7 @@ import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, CheckCircle, Clock, Upload, AlertCircle, ExternalLink } from 'lucide-react';
-import { Database } from '@/integrations/supabase/types';
-
-type KycStatus = Database['public']['Enums']['kyc_status'];
+import { KycStatus } from '@/hooks/kyc/types';
 
 interface VerificationStatusProps {
   status: KycStatus;

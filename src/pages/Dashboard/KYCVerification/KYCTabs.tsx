@@ -1,22 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { KycVerificationData } from '@/hooks/kyc/types';
-import { Database } from '@/integrations/supabase/types';
+import { KycVerificationData, KycStatus } from '@/hooks/kyc/types';
 import TabHandlers from './TabHandlers';
 import PersonalInfoTab from './PersonalInfoTab';
 import DocumentVerificationTab from './DocumentVerificationTab';
 import VerificationStatusTab from './VerificationStatusTab';
-
-// Use the type from the database to ensure compatibility
-type KycStatus = Database['public']['Enums']['kyc_status'];
 
 const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
   // Initialize with the appropriate tab based on verification status
   const getInitialTab = () => {
     if (!kycData) return 'personal-info';
     
-    const status = kycData.status as KycStatus;
+    const status = kycData.status;
     
     switch (status) {
       case 'pending':

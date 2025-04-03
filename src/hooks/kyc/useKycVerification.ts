@@ -13,6 +13,8 @@ import {
   submitKycVerification,
   ensureKycRecordExists
 } from './kycService';
+import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useKycVerification() {
   const { user } = useAuth();
@@ -37,8 +39,53 @@ export function useKycVerification() {
     },
     enabled: !!user,
     staleTime: 0, // Always refetch when needed
+    refetchInterval: 10000, // Refetch every 10 seconds to ensure we get latest status
     refetchOnWindowFocus: true,
   });
+  
+  // Set up a realtime subscription for KYC verification updates
+  useEffect(() => {
+    if (!user) return;
+    
+    console.log("Setting up realtime subscription for KYC verification updates");
+    
+    const channel = supabase
+      .channel('kyc-status-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'kyc_verifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('KYC verification update received:', payload);
+          
+          // Immediately refetch to get the latest data
+          queryClient.invalidateQueries({ queryKey: ['kyc', user.id] });
+          refetch();
+          
+          // Show a toast notification based on the new status
+          const newStatus = (payload.new as any)?.status;
+          
+          if (newStatus === 'approved') {
+            toast.success('Your KYC verification has been approved!');
+          } else if (newStatus === 'rejected') {
+            toast.error('Your KYC verification has been rejected. Please check the details.');
+          } else if (newStatus === 'needs_clarification') {
+            toast.info('Additional information is required for your KYC verification.');
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient, refetch]);
   
   // Save KYC personal information
   const savePersonalInfo = useMutation({

@@ -23,19 +23,28 @@ export const useKycActionHandlers = (
       console.log('Processing KYC verification:', { kycId, status, rejectionReason });
       
       // Display immediate feedback
-      toast.loading(`Processing KYC verification...`);
+      const loadingToast = toast.loading(`Processing KYC verification...`);
       
-      const success = await processKycVerification(kycId, status, rejectionReason);
-      
-      if (!success) {
-        throw new Error(`Failed to process KYC verification with status: ${status}`);
+      try {
+        const success = await processKycVerification(kycId, status, rejectionReason);
+        
+        if (!success) {
+          toast.dismiss(loadingToast);
+          toast.error(`Failed to process KYC verification with status: ${status}`);
+          throw new Error(`Failed to process KYC verification with status: ${status}`);
+        }
+        
+        toast.dismiss(loadingToast);
+        toast.success(`KYC verification ${status === 'approved' ? 'approved' : 'rejected'} successfully`);
+        return true;
+      } catch (error) {
+        toast.dismiss(loadingToast);
+        console.error('Error processing KYC verification:', error);
+        toast.error(`Failed to process KYC verification: ${(error as Error).message}`);
+        throw error;
       }
-      
-      return true;
     },
     onSuccess: () => {
-      toast.dismiss(); // Dismiss loading toast
-      
       // Run success callback first to close modal
       onSuccess();
       
@@ -50,14 +59,7 @@ export const useKycActionHandlers = (
         queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
         queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
       }, 1000);
-      
-      toast.success(`KYC verification processed successfully`);
-    },
-    onError: (error) => {
-      toast.dismiss(); // Dismiss loading toast
-      console.error('Error processing KYC verification:', error);
-      toast.error(`Failed to process KYC verification: ${(error as Error).message}`);
-    },
+    }
   });
   
   // Request clarification from user
@@ -77,19 +79,28 @@ export const useKycActionHandlers = (
       }
       
       // Display immediate feedback
-      toast.loading(`Sending clarification request...`);
+      const loadingToast = toast.loading(`Sending clarification request...`);
       
-      const success = await requestKycClarification(kycId, message);
-      
-      if (!success) {
-        throw new Error('Failed to request clarification');
+      try {
+        const success = await requestKycClarification(kycId, message);
+        
+        if (!success) {
+          toast.dismiss(loadingToast);
+          toast.error('Failed to request clarification');
+          throw new Error('Failed to request clarification');
+        }
+        
+        toast.dismiss(loadingToast);
+        toast.success(`Clarification request sent successfully`);
+        return true;
+      } catch (error) {
+        toast.dismiss(loadingToast);
+        console.error('Error sending clarification request:', error);
+        toast.error(`Failed to send clarification request: ${(error as Error).message}`);
+        throw error;
       }
-      
-      return true;
     },
     onSuccess: () => {
-      toast.dismiss(); // Dismiss loading toast
-      
       // Run success callback first to close modal
       onSuccess();
       
@@ -104,14 +115,7 @@ export const useKycActionHandlers = (
         queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
         queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
       }, 1000);
-      
-      toast.success(`Clarification request sent successfully`);
-    },
-    onError: (error) => {
-      toast.dismiss(); // Dismiss loading toast
-      console.error('Error sending clarification request:', error);
-      toast.error(`Failed to send clarification request: ${(error as Error).message}`);
-    },
+    }
   });
 
   // Handler functions
