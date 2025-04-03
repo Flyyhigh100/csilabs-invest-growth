@@ -4,9 +4,6 @@ import { Link } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, Clock, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useKycVerification } from '@/hooks/useKycVerification';
-import { Database } from '@/integrations/supabase/types';
-
-type KycStatus = Database['public']['Enums']['kyc_status'];
 
 interface KycStatusBannerProps {
   showActions?: boolean;
@@ -55,6 +52,18 @@ const KycStatusBanner: React.FC<KycStatusBannerProps> = ({ showActions = true })
           description: 'Your identity verification is being processed.',
           color: 'bg-amber-50',
           actionButton: null
+        };
+      case 'needs_clarification':
+        return {
+          icon: <AlertCircle className="h-8 w-8 text-blue-500" />,
+          title: 'KYC Needs Clarification',
+          description: 'We need additional information for your verification.',
+          color: 'bg-blue-50',
+          actionButton: (
+            <Button className="mt-4" variant="outline" asChild>
+              <Link to="/dashboard/kyc">Provide Additional Information</Link>
+            </Button>
+          )
         };
       default: // not_started
         return {

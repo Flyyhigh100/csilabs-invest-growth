@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { KycStatus } from '../types';
 
 // Submit KYC verification for review
 export const submitKycVerification = async (userId: string): Promise<boolean> => {
@@ -36,7 +35,7 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     const { data, error } = await supabase
       .from('kyc_verifications')
       .update({
-        status: 'pending' as KycStatus,
+        status: 'pending', // Use the string literal directly
         submitted_at: new Date().toISOString()
       })
       .eq('user_id', userId);

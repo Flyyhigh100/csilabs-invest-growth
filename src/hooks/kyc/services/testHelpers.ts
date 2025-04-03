@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { KycStatus } from '../types';
 
 // This is for tests only - create a test verification record
 export const insertTestKycVerification = async (userId: string): Promise<boolean> => {
@@ -26,7 +25,7 @@ export const insertTestKycVerification = async (userId: string): Promise<boolean
       const { error } = await supabase
         .from('kyc_verifications')
         .update({
-          status: 'pending' as KycStatus,
+          status: 'pending', // Use the string literal directly
           first_name: 'Test',
           last_name: 'User',
           date_of_birth: '1990-01-01',
@@ -51,7 +50,7 @@ export const insertTestKycVerification = async (userId: string): Promise<boolean
         .from('kyc_verifications')
         .insert({
           user_id: userId,
-          status: 'pending' as KycStatus,
+          status: 'pending', // Use the string literal directly
           first_name: 'Test',
           last_name: 'User',
           date_of_birth: '1990-01-01',

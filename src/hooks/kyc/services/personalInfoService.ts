@@ -27,7 +27,7 @@ export const fetchKycVerification = async (userId: string): Promise<KycVerificat
       
       const newKycData = {
         user_id: userId,
-        status: 'not_started' as KycStatus,
+        status: 'not_started', // Use the string literal directly
         first_name: null,
         last_name: null,
         date_of_birth: null,
@@ -88,7 +88,7 @@ export const saveKycPersonalInfo = async (userId: string, formData: KycFormData)
         .from('kyc_verifications')
         .insert({
           user_id: userId,
-          status: 'not_started' as KycStatus,
+          status: 'not_started', // Use the string literal directly
           first_name: formData.first_name,
           last_name: formData.last_name,
           date_of_birth: formData.date_of_birth,
@@ -165,7 +165,7 @@ export const ensureKycRecordExists = async (userId: string): Promise<boolean> =>
         .from('kyc_verifications')
         .insert({
           user_id: userId,
-          status: 'not_started' as KycStatus
+          status: 'not_started' // Use the string literal directly
         });
       
       if (insertError) {
