@@ -112,4 +112,5 @@ const TabHandlers = (
   };
 };
 
+// Export the TabHandlers function as default
 export default TabHandlers;

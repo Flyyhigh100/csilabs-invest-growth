@@ -1,7 +1,9 @@
 
 import { Database } from '@/integrations/supabase/types';
 
-export type KycStatus = Database['public']['Enums']['kyc_status'];
+// Modified to be a string type rather than using the enum directly
+// This allows us to handle cases where the backend may return statuses not in the enum
+export type KycStatus = string;
 
 export interface KycVerificationData {
   id: string;
