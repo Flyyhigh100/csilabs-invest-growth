@@ -48,13 +48,14 @@ export const useKycActionHandlers = (
       // Run success callback first to close modal
       onSuccess();
       
-      // Invalidate all relevant queries to refresh data
+      // IMPORTANT: Invalidate all relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
       
-      // Force a more aggressive refetch of all KYC data
+      // Force a more aggressive refetch of all KYC data with a small delay to ensure
+      // the database has been updated
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
         queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
@@ -104,13 +105,13 @@ export const useKycActionHandlers = (
       // Run success callback first to close modal
       onSuccess();
       
-      // Invalidate all relevant queries to refresh data
+      // IMPORTANT: Invalidate all relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
       
-      // Force a more aggressive refetch of all KYC data
+      // Force a more aggressive refetch with a delay to ensure the database has been updated
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
         queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });

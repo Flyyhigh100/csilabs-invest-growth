@@ -28,7 +28,7 @@ export const useAdminKycDataFetcher = (isAdmin: boolean | null) => {
   } = useQuery({
     queryKey: ['admin-kyc-verifications', manualRefreshCount],
     queryFn: async () => {
-      console.log('Fetching KYC verifications with admin access - after RLS policy update');
+      console.log('Fetching KYC verifications with admin access');
       
       // First verify admin access
       const adminAccess = await verifyAdminAccess();
@@ -40,12 +40,12 @@ export const useAdminKycDataFetcher = (isAdmin: boolean | null) => {
       
       try {
         const results = await fetchKycVerifications();
-        console.log(`Fetched ${results.length} KYC verifications with updated RLS policies`);
+        console.log(`Fetched ${results.length} KYC verifications`);
         
         if (results.length > 0) {
           console.log('First few KYC records:', results.slice(0, 3));
         } else {
-          console.warn('WARNING: No KYC records returned with updated RLS policies');
+          console.warn('WARNING: No KYC records returned');
           
           // Force a direct test to check database access
           const directTest = await testDirectKycAccess();
@@ -63,12 +63,12 @@ export const useAdminKycDataFetcher = (isAdmin: boolean | null) => {
           return counts;
         }, {} as Record<string, number>);
         
-        console.log('KYC verification status counts with updated RLS:', statusCounts);
+        console.log('KYC verification status counts:', statusCounts);
         
         setLastFetchTime(new Date().toISOString());
         return results;
       } catch (err) {
-        console.error('Error fetching KYC verifications with updated RLS:', err);
+        console.error('Error fetching KYC verifications:', err);
         toast.error('Failed to fetch KYC verifications. Check console for details.');
         throw err;
       }
@@ -91,7 +91,7 @@ export const useAdminKycDataFetcher = (isAdmin: boolean | null) => {
   });
 
   const handleManualRefresh = async () => {
-    console.log('Manual refresh triggered with updated RLS policies');
+    console.log('Manual refresh triggered');
     setManualRefreshCount(prev => prev + 1);
     
     // Check admin access first
@@ -101,7 +101,7 @@ export const useAdminKycDataFetcher = (isAdmin: boolean | null) => {
       return;
     }
     
-    // Run a direct test to verify RLS policy changes
+    // Run a direct test to verify database access
     try {
       const directTest = await testDirectKycAccess();
       setDirectTestResults(JSON.stringify({
@@ -112,27 +112,27 @@ export const useAdminKycDataFetcher = (isAdmin: boolean | null) => {
       }, null, 2));
       
       if (directTest.count > 0) {
-        toast.success(`Found ${directTest.count} KYC records with RLS policies`);
+        toast.success(`Found ${directTest.count} KYC records`);
       } else {
-        toast.warning('No KYC records found even with updated RLS policies');
+        toast.warning('No KYC records found');
       }
     } catch (error) {
-      console.error('Error in direct database test with updated RLS:', error);
+      console.error('Error in direct database test:', error);
       toast.error('Error running direct database test');
     }
     
     // Standard refetch
     refetch();
     if (showAllUsers) refetchAllUsers();
-    toast.success('Refreshing KYC data with updated RLS policies...');
+    toast.success('Refreshing KYC data...');
   };
 
   // Set up realtime subscription
   useEffect(() => {
     // Set up realtime subscription for KYC verifications with improved error handling
-    console.log('Setting up realtime subscription for kyc_verifications table with updated RLS policies...');
+    console.log('Setting up realtime subscription for kyc_verifications table...');
     const channel = supabase
-      .channel('kyc-verification-updates-with-updated-rls')
+      .channel('kyc-verification-updates')
       .on(
         'postgres_changes',
         {
@@ -141,27 +141,43 @@ export const useAdminKycDataFetcher = (isAdmin: boolean | null) => {
           table: 'kyc_verifications'
         },
         (payload) => {
-          console.log('Realtime update received for kyc_verifications with updated RLS:', payload);
+          console.log('Realtime update received for kyc_verifications:', payload);
           setRealtimeEnabled(true);
           
           // Always refetch when we get an update
           refetch();
           
           // Show informative toast notification
-          if (payload.eventType === 'INSERT') {
+          const eventType = payload.eventType;
+          
+          if (eventType === 'INSERT') {
             toast.info('New KYC verification submitted');
-          } else if (payload.eventType === 'UPDATE') {
+          } else if (eventType === 'UPDATE') {
             const newRecord = payload.new as any;
-            toast.info(`KYC verification updated: ${newRecord.status}`);
+            const oldRecord = payload.old as any;
+            
+            if (newRecord.status && newRecord.status !== oldRecord.status) {
+              const statusMap: Record<string, string> = {
+                'approved': 'Approved',
+                'rejected': 'Rejected',
+                'pending': 'Pending',
+                'needs_clarification': 'Needs clarification'
+              };
+              
+              const statusText = statusMap[newRecord.status] || newRecord.status;
+              toast.info(`KYC verification updated: ${statusText}`);
+            } else {
+              toast.info('KYC verification updated');
+            }
           }
         }
       )
       .subscribe((status) => {
-        console.log('Realtime subscription status with updated RLS:', status);
+        console.log('Realtime subscription status:', status);
         
         if (status === 'SUBSCRIBED') {
           setRealtimeEnabled(true);
-          console.log('✅ Successfully subscribed to realtime updates with updated RLS policies');
+          console.log('✅ Successfully subscribed to realtime updates');
           toast.success('Realtime updates enabled for KYC verifications');
         } else if (status === 'CHANNEL_ERROR') {
           setRealtimeEnabled(false);
