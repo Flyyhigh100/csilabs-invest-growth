@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CheckCircle, Clock, Upload, AlertCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Upload, AlertCircle, ExternalLink } from 'lucide-react';
 
 interface VerificationStatusProps {
   status: string; // Changed to string to handle all status types
@@ -20,6 +20,8 @@ const VerificationStatus: React.FC<VerificationStatusProps> = ({
   onProvideMoreInfo,
 }) => {
   console.log("Rendering VerificationStatus component with status:", status);
+  console.log("Clarification message:", clarificationMessage);
+  console.log("Rejection reason:", rejectionReason);
   
   // Trigger a debugging log whenever this component renders with a new status
   useEffect(() => {
@@ -50,6 +52,14 @@ const VerificationStatus: React.FC<VerificationStatusProps> = ({
           <p className="text-gray-600 max-w-md mx-auto mb-6">
             Your identity has been successfully verified. You now have full access to all platform features.
           </p>
+          <div className="flex justify-center mb-4">
+            <Button asChild variant="outline" className="mr-2">
+              <Link to="/dashboard/payments">Buy Tokens</Link>
+            </Button>
+            <Button asChild>
+              <Link to="/dashboard">View Dashboard</Link>
+            </Button>
+          </div>
         </>
       )}
       
@@ -59,9 +69,23 @@ const VerificationStatus: React.FC<VerificationStatusProps> = ({
             <AlertTriangle className="h-10 w-10 text-red-500" />
           </div>
           <h3 className="text-xl font-medium mb-2">Verification Rejected</h3>
+          
+          {rejectionReason && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6 max-w-md mx-auto text-left">
+              <div className="flex items-start">
+                <AlertTriangle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-red-800">Reason for Rejection</h4>
+                  <p className="text-red-700 text-sm mt-1">{rejectionReason}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <p className="text-gray-600 max-w-md mx-auto mb-6">
-            Unfortunately, your verification was rejected. Reason: {rejectionReason || "Unspecified reason"}
+            Unfortunately, your verification was rejected. Please review the reason above and resubmit with the correct information.
           </p>
+          
           <Button 
             onClick={onStartVerification} 
             className="mb-4"
@@ -80,28 +104,28 @@ const VerificationStatus: React.FC<VerificationStatusProps> = ({
           <p className="text-gray-600 max-w-md mx-auto mb-6">
             We need some clarification on your submitted documents.
           </p>
-        </>
-      )}
-      
-      {clarificationMessage && (
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6 max-w-md mx-auto text-left">
-          <div className="flex items-start">
-            <AlertCircle className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
-            <div>
-              <h4 className="font-medium text-blue-800">Additional Information Requested</h4>
-              <p className="text-blue-700 text-sm mt-1">{clarificationMessage}</p>
+          
+          {clarificationMessage && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6 max-w-md mx-auto text-left">
+              <div className="flex items-start">
+                <AlertCircle className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-blue-800">Additional Information Requested</h4>
+                  <p className="text-blue-700 text-sm mt-1">{clarificationMessage}</p>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+          
           {onProvideMoreInfo && (
             <Button 
               onClick={onProvideMoreInfo}
-              variant="outline" 
-              className="mt-2 text-blue-600 border-blue-300 hover:bg-blue-50"
+              className="mb-4"
             >
               Provide Additional Information
             </Button>
           )}
-        </div>
+        </>
       )}
       
       {(status === 'not_started' || !status) && (
@@ -122,9 +146,15 @@ const VerificationStatus: React.FC<VerificationStatusProps> = ({
         </>
       )}
       
-      <Button asChild variant="outline">
-        <Link to="/dashboard">Return to Dashboard</Link>
-      </Button>
+      <div className="mt-4 text-sm text-gray-500">
+        <p>
+          If you're experiencing any issues with verification, please{' '}
+          <a href="mailto:support@example.com" className="text-blue-600 hover:underline inline-flex items-center">
+            contact support
+            <ExternalLink className="h-3 w-3 ml-1" />
+          </a>
+        </p>
+      </div>
     </div>
   );
 };

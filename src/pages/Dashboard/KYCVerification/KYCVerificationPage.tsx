@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useKycVerification } from '@/hooks/kyc/useKycVerification';
 import KYCTabs from './KYCTabs';
+import { supabase } from '@/integrations/supabase/client';
 
 const KYCVerificationPage = () => {
   const { user } = useAuth();
@@ -17,11 +18,56 @@ const KYCVerificationPage = () => {
     refetch
   } = useKycVerification();
   
-  // Force a refetch when component mounts to ensure fresh data
+  // Set up realtime subscription for KYC status updates
   useEffect(() => {
-    console.log("KYCVerification component mounted, fetching fresh data");
+    if (!user?.id) return;
+    
+    // Set up realtime subscription for KYC status updates
+    const channel = supabase
+      .channel('kyc-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'kyc_verifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('KYC verification updated:', payload);
+          
+          // Get the new status from the payload
+          const newStatus = payload.new?.status;
+          const oldStatus = payload.old?.status;
+          
+          if (newStatus && newStatus !== oldStatus) {
+            // Show a toast notification based on the new status
+            if (newStatus === 'approved') {
+              toast.success('Your KYC verification has been approved!');
+            } else if (newStatus === 'rejected') {
+              toast.error('Your KYC verification has been rejected. Please check for details.');
+            } else if (newStatus === 'needs_clarification') {
+              toast.info('Additional information is required for your KYC verification.');
+            }
+            
+            // Refetch KYC data to get the latest status
+            refetch();
+          }
+        }
+      )
+      .subscribe();
+      
+    console.log("Subscribed to KYC updates for user:", user.id);
+    
+    // Force a refetch when component mounts to ensure fresh data
     refetch();
-  }, [refetch]);
+    
+    // Clean up subscription when component unmounts
+    return () => {
+      supabase.removeChannel(channel);
+      console.log("Unsubscribed from KYC updates");
+    };
+  }, [user?.id, refetch]);
 
   if (isLoading) {
     return (

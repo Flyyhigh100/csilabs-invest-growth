@@ -9,7 +9,7 @@ export const processKycVerification = async (
   message?: string
 ): Promise<boolean> => {
   try {
-    console.log(`Processing KYC verification ${kycId} with status: ${status}`);
+    console.log(`Processing KYC verification ${kycId} with status: ${status}, message: ${message || 'none'}`);
     
     // Use the edge function to process the KYC verification
     const { data, error } = await supabase.functions.invoke('admin-operations', {
@@ -25,7 +25,13 @@ export const processKycVerification = async (
     
     if (error) {
       console.error('Error from admin-operations function:', error);
-      toast.error('Failed to update KYC verification');
+      toast.error(`Failed to update KYC verification: ${error.message}`);
+      return false;
+    }
+    
+    if (!data || !data.kyc) {
+      console.error('Invalid response from admin-operations function:', data);
+      toast.error('Failed to update KYC verification: Invalid response from server');
       return false;
     }
     
@@ -34,7 +40,7 @@ export const processKycVerification = async (
     return true;
   } catch (error) {
     console.error('Error processing KYC verification:', error);
-    toast.error('An error occurred while processing KYC verification');
+    toast.error(`An error occurred while processing KYC verification: ${(error as Error).message}`);
     return false;
   }
 };
@@ -44,5 +50,10 @@ export const requestKycClarification = async (
   kycId: string,
   message: string
 ): Promise<boolean> => {
+  if (!message || message.trim() === '') {
+    toast.error('Please provide a clarification message');
+    return false;
+  }
+  
   return processKycVerification(kycId, 'needs_clarification', message);
 };

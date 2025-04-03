@@ -3,6 +3,31 @@ export const kycOperations = {
   async processKyc({ kycId, status, rejectionReason }, user, adminClient) {
     console.log(`Admin ${user.id} processing KYC ${kycId} with status ${status}`);
     
+    // Validate input parameters
+    if (!kycId) {
+      throw new Error("KYC ID is required");
+    }
+    
+    if (!status || !['approved', 'rejected', 'needs_clarification'].includes(status)) {
+      throw new Error("Invalid status. Must be one of: approved, rejected, needs_clarification");
+    }
+    
+    // Fetch current KYC record to verify it exists
+    const { data: currentKyc, error: fetchError } = await adminClient
+      .from("kyc_verifications")
+      .select("*")
+      .eq("id", kycId)
+      .single();
+    
+    if (fetchError) {
+      console.error("Error fetching KYC record:", fetchError);
+      throw new Error(`Failed to fetch KYC record: ${fetchError.message}`);
+    }
+    
+    if (!currentKyc) {
+      throw new Error(`KYC record with ID ${kycId} not found`);
+    }
+    
     const updateData = {
       status,
       reviewed_at: new Date().toISOString(),
@@ -17,10 +42,12 @@ export const kycOperations = {
       updateData.rejection_reason = rejectionReason;
       updateData.approved_at = null;
       updateData.approved_by = null;
+      updateData.clarification_message = null;
     } else if (status === "needs_clarification") {
       updateData.clarification_message = rejectionReason;
       updateData.approved_at = null;
       updateData.approved_by = null;
+      updateData.rejection_reason = null;
     }
     
     // Log the operation and data for debugging
@@ -40,10 +67,21 @@ export const kycOperations = {
     }
     
     console.log("KYC update successful, returned data:", kycData);
-    return { kyc: kycData };
+    return { kyc: kycData, success: true };
   },
   
-  async requestKycClarification({ kycId, message }, adminClient) {
+  async requestKycClarification({ kycId, message }, user, adminClient) {
+    // Validate input parameters
+    if (!kycId) {
+      throw new Error("KYC ID is required");
+    }
+    
+    if (!message) {
+      throw new Error("Clarification message is required");
+    }
+    
+    console.log(`Admin ${user.id} requesting clarification for KYC ${kycId}`);
+    
     // Use the admin client to bypass RLS
     const { data: clarifyData, error: clarifyError } = await adminClient
       .from("kyc_verifications")
@@ -52,7 +90,8 @@ export const kycOperations = {
         clarification_message: message,
         reviewed_at: new Date().toISOString(),
         approved_at: null,
-        approved_by: null
+        approved_by: null,
+        rejection_reason: null
       })
       .eq("id", kycId)
       .select()
@@ -64,6 +103,6 @@ export const kycOperations = {
     }
     
     console.log("KYC clarification update successful:", clarifyData);
-    return { kyc: clarifyData };
+    return { kyc: clarifyData, success: true };
   }
 };

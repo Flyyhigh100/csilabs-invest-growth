@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import DocumentUpload from './DocumentUpload';
+import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DocumentVerificationProps {
@@ -13,6 +14,7 @@ interface DocumentVerificationProps {
   onBack: () => void;
   onSubmit: () => Promise<void>;
   onUpload: (file: File, type: 'id_front' | 'id_back' | 'selfie') => Promise<void>;
+  clarificationMessage?: string | null;
 }
 
 const DocumentVerification: React.FC<DocumentVerificationProps> = ({
@@ -24,6 +26,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   onBack,
   onSubmit,
   onUpload,
+  clarificationMessage
 }) => {
   // Local state to track submission attempts
   const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
@@ -63,6 +66,21 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
 
   return (
     <div className="space-y-6">
+      {clarificationMessage && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-md p-4">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-blue-800">Additional Information Requested</h4>
+              <p className="text-blue-700 text-sm mt-1">{clarificationMessage}</p>
+              <p className="text-sm text-blue-600 mt-2">
+                Please review the message above and re-upload your documents.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div>
         <h3 className="text-lg font-medium mb-2">ID Verification</h3>
         <p className="text-sm text-gray-500 mb-4">

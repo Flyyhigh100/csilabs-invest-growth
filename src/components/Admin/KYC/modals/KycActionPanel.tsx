@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { 
-  CheckCircle, XCircle, MessageSquare, AlertTriangle 
+  CheckCircle, XCircle, MessageSquare, AlertTriangle, Loader2
 } from 'lucide-react';
 import { KycVerificationWithProfile } from '../types';
 
@@ -46,6 +46,7 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
           variant="outline" 
           className={`flex items-center justify-center ${activeAction === 'reject' ? 'bg-red-50 border-red-300' : ''}`}
           onClick={() => setActiveAction(activeAction === 'reject' ? null : 'reject')}
+          disabled={isPending}
         >
           <XCircle className="mr-1 h-4 w-4" />
           Reject
@@ -55,6 +56,7 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
           variant="outline"
           className={`flex items-center justify-center ${activeAction === 'clarify' ? 'bg-blue-50 border-blue-300' : ''}`}
           onClick={() => setActiveAction(activeAction === 'clarify' ? null : 'clarify')}
+          disabled={isPending}
         >
           <MessageSquare className="mr-1 h-4 w-4" />
           Request Info
@@ -64,6 +66,7 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
           variant="outline"
           className={`flex items-center justify-center ${activeAction === 'approve' ? 'bg-green-50 border-green-300' : ''}`}
           onClick={() => setActiveAction(activeAction === 'approve' ? null : 'approve')}
+          disabled={isPending}
         >
           <CheckCircle className="mr-1 h-4 w-4" />
           Approve
@@ -85,6 +88,7 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
             value={rejectionReason}
             onChange={(e) => setRejectionReason(e.target.value)}
             placeholder="Provide a reason for rejection..."
+            disabled={isPending}
           />
           <div className="flex justify-end mt-3">
             <Button 
@@ -92,7 +96,14 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
               onClick={onReject}
               disabled={isPending || !rejectionReason.trim()}
             >
-              Confirm Rejection
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Confirm Rejection"
+              )}
             </Button>
           </div>
         </div>
@@ -113,6 +124,7 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
             value={clarificationMessage}
             onChange={(e) => setClarificationMessage(e.target.value)}
             placeholder="Specify what additional information you need from the user..."
+            disabled={isPending}
           />
           <div className="flex justify-end mt-3">
             <Button 
@@ -120,7 +132,14 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
               disabled={isPending || !clarificationMessage.trim()}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              Send Request
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Send Request"
+              )}
             </Button>
           </div>
         </div>
@@ -141,7 +160,14 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
               disabled={isPending}
               className="bg-green-600 hover:bg-green-700"
             >
-              Confirm Approval
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Confirm Approval"
+              )}
             </Button>
           </div>
         </div>
@@ -151,6 +177,7 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
         <Button 
           variant="outline" 
           onClick={() => setActiveAction(null)}
+          disabled={isPending}
         >
           Cancel
         </Button>

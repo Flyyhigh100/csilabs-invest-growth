@@ -1,171 +1,103 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useKycVerification } from '@/hooks/kyc/useKycVerification';
-import { toast } from 'sonner';
-import { PersonalInfoValues } from '@/components/KYC/schema/personalInfoSchema';
-import { getInitialActiveTab } from './TabHandlers';
+import React, { useState, useEffect } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { KycVerificationData } from '@/hooks/kyc/types';
+import { TabHandlers } from './TabHandlers';
 import PersonalInfoTab from './PersonalInfoTab';
 import DocumentVerificationTab from './DocumentVerificationTab';
 import VerificationStatusTab from './VerificationStatusTab';
-import { KycVerificationData } from '@/hooks/kyc/types';
 
-interface KYCTabsProps {
-  kycData: KycVerificationData | null;
-}
-
-const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
-  const {
-    savePersonalInfo,
-    uploadDocument,
-    submitVerification,
-    refetch,
-    isLoading
-  } = useKycVerification();
-  
-  const [activeTab, setActiveTab] = useState<string>(() => getInitialActiveTab(kycData));
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (kycData) {
-      console.log("KYC data updated in component, current status:", kycData.status);
-      
-      if (kycData.status === 'pending' || kycData.status === 'approved' || kycData.status === 'rejected') {
-        console.log("Setting active tab to verification-status based on KYC status:", kycData.status);
-        setActiveTab("verification-status");
-      }
-    }
-  }, [kycData]);
-
-  const handlePersonalInfoSubmit = async (values: PersonalInfoValues) => {
-    try {
-      console.log("Submitting personal info form:", values);
-      
-      const formData = {
-        first_name: values.first_name,
-        last_name: values.last_name,
-        date_of_birth: values.date_of_birth,
-        nationality: values.nationality,
-        address: values.address,
-        city: values.city,
-        postal_code: values.postal_code,
-        country: values.country
-      };
-      
-      await savePersonalInfo.mutateAsync(formData);
-      console.log("Successfully saved personal info, moving to document verification tab");
-      setActiveTab("document-verification");
-    } catch (error) {
-      console.error("Error saving personal info:", error);
-      toast.error("Failed to save personal information");
-    }
-  };
-
-  const handleDocumentUpload = async (
-    file: File, 
-    type: 'id_front' | 'id_back' | 'selfie'
-  ) => {
-    try {
-      console.log(`Uploading ${type} document:`, file.name);
-      await uploadDocument.mutateAsync({ file, type });
-      toast.success(`${type.replace('_', ' ')} uploaded successfully`);
-      
-      await refetch();
-    } catch (error) {
-      console.error(`Error uploading ${type}:`, error);
-      toast.error(`Failed to upload ${type.replace('_', ' ')}`);
-    }
-  };
-
-  const handleFinalSubmit = useCallback(async () => {
-    if (!kycData) {
-      toast.error("KYC data not found. Please try again.");
-      return;
-    }
+const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
+  // Initialize with the appropriate tab based on verification status
+  const getInitialTab = () => {
+    if (!kycData) return 'personal-info';
     
-    if (!kycData.id_front_url || !kycData.id_back_url || !kycData.selfie_url) {
-      toast.error("Please upload all required documents.");
-      return;
-    }
-
-    console.log("Starting KYC submission process...");
-    setIsSubmitting(true);
-
-    try {
-      console.log("Calling submitVerification.mutateAsync()");
-      await submitVerification.mutateAsync();
-      
-      toast.success("Your verification has been submitted successfully! We will review it shortly.");
-      
-      console.log("Verification submitted successfully, updating tab...");
-      
-      await refetch();
-      
-      setActiveTab("verification-status");
-      
-    } catch (error) {
-      console.error("Error submitting verification:", error);
-      toast.error("An error occurred while submitting your verification. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [kycData, submitVerification, refetch]);
-
-  const handleStartVerification = () => {
-    setActiveTab("personal-info");
-  };
-
-  const handleProvideMoreInfo = () => {
-    if (kycData && kycData.clarification_message) {
-      toast.info("Please update your information and resubmit your verification");
-      setActiveTab("personal-info");
+    switch (kycData.status) {
+      case 'pending':
+      case 'approved':
+      case 'rejected':
+        return 'status';
+      case 'needs_clarification':
+        return 'documents'; // Default to documents tab when clarification is needed
+      default:
+        return kycData.first_name ? 'documents' : 'personal-info';
     }
   };
-
+  
+  const [activeTab, setActiveTab] = useState<string>(getInitialTab());
+  
+  // When kycData changes, update the active tab if needed
+  useEffect(() => {
+    setActiveTab(getInitialTab());
+  }, [kycData?.status]);
+  
+  // Access the tab handlers
+  const {
+    handlePersonalInfoSubmit,
+    handleDocumentUpload,
+    handleVerificationSubmit,
+    handleRestartVerification,
+    isSubmitting
+  } = TabHandlers(kycData, setActiveTab);
+  
+  // Determine if each tab is enabled based on validation
+  const isDocumentsEnabled = !!kycData?.first_name;
+  const isStatusEnabled = !!kycData?.id_front_url && !!kycData?.id_back_url && !!kycData?.selfie_url;
+  
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid grid-cols-3 mb-8">
         <TabsTrigger 
-          value="personal-info" 
-          disabled={kycData?.status === 'pending'}
+          value="personal-info"
+          disabled={kycData?.status === 'pending' || kycData?.status === 'approved'}
         >
-          Personal Information
+          Personal Info
         </TabsTrigger>
         <TabsTrigger 
-          value="document-verification" 
-          disabled={kycData?.status === 'pending' || (!kycData?.first_name && activeTab === "personal-info")}
+          value="documents"
+          disabled={!isDocumentsEnabled || kycData?.status === 'pending' || kycData?.status === 'approved'}
         >
-          Document Verification
+          Documents
         </TabsTrigger>
-        <TabsTrigger 
-          value="verification-status"
-        >
-          Verification Status
+        <TabsTrigger value="status">
+          Status
         </TabsTrigger>
       </TabsList>
       
-      <PersonalInfoTab 
-        kycData={kycData}
-        isPending={savePersonalInfo.isPending}
-        onSubmit={handlePersonalInfoSubmit}
-      />
+      <TabsContent value="personal-info">
+        <PersonalInfoTab
+          kycData={kycData}
+          onSubmit={handlePersonalInfoSubmit}
+          isSubmitting={isSubmitting}
+        />
+      </TabsContent>
       
-      <DocumentVerificationTab 
-        kycData={kycData}
-        uploadPending={uploadDocument.isPending}
-        isSubmitting={isSubmitting}
-        onBack={() => setActiveTab("personal-info")}
-        onSubmit={handleFinalSubmit}
-        onUpload={handleDocumentUpload}
-      />
+      <TabsContent value="documents">
+        <DocumentVerificationTab
+          hasIdFront={!!kycData?.id_front_url}
+          hasIdBack={!!kycData?.id_back_url}
+          hasSelfie={!!kycData?.selfie_url}
+          isPending={kycData?.status === 'pending'}
+          isSubmitting={isSubmitting}
+          onBack={() => setActiveTab('personal-info')}
+          onSubmit={handleVerificationSubmit}
+          onUpload={handleDocumentUpload}
+          clarificationMessage={kycData?.clarification_message}
+        />
+      </TabsContent>
       
-      <VerificationStatusTab 
-        kycData={kycData}
-        isLoading={isLoading}
-        refetch={refetch}
-        onStartVerification={handleStartVerification}
-        onProvideMoreInfo={handleProvideMoreInfo}
-      />
+      <TabsContent value="status">
+        <VerificationStatusTab
+          status={kycData?.status || 'not_started'}
+          rejectionReason={kycData?.rejection_reason}
+          clarificationMessage={kycData?.clarification_message}
+          onStartVerification={() => {
+            handleRestartVerification();
+            setActiveTab('personal-info');
+          }}
+          onProvideMoreInfo={() => setActiveTab('documents')}
+        />
+      </TabsContent>
     </Tabs>
   );
 };

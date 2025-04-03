@@ -30,10 +30,14 @@ export const useKycActionHandlers = (
       return true;
     },
     onSuccess: () => {
+      // Run success callback first to close modal
       onSuccess();
+      
       // Invalidate all relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
       
       // Force a more aggressive refetch of all KYC data
       setTimeout(() => {
@@ -45,7 +49,7 @@ export const useKycActionHandlers = (
     },
     onError: (error) => {
       console.error('Error processing KYC verification:', error);
-      toast.error('Failed to process KYC verification');
+      toast.error(`Failed to process KYC verification: ${(error as Error).message}`);
     },
   });
   
@@ -60,6 +64,11 @@ export const useKycActionHandlers = (
     }) => {
       console.log('Requesting clarification:', { kycId, message });
       
+      if (!message || message.trim() === '') {
+        toast.error('Please provide a clarification message');
+        throw new Error('Clarification message is required');
+      }
+      
       const success = await requestKycClarification(kycId, message);
       if (!success) {
         throw new Error('Failed to request clarification');
@@ -68,10 +77,14 @@ export const useKycActionHandlers = (
       return true;
     },
     onSuccess: () => {
+      // Run success callback first to close modal
       onSuccess();
+      
       // Invalidate all relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
       
       // Force a more aggressive refetch of all KYC data
       setTimeout(() => {
@@ -83,13 +96,16 @@ export const useKycActionHandlers = (
     },
     onError: (error) => {
       console.error('Error sending clarification request:', error);
-      toast.error('Failed to send clarification request');
+      toast.error(`Failed to send clarification request: ${(error as Error).message}`);
     },
   });
 
   // Handler functions
   const handleApprove = (selectedKyc: KycVerificationWithProfile | null) => {
-    if (!selectedKyc) return;
+    if (!selectedKyc) {
+      toast.error('No KYC record selected');
+      return;
+    }
     
     console.log('Approving KYC for:', selectedKyc.id);
     processMutation.mutate({
@@ -102,7 +118,12 @@ export const useKycActionHandlers = (
     selectedKyc: KycVerificationWithProfile | null, 
     rejectionReason: string
   ) => {
-    if (!selectedKyc || !rejectionReason.trim()) {
+    if (!selectedKyc) {
+      toast.error('No KYC record selected');
+      return;
+    }
+    
+    if (!rejectionReason || !rejectionReason.trim()) {
       toast.error('Please provide a rejection reason');
       return;
     }
@@ -119,7 +140,12 @@ export const useKycActionHandlers = (
     selectedKyc: KycVerificationWithProfile | null,
     clarificationMessage: string
   ) => {
-    if (!selectedKyc || !clarificationMessage.trim()) {
+    if (!selectedKyc) {
+      toast.error('No KYC record selected');
+      return;
+    }
+    
+    if (!clarificationMessage || !clarificationMessage.trim()) {
       toast.error('Please provide clarification details');
       return;
     }
