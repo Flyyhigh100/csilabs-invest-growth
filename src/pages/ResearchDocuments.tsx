@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -19,6 +18,11 @@ interface ResearchDocument {
   authors?: string;
 }
 
+// This is where you can add or modify your research documents.
+// To add a new document:
+// 1. Upload the PDF to the /public folder
+// 2. Add a new entry to this array using the format below
+// For external documents, use complete URLs starting with http:// or https://
 const researchDocuments: ResearchDocument[] = [
   {
     id: "doc-1",
@@ -34,45 +38,23 @@ const researchDocuments: ResearchDocument[] = [
     title: "Cannabis and Cannabinoid Research in Cancer",
     description: "Comprehensive research on the effects of cannabinoids on various cancer cell types and mechanisms of action.",
     category: "Clinical Research",
-    pdfUrl: "/sample.pdf",
+    pdfUrl: "/sample.pdf", // Example of a local PDF file in public folder
     publishDate: "March 15, 2022",
     authors: "CSi Labs Research Team"
   },
-  {
-    id: "doc-3",
-    title: "FDA Clinical Trial Design for Cannabinoid-Based Therapies",
-    description: "Outline of proposed clinical trial methodology for cannabinoid-based cancer treatments.",
-    category: "Clinical Trials",
-    pdfUrl: "/sample.pdf",
-    publishDate: "January 22, 2024",
-    authors: "CSi Labs Clinical Team"
-  },
-  {
-    id: "doc-4",
-    title: "Cannabinoid Receptor Activation in Tumor Cell Lines",
-    description: "Analysis of CB1 and CB2 receptor activation and effects on apoptosis in various tumor cell lines.",
-    category: "Laboratory Research",
-    pdfUrl: "/sample.pdf",
-    publishDate: "August 10, 2023"
-  },
-  {
-    id: "doc-5",
-    title: "Comparative Cost Analysis: Cannabinoid vs. Traditional Cancer Treatments",
-    description: "Economic analysis of treatment costs comparing cannabinoid-based therapies to current standard of care options.",
-    category: "Economic Studies",
-    pdfUrl: "/sample.pdf",
-    publishDate: "November 30, 2023"
-  },
-  {
-    id: "doc-6",
-    title: "Quality of Life Improvements with Side Effect Free Therapies",
-    description: "Patient outcomes and quality of life metrics comparing treatments with minimal side effects versus traditional chemotherapy.",
-    category: "Patient Outcomes",
-    pdfUrl: "/sample.pdf",
-    publishDate: "February 5, 2024"
-  }
+  // Add more documents below
+  // {
+  //   id: "doc-X",
+  //   title: "Your Document Title",
+  //   description: "Description of your document",
+  //   category: "Your Category",
+  //   pdfUrl: "/your-document.pdf", // If file is in public folder
+  //   publishDate: "Publication Date",
+  //   authors: "Document Authors"
+  // },
 ];
 
+// The rest of the component remains the same
 const ResearchDocuments: React.FC = () => {
   const [selectedPdf, setSelectedPdf] = useState<ResearchDocument | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
