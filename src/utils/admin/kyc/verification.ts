@@ -9,7 +9,7 @@ export const processKycVerification = async (
   message?: string
 ): Promise<boolean> => {
   try {
-    console.log(`Processing KYC verification ${kycId} with status: ${status}, message: ${message || 'none'}`);
+    console.log(`🔍 Processing KYC verification ${kycId} with status: ${status}, message: ${message || 'none'}`);
     
     if (!kycId) {
       toast.error('KYC ID is required');
@@ -24,6 +24,8 @@ export const processKycVerification = async (
     });
     
     // Use the edge function to process the KYC verification
+    console.log(`📤 Calling admin-operations edge function with action: processKyc`);
+    
     const response = await supabase.functions.invoke('admin-operations', {
       body: {
         action: 'processKyc',
@@ -35,10 +37,10 @@ export const processKycVerification = async (
       }
     });
     
-    console.log('Response from admin-operations function:', response);
+    console.log('📥 Response from admin-operations function:', response);
     
     if (response.error) {
-      console.error('Error from admin-operations function:', response.error);
+      console.error('❌ Error from admin-operations function:', response.error);
       toast.dismiss(toastId);
       toast.error(`Failed to update KYC verification: ${response.error.message}`, {
         duration: 5000
@@ -49,7 +51,7 @@ export const processKycVerification = async (
     const data = response.data;
     
     if (!data || !data.kyc) {
-      console.error('Invalid response from admin-operations function:', data);
+      console.error('❌ Invalid response from admin-operations function:', data);
       toast.dismiss(toastId);
       toast.error('Failed to update KYC verification: Invalid response from server', {
         duration: 5000
@@ -58,17 +60,37 @@ export const processKycVerification = async (
     }
     
     // Log the successful update
-    console.log(`Successfully processed KYC verification with status: ${status}`, data);
+    console.log(`✅ Successfully processed KYC verification with status: ${status}`, data);
+    
+    // Trigger a refresh of KYC data immediately
+    try {
+      console.log('🔄 Triggering immediate fetch of KYC data after update');
+      const { data: refreshData, error: refreshError } = await supabase
+        .from('kyc_verifications')
+        .select('*')
+        .eq('id', kycId)
+        .single();
+        
+      if (refreshData) {
+        console.log('✅ Verified KYC update with fresh data:', refreshData);
+        console.log(`✅ Current KYC status is now: ${refreshData.status}`);
+      } else if (refreshError) {
+        console.error('❌ Error verifying KYC update:', refreshError);
+      }
+    } catch (refreshErr) {
+      console.error('❌ Exception during verification refresh:', refreshErr);
+    }
     
     // Dismiss the loading toast and show success
     toast.dismiss(toastId);
-    toast.success(`KYC verification ${status} successfully.`, {
+    toast.success(`KYC verification ${status === 'approved' ? 'approved' : 
+      status === 'rejected' ? 'rejected' : 'updated'} successfully.`, {
       duration: 5000
     });
     
     return true;
   } catch (error) {
-    console.error('Error processing KYC verification:', error);
+    console.error('❌ Error processing KYC verification:', error);
     toast.error(`An error occurred while processing KYC verification: ${(error as Error).message}`, {
       duration: 5000
     });
@@ -86,6 +108,68 @@ export const requestKycClarification = async (
     return false;
   }
   
-  console.log('Requesting clarification with message:', message);
-  return processKycVerification(kycId, 'needs_clarification', message);
+  console.log('🔍 Requesting clarification with message:', message);
+  
+  const toastId = `clarify-kyc-${kycId}-${Date.now()}`;
+  toast.loading(`Sending clarification request...`, {
+    id: toastId,
+    duration: 10000
+  });
+  
+  try {
+    // Use direct call to process with needs_clarification status
+    console.log(`📤 Sending clarification request to Supabase for KYC ID: ${kycId}`);
+    
+    const response = await supabase.functions.invoke('admin-operations', {
+      body: {
+        action: 'requestKycClarification',
+        data: {
+          kycId,
+          message: message.trim()
+        }
+      }
+    });
+    
+    console.log('📥 Response from clarification request:', response);
+    
+    if (response.error) {
+      console.error('❌ Error from clarification request:', response.error);
+      toast.dismiss(toastId);
+      toast.error(`Failed to request clarification: ${response.error.message}`, {
+        duration: 5000
+      });
+      return false;
+    }
+    
+    // Verify the update went through
+    try {
+      console.log('🔄 Verifying clarification update with fresh data fetch');
+      const { data: refreshData, error: refreshError } = await supabase
+        .from('kyc_verifications')
+        .select('*')
+        .eq('id', kycId)
+        .single();
+        
+      if (refreshData) {
+        console.log('✅ Verified clarification update with fresh data:', refreshData);
+        console.log(`✅ Current KYC status is now: ${refreshData.status}`);
+        console.log(`✅ Clarification message is: ${refreshData.clarification_message}`);
+      } else if (refreshError) {
+        console.error('❌ Error verifying clarification update:', refreshError);
+      }
+    } catch (refreshErr) {
+      console.error('❌ Exception during verification refresh:', refreshErr);
+    }
+    
+    toast.dismiss(toastId);
+    toast.success('Clarification request sent successfully', { duration: 5000 });
+    return true;
+  } catch (error) {
+    console.error('❌ Error sending clarification request:', error);
+    toast.dismiss(toastId);
+    toast.error(`Failed to send clarification request: ${(error as Error).message}`, { 
+      duration: 5000 
+    });
+    return false;
+  }
 };

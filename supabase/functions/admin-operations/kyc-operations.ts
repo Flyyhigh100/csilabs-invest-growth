@@ -28,6 +28,8 @@ export const kycOperations = {
       throw new Error(`KYC record with ID ${kycId} not found`);
     }
     
+    console.log(`Current KYC status before update: ${currentKyc.status}`);
+    
     const updateData = {
       status,
       reviewed_at: new Date().toISOString(),
@@ -72,6 +74,27 @@ export const kycOperations = {
       }
       
       console.log("KYC update successful, returned data:", kycData);
+      
+      // Verify the update went through correctly
+      const { data: verifyData, error: verifyError } = await adminClient
+        .from("kyc_verifications")
+        .select("*")
+        .eq("id", kycId)
+        .single();
+        
+      if (verifyError) {
+        console.error("Error verifying KYC update:", verifyError);
+      } else if (verifyData) {
+        console.log(`Verified KYC status after update: ${verifyData.status}`);
+        
+        // Add additional verification to check if the status actually changed
+        if (verifyData.status !== status) {
+          console.error(`Status mismatch! Expected ${status} but found ${verifyData.status}`);
+        } else {
+          console.log("Status update verified successfully");
+        }
+      }
+      
       return { kyc: kycData, success: true };
     } catch (error) {
       console.error("Error in KYC update operation:", error);
@@ -92,6 +115,19 @@ export const kycOperations = {
     console.log(`Admin ${user.id} requesting clarification for KYC ${kycId}`);
     
     try {
+      // Log current state before update
+      const { data: beforeKyc, error: beforeError } = await adminClient
+        .from("kyc_verifications")
+        .select("*")
+        .eq("id", kycId)
+        .single();
+        
+      if (beforeError) {
+        console.error("Error fetching KYC record before clarification:", beforeError);
+      } else if (beforeKyc) {
+        console.log(`Current KYC status before clarification request: ${beforeKyc.status}`);
+      }
+      
       // Use the admin client to bypass RLS
       const { data: clarifyData, error: clarifyError } = await adminClient
         .from("kyc_verifications")
@@ -117,6 +153,28 @@ export const kycOperations = {
       }
       
       console.log("KYC clarification update successful:", clarifyData);
+      
+      // Verify the update went through correctly
+      const { data: verifyData, error: verifyError } = await adminClient
+        .from("kyc_verifications")
+        .select("*")
+        .eq("id", kycId)
+        .single();
+        
+      if (verifyError) {
+        console.error("Error verifying clarification update:", verifyError);
+      } else if (verifyData) {
+        console.log(`Verified KYC status after clarification request: ${verifyData.status}`);
+        console.log(`Clarification message set to: ${verifyData.clarification_message}`);
+        
+        // Add additional verification to check if the status actually changed
+        if (verifyData.status !== "needs_clarification") {
+          console.error(`Status mismatch! Expected needs_clarification but found ${verifyData.status}`);
+        } else {
+          console.log("Status update to needs_clarification verified successfully");
+        }
+      }
+      
       return { kyc: clarifyData, success: true };
     } catch (error) {
       console.error("Error in KYC clarification operation:", error);

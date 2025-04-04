@@ -20,6 +20,13 @@ interface KycDetailModalProps {
   onReject: () => void;
   onRequestClarification: () => void;
   isPending: boolean;
+  debugInfo?: {
+    lastActionType: string | null;
+    lastActionTimestamp: string | null;
+    supabaseTriggered: boolean;
+    supabaseResponse: any | null;
+    error: string | null;
+  };
 }
 
 const KycDetailModal: React.FC<KycDetailModalProps> = ({
@@ -33,7 +40,8 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
   onApprove,
   onReject,
   onRequestClarification,
-  isPending
+  isPending,
+  debugInfo
 }) => {
   const [activeTab, setActiveTab] = useState<string>('info');
   const [activeAction, setActiveAction] = useState<string | null>(null);
@@ -68,6 +76,7 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
           onReject={onReject}
           onRequestClarification={onRequestClarification}
           isPending={isPending}
+          debugInfo={debugInfo}
         />
       </DialogContent>
     </Dialog>

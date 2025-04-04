@@ -18,6 +18,13 @@ interface KycActionPanelProps {
   onReject: () => void;
   onRequestClarification: () => void;
   isPending: boolean;
+  debugInfo?: {
+    lastActionType: string | null;
+    lastActionTimestamp: string | null;
+    supabaseTriggered: boolean;
+    supabaseResponse: any | null;
+    error: string | null;
+  };
 }
 
 const KycActionPanel: React.FC<KycActionPanelProps> = ({
@@ -31,11 +38,22 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
   onApprove,
   onReject,
   onRequestClarification,
-  isPending
+  isPending,
+  debugInfo
 }) => {
   if (selectedKyc.status !== 'pending') {
     return null;
   }
+
+  // Format the timestamp for display
+  const formatTimestamp = (timestamp: string | null) => {
+    if (!timestamp) return 'N/A';
+    try {
+      return new Date(timestamp).toLocaleTimeString();
+    } catch (e) {
+      return timestamp;
+    }
+  };
 
   return (
     <div className="mt-6">
@@ -73,7 +91,7 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
         </Button>
       </div>
       
-      {/* Debug Info Panel - shown in development */}
+      {/* Enhanced Debug Info Panel */}
       <div className="mb-3 p-2 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-700 font-mono">
         <div className="flex items-start gap-1">
           <BugPlay className="h-3 w-3 mt-0.5 text-slate-500" />
@@ -83,6 +101,21 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
             <p>Current Status: {selectedKyc.status}</p>
             <p>Is Processing: {isPending ? 'Yes' : 'No'}</p>
             <p>Selected Action: {activeAction || 'None'}</p>
+            
+            {/* Enhanced debug information */}
+            {debugInfo && (
+              <>
+                <hr className="my-1 border-slate-200" />
+                <p className="font-semibold mt-1">Last Workflow:</p>
+                <p>Action Type: {debugInfo.lastActionType || 'None'}</p>
+                <p>Timestamp: {formatTimestamp(debugInfo.lastActionTimestamp)}</p>
+                <p>Supabase Triggered: {debugInfo.supabaseTriggered ? 'Yes' : 'No'}</p>
+                <p>Supabase Response: {debugInfo.supabaseResponse ? 
+                  `Success: ${debugInfo.supabaseResponse.success}, Status: ${debugInfo.supabaseResponse.status || 'N/A'}` : 
+                  'No response'}</p>
+                {debugInfo.error && <p className="text-red-500">Error: {debugInfo.error}</p>}
+              </>
+            )}
           </div>
         </div>
       </div>
