@@ -26,6 +26,7 @@ export const useKycActionHandlers = (
       const loadingToast = toast.loading(`Processing KYC verification...`);
       
       try {
+        // Call the utility function to process the verification
         const success = await processKycVerification(kycId, status, rejectionReason);
         
         if (!success) {
