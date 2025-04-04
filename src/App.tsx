@@ -41,7 +41,14 @@ const App = () => {
               {/* Public routes */}
               <Route path="/" element={<Index />} />
               <Route path="/token-info" element={<TokenInfo />} />
-              <Route path="/research-documents" element={<ResearchDocuments />} />
+              <Route 
+                path="/research-documents" 
+                element={
+                  <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+                    <ResearchDocuments />
+                  </Suspense>
+                } 
+              />
               
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
