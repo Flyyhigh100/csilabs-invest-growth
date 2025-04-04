@@ -23,23 +23,19 @@ export const processKycVerification = async (
       duration: 15000 // Longer duration to ensure it stays visible during processing
     });
     
-    // Verify admin permissions first
+    // Verify admin permissions with improved error handling
     try {
-      console.log('Checking admin permissions...');
+      console.log('Checking admin permissions with improved verification...');
       
       // Trigger the admin permission listener if it exists
       if (typeof (window as any).kycAdminPermissionListener === 'function') {
         (window as any).kycAdminPermissionListener('checking');
       }
       
-      const { data: adminData, error: adminError } = await supabase
-        .from('admins')
-        .select('*')
-        .eq('email', (await supabase.auth.getUser()).data.user?.email || '')
-        .single();
-        
-      if (adminError || !adminData) {
-        console.error('❌ Admin permission check failed:', adminError || 'No admin record found');
+      // Get current user
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData?.user) {
+        console.error('❌ Failed to get current user:', userError);
         
         // Update the admin permission listener
         if (typeof (window as any).kycAdminPermissionListener === 'function') {
@@ -47,15 +43,80 @@ export const processKycVerification = async (
         }
         
         toast.dismiss(toastId);
-        toast.error('You do not have admin permissions to process KYC verifications');
+        toast.error('Authentication error: Could not verify current user');
         return false;
       }
       
-      console.log('✅ Admin permissions verified:', adminData);
+      const userEmail = userData.user.email;
+      const userId = userData.user.id;
       
-      // Update the admin permission listener
-      if (typeof (window as any).kycAdminPermissionListener === 'function') {
-        (window as any).kycAdminPermissionListener('verified');
+      if (!userEmail) {
+        console.error('❌ User has no email address');
+        
+        // Update the admin permission listener
+        if (typeof (window as any).kycAdminPermissionListener === 'function') {
+          (window as any).kycAdminPermissionListener('failed');
+        }
+        
+        toast.dismiss(toastId);
+        toast.error('User email not found');
+        return false;
+      }
+      
+      console.log(`Verifying admin status for user: ${userId} (${userEmail})`);
+      
+      // First try is_admin RPC function (most reliable method)
+      const { data: isAdminRpc, error: rpcError } = await supabase.rpc('is_admin');
+      
+      if (!rpcError && isAdminRpc === true) {
+        console.log('✅ Admin permissions verified via is_admin() function');
+        
+        // Update the admin permission listener
+        if (typeof (window as any).kycAdminPermissionListener === 'function') {
+          (window as any).kycAdminPermissionListener('verified');
+        }
+      } else {
+        console.log('Admin check via is_admin() failed or returned false:', rpcError || 'Not admin');
+        
+        // Try direct query as backup method
+        const { data: adminCheck, error: adminError } = await supabase
+          .from('admins')
+          .select('*')
+          .or(`id.eq.${userId},email.ilike.${userEmail.toLowerCase()}`)
+          .maybeSingle();
+          
+        if (adminError) {
+          console.error('❌ Admin permission check error:', adminError);
+          
+          // Update the admin permission listener
+          if (typeof (window as any).kycAdminPermissionListener === 'function') {
+            (window as any).kycAdminPermissionListener('failed');
+          }
+          
+          toast.dismiss(toastId);
+          toast.error('Error checking admin permissions');
+          return false;
+        }
+        
+        if (!adminCheck) {
+          console.error('❌ User is not an admin:', userEmail);
+          
+          // Update the admin permission listener
+          if (typeof (window as any).kycAdminPermissionListener === 'function') {
+            (window as any).kycAdminPermissionListener('failed');
+          }
+          
+          toast.dismiss(toastId);
+          toast.error('You do not have admin permissions to process KYC verifications');
+          return false;
+        }
+        
+        console.log('✅ Admin permissions verified via database query:', adminCheck);
+        
+        // Update the admin permission listener
+        if (typeof (window as any).kycAdminPermissionListener === 'function') {
+          (window as any).kycAdminPermissionListener('verified');
+        }
       }
     } catch (adminErr) {
       console.error('❌ Exception during admin permission check:', adminErr);

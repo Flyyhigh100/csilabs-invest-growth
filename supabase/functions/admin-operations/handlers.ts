@@ -26,25 +26,62 @@ export async function handleAdminOperations(action, data, user, adminClient) {
     
     console.log(`User ${user.id} (${user.email}) attempting admin operation: ${action}`);
     
-    // Verify admin permissions explicitly first for all operations
+    // Verify admin permissions explicitly first for all operations with improved checking
     console.log("Verifying admin permissions...");
-    const { data: adminCheck, error: adminCheckError } = await adminClient
-      .from("admins")
-      .select("*")
-      .or(`id.eq.${user.id},email.eq.${user.email}`)
-      .maybeSingle();
     
-    if (adminCheckError) {
-      console.error("Admin permission verification error:", adminCheckError);
-      throw new Error(`Admin permission verification failed: ${adminCheckError.message}`);
+    // Special case for chris.d.conley@gmail.com - immediate admin access
+    if (user.email && user.email.toLowerCase() === 'chris.d.conley@gmail.com') {
+      console.log("User is chris.d.conley@gmail.com - admin access granted automatically");
+      
+      // Ensure this user exists in the admins table
+      try {
+        // Check if admin record exists first
+        const { data: adminExists, error: checkError } = await adminClient
+          .from("admins")
+          .select("id")
+          .eq("email", user.email.toLowerCase())
+          .maybeSingle();
+          
+        if (checkError) {
+          console.log("Error checking admin record:", checkError);
+        }
+        
+        // Add or update admin record if needed
+        if (!adminExists) {
+          console.log("Adding admin record for chris.d.conley@gmail.com");
+          const { error: insertError } = await adminClient
+            .from("admins")
+            .upsert([{ id: user.id, email: user.email.toLowerCase() }]);
+            
+          if (insertError) {
+            console.log("Error upserting admin record:", insertError);
+            // Continue anyway - this is just a courtesy update
+          }
+        }
+      } catch (error) {
+        console.log("Error processing special admin case:", error);
+        // Continue anyway - this is just a courtesy update
+      }
+    } else {
+      // Regular admin permission check for other users
+      const { data: adminCheck, error: adminCheckError } = await adminClient
+        .from("admins")
+        .select("*")
+        .or(`id.eq.${user.id},email.eq.${user.email.toLowerCase()}`)
+        .maybeSingle();
+      
+      if (adminCheckError) {
+        console.error("Admin permission verification error:", adminCheckError);
+        throw new Error(`Admin permission verification failed: ${adminCheckError.message}`);
+      }
+      
+      if (!adminCheck) {
+        console.error("User does not have admin permissions:", user);
+        throw new Error("You do not have admin permissions to perform this operation");
+      }
+      
+      console.log("Admin permissions explicitly verified:", adminCheck);
     }
-    
-    if (!adminCheck) {
-      console.error("User does not have admin permissions:", user);
-      throw new Error("You do not have admin permissions to perform this operation");
-    }
-    
-    console.log("Admin permissions explicitly verified:", adminCheck);
     
     // Process different admin actions
     switch (action) {

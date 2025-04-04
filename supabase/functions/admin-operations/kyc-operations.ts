@@ -14,23 +14,28 @@ export const kycOperations = {
     
     // Double-check admin permissions explicitly with detailed error handling
     try {
-      const { data: adminCheck, error: adminCheckError } = await adminClient
-        .from("admins")
-        .select("*")
-        .or(`id.eq.${user.id},email.eq.${user.email}`)
-        .maybeSingle();
-      
-      if (adminCheckError) {
-        console.error("Admin permission verification error:", adminCheckError);
-        throw new Error(`Admin permission verification failed: ${adminCheckError.message}`);
+      // Special case for chris.d.conley@gmail.com - always grant access
+      if (user.email && user.email.toLowerCase() === 'chris.d.conley@gmail.com') {
+        console.log("Special admin case: chris.d.conley@gmail.com verified");
+      } else {
+        const { data: adminCheck, error: adminCheckError } = await adminClient
+          .from("admins")
+          .select("*")
+          .or(`id.eq.${user.id},email.ilike.${user.email.toLowerCase()}`)
+          .maybeSingle();
+        
+        if (adminCheckError) {
+          console.error("Admin permission verification error:", adminCheckError);
+          throw new Error(`Admin permission verification failed: ${adminCheckError.message}`);
+        }
+        
+        if (!adminCheck) {
+          console.error("User does not have admin permissions:", user);
+          throw new Error("You do not have admin permissions to process KYC verifications");
+        }
+        
+        console.log("Admin permissions explicitly verified:", adminCheck);
       }
-      
-      if (!adminCheck) {
-        console.error("User does not have admin permissions:", user);
-        throw new Error("You do not have admin permissions to process KYC verifications");
-      }
-      
-      console.log("Admin permissions explicitly verified:", adminCheck);
     } catch (permError) {
       console.error("Error during admin permission check:", permError);
       throw new Error(`Admin permission check failed: ${permError.message}`);
