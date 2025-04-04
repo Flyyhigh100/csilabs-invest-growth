@@ -13,10 +13,10 @@ export const useAdminKycDataFetcher = () => {
   // State for handling manual refresh
   const [manualRefreshCount, setManualRefreshCount] = useState(0);
   
-  // Fetch KYC data
+  // Fetch KYC data with proper default values to avoid type errors
   const { 
-    kycVerifications = [],
-    allUsersWithKyc = [],
+    kycVerifications = [] as KycVerificationWithProfile[], 
+    allUsersWithKyc = [] as any[],
     isLoading,
     error,
     refetchAll

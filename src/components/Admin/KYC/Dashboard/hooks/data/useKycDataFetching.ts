@@ -3,8 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { 
   fetchKycVerifications, 
   listAllUsersWithKycStatus 
-} from '../../../../services/kycVerificationsFetcher';
-import { KycVerificationWithProfile } from '../../../../types';
+} from '../../../../KYCVerificationsService';
+import { KycVerificationWithProfile } from '../../../../KYC/types';
 
 interface KycDataFetchingProps {
   isAdmin: boolean | null;
