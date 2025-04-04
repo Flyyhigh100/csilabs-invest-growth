@@ -44,7 +44,20 @@ export const processKycVerification = async (
       return false;
     }
     
-    console.log(`Successfully processed KYC verification with status: ${status}`, data);
+    // Log status change 
+    const previousStatus = data.previousStatus || 'unknown';
+    console.log(`Successfully processed KYC verification: ${previousStatus} -> ${status}`, data);
+    
+    // If we had a status change, provide a clear confirmation message
+    const statusMap = {
+      'approved': 'approved',
+      'rejected': 'rejected',
+      'needs_clarification': 'sent for clarification'
+    };
+    
+    const statusText = statusMap[status] || status;
+    toast.success(`KYC verification successfully ${statusText}`);
+    
     return true;
   } catch (error) {
     console.error('Error processing KYC verification:', error);

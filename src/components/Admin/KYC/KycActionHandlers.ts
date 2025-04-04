@@ -23,7 +23,8 @@ export const useKycActionHandlers = (
       console.log('Processing KYC verification:', { kycId, status, rejectionReason });
       
       // Display immediate feedback
-      const loadingToast = toast.loading(`Processing KYC verification...`);
+      const actionText = status === 'approved' ? 'Approving' : 'Rejecting';
+      const loadingToast = toast.loading(`${actionText} KYC verification...`);
       
       try {
         const success = await processKycVerification(kycId, status, rejectionReason);
@@ -35,7 +36,14 @@ export const useKycActionHandlers = (
         }
         
         toast.dismiss(loadingToast);
-        toast.success(`KYC verification ${status === 'approved' ? 'approved' : 'rejected'} successfully`);
+        
+        // Show appropriate success message based on action
+        if (status === 'approved') {
+          toast.success('KYC verification approved successfully');
+        } else {
+          toast.success('KYC verification rejected successfully');
+        }
+        
         return true;
       } catch (error) {
         toast.dismiss(loadingToast);
@@ -80,7 +88,7 @@ export const useKycActionHandlers = (
       }
       
       // Display immediate feedback
-      const loadingToast = toast.loading(`Sending clarification request...`);
+      const loadingToast = toast.loading('Sending clarification request...');
       
       try {
         const success = await requestKycClarification(kycId, message);
@@ -92,7 +100,7 @@ export const useKycActionHandlers = (
         }
         
         toast.dismiss(loadingToast);
-        toast.success(`Clarification request sent successfully`);
+        toast.success('Clarification request sent successfully');
         return true;
       } catch (error) {
         toast.dismiss(loadingToast);

@@ -13,12 +13,12 @@ export async function handleAdminOperations(action, data, user, adminClient) {
       return await kycOperations.processKyc(data, user, adminClient);
 
     case "requestKycClarification":
-      return await kycOperations.requestKycClarification(data, adminClient);
+      return await kycOperations.requestKycClarification(data, user, adminClient);
 
     case "markTokensSent":
       return await transactionOperations.markTokensSent(data, adminClient);
 
     default:
-      throw new Error("Unknown action");
+      throw new Error(`Unknown action: ${action}`);
   }
 }
