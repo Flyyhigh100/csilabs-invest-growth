@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -39,7 +38,7 @@ export function useKycVerification() {
     },
     enabled: !!user,
     staleTime: 0, // Always refetch when needed
-    refetchInterval: 10000, // Refetch every 10 seconds to ensure we get latest status
+    refetchInterval: 5000, // Refetch every 5 seconds to ensure we get latest status
     refetchOnWindowFocus: true,
   });
   
@@ -70,17 +69,26 @@ export function useKycVerification() {
           const newStatus = (payload.new as any)?.status;
           
           if (newStatus === 'approved') {
-            toast.success('Your KYC verification has been approved!');
+            toast.success('Your KYC verification has been approved!', {
+              duration: 8000
+            });
           } else if (newStatus === 'rejected') {
-            toast.error('Your KYC verification has been rejected. Please check the details.');
+            toast.error('Your KYC verification has been rejected. Please check the details.', {
+              duration: 8000
+            });
           } else if (newStatus === 'needs_clarification') {
-            toast.info('Additional information is required for your KYC verification.');
+            toast.info('Additional information is required for your KYC verification.', {
+              duration: 8000
+            });
           }
         }
       )
       .subscribe((status) => {
         console.log('Realtime subscription status:', status);
       });
+    
+    // Force an immediate refetch when subscription is set up
+    refetch();
     
     return () => {
       supabase.removeChannel(channel);

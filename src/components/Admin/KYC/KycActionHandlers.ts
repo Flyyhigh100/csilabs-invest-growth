@@ -22,11 +22,6 @@ export const useKycActionHandlers = (
     }) => {
       console.log('Processing KYC verification:', { kycId, status, rejectionReason });
       
-      // Display immediate feedback
-      const loadingToast = toast.loading(`Processing KYC verification with status: ${status}...`, {
-        id: `process-kyc-${kycId}`
-      });
-      
       try {
         // Log the verification process for debugging
         console.log(`Starting verification process for KYC ID: ${kycId} with status: ${status}`);
@@ -37,24 +32,12 @@ export const useKycActionHandlers = (
         console.log(`Verification process completed with result: ${success ? 'SUCCESS' : 'FAILED'}`);
         
         if (!success) {
-          toast.dismiss(loadingToast);
-          toast.error(`Failed to process KYC verification with status: ${status}`, {
-            duration: 5000
-          });
           throw new Error(`Failed to process KYC verification with status: ${status}`);
         }
         
-        toast.dismiss(loadingToast);
-        toast.success(`KYC verification ${status === 'approved' ? 'approved' : 'rejected'} successfully`, {
-          duration: 4000
-        });
         return true;
       } catch (error) {
-        toast.dismiss(loadingToast);
         console.error('Error processing KYC verification:', error);
-        toast.error(`Failed to process KYC verification: ${(error as Error).message}`, {
-          duration: 5000
-        });
         throw error;
       }
     },
@@ -74,6 +57,12 @@ export const useKycActionHandlers = (
         queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
         queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
       }, 1000);
+    },
+    onError: (error) => {
+      console.error('Error in KYC mutation:', error);
+      toast.error(`Failed to update KYC status: ${(error as Error).message}`, {
+        duration: 5000
+      });
     }
   });
   
@@ -93,25 +82,16 @@ export const useKycActionHandlers = (
         throw new Error('Clarification message is required');
       }
       
-      // Display immediate feedback
-      const loadingToast = toast.loading(`Sending clarification request...`);
-      
       try {
         const success = await requestKycClarification(kycId, message);
         
         if (!success) {
-          toast.dismiss(loadingToast);
-          toast.error('Failed to request clarification');
           throw new Error('Failed to request clarification');
         }
         
-        toast.dismiss(loadingToast);
-        toast.success(`Clarification request sent successfully`);
         return true;
       } catch (error) {
-        toast.dismiss(loadingToast);
         console.error('Error sending clarification request:', error);
-        toast.error(`Failed to send clarification request: ${(error as Error).message}`);
         throw error;
       }
     },
@@ -130,6 +110,12 @@ export const useKycActionHandlers = (
         queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
         queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
       }, 1000);
+    },
+    onError: (error) => {
+      console.error('Error in clarification mutation:', error);
+      toast.error(`Failed to send clarification request: ${(error as Error).message}`, {
+        duration: 5000
+      });
     }
   });
 
@@ -141,6 +127,10 @@ export const useKycActionHandlers = (
     }
     
     console.log('Approving KYC for:', selectedKyc.id);
+    toast.loading(`Approving KYC verification...`, {
+      id: `approve-kyc-${selectedKyc.id}`
+    });
+    
     processMutation.mutate({
       kycId: selectedKyc.id,
       status: 'approved'
@@ -162,6 +152,10 @@ export const useKycActionHandlers = (
     }
     
     console.log('Rejecting KYC for:', selectedKyc.id, 'with reason:', rejectionReason);
+    toast.loading(`Rejecting KYC verification...`, {
+      id: `reject-kyc-${selectedKyc.id}`
+    });
+    
     processMutation.mutate({
       kycId: selectedKyc.id,
       status: 'rejected',
@@ -184,6 +178,10 @@ export const useKycActionHandlers = (
     }
     
     console.log('Requesting clarification for:', selectedKyc.id, 'with message:', clarificationMessage);
+    toast.loading(`Sending clarification request...`, {
+      id: `clarify-kyc-${selectedKyc.id}`
+    });
+    
     clarificationMutation.mutate({
       kycId: selectedKyc.id,
       message: clarificationMessage.trim()

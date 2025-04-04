@@ -16,10 +16,11 @@ export const processKycVerification = async (
       return false;
     }
     
-    // Add debug toast to track the start of the process
-    toast.info(`Starting ${status} process for KYC ID: ${kycId.substring(0, 8)}...`, {
-      id: `process-start-${kycId}`,
-      duration: 3000
+    // Add debug toast to track the start of the process with a unique ID
+    const toastId = `process-kyc-${kycId}-${Date.now()}`;
+    toast.loading(`Processing KYC verification (${status})...`, {
+      id: toastId,
+      duration: 10000 // Longer duration to ensure it stays visible during processing
     });
     
     // Use the edge function to process the KYC verification
@@ -38,7 +39,10 @@ export const processKycVerification = async (
     
     if (response.error) {
       console.error('Error from admin-operations function:', response.error);
-      toast.error(`Failed to update KYC verification: ${response.error.message}`);
+      toast.dismiss(toastId);
+      toast.error(`Failed to update KYC verification: ${response.error.message}`, {
+        duration: 5000
+      });
       return false;
     }
     
@@ -46,21 +50,28 @@ export const processKycVerification = async (
     
     if (!data || !data.kyc) {
       console.error('Invalid response from admin-operations function:', data);
-      toast.error('Failed to update KYC verification: Invalid response from server');
+      toast.dismiss(toastId);
+      toast.error('Failed to update KYC verification: Invalid response from server', {
+        duration: 5000
+      });
       return false;
     }
     
+    // Log the successful update
     console.log(`Successfully processed KYC verification with status: ${status}`, data);
     
-    // Show additional success information with KYC details
-    toast.success(`KYC verification ${status} successfully. ID: ${kycId.substring(0, 8)}...`, {
+    // Dismiss the loading toast and show success
+    toast.dismiss(toastId);
+    toast.success(`KYC verification ${status} successfully.`, {
       duration: 5000
     });
     
     return true;
   } catch (error) {
     console.error('Error processing KYC verification:', error);
-    toast.error(`An error occurred while processing KYC verification: ${(error as Error).message}`);
+    toast.error(`An error occurred while processing KYC verification: ${(error as Error).message}`, {
+      duration: 5000
+    });
     return false;
   }
 };

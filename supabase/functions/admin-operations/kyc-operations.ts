@@ -53,21 +53,30 @@ export const kycOperations = {
     // Log the operation and data for debugging
     console.log("Admin processing KYC verification with update data:", updateData);
     
-    // Use the admin client to bypass RLS
-    const { data: kycData, error: kycError } = await adminClient
-      .from("kyc_verifications")
-      .update(updateData)
-      .eq("id", kycId)
-      .select()
-      .single();
-    
-    if (kycError) {
-      console.error("KYC update error:", kycError);
-      throw kycError;
+    try {
+      // Use the admin client to bypass RLS
+      const { data: kycData, error: kycError } = await adminClient
+        .from("kyc_verifications")
+        .update(updateData)
+        .eq("id", kycId)
+        .select()
+        .single();
+      
+      if (kycError) {
+        console.error("KYC update error:", kycError);
+        throw kycError;
+      }
+      
+      if (!kycData) {
+        throw new Error("KYC update returned no data");
+      }
+      
+      console.log("KYC update successful, returned data:", kycData);
+      return { kyc: kycData, success: true };
+    } catch (error) {
+      console.error("Error in KYC update operation:", error);
+      throw error;
     }
-    
-    console.log("KYC update successful, returned data:", kycData);
-    return { kyc: kycData, success: true };
   },
   
   async requestKycClarification({ kycId, message }, user, adminClient) {
@@ -82,27 +91,36 @@ export const kycOperations = {
     
     console.log(`Admin ${user.id} requesting clarification for KYC ${kycId}`);
     
-    // Use the admin client to bypass RLS
-    const { data: clarifyData, error: clarifyError } = await adminClient
-      .from("kyc_verifications")
-      .update({
-        status: "needs_clarification",
-        clarification_message: message,
-        reviewed_at: new Date().toISOString(),
-        approved_at: null,
-        approved_by: null,
-        rejection_reason: null
-      })
-      .eq("id", kycId)
-      .select()
-      .single();
-    
-    if (clarifyError) {
-      console.error("KYC clarification update error:", clarifyError);
-      throw clarifyError;
+    try {
+      // Use the admin client to bypass RLS
+      const { data: clarifyData, error: clarifyError } = await adminClient
+        .from("kyc_verifications")
+        .update({
+          status: "needs_clarification",
+          clarification_message: message,
+          reviewed_at: new Date().toISOString(),
+          approved_at: null,
+          approved_by: null,
+          rejection_reason: null
+        })
+        .eq("id", kycId)
+        .select()
+        .single();
+      
+      if (clarifyError) {
+        console.error("KYC clarification update error:", clarifyError);
+        throw clarifyError;
+      }
+      
+      if (!clarifyData) {
+        throw new Error("KYC clarification update returned no data");
+      }
+      
+      console.log("KYC clarification update successful:", clarifyData);
+      return { kyc: clarifyData, success: true };
+    } catch (error) {
+      console.error("Error in KYC clarification operation:", error);
+      throw error;
     }
-    
-    console.log("KYC clarification update successful:", clarifyData);
-    return { kyc: clarifyData, success: true };
   }
 };
