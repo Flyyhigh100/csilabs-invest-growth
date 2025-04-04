@@ -26,6 +26,26 @@ export async function handleAdminOperations(action, data, user, adminClient) {
     
     console.log(`User ${user.id} (${user.email}) attempting admin operation: ${action}`);
     
+    // Verify admin permissions explicitly first for all operations
+    console.log("Verifying admin permissions...");
+    const { data: adminCheck, error: adminCheckError } = await adminClient
+      .from("admins")
+      .select("*")
+      .or(`id.eq.${user.id},email.eq.${user.email}`)
+      .maybeSingle();
+    
+    if (adminCheckError) {
+      console.error("Admin permission verification error:", adminCheckError);
+      throw new Error(`Admin permission verification failed: ${adminCheckError.message}`);
+    }
+    
+    if (!adminCheck) {
+      console.error("User does not have admin permissions:", user);
+      throw new Error("You do not have admin permissions to perform this operation");
+    }
+    
+    console.log("Admin permissions explicitly verified:", adminCheck);
+    
     // Process different admin actions
     switch (action) {
       case "getUserDetails":

@@ -16,27 +16,59 @@ export const processKycVerification = async (
       return false;
     }
     
-    // Verify admin permissions first
-    const { data: adminData, error: adminError } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('email', (await supabase.auth.getUser()).data.user?.email || '')
-      .single();
-      
-    if (adminError || !adminData) {
-      console.error('❌ Admin permission check failed:', adminError || 'No admin record found');
-      toast.error('You do not have admin permissions to process KYC verifications');
-      return false;
-    }
-    
-    console.log('✅ Admin permissions verified:', adminData);
-    
     // Add debug toast to track the start of the process with a unique ID
     const toastId = `process-kyc-${kycId}-${Date.now()}`;
     toast.loading(`Processing KYC verification (${status})...`, {
       id: toastId,
-      duration: 10000 // Longer duration to ensure it stays visible during processing
+      duration: 15000 // Longer duration to ensure it stays visible during processing
     });
+    
+    // Verify admin permissions first
+    try {
+      console.log('Checking admin permissions...');
+      
+      // Trigger the admin permission listener if it exists
+      if (typeof (window as any).kycAdminPermissionListener === 'function') {
+        (window as any).kycAdminPermissionListener('checking');
+      }
+      
+      const { data: adminData, error: adminError } = await supabase
+        .from('admins')
+        .select('*')
+        .eq('email', (await supabase.auth.getUser()).data.user?.email || '')
+        .single();
+        
+      if (adminError || !adminData) {
+        console.error('❌ Admin permission check failed:', adminError || 'No admin record found');
+        
+        // Update the admin permission listener
+        if (typeof (window as any).kycAdminPermissionListener === 'function') {
+          (window as any).kycAdminPermissionListener('failed');
+        }
+        
+        toast.dismiss(toastId);
+        toast.error('You do not have admin permissions to process KYC verifications');
+        return false;
+      }
+      
+      console.log('✅ Admin permissions verified:', adminData);
+      
+      // Update the admin permission listener
+      if (typeof (window as any).kycAdminPermissionListener === 'function') {
+        (window as any).kycAdminPermissionListener('verified');
+      }
+    } catch (adminErr) {
+      console.error('❌ Exception during admin permission check:', adminErr);
+      
+      // Update the admin permission listener
+      if (typeof (window as any).kycAdminPermissionListener === 'function') {
+        (window as any).kycAdminPermissionListener('failed');
+      }
+      
+      toast.dismiss(toastId);
+      toast.error(`Failed to verify admin permissions: ${(adminErr as Error).message}`);
+      return false;
+    }
     
     // Fetch the current KYC record to verify it exists
     const { data: currentKyc, error: fetchError } = await supabase
@@ -87,6 +119,11 @@ export const processKycVerification = async (
       try {
         console.log(`🔄 Attempt ${retryCount + 1} of ${maxRetries}`);
         
+        // Trigger the retry listener if it exists
+        if (typeof (window as any).kycRetryListener === 'function') {
+          (window as any).kycRetryListener(retryCount + 1, maxRetries);
+        }
+        
         // Add additional context for debugging
         console.log(`Current time before request: ${new Date().toISOString()}`);
         
@@ -110,6 +147,19 @@ export const processKycVerification = async (
         
         const data = response.data;
         
+        // Check if the response contains an error object
+        if (data && data.error) {
+          console.error('❌ Error from admin-operations response:', data.error);
+          lastError = new Error(data.error.message || 'Unknown error from server');
+          retryCount++;
+          
+          if (retryCount < maxRetries) {
+            console.log(`Retrying in 1 second... (attempt ${retryCount + 1})`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+          continue;
+        }
+        
         // Handle case where response has no data
         if (!data) {
           console.error('❌ No data returned from admin-operations function');
@@ -126,7 +176,7 @@ export const processKycVerification = async (
         // Handle case where response has error in data
         if (data.error) {
           console.error('❌ Error in admin-operations response data:', data.error);
-          lastError = data.error;
+          lastError = new Error(data.error.message || 'Error from server');
           retryCount++;
           
           if (retryCount < maxRetries) {
@@ -207,6 +257,11 @@ export const processKycVerification = async (
       console.error('❌ Exception during verification refresh:', refreshErr);
     }
     
+    // Clear the retry listener
+    if (typeof (window as any).kycRetryListener === 'function') {
+      (window as any).kycRetryListener(null, maxRetries);
+    }
+    
     // Dismiss the loading toast and show success
     toast.dismiss(toastId);
     toast.success(`KYC verification ${status === 'approved' ? 'approved' : 
@@ -256,6 +311,11 @@ export const requestKycClarification = async (
       try {
         console.log(`🔄 Clarification attempt ${retryCount + 1} of ${maxRetries}`);
         
+        // Trigger the retry listener if it exists
+        if (typeof (window as any).kycRetryListener === 'function') {
+          (window as any).kycRetryListener(retryCount + 1, maxRetries);
+        }
+        
         const payload = {
           action: 'requestKycClarification',
           data: {
@@ -285,6 +345,19 @@ export const requestKycClarification = async (
         }
         
         const data = response.data;
+        
+        // Check if the response contains an error object
+        if (data && data.error) {
+          console.error('❌ Error from server in clarification response:', data.error);
+          lastError = new Error(data.error.message || 'Unknown error from server');
+          retryCount++;
+          
+          if (retryCount < maxRetries) {
+            console.log(`Retrying in 1 second... (attempt ${retryCount + 1})`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+          continue;
+        }
         
         if (!data) {
           console.error('❌ No data returned from clarification request');
@@ -324,6 +397,11 @@ export const requestKycClarification = async (
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
+    }
+    
+    // Clear the retry listener
+    if (typeof (window as any).kycRetryListener === 'function') {
+      (window as any).kycRetryListener(null, maxRetries);
     }
     
     // After all retries, check if we were successful
