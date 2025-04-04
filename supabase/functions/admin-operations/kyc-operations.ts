@@ -12,6 +12,25 @@ export const kycOperations = {
       throw new Error("Invalid status. Must be one of: approved, rejected, needs_clarification");
     }
     
+    // Double-check admin permissions explicitly
+    const { data: adminCheck, error: adminCheckError } = await adminClient
+      .from("admins")
+      .select("*")
+      .or(`id.eq.${user.id},email.eq.${user.email}`)
+      .maybeSingle();
+    
+    if (adminCheckError) {
+      console.error("Admin permission verification error:", adminCheckError);
+      throw new Error(`Admin permission verification failed: ${adminCheckError.message}`);
+    }
+    
+    if (!adminCheck) {
+      console.error("User does not have admin permissions:", user);
+      throw new Error("You do not have admin permissions to process KYC verifications");
+    }
+    
+    console.log("Admin permissions explicitly verified:", adminCheck);
+    
     // Fetch current KYC record to verify it exists
     const { data: currentKyc, error: fetchError } = await adminClient
       .from("kyc_verifications")
@@ -55,8 +74,21 @@ export const kycOperations = {
     
     // Log the operation and data for debugging
     console.log("Admin processing KYC verification with update data:", updateData);
+    console.log("Using admin client:", !!adminClient);
     
     try {
+      // Verify that we can access the KYC verifications table directly before update
+      const { count, error: countError } = await adminClient
+        .from("kyc_verifications")
+        .select("*", { count: "exact", head: true });
+      
+      if (countError) {
+        console.error("Error checking KYC table access:", countError);
+        throw new Error(`Database access verification failed: ${countError.message}`);
+      }
+      
+      console.log(`Verified access to KYC table. Total records: ${count}`);
+      
       // Use the admin client to bypass RLS
       const { data: kycData, error: kycError } = await adminClient
         .from("kyc_verifications")
@@ -85,6 +117,7 @@ export const kycOperations = {
         
       if (verifyError) {
         console.error("Error verifying KYC update:", verifyError);
+        console.warn("Update may have completed successfully but verification failed");
       } else if (verifyData) {
         console.log(`Verified KYC status after update: ${verifyData.status}`);
         
@@ -100,6 +133,7 @@ export const kycOperations = {
       return { kyc: kycData, success: true };
     } catch (error) {
       console.error("Error in KYC update operation:", error);
+      console.log("Error details:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
       throw error;
     }
   },
@@ -115,6 +149,23 @@ export const kycOperations = {
     }
     
     console.log(`Admin ${user.id} requesting clarification for KYC ${kycId}`);
+    
+    // Double-check admin permissions explicitly
+    const { data: adminCheck, error: adminCheckError } = await adminClient
+      .from("admins")
+      .select("*")
+      .or(`id.eq.${user.id},email.eq.${user.email}`)
+      .maybeSingle();
+    
+    if (adminCheckError) {
+      console.error("Admin permission verification error:", adminCheckError);
+      throw new Error(`Admin permission verification failed: ${adminCheckError.message}`);
+    }
+    
+    if (!adminCheck) {
+      console.error("User does not have admin permissions:", user);
+      throw new Error("You do not have admin permissions to request clarification");
+    }
     
     try {
       // Log current state before update
@@ -180,6 +231,7 @@ export const kycOperations = {
       return { kyc: clarifyData, success: true };
     } catch (error) {
       console.error("Error in KYC clarification operation:", error);
+      console.log("Error details:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
       throw error;
     }
   }

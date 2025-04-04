@@ -7,6 +7,25 @@ export async function handleAdminOperations(action, data, user, adminClient) {
   console.log(`Processing admin operation: ${action}`, data);
   
   try {
+    // First verify basic parameters
+    if (!action) {
+      throw new Error("Action parameter is required");
+    }
+    
+    if (!data) {
+      throw new Error("Data parameter is required");
+    }
+    
+    if (!user || !user.id) {
+      throw new Error("User authentication required");
+    }
+    
+    if (!adminClient) {
+      throw new Error("Admin client is required");
+    }
+    
+    console.log(`User ${user.id} (${user.email}) attempting admin operation: ${action}`);
+    
     // Process different admin actions
     switch (action) {
       case "getUserDetails":
@@ -25,6 +44,25 @@ export async function handleAdminOperations(action, data, user, adminClient) {
           console.error("Invalid status in KYC operation:", data.status);
           throw new Error("Invalid status. Must be one of: approved, rejected, needs_clarification");
         }
+        
+        // Check if the specified KYC record exists first
+        const { data: kycCheck, error: kycCheckError } = await adminClient
+          .from("kyc_verifications")
+          .select("id, status")
+          .eq("id", data.kycId)
+          .maybeSingle();
+          
+        if (kycCheckError) {
+          console.error("Error checking KYC existence:", kycCheckError);
+          throw new Error(`Error verifying KYC record: ${kycCheckError.message}`);
+        }
+        
+        if (!kycCheck) {
+          console.error(`KYC record with ID ${data.kycId} not found`);
+          throw new Error(`KYC record with ID ${data.kycId} not found`);
+        }
+        
+        console.log(`Found KYC record with current status: ${kycCheck.status}`);
         
         // Proceed with KYC processing
         console.log(`🚀 Executing KYC operation for ID ${data.kycId} with status ${data.status}`);
@@ -46,6 +84,25 @@ export async function handleAdminOperations(action, data, user, adminClient) {
           throw new Error("Clarification message is required");
         }
         
+        // Check if the specified KYC record exists first
+        const { data: clarifyCheck, error: clarifyCheckError } = await adminClient
+          .from("kyc_verifications")
+          .select("id, status")
+          .eq("id", data.kycId)
+          .maybeSingle();
+          
+        if (clarifyCheckError) {
+          console.error("Error checking KYC existence for clarification:", clarifyCheckError);
+          throw new Error(`Error verifying KYC record: ${clarifyCheckError.message}`);
+        }
+        
+        if (!clarifyCheck) {
+          console.error(`KYC record with ID ${data.kycId} not found for clarification`);
+          throw new Error(`KYC record with ID ${data.kycId} not found`);
+        }
+        
+        console.log(`Found KYC record for clarification with current status: ${clarifyCheck.status}`);
+        
         // Proceed with clarification request
         console.log(`🚀 Executing KYC clarification request for ID ${data.kycId}`);
         const clarificationResult = await kycOperations.requestKycClarification(data, user, adminClient);
@@ -66,7 +123,9 @@ export async function handleAdminOperations(action, data, user, adminClient) {
       error: {
         message: error.message,
         details: error.details || {},
+        code: error.code || 'UNKNOWN_ERROR',
         action: action,
+        data: error.data || null,
         timestamp: new Date().toISOString()
       }
     };

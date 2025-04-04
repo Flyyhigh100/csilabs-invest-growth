@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { KycVerificationWithProfile } from './types';
@@ -14,12 +15,18 @@ export const useKycActionHandlers = (
     supabaseTriggered: boolean;
     supabaseResponse: any | null;
     error: string | null;
+    retryAttempts: number;
+    currentRetry: number | null;
+    adminPermissionStatus: 'verified' | 'failed' | 'checking' | null;
   }>({
     lastActionType: null,
     lastActionTimestamp: null,
     supabaseTriggered: false,
     supabaseResponse: null,
-    error: null
+    error: null,
+    retryAttempts: 0,
+    currentRetry: null,
+    adminPermissionStatus: null
   });
   
   // Process KYC verification (approve or reject)
@@ -36,17 +43,45 @@ export const useKycActionHandlers = (
       console.log('🚀 Starting KYC verification process:', { kycId, status, rejectionReason });
       
       // Update debug info at the start
-      setDebugInfo({
+      setDebugInfo(prev => ({
+        ...prev,
         lastActionType: status,
         lastActionTimestamp: new Date().toISOString(),
         supabaseTriggered: true,
         supabaseResponse: null,
-        error: null
-      });
+        error: null,
+        retryAttempts: 0,
+        currentRetry: 0,
+        adminPermissionStatus: 'checking'
+      }));
       
       try {
         // Call the utility function to process the verification
         console.log(`📤 Sending request to Supabase for KYC ID: ${kycId} with status: ${status}`);
+        
+        // Set up an event listener for the retry attempts
+        const retryListener = (attemptNum: number, maxRetries: number) => {
+          console.log(`Retry attempt ${attemptNum} of ${maxRetries}`);
+          setDebugInfo(prev => ({
+            ...prev,
+            currentRetry: attemptNum,
+            retryAttempts: maxRetries
+          }));
+        };
+        
+        // Set up a listener for admin permission check
+        const adminPermissionListener = (status: 'verified' | 'failed') => {
+          console.log(`Admin permission check: ${status}`);
+          setDebugInfo(prev => ({
+            ...prev,
+            adminPermissionStatus: status
+          }));
+        };
+        
+        // Register these listeners globally so they can be called from verification.ts
+        (window as any).kycRetryListener = retryListener;
+        (window as any).kycAdminPermissionListener = adminPermissionListener;
+        
         const success = await processKycVerification(kycId, status, rejectionReason);
         
         console.log(`✅ Verification process completed with result: ${success ? 'SUCCESS' : 'FAILED'}`);
@@ -60,7 +95,8 @@ export const useKycActionHandlers = (
             ...prev,
             supabaseTriggered: true,
             supabaseResponse: { success: false },
-            error: errorMessage
+            error: errorMessage,
+            currentRetry: null
           }));
           
           throw new Error(errorMessage);
@@ -70,7 +106,8 @@ export const useKycActionHandlers = (
         setDebugInfo(prev => ({
           ...prev,
           supabaseTriggered: true,
-          supabaseResponse: { success: true, status }
+          supabaseResponse: { success: true, status },
+          currentRetry: null
         }));
         
         toast.success(`KYC verification ${status} successfully`);
@@ -84,11 +121,16 @@ export const useKycActionHandlers = (
           ...prev,
           supabaseTriggered: true,
           supabaseResponse: null,
-          error: (error as Error).message
+          error: (error as Error).message,
+          currentRetry: null
         }));
         
         toast.error(`Failed to process KYC: ${(error as Error).message}`);
         throw error;
+      } finally {
+        // Clean up the global listeners
+        delete (window as any).kycRetryListener;
+        delete (window as any).kycAdminPermissionListener;
       }
     },
     onSuccess: () => {
@@ -128,13 +170,17 @@ export const useKycActionHandlers = (
       console.log('🚀 Starting clarification request:', { kycId, message });
       
       // Update debug info at the start
-      setDebugInfo({
+      setDebugInfo(prev => ({
+        ...prev,
         lastActionType: 'clarification',
         lastActionTimestamp: new Date().toISOString(),
         supabaseTriggered: true,
         supabaseResponse: null,
-        error: null
-      });
+        error: null,
+        retryAttempts: 0,
+        currentRetry: 0,
+        adminPermissionStatus: 'checking'
+      }));
       
       const toastId = `clarify-kyc-${kycId}-${Date.now()}`;
       toast.loading(`Sending clarification request...`, {
@@ -158,6 +204,29 @@ export const useKycActionHandlers = (
       }
       
       try {
+        // Set up an event listener for the retry attempts
+        const retryListener = (attemptNum: number, maxRetries: number) => {
+          console.log(`Clarification retry attempt ${attemptNum} of ${maxRetries}`);
+          setDebugInfo(prev => ({
+            ...prev,
+            currentRetry: attemptNum,
+            retryAttempts: maxRetries
+          }));
+        };
+        
+        // Set up a listener for admin permission check
+        const adminPermissionListener = (status: 'verified' | 'failed') => {
+          console.log(`Admin permission check for clarification: ${status}`);
+          setDebugInfo(prev => ({
+            ...prev,
+            adminPermissionStatus: status
+          }));
+        };
+        
+        // Register these listeners globally so they can be called from verification.ts
+        (window as any).kycRetryListener = retryListener;
+        (window as any).kycAdminPermissionListener = adminPermissionListener;
+        
         console.log(`📤 Sending clarification request to Supabase for KYC ID: ${kycId}`);
         const success = await requestKycClarification(kycId, message);
         
@@ -172,7 +241,8 @@ export const useKycActionHandlers = (
             ...prev,
             supabaseTriggered: true,
             supabaseResponse: { success: false },
-            error: errorMessage
+            error: errorMessage,
+            currentRetry: null
           }));
           
           toast.dismiss(toastId);
@@ -184,7 +254,8 @@ export const useKycActionHandlers = (
         setDebugInfo(prev => ({
           ...prev,
           supabaseTriggered: true,
-          supabaseResponse: { success: true, status: 'needs_clarification' }
+          supabaseResponse: { success: true, status: 'needs_clarification' },
+          currentRetry: null
         }));
         
         toast.dismiss(toastId);
@@ -199,12 +270,17 @@ export const useKycActionHandlers = (
           ...prev,
           supabaseTriggered: true,
           supabaseResponse: null,
-          error: (error as Error).message
+          error: (error as Error).message,
+          currentRetry: null
         }));
         
         toast.dismiss(toastId);
         toast.error(`Failed to send clarification request: ${(error as Error).message}`, { duration: 5000 });
         throw error;
+      } finally {
+        // Clean up the global listeners
+        delete (window as any).kycRetryListener;
+        delete (window as any).kycAdminPermissionListener;
       }
     },
     onSuccess: () => {

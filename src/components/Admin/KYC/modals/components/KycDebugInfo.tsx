@@ -13,6 +13,9 @@ interface KycDebugInfoProps {
     supabaseTriggered: boolean;
     supabaseResponse: any | null;
     error: string | null;
+    retryAttempts?: number;
+    currentRetry?: number | null;
+    adminPermissionStatus?: 'verified' | 'failed' | 'checking' | null;
   };
 }
 
@@ -51,6 +54,31 @@ const KycDebugInfo: React.FC<KycDebugInfoProps> = ({
               <p>Action Type: {debugInfo.lastActionType || 'None'}</p>
               <p>Timestamp: {formatTimestamp(debugInfo.lastActionTimestamp)}</p>
               <p>Supabase Triggered: {debugInfo.supabaseTriggered ? 'Yes' : 'No'}</p>
+              
+              {/* Admin permission status */}
+              {debugInfo.adminPermissionStatus && (
+                <p className={`${
+                  debugInfo.adminPermissionStatus === 'verified' 
+                    ? 'text-green-600' 
+                    : debugInfo.adminPermissionStatus === 'failed'
+                    ? 'text-red-600'
+                    : 'text-amber-600'
+                }`}>
+                  Admin Permission: {debugInfo.adminPermissionStatus === 'checking' 
+                    ? 'Checking...' 
+                    : debugInfo.adminPermissionStatus}
+                </p>
+              )}
+              
+              {/* Retry information */}
+              {debugInfo.retryAttempts !== undefined && debugInfo.retryAttempts > 0 && (
+                <p>
+                  Retry Status: {debugInfo.currentRetry !== null 
+                    ? `Attempt ${debugInfo.currentRetry} of ${debugInfo.retryAttempts}` 
+                    : `Complete (${debugInfo.retryAttempts} max attempts)`}
+                </p>
+              )}
+              
               <p>Supabase Response: {debugInfo.supabaseResponse ? 
                 `Success: ${debugInfo.supabaseResponse.success}, Status: ${debugInfo.supabaseResponse.status || 'N/A'}` : 
                 'No response'}</p>
