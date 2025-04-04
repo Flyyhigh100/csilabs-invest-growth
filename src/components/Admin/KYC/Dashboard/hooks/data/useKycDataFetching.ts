@@ -3,8 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { 
   fetchKycVerifications, 
   listAllUsersWithKycStatus 
-} from '../../../../KYCVerificationsService';
-import { KycVerificationWithProfile } from '../../../../KYC/types';
+} from '../../../KycVerificationsService';
+import { KycVerificationWithProfile } from '../../../KYC/types';
 
 interface KycDataFetchingProps {
   isAdmin: boolean | null;
@@ -17,7 +17,7 @@ interface KycDataFetchingProps {
 export const useKycDataFetching = ({ isAdmin, manualRefreshCount }: KycDataFetchingProps) => {
   // Fetch KYC verifications
   const { 
-    data: kycVerifications = [], 
+    data: kycVerifications = [] as KycVerificationWithProfile[], 
     isLoading: isKycLoading, 
     error: kycError,
     refetch: refetchKyc
@@ -31,7 +31,7 @@ export const useKycDataFetching = ({ isAdmin, manualRefreshCount }: KycDataFetch
   
   // Fetch all users with KYC status
   const { 
-    data: allUsersWithKyc = [], 
+    data: allUsersWithKyc = [] as any[], 
     isLoading: isUsersLoading,
     error: usersError,
     refetch: refetchUsers 

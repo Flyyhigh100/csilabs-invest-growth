@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { KycVerificationWithProfile } from '../../../../KYC/types';
+import { KycVerificationWithProfile } from '../../../KYC/types';
 import { mergeKycData } from '../data/useKycDataFetching';
 
 interface KycDataStateProps {

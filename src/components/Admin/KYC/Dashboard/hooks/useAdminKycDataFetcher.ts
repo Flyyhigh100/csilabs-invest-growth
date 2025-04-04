@@ -4,7 +4,7 @@ import { useAdminVerification } from './admin/useAdminVerification';
 import { useKycRealtimeUpdates } from './realtime/useKycRealtimeUpdates';
 import { useKycDataFetching } from './data/useKycDataFetching';
 import { useKycDataState } from './state/useKycDataState';
-import { KycVerificationWithProfile } from '../../../KYC/types';
+import { KycVerificationWithProfile } from '../../KYC/types';
 
 export const useAdminKycDataFetcher = () => {
   // Check admin access
@@ -20,7 +20,10 @@ export const useAdminKycDataFetcher = () => {
     isLoading,
     error,
     refetchAll
-  } = useKycDataFetching({ isAdmin, manualRefreshCount });
+  } = useKycDataFetching({ 
+    isAdmin, 
+    manualRefreshCount 
+  });
   
   // Set up realtime subscription
   const { realtimeEnabled } = useKycRealtimeUpdates(isAdmin, refetchAll);
@@ -32,8 +35,8 @@ export const useAdminKycDataFetcher = () => {
     mergedKycVerifications,
     handleManualRefresh
   } = useKycDataState({
-    kycVerifications,
-    allUsersWithKyc,
+    kycVerifications: kycVerifications as KycVerificationWithProfile[],
+    allUsersWithKyc: allUsersWithKyc as any[],
     refetchAll
   });
   
