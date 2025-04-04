@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Button } from '@/components/ui/button';
 import { KycVerificationWithProfile } from '../types';
 import KycActionButtons from './components/KycActionButtons';
 import KycRejectForm from './components/KycRejectForm';
