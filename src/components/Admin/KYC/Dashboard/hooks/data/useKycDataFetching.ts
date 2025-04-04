@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { 
   fetchKycVerifications, 
   listAllUsersWithKycStatus 
-} from '../../../../KycVerificationsService';
+} from '../../../../services/kycVerificationsFetcher';
 import { KycVerificationWithProfile } from '../../../../types';
 
 interface KycDataFetchingProps {

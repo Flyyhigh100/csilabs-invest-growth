@@ -70,6 +70,9 @@ const KycVerificationsDashboard: React.FC = () => {
     return <AccessDeniedMessage onRetryAccess={handleManualRefresh} />;
   }
   
+  // Ensure allUsersWithKyc is always an array to prevent "length does not exist on type 'unknown'" error
+  const safeAllUsersWithKyc = Array.isArray(allUsersWithKyc) ? allUsersWithKyc : [];
+  
   return (
     <div className="space-y-6">
       <KycDashboardHeader 
@@ -80,8 +83,8 @@ const KycVerificationsDashboard: React.FC = () => {
         showAllUsers={showAllUsers}
       />
       
-      {showAllUsers && allUsersWithKyc.length > 0 && (
-        <KycAllUsersTable allUsersWithKyc={allUsersWithKyc} />
+      {showAllUsers && safeAllUsersWithKyc.length > 0 && (
+        <KycAllUsersTable allUsersWithKyc={safeAllUsersWithKyc} />
       )}
       
       <KycVerificationsContainer

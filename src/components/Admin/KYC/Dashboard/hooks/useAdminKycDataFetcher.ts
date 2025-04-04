@@ -1,8 +1,10 @@
 
+import { useState } from 'react';
 import { useAdminVerification } from './admin/useAdminVerification';
 import { useKycRealtimeUpdates } from './realtime/useKycRealtimeUpdates';
 import { useKycDataFetching } from './data/useKycDataFetching';
 import { useKycDataState } from './state/useKycDataState';
+import { KycVerificationWithProfile } from '../../../KYC/types';
 
 export const useAdminKycDataFetcher = () => {
   // Check admin access
@@ -13,8 +15,8 @@ export const useAdminKycDataFetcher = () => {
   
   // Fetch KYC data
   const { 
-    kycVerifications,
-    allUsersWithKyc,
+    kycVerifications = [],
+    allUsersWithKyc = [],
     isLoading,
     error,
     refetchAll
@@ -49,6 +51,3 @@ export const useAdminKycDataFetcher = () => {
     isAdmin
   };
 };
-
-// Need to add the missing import
-import { useState } from 'react';
