@@ -219,7 +219,12 @@ export type Database = {
       }
     }
     Enums: {
-      kyc_status: "not_started" | "pending" | "approved" | "rejected"
+      kyc_status:
+        | "not_started"
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "needs_clarification"
     }
     CompositeTypes: {
       [_ in never]: never

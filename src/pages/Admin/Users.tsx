@@ -12,76 +12,51 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, Users, RefreshCw, DatabaseIcon, AlertCircle } from 'lucide-react';
+import { Loader2, Search, Users as UsersIcon, RefreshCw, DatabaseIcon, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { listAllUsersWithKycStatus, checkUserKycRecord } from '@/components/Admin/KYC/KycVerificationsService';
+import { useQuery } from '@tanstack/react-query';
 
 interface User {
   id: string;
   first_name: string | null;
   last_name: string | null;
+  email: string | null;
   wallet_address: string | null;
   created_at: string;
   updated_at: string;
   kyc_status?: string;
-  // Define types for auth data which isn't in profiles table
-  auth_email?: string | null;
-  // CRITICAL FIX: Add has_kyc_record flag
   has_kyc_record?: boolean;
 }
 
 const AdminUsersPage: React.FC = () => {
-  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
-  const [userKycCheckResults, setUserKycCheckResults] = useState<Record<string, boolean>>({});
   
-  // CRITICAL FIX: Use a more direct and reliable approach to fetch users and their KYC status
+  // Use direct edge function call to fetch users
   const fetchUsers = async () => {
     console.log('Fetching users for admin dashboard...');
     
     try {
-      // CRITICAL FIX: Get users with KYC status in one operation
-      const usersWithKyc = await listAllUsersWithKycStatus();
-      
-      if (!usersWithKyc || usersWithKyc.length === 0) {
-        console.warn('No users found or error fetching users with KYC status');
-      } else {
-        console.log(`Fetched ${usersWithKyc.length} users with KYC status`);
-      }
-      
-      // CRITICAL FIX: Get auth users to obtain email information 
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) {
-        console.error('Error fetching auth users:', authError);
-        // Don't throw here, we'll just proceed without emails
-      }
-      
-      // Create a map of user ID to email for faster lookups
-      const emailMap = (authUsers?.users || []).reduce((acc, user) => {
-        acc[user.id] = user.email;
-        return acc;
-      }, {} as Record<string, string | undefined>);
-      
-      console.log('Email map by user ID:', emailMap);
-      
-      // CRITICAL FIX: Log KYC status before sending to UI
-      usersWithKyc.forEach(user => {
-        console.log(`User ${user.id} KYC status: ${user.kyc_status}, Has KYC: ${user.has_kyc}`);
+      // Use the edge function to get all users
+      const { data, error } = await supabase.functions.invoke('admin-operations', {
+        body: {
+          action: 'getAllUsers',
+          data: {}
+        }
       });
       
-      // Enhance users with email data
-      const enhancedUsers = usersWithKyc.map(user => ({
-        ...user,
-        auth_email: emailMap[user.id] || null,
-        has_kyc_record: user.has_kyc
-      }));
+      if (error) {
+        console.error('Error calling admin-operations function:', error);
+        throw error;
+      }
       
-      console.log('Enhanced users data ready:', enhancedUsers.length);
+      if (!data || data.error) {
+        console.error('Error in function response:', data?.error || 'No data returned');
+        throw new Error(data?.error?.message || 'Failed to fetch users');
+      }
       
-      return enhancedUsers;
+      console.log(`Fetched ${data.users?.length || 0} users with details`);
+      return data.users || [];
     } catch (err) {
       console.error('Error in fetchUsers:', err);
       throw err;
@@ -96,13 +71,12 @@ const AdminUsersPage: React.FC = () => {
   } = useQuery({
     queryKey: ['admin-users'],
     queryFn: fetchUsers,
-    // CRITICAL FIX: More aggressive refetching settings
     staleTime: 1000, // Consider data stale after 1 second
     refetchInterval: 5000 // Refresh every 5 seconds
   });
   
   useEffect(() => {
-    // CRITICAL FIX: Force refresh on component mount
+    // Force refresh on component mount
     refetch();
     
     // Set up realtime subscription for profiles changes
@@ -121,9 +95,7 @@ const AdminUsersPage: React.FC = () => {
           refetch();
         }
       )
-      .subscribe((status) => {
-        console.log('Realtime subscription status for profiles:', status);
-      });
+      .subscribe();
     
     // Set up realtime subscription for KYC changes
     const kycChannel = supabase
@@ -141,9 +113,7 @@ const AdminUsersPage: React.FC = () => {
           refetch();
         }
       )
-      .subscribe((status) => {
-        console.log('Realtime subscription status for KYC changes:', status);
-      });
+      .subscribe();
     
     return () => {
       supabase.removeChannel(profilesChannel);
@@ -158,13 +128,12 @@ const AdminUsersPage: React.FC = () => {
     return (
       (user.first_name && user.first_name.toLowerCase().includes(searchLower)) ||
       (user.last_name && user.last_name.toLowerCase().includes(searchLower)) ||
-      (user.auth_email && user.auth_email.toLowerCase().includes(searchLower)) ||
+      (user.email && user.email.toLowerCase().includes(searchLower)) ||
       (user.wallet_address && user.wallet_address.toLowerCase().includes(searchLower))
     );
   });
   
   const renderKycStatusBadge = (status?: string, hasKycRecord?: boolean) => {
-    // CRITICAL FIX: Show warning if no KYC record found
     if (hasKycRecord === false) {
       return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100 flex items-center gap-1">
         <AlertCircle className="h-3 w-3" /> No KYC Record
@@ -173,7 +142,6 @@ const AdminUsersPage: React.FC = () => {
     
     if (!status) return null;
     
-    // CRITICAL FIX: Make sure all status types are handled correctly
     switch (status) {
       case 'approved':
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Approved</Badge>;
@@ -183,28 +151,21 @@ const AdminUsersPage: React.FC = () => {
         return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>;
       case 'needs_clarification':
         return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Needs Clarification</Badge>;
-      default:
+      case 'not_started':
         return <Badge variant="outline">Not Started</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
   
-  // CRITICAL FIX: Add function to check if a specific user has a KYC record
   const checkUserKyc = async (userId: string) => {
     try {
-      const result = await checkUserKycRecord(userId);
-      const hasRecord = !!result;
-      
-      setUserKycCheckResults(prev => ({
-        ...prev,
-        [userId]: hasRecord
-      }));
-      
-      toast.info(`KYC check for user ${userId}: ${hasRecord ? 'Record found' : 'No record found'}`);
-      
-      return hasRecord;
+      toast.info(`Checking KYC status for user ${userId}...`);
+      await refetch();
+      toast.success('User data refreshed');
     } catch (error) {
       console.error(`Error checking KYC for user ${userId}:`, error);
-      return false;
+      toast.error('Error refreshing user data');
     }
   };
   
@@ -212,13 +173,10 @@ const AdminUsersPage: React.FC = () => {
     try {
       toast.info('Testing database connection...');
       
-      // CRITICAL FIX: Enhanced database test that checks RLS and permissions
-      console.log('Testing database connection for profiles and KYC tables...');
-      
-      // Test KYC table access
+      // Enhanced database test
       const { data: kycTest, error: kycError } = await supabase
         .from('kyc_verifications')
-        .select('*');
+        .select('count()', { count: 'exact' });
       
       if (kycError) {
         console.error('Error accessing KYC verifications:', kycError);
@@ -226,10 +184,9 @@ const AdminUsersPage: React.FC = () => {
         return;
       }
       
-      // Also test profiles table access
       const { data: profilesTest, error: profilesError } = await supabase
         .from('profiles')
-        .select('*');
+        .select('count()', { count: 'exact' });
       
       if (profilesError) {
         console.error('Error accessing profiles:', profilesError);
@@ -237,57 +194,12 @@ const AdminUsersPage: React.FC = () => {
         return;
       }
       
-      // CRITICAL FIX: Log detailed information about what we found
-      console.log('DB connection test results:', {
-        profilesCount: profilesTest?.length || 0,
-        kycCount: kycTest?.length || 0,
-        kycStatusCounts: kycTest?.reduce((acc, kyc) => {
-          acc[kyc.status] = (acc[kyc.status] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>)
-      });
+      const kycCount = kycTest && kycTest[0] ? kycTest[0].count : 0;
+      const profilesCount = profilesTest && profilesTest[0] ? profilesTest[0].count : 0;
       
-      console.log('All KYC records:', kycTest);
-      console.log('All profiles:', profilesTest);
+      console.log(`Database connection test results: ${profilesCount} profiles, ${kycCount} KYC records`);
       
-      // CRITICAL FIX: Check for missing data issues - check if profiles have corresponding KYC records
-      const profileIds = new Set(profilesTest?.map(p => p.id) || []);
-      const kycUserIds = new Set(kycTest?.map(k => k.user_id) || []);
-      
-      const profilesWithoutKyc = [...profileIds].filter(id => !kycUserIds.has(id));
-      const kycWithoutProfiles = [...kycUserIds].filter(id => !profileIds.has(id));
-      
-      console.log('Profiles without KYC records:', profilesWithoutKyc);
-      console.log('KYC records without profiles:', kycWithoutProfiles);
-      
-      // CRITICAL FIX: Create test KYC records for any profile that doesn't have one (for debugging)
-      if (profilesWithoutKyc.length > 0) {
-        console.log(`Creating test KYC records for ${profilesWithoutKyc.length} profiles without KYC...`);
-        for (const profileId of profilesWithoutKyc.slice(0, 3)) { // Limit to first 3 to avoid creating too many
-          const now = new Date().toISOString();
-          const { data, error } = await supabase
-            .from('kyc_verifications')
-            .insert({
-              user_id: profileId,
-              status: 'not_started',
-              first_name: null,
-              last_name: null,
-              created_at: now,
-              updated_at: now
-            });
-            
-          if (error) {
-            console.error(`Error creating test KYC record for profile ${profileId}:`, error);
-          } else {
-            console.log(`Created test KYC record for profile ${profileId}`);
-          }
-        }
-      }
-      
-      // Force all query invalidations
-      queryClient.invalidateQueries();
-      
-      toast.success(`Database connection successful. Found ${profilesTest?.length || 0} profiles and ${kycTest?.length || 0} KYC records`);
+      toast.success(`Database connection successful. Found ${profilesCount} profiles and ${kycCount} KYC records`);
       
       // Refresh data
       refetch();
@@ -302,7 +214,7 @@ const AdminUsersPage: React.FC = () => {
       <Card className="mb-6">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+            <UsersIcon className="h-5 w-5" />
             User Management
           </CardTitle>
           <CardDescription>
@@ -366,37 +278,45 @@ const AdminUsersPage: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">
-                          {user.first_name} {user.last_name}
-                        </TableCell>
-                        <TableCell>{user.auth_email || 'N/A'}</TableCell>
-                        <TableCell>
-                          <div className="font-mono text-xs truncate max-w-[150px]">
-                            {user.wallet_address || 'Not set'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {renderKycStatusBadge(user.kyc_status, user.has_kyc_record)}
-                        </TableCell>
-                        <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => checkUserKyc(user.id)}
-                          >
-                            Check KYC
-                          </Button>
+                    {filteredUsers.length > 0 ? (
+                      filteredUsers.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">
+                            {user.first_name} {user.last_name}
+                          </TableCell>
+                          <TableCell>{user.email || 'N/A'}</TableCell>
+                          <TableCell>
+                            <div className="font-mono text-xs truncate max-w-[150px]">
+                              {user.wallet_address || 'Not set'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {renderKycStatusBadge(user.kyc_status, user.has_kyc_record)}
+                          </TableCell>
+                          <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => checkUserKyc(user.id)}
+                            >
+                              Check KYC
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                          No users found
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )}
                   </TableBody>
                 </Table>
               </div>
               
-              {filteredUsers.length === 0 && (
+              {filteredUsers.length === 0 && searchQuery && (
                 <div className="text-center py-8">
                   <p className="text-gray-500">No users match your search criteria</p>
                 </div>

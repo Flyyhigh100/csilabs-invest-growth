@@ -87,6 +87,9 @@ export async function handleAdminOperations(action, data, user, adminClient) {
     switch (action) {
       case "getUserDetails":
         return await userOperations.getUserDetails(data, adminClient);
+      
+      case "getAllUsers":
+        return await userOperations.getAllUsers(adminClient);
 
       case "processKyc":
         console.log("🔍 Processing KYC operation with data:", data);
