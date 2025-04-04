@@ -23,25 +23,38 @@ export const useKycActionHandlers = (
       console.log('Processing KYC verification:', { kycId, status, rejectionReason });
       
       // Display immediate feedback
-      const loadingToast = toast.loading(`Processing KYC verification...`);
+      const loadingToast = toast.loading(`Processing KYC verification with status: ${status}...`, {
+        id: `process-kyc-${kycId}`
+      });
       
       try {
+        // Log the verification process for debugging
+        console.log(`Starting verification process for KYC ID: ${kycId} with status: ${status}`);
+        
         // Call the utility function to process the verification
         const success = await processKycVerification(kycId, status, rejectionReason);
         
+        console.log(`Verification process completed with result: ${success ? 'SUCCESS' : 'FAILED'}`);
+        
         if (!success) {
           toast.dismiss(loadingToast);
-          toast.error(`Failed to process KYC verification with status: ${status}`);
+          toast.error(`Failed to process KYC verification with status: ${status}`, {
+            duration: 5000
+          });
           throw new Error(`Failed to process KYC verification with status: ${status}`);
         }
         
         toast.dismiss(loadingToast);
-        toast.success(`KYC verification ${status === 'approved' ? 'approved' : 'rejected'} successfully`);
+        toast.success(`KYC verification ${status === 'approved' ? 'approved' : 'rejected'} successfully`, {
+          duration: 4000
+        });
         return true;
       } catch (error) {
         toast.dismiss(loadingToast);
         console.error('Error processing KYC verification:', error);
-        toast.error(`Failed to process KYC verification: ${(error as Error).message}`);
+        toast.error(`Failed to process KYC verification: ${(error as Error).message}`, {
+          duration: 5000
+        });
         throw error;
       }
     },

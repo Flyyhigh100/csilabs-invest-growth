@@ -16,6 +16,12 @@ export const processKycVerification = async (
       return false;
     }
     
+    // Add debug toast to track the start of the process
+    toast.info(`Starting ${status} process for KYC ID: ${kycId.substring(0, 8)}...`, {
+      id: `process-start-${kycId}`,
+      duration: 3000
+    });
+    
     // Use the edge function to process the KYC verification
     const response = await supabase.functions.invoke('admin-operations', {
       body: {
@@ -45,6 +51,12 @@ export const processKycVerification = async (
     }
     
     console.log(`Successfully processed KYC verification with status: ${status}`, data);
+    
+    // Show additional success information with KYC details
+    toast.success(`KYC verification ${status} successfully. ID: ${kycId.substring(0, 8)}...`, {
+      duration: 5000
+    });
+    
     return true;
   } catch (error) {
     console.error('Error processing KYC verification:', error);

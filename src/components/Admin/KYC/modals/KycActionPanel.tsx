@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { 
-  CheckCircle, XCircle, MessageSquare, AlertTriangle, Loader2
+  CheckCircle, XCircle, MessageSquare, AlertTriangle, Loader2, BugPlay
 } from 'lucide-react';
 import { KycVerificationWithProfile } from '../types';
 
@@ -71,6 +71,20 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
           <CheckCircle className="mr-1 h-4 w-4" />
           Approve
         </Button>
+      </div>
+      
+      {/* Debug Info Panel - shown in development */}
+      <div className="mb-3 p-2 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-700 font-mono">
+        <div className="flex items-start gap-1">
+          <BugPlay className="h-3 w-3 mt-0.5 text-slate-500" />
+          <div>
+            <p className="font-semibold">Debug Info:</p>
+            <p>KYC ID: {selectedKyc.id}</p>
+            <p>Current Status: {selectedKyc.status}</p>
+            <p>Is Processing: {isPending ? 'Yes' : 'No'}</p>
+            <p>Selected Action: {activeAction || 'None'}</p>
+          </div>
+        </div>
       </div>
       
       {activeAction === 'reject' && (
