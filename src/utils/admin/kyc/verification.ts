@@ -63,5 +63,6 @@ export const requestKycClarification = async (
     return false;
   }
   
+  console.log('Requesting clarification with message:', message);
   return processKycVerification(kycId, 'needs_clarification', message);
 };
