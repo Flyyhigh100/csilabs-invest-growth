@@ -31,8 +31,9 @@ interface User {
 
 const AdminUsersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
   
-  // Use direct edge function call to fetch users
+  // Use direct edge function call to fetch users with better error handling
   const fetchUsers = async () => {
     console.log('Fetching users for admin dashboard...');
     
@@ -47,12 +48,17 @@ const AdminUsersPage: React.FC = () => {
       
       if (error) {
         console.error('Error calling admin-operations function:', error);
-        throw error;
+        throw new Error(`Failed to fetch users: ${error.message}`);
       }
       
-      if (!data || data.error) {
-        console.error('Error in function response:', data?.error || 'No data returned');
-        throw new Error(data?.error?.message || 'Failed to fetch users');
+      if (!data) {
+        console.error('No data returned from admin-operations function');
+        throw new Error('No data returned from server');
+      }
+      
+      if (data.error) {
+        console.error('Error in function response:', data.error);
+        throw new Error(data.error.message || 'Failed to fetch users');
       }
       
       console.log(`Fetched ${data.users?.length || 0} users with details`);
@@ -69,10 +75,12 @@ const AdminUsersPage: React.FC = () => {
     error, 
     refetch 
   } = useQuery({
-    queryKey: ['admin-users'],
+    queryKey: ['admin-users', retryCount],
     queryFn: fetchUsers,
-    staleTime: 1000, // Consider data stale after 1 second
-    refetchInterval: 5000 // Refresh every 5 seconds
+    staleTime: 30000, // Consider data stale after 30 seconds
+    refetchInterval: 60000, // Refresh every minute
+    retry: 1, // Only retry once
+    refetchOnWindowFocus: true,
   });
   
   useEffect(() => {
@@ -158,10 +166,16 @@ const AdminUsersPage: React.FC = () => {
     }
   };
   
+  const handleRefresh = () => {
+    setRetryCount(prev => prev + 1);
+    refetch();
+    toast.success('Refreshing user data...');
+  };
+  
   const checkUserKyc = async (userId: string) => {
     try {
       toast.info(`Checking KYC status for user ${userId}...`);
-      await refetch();
+      refetch();
       toast.success('User data refreshed');
     } catch (error) {
       console.error(`Error checking KYC for user ${userId}:`, error);
@@ -244,7 +258,7 @@ const AdminUsersPage: React.FC = () => {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => refetch()}
+                onClick={handleRefresh}
                 className="flex items-center gap-2"
               >
                 <RefreshCw className="h-4 w-4" />
@@ -259,9 +273,17 @@ const AdminUsersPage: React.FC = () => {
               <span className="ml-2">Loading users...</span>
             </div>
           ) : error ? (
-            <div className="p-4 bg-red-50 text-red-800 rounded-md">
-              <h3 className="font-bold">Error loading users</h3>
-              <p>{(error as Error).message}</p>
+            <div className="p-6 bg-red-50 text-red-800 rounded-md">
+              <h3 className="font-bold mb-2">Error loading users</h3>
+              <p className="mb-4">{(error as Error).message}</p>
+              <Button 
+                variant="destructive" 
+                onClick={handleRefresh} 
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Retry
+              </Button>
             </div>
           ) : (
             <>

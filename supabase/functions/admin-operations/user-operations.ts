@@ -14,7 +14,7 @@ export const userOperations = {
     console.log("Fetching all users for admin...");
     
     try {
-      // Get all user profiles
+      // Get all user profiles using the admin client
       const { data: profilesData, error: profilesError } = await adminClient
         .from("profiles")
         .select("*");
