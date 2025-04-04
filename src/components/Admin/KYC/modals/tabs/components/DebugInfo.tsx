@@ -11,40 +11,9 @@ interface DebugInfoProps {
   };
 }
 
-const DebugInfo: React.FC<DebugInfoProps> = ({ kyc, processedUrls }) => {
-  // Determine if we're in development mode without relying on process.env
-  const isDevelopment = typeof window !== 'undefined' && (
-    window.location.hostname === 'localhost' || 
-    window.location.hostname === '127.0.0.1' ||
-    window.location.hostname.includes('dev') ||
-    window.location.hostname.includes('preview') ||
-    window.location.hostname.includes('staging') ||
-    window.location.hostname.includes('test')
-  );
-
-  if (!isDevelopment) {
-    return null;
-  }
-
-  return (
-    <div className="mt-8 p-4 bg-gray-50 rounded-md border border-gray-200">
-      <h4 className="text-sm font-medium text-gray-700 mb-2">Debug Info (Dev Only)</h4>
-      <div className="space-y-2 text-xs text-gray-500">
-        <p><strong>Original ID Front URL:</strong> {kyc.id_front_url || 'None'}</p>
-        <p><strong>Original ID Back URL:</strong> {kyc.id_back_url || 'None'}</p>
-        <p><strong>Original Selfie URL:</strong> {kyc.selfie_url || 'None'}</p>
-        
-        {processedUrls && (
-          <>
-            <hr className="my-2" />
-            <p><strong>Processed ID Front URL:</strong> {processedUrls.idFront || 'None'}</p>
-            <p><strong>Processed ID Back URL:</strong> {processedUrls.idBack || 'None'}</p>
-            <p><strong>Processed Selfie URL:</strong> {processedUrls.selfie || 'None'}</p>
-          </>
-        )}
-      </div>
-    </div>
-  );
+const DebugInfo: React.FC<DebugInfoProps> = () => {
+  // Debug component is now empty - not displaying any debug info in production
+  return null;
 };
 
 export default DebugInfo;

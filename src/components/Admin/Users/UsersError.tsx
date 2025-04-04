@@ -13,9 +13,6 @@ const UsersError: React.FC<UsersErrorProps> = ({ error, onRetry }) => {
     <div className="p-6 bg-red-50 text-red-800 rounded-md">
       <h3 className="font-bold mb-2">Error loading users</h3>
       <p className="mb-4">{error.message}</p>
-      <p className="mb-4 text-sm text-red-700">
-        This could be due to authentication issues or problems connecting to the database.
-      </p>
       <Button 
         variant="destructive" 
         onClick={onRetry} 

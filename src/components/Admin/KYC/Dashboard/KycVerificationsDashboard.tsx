@@ -5,7 +5,6 @@ import { useKycActionHandlers } from '../KycActionHandlers';
 import { toast } from 'sonner';
 import KycDetailModal from '../modals/KycDetailModal';
 import KycDashboardHeader from './KycDashboardHeader';
-import KycDebugCard from './KycDebugCard';
 import KycVerificationsContainer from './KycVerificationsContainer';
 import { useQuery } from '@tanstack/react-query';
 import { verifyAdminAccess } from '../KycVerificationsService';
@@ -33,8 +32,7 @@ const KycVerificationsDashboard: React.FC = () => {
     handleApprove, 
     handleReject, 
     handleRequestClarification, 
-    isPending,
-    debugInfo 
+    isPending
   } = useKycActionHandlers(() => setIsViewModalOpen(false));
   
   // Admin access state
@@ -45,18 +43,11 @@ const KycVerificationsDashboard: React.FC = () => {
     kycVerifications,
     isLoading,
     error,
-    lastFetchTime,
-    directTestResults,
-    setDirectTestResults,
-    realtimeEnabled,
-    manualRefreshCount, 
-    setManualRefreshCount,
     showAllUsers,
     setShowAllUsers,
     allUsersWithKyc,
     handleManualRefresh,
-    refetch,
-    refetchAllUsers
+    refetch
   } = useAdminKycDataFetcher(isAdmin);
   
   // Check admin access on component mount
@@ -104,18 +95,10 @@ const KycVerificationsDashboard: React.FC = () => {
     <div className="space-y-6">
       <KycDashboardHeader 
         onManualRefresh={handleManualRefresh}
-        onDirectDatabaseTest={results => setDirectTestResults(results)}
+        onDirectDatabaseTest={() => {}}
         refetch={refetch}
         onToggleShowAllUsers={() => setShowAllUsers(!showAllUsers)}
         showAllUsers={showAllUsers}
-      />
-      
-      <KycDebugCard
-        lastFetchTime={lastFetchTime}
-        realtimeEnabled={realtimeEnabled}
-        kycVerifications={kycVerifications}
-        directTestResults={directTestResults}
-        onRefresh={handleManualRefresh}
       />
       
       {showAllUsers && allUsersWithKyc.length > 0 && (
@@ -144,7 +127,6 @@ const KycVerificationsDashboard: React.FC = () => {
         onReject={() => handleReject(selectedKyc, rejectionReason)}
         onRequestClarification={() => handleRequestClarification(selectedKyc, clarificationMessage)}
         isPending={isPending}
-        debugInfo={debugInfo}
       />
     </div>
   );

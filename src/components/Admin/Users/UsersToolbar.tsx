@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Search, RefreshCw, DatabaseIcon } from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
@@ -14,8 +14,7 @@ interface UsersToolbarProps {
 const UsersToolbar: React.FC<UsersToolbarProps> = ({ 
   searchQuery, 
   onSearchChange, 
-  onRefresh, 
-  onTestDbConnection 
+  onRefresh
 }) => {
   return (
     <div className="flex items-center justify-between mb-4">
@@ -30,14 +29,6 @@ const UsersToolbar: React.FC<UsersToolbarProps> = ({
         />
       </div>
       <div className="flex gap-2">
-        <Button 
-          variant="outline" 
-          onClick={onTestDbConnection}
-          className="flex items-center gap-2"
-        >
-          <DatabaseIcon className="h-4 w-4" />
-          Test DB Connection
-        </Button>
         <Button 
           variant="outline" 
           onClick={onRefresh}

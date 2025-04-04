@@ -23,8 +23,7 @@ const AdminUsersPage: React.FC = () => {
     searchQuery, 
     setSearchQuery, 
     handleRefresh, 
-    checkUserKyc, 
-    testDatabaseConnection,
+    checkUserKyc,
     refetch 
   } = useAdminUsers();
   
@@ -91,7 +90,7 @@ const AdminUsersPage: React.FC = () => {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             onRefresh={handleRefresh}
-            onTestDbConnection={testDatabaseConnection}
+            onTestDbConnection={() => {}}
           />
           
           {isLoading ? (

@@ -89,45 +89,8 @@ export const useAdminUsers = () => {
     }
   };
   
-  const testDatabaseConnection = async () => {
-    try {
-      toast.info('Testing database connection...');
-      
-      // Enhanced database test
-      const { data: kycTest, error: kycError } = await supabase
-        .from('kyc_verifications')
-        .select('count()', { count: 'exact' });
-      
-      if (kycError) {
-        console.error('Error accessing KYC verifications:', kycError);
-        toast.error('Failed to access KYC verifications table');
-        return;
-      }
-      
-      const { data: profilesTest, error: profilesError } = await supabase
-        .from('profiles')
-        .select('count()', { count: 'exact' });
-      
-      if (profilesError) {
-        console.error('Error accessing profiles:', profilesError);
-        toast.error('Failed to access profiles table');
-        return;
-      }
-      
-      const kycCount = kycTest && kycTest[0] ? kycTest[0].count : 0;
-      const profilesCount = profilesTest && profilesTest[0] ? profilesTest[0].count : 0;
-      
-      console.log(`Database connection test results: ${profilesCount} profiles, ${kycCount} KYC records`);
-      
-      toast.success(`Database connection successful. Found ${profilesCount} profiles and ${kycCount} KYC records`);
-      
-      // Refresh data
-      refetch();
-    } catch (err) {
-      console.error('Database test error:', err);
-      toast.error('Database test failed');
-    }
-  };
+  // Placeholder function that does nothing now
+  const testDatabaseConnection = () => {};
 
   return {
     users,

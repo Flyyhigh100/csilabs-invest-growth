@@ -1,10 +1,9 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Database, Users } from 'lucide-react';
+import { RefreshCw, Users } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { testDirectKycAccess } from '../KycVerificationsService';
 import { addSelfAsAdmin } from '@/utils/admin';
 
 interface KycDashboardHeaderProps {
@@ -17,23 +16,10 @@ interface KycDashboardHeaderProps {
 
 const KycDashboardHeader: React.FC<KycDashboardHeaderProps> = ({
   onManualRefresh,
-  onDirectDatabaseTest,
   refetch,
   onToggleShowAllUsers,
   showAllUsers
 }) => {
-  const handleDirectDatabaseTest = async () => {
-    try {
-      const results = await testDirectKycAccess();
-      const jsonResults = JSON.stringify(results, null, 2);
-      onDirectDatabaseTest(jsonResults);
-      toast.success('Direct database test completed successfully');
-    } catch (error) {
-      console.error('Error in direct database test:', error);
-      toast.error('Direct database test failed');
-    }
-  };
-  
   const handleAddSelfAsAdmin = async () => {
     const success = await addSelfAsAdmin();
     if (success) {
@@ -56,15 +42,6 @@ const KycDashboardHeader: React.FC<KycDashboardHeaderProps> = ({
             >
               <RefreshCw className="h-4 w-4" />
               Refresh Data
-            </Button>
-            
-            <Button 
-              onClick={handleDirectDatabaseTest}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Database className="h-4 w-4" />
-              Test DB Access
             </Button>
             
             <Button 
