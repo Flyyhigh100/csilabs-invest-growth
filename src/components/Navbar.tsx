@@ -36,10 +36,7 @@ const Navbar: React.FC = () => {
         <div className="hidden md:flex items-center space-x-6">
           <Link to="/" className="text-gray-800 hover:text-cbis-blue transition-colors">Home</Link>
           <Link to="/token-info" className="text-gray-800 hover:text-cbis-blue transition-colors">Token Info</Link>
-          {!user && (
-            <Link to="/register" className="text-gray-800 hover:text-cbis-blue transition-colors">Register</Link>
-          )}
-          {/* Removed the Dashboard link */}
+          {/* Removed the Register link */}
           <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
             {user ? (
               <Link to="/dashboard/payments">Buy Tokens</Link>
@@ -79,16 +76,7 @@ const Navbar: React.FC = () => {
         >
           Token Info
         </Link>
-        {!user && (
-          <Link 
-            to="/register" 
-            className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
-            onClick={() => setIsOpen(false)}
-          >
-            Register
-          </Link>
-        )}
-        {/* Removed the Dashboard link from mobile menu too */}
+        {/* Removed the Register link from mobile menu as well */}
         <div className="mt-6">
           <Button 
             asChild
