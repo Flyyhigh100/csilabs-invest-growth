@@ -20,12 +20,27 @@ serve(async (req) => {
       error: userError,
     } = await supabase.auth.getUser();
 
-    if (userError || !user) {
+    if (userError) {
       console.error("User authentication error:", userError);
       return new Response(
         JSON.stringify({ 
           error: "Unauthorized", 
           details: "Authentication required"
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // If no user is found, return an unauthorized response
+    if (!user) {
+      console.error("No user found in authentication");
+      return new Response(
+        JSON.stringify({ 
+          error: "Unauthorized", 
+          details: "No user found in session"
         }),
         {
           status: 401,

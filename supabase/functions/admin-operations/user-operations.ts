@@ -10,7 +10,7 @@ export const userOperations = {
     return { user: userData };
   },
   
-  async getAllUsers(adminClient) {
+  async getAllUsers(_, adminClient) {
     console.log("Fetching all users for admin...");
     
     try {

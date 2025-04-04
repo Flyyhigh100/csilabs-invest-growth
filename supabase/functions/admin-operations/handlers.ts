@@ -12,10 +12,6 @@ export async function handleAdminOperations(action, data, user, adminClient) {
       throw new Error("Action parameter is required");
     }
     
-    if (!data && action !== "getAllUsers") {
-      throw new Error("Data parameter is required");
-    }
-    
     if (!user || !user.id) {
       throw new Error("User authentication required");
     }
@@ -32,7 +28,7 @@ export async function handleAdminOperations(action, data, user, adminClient) {
         return await userOperations.getUserDetails(data, adminClient);
       
       case "getAllUsers":
-        return await userOperations.getAllUsers(adminClient);
+        return await userOperations.getAllUsers(data, adminClient);
 
       case "processKyc":
         console.log("🔍 Processing KYC operation with data:", data);
