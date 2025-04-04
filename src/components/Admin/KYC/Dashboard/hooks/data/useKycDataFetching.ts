@@ -4,7 +4,7 @@ import {
   fetchKycVerifications, 
   listAllUsersWithKycStatus 
 } from '../../../KycVerificationsService';
-import { KycVerificationWithProfile } from '../../../KYC/types';
+import { KycVerificationWithProfile } from '../../../types';
 
 interface KycDataFetchingProps {
   isAdmin: boolean | null;

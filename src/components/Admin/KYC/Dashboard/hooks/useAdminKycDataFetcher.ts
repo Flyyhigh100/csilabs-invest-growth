@@ -4,7 +4,7 @@ import { useAdminVerification } from './admin/useAdminVerification';
 import { useKycRealtimeUpdates } from './realtime/useKycRealtimeUpdates';
 import { useKycDataFetching } from './data/useKycDataFetching';
 import { useKycDataState } from './state/useKycDataState';
-import { KycVerificationWithProfile } from '../../KYC/types';
+import { KycVerificationWithProfile } from '../../types';
 
 export const useAdminKycDataFetcher = () => {
   // Check admin access
