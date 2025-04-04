@@ -27,7 +27,7 @@ const HeroContent: React.FC<HeroContentProps> = ({ isLoaded }) => {
           </Link>
         </Button>
         <Button asChild variant="outline" size="lg" className="border-cbis-blue text-cbis-blue hover:bg-cbis-blue/5 transition-colors flex-shrink-0">
-          <Link to="/token-info">
+          <Link to="/research-documents">
             View Research Data
           </Link>
         </Button>

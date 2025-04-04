@@ -1,6 +1,7 @@
+import React, { lazy, Suspense } from 'react';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import './App.css';
 
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
 import Index from '@/pages/Index';
@@ -25,6 +26,8 @@ import AdminKycPage from './pages/Admin/KYCVerifications';
 import AdminTransactionsPage from './pages/Admin/Transactions';
 import AdminUsersPage from './pages/Admin/Users';
 
+const ResearchDocuments = lazy(() => import('./pages/ResearchDocuments'));
+
 const App = () => {
   const queryClient = new QueryClient();
 
@@ -37,10 +40,10 @@ const App = () => {
               {/* Public routes */}
               <Route path="/" element={<Index />} />
               <Route path="/token-info" element={<TokenInfo />} />
+              <Route path="/research-documents" element={<ResearchDocuments />} />
               
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              {/* Add a redirect from /signup to /register */}
               <Route path="/signup" element={<Navigate to="/register" replace />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />

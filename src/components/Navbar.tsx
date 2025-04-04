@@ -35,6 +35,7 @@ const Navbar: React.FC = () => {
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-6">
           <Link to="/" className="text-gray-800 hover:text-cbis-blue transition-colors">Home</Link>
+          <Link to="/research-documents" className="text-gray-800 hover:text-cbis-blue transition-colors">Research</Link>
           <Link to="/token-info" className="text-gray-800 hover:text-cbis-blue transition-colors">Token Info</Link>
           {/* Removed the Register link */}
           <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
@@ -68,6 +69,13 @@ const Navbar: React.FC = () => {
           onClick={() => setIsOpen(false)}
         >
           Home
+        </Link>
+        <Link 
+          to="/research-documents" 
+          className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
+          onClick={() => setIsOpen(false)}
+        >
+          Research
         </Link>
         <Link 
           to="/token-info" 
