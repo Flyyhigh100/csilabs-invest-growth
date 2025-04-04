@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { KycVerificationWithProfile } from './types';
@@ -45,12 +44,6 @@ export const useKycActionHandlers = (
         error: null
       });
       
-      const toastId = `process-kyc-${kycId}-${Date.now()}`;
-      toast.loading(`Processing KYC verification (${status})...`, {
-        id: toastId,
-        duration: 10000 // Longer duration to ensure it stays visible during processing
-      });
-      
       try {
         // Call the utility function to process the verification
         console.log(`📤 Sending request to Supabase for KYC ID: ${kycId} with status: ${status}`);
@@ -70,8 +63,6 @@ export const useKycActionHandlers = (
             error: errorMessage
           }));
           
-          toast.dismiss(toastId);
-          toast.error(errorMessage, { duration: 5000 });
           throw new Error(errorMessage);
         }
         
@@ -82,8 +73,7 @@ export const useKycActionHandlers = (
           supabaseResponse: { success: true, status }
         }));
         
-        toast.dismiss(toastId);
-        toast.success(`KYC verification ${status} successfully`, { duration: 5000 });
+        toast.success(`KYC verification ${status} successfully`);
         
         return true;
       } catch (error) {
@@ -97,8 +87,7 @@ export const useKycActionHandlers = (
           error: (error as Error).message
         }));
         
-        toast.dismiss(toastId);
-        toast.error(`Failed to process KYC: ${(error as Error).message}`, { duration: 5000 });
+        toast.error(`Failed to process KYC: ${(error as Error).message}`);
         throw error;
       }
     },
@@ -123,9 +112,7 @@ export const useKycActionHandlers = (
     },
     onError: (error) => {
       console.error('❌ Error in KYC mutation:', error);
-      toast.error(`Failed to update KYC status: ${(error as Error).message}`, {
-        duration: 5000
-      });
+      toast.error(`Failed to update KYC status: ${(error as Error).message}`);
     }
   });
   

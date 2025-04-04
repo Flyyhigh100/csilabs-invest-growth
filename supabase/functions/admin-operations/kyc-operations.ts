@@ -30,6 +30,7 @@ export const kycOperations = {
     
     console.log(`Current KYC status before update: ${currentKyc.status}`);
     
+    // Define update data with appropriate type casting for timestamp fields
     const updateData = {
       status,
       reviewed_at: new Date().toISOString(),
@@ -75,7 +76,7 @@ export const kycOperations = {
       
       console.log("KYC update successful, returned data:", kycData);
       
-      // Verify the update went through correctly
+      // Add extra verification steps to ensure update was successful
       const { data: verifyData, error: verifyError } = await adminClient
         .from("kyc_verifications")
         .select("*")
@@ -90,6 +91,7 @@ export const kycOperations = {
         // Add additional verification to check if the status actually changed
         if (verifyData.status !== status) {
           console.error(`Status mismatch! Expected ${status} but found ${verifyData.status}`);
+          throw new Error(`Status mismatch: Expected ${status} but found ${verifyData.status}`);
         } else {
           console.log("Status update verified successfully");
         }

@@ -23,8 +23,9 @@ export const processKycVerification = async (
       duration: 10000 // Longer duration to ensure it stays visible during processing
     });
     
-    // Use the edge function to process the KYC verification
-    console.log(`📤 Calling admin-operations edge function with action: processKyc`);
+    // Enhanced error handling and detailed logging
+    console.log(`📤 Calling admin-operations edge function with action: processKyc, status: ${status}`);
+    console.log(`Request payload:`, { kycId, status, rejectionReason: message });
     
     const response = await supabase.functions.invoke('admin-operations', {
       body: {
@@ -54,6 +55,17 @@ export const processKycVerification = async (
       console.error('❌ Invalid response from admin-operations function:', data);
       toast.dismiss(toastId);
       toast.error('Failed to update KYC verification: Invalid response from server', {
+        duration: 5000
+      });
+      return false;
+    }
+    
+    // Double-check the status from the response
+    const returnedStatus = data.kyc.status;
+    if (returnedStatus !== status) {
+      console.error(`❌ Status mismatch! Requested: ${status}, Received: ${returnedStatus}`);
+      toast.dismiss(toastId);
+      toast.error(`Status mismatch in KYC verification. Please try again.`, {
         duration: 5000
       });
       return false;
