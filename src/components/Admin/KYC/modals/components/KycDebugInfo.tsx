@@ -35,6 +35,12 @@ const KycDebugInfo: React.FC<KycDebugInfoProps> = ({
     }
   };
 
+  // Helper function to format the status for display
+  const formatStatus = (status: string | null): string => {
+    if (!status) return 'None';
+    return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
+  };
+
   return (
     <div className="mb-3 p-2 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-700 font-mono">
       <div className="flex items-start gap-1">
@@ -42,7 +48,7 @@ const KycDebugInfo: React.FC<KycDebugInfoProps> = ({
         <div>
           <p className="font-semibold">Debug Info:</p>
           <p>KYC ID: {selectedKyc.id}</p>
-          <p>Current Status: {selectedKyc.status}</p>
+          <p>Current Status: {formatStatus(selectedKyc.status)}</p>
           <p>Is Processing: {isPending ? 'Yes' : 'No'}</p>
           <p>Selected Action: {activeAction || 'None'}</p>
           
@@ -51,7 +57,7 @@ const KycDebugInfo: React.FC<KycDebugInfoProps> = ({
             <>
               <hr className="my-1 border-slate-200" />
               <p className="font-semibold mt-1">Last Workflow:</p>
-              <p>Action Type: {debugInfo.lastActionType || 'None'}</p>
+              <p>Action Type: {formatStatus(debugInfo.lastActionType)}</p>
               <p>Timestamp: {formatTimestamp(debugInfo.lastActionTimestamp)}</p>
               <p>Supabase Triggered: {debugInfo.supabaseTriggered ? 'Yes' : 'No'}</p>
               

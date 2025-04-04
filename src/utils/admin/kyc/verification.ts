@@ -350,7 +350,9 @@ export const requestKycClarification = async (
         console.log(`✅ Current KYC status is now: ${refreshData.status}`);
         console.log(`✅ Clarification message is: ${refreshData.clarification_message}`);
         
-        if (refreshData.status !== 'needs_clarification') {
+        // Fix: Use type assertion to allow string comparison
+        // This is the fix for the TypeScript error
+        if (refreshData.status as string !== 'needs_clarification') {
           console.error(`⚠️ Warning: Expected status 'needs_clarification' but found '${refreshData.status}'`);
         }
       } else if (refreshError) {

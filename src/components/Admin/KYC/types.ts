@@ -2,7 +2,8 @@
 import { KycVerificationData } from '@/hooks/kyc';
 import { Database } from '@/integrations/supabase/types';
 
-export type KycStatus = string; // Use string to handle all possible statuses including 'needs_clarification'
+// Updated KYC status type to explicitly include 'needs_clarification'
+export type KycStatus = 'not_started' | 'pending' | 'approved' | 'rejected' | 'needs_clarification';
 
 // Enhanced KYC type that includes profile data
 export interface KycVerificationWithProfile extends KycVerificationData {
