@@ -1,14 +1,12 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useKycContext } from '../KycContext';
 import { useKycActionHandlers } from '../KycActionHandlers';
 import { toast } from 'sonner';
 import KycDetailModal from '../modals/KycDetailModal';
 import KycDashboardHeader from './KycDashboardHeader';
 import KycVerificationsContainer from './KycVerificationsContainer';
-import { useQuery } from '@tanstack/react-query';
-import { verifyAdminAccess, listAllUsersWithKycStatus } from '../KycVerificationsService';
-import { useAdminKycDataFetcher } from './hooks/useAdminKycDataFetcher';
+import { useAdminKycDataFetcher } from './hooks';
 import AccessDeniedMessage from './components/AccessDeniedMessage';
 import KycAllUsersTable from './components/KycAllUsersTable';
 
@@ -35,9 +33,6 @@ const KycVerificationsDashboard: React.FC = () => {
     isPending
   } = useKycActionHandlers(() => setIsViewModalOpen(false));
   
-  // Admin access state
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  
   // Custom hook for fetching KYC data
   const {
     kycVerifications,
@@ -47,27 +42,12 @@ const KycVerificationsDashboard: React.FC = () => {
     setShowAllUsers,
     allUsersWithKyc,
     handleManualRefresh,
-    refetch
-  } = useAdminKycDataFetcher(isAdmin);
+    refetch,
+    isAdmin
+  } = useAdminKycDataFetcher();
   
-  // Check admin access on component mount
+  // Force immediate data fetch when component mounts
   useEffect(() => {
-    const checkAdminAccess = async () => {
-      const isAdminUser = await verifyAdminAccess();
-      setIsAdmin(isAdminUser);
-      if (!isAdminUser) {
-        toast.error('You do not have admin permissions to view KYC verifications');
-      } else {
-        toast.success('Admin access verified - you can view all KYC submissions');
-      }
-    };
-    
-    checkAdminAccess();
-  }, []);
-  
-  // Fetch all users with KYC status
-  useEffect(() => {
-    // Force immediate data fetch when component mounts
     if (isAdmin) {
       handleManualRefresh();
     }
@@ -77,7 +57,7 @@ const KycVerificationsDashboard: React.FC = () => {
       setRejectionReason('');
       setClarificationMessage('');
     }
-  }, [isViewModalOpen, isAdmin]);
+  }, [isViewModalOpen, isAdmin, handleManualRefresh, setRejectionReason, setClarificationMessage]);
   
   const handleViewDetails = (kyc: typeof selectedKyc) => {
     setSelectedKyc(kyc);
