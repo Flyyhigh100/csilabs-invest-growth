@@ -33,7 +33,8 @@ const KycVerificationsDashboard: React.FC = () => {
     handleApprove, 
     handleReject, 
     handleRequestClarification, 
-    isPending 
+    isPending,
+    debugInfo 
   } = useKycActionHandlers(() => setIsViewModalOpen(false));
   
   // Admin access state
@@ -143,6 +144,7 @@ const KycVerificationsDashboard: React.FC = () => {
         onReject={() => handleReject(selectedKyc, rejectionReason)}
         onRequestClarification={() => handleRequestClarification(selectedKyc, clarificationMessage)}
         isPending={isPending}
+        debugInfo={debugInfo}
       />
     </div>
   );
