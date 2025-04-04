@@ -207,23 +207,7 @@ export const addSelfAsAdmin = async (): Promise<boolean> => {
       }
     }
     
-    // Method 3: Try RPC function if available
-    if (!success) {
-      try {
-        const { data: rpcResult, error: rpcError } = await supabase.rpc('add_admin', { 
-          user_id: userId, 
-          user_email: userEmail.toLowerCase() 
-        });
-        
-        if (!rpcError && rpcResult === true) {
-          success = true;
-        } else if (rpcError) {
-          console.error('Error adding admin via RPC:', rpcError);
-        }
-      } catch (rpcErr) {
-        console.error('RPC function not available:', rpcErr);
-      }
-    }
+    // Method 3: Try direct SQL if available (removed reference to non-existent RPC function)
     
     if (success) {
       toast.success('You have been added as an admin!');
