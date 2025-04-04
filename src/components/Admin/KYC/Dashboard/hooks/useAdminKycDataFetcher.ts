@@ -5,91 +5,74 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   fetchKycVerifications, 
-  testDirectKycAccess, 
   listAllUsersWithKycStatus, 
   verifyAdminAccess 
 } from '../../KycVerificationsService';
 import { KycVerificationWithProfile } from '../../types';
 
 export const useAdminKycDataFetcher = (isAdmin: boolean | null) => {
-  // State for debug information
-  const [lastFetchTime, setLastFetchTime] = useState<string | null>(null);
+  // State for controlling view
+  const [showAllUsers, setShowAllUsers] = useState(false);
   const [manualRefreshCount, setManualRefreshCount] = useState(0);
   const [realtimeEnabled, setRealtimeEnabled] = useState(false);
-  const [directTestResults, setDirectTestResults] = useState<string | null>(null);
-  const [showAllUsers, setShowAllUsers] = useState(false);
-
-  // CRITICAL FIX: Implement more aggressive refetching with shorter intervals and better logging
+  
+  // Fetch KYC verifications
   const { 
     data: kycVerifications = [], 
-    isLoading, 
-    error,
-    refetch
+    isLoading: isKycLoading, 
+    error: kycError,
+    refetch: refetchKyc
   } = useQuery({
     queryKey: ['admin-kyc-verifications', manualRefreshCount],
-    queryFn: async () => {
-      console.log('Fetching KYC verifications with admin access');
-      
-      // First verify admin access
-      const adminAccess = await verifyAdminAccess();
-      if (!adminAccess) {
-        console.error('User does not have admin access to KYC verifications');
-        toast.error('Admin access required to view KYC verifications');
-        return [];
-      }
-      
-      try {
-        const results = await fetchKycVerifications();
-        console.log(`Fetched ${results.length} KYC verifications`);
-        
-        if (results.length > 0) {
-          console.log('First few KYC records:', results.slice(0, 3));
-        } else {
-          console.warn('WARNING: No KYC records returned');
-          
-          // Force a direct test to check database access
-          const directTest = await testDirectKycAccess();
-          console.log('Direct database access test results:', directTest);
-          
-          if (directTest.count > 0) {
-            console.error('CRITICAL ERROR: Direct test found records but main query returned none');
-            toast.error('Database access issue detected. Direct query found records but main query did not.');
-          }
-        }
-        
-        // Count by status for debugging
-        const statusCounts = results.reduce((counts, item) => {
-          counts[item.status] = (counts[item.status] || 0) + 1;
-          return counts;
-        }, {} as Record<string, number>);
-        
-        console.log('KYC verification status counts:', statusCounts);
-        
-        setLastFetchTime(new Date().toISOString());
-        return results;
-      } catch (err) {
-        console.error('Error fetching KYC verifications:', err);
-        toast.error('Failed to fetch KYC verifications. Check console for details.');
-        throw err;
-      }
-    },
-    // More aggressive refetching settings
-    refetchInterval: 5000, // Refresh every 5 seconds
+    queryFn: fetchKycVerifications,
+    refetchInterval: 5000,
     refetchOnWindowFocus: true,
-    staleTime: 1000, // Consider data stale after 1 second
-    enabled: isAdmin === true, // Only fetch if user is confirmed admin
+    enabled: isAdmin === true,
   });
   
-  // Query to fetch all users with KYC status for debugging
+  // Fetch all users with KYC status
   const { 
     data: allUsersWithKyc = [], 
-    refetch: refetchAllUsers 
+    isLoading: isUsersLoading,
+    error: usersError,
+    refetch: refetchUsers 
   } = useQuery({
-    queryKey: ['admin-all-users-kyc'],
+    queryKey: ['admin-all-users-kyc', manualRefreshCount],
     queryFn: listAllUsersWithKycStatus,
-    enabled: showAllUsers && isAdmin === true,
+    enabled: isAdmin === true,
   });
-
+  
+  // Merge regular KYC verifications with all users for complete list
+  const mergedKycVerifications: KycVerificationWithProfile[] = showAllUsers 
+    ? allUsersWithKyc.map(user => ({
+        id: user.kyc_id || user.id,
+        user_id: user.id,
+        profile_first_name: user.first_name,
+        profile_last_name: user.last_name,
+        status: user.kyc_status || 'not_started',
+        submitted_at: user.submitted_at,
+        reviewed_at: user.reviewed_at,
+        // Include all other KYC fields with default values
+        first_name: null,
+        last_name: null,
+        date_of_birth: null,
+        nationality: null,
+        address: null,
+        city: null,
+        postal_code: null,
+        country: null,
+        id_front_url: null,
+        id_back_url: null,
+        selfie_url: null,
+        rejection_reason: null,
+        clarification_message: null,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+        ...user.kyc_record
+      }))
+    : kycVerifications;
+  
+  // Handle manual refresh
   const handleManualRefresh = async () => {
     console.log('Manual refresh triggered');
     setManualRefreshCount(prev => prev + 1);
@@ -101,35 +84,18 @@ export const useAdminKycDataFetcher = (isAdmin: boolean | null) => {
       return;
     }
     
-    // Run a direct test to verify database access
-    try {
-      const directTest = await testDirectKycAccess();
-      setDirectTestResults(JSON.stringify({
-        count: directTest.count,
-        pendingCount: directTest.pendingCount,
-        statusCounts: directTest.statusCounts,
-        firstRecord: directTest.records?.[0] || null
-      }, null, 2));
-      
-      if (directTest.count > 0) {
-        toast.success(`Found ${directTest.count} KYC records`);
-      } else {
-        toast.warning('No KYC records found');
-      }
-    } catch (error) {
-      console.error('Error in direct database test:', error);
-      toast.error('Error running direct database test');
-    }
-    
     // Standard refetch
-    refetch();
-    if (showAllUsers) refetchAllUsers();
+    refetchKyc();
+    refetchUsers();
     toast.success('Refreshing KYC data...');
   };
-
+  
   // Set up realtime subscription
   useEffect(() => {
-    // Set up realtime subscription for KYC verifications with improved error handling
+    // Only set up if admin
+    if (!isAdmin) return;
+    
+    // Set up realtime subscription for KYC verifications
     console.log('Setting up realtime subscription for kyc_verifications table...');
     const channel = supabase
       .channel('kyc-verification-updates')
@@ -145,7 +111,8 @@ export const useAdminKycDataFetcher = (isAdmin: boolean | null) => {
           setRealtimeEnabled(true);
           
           // Always refetch when we get an update
-          refetch();
+          refetchKyc();
+          refetchUsers();
           
           // Show informative toast notification
           const eventType = payload.eventType;
@@ -177,12 +144,9 @@ export const useAdminKycDataFetcher = (isAdmin: boolean | null) => {
         
         if (status === 'SUBSCRIBED') {
           setRealtimeEnabled(true);
-          console.log('✅ Successfully subscribed to realtime updates');
-          toast.success('Realtime updates enabled for KYC verifications');
         } else if (status === 'CHANNEL_ERROR') {
           setRealtimeEnabled(false);
-          console.error('❌ Failed to subscribe to realtime updates');
-          toast.error('Failed to enable realtime updates');
+          console.error('Failed to subscribe to realtime updates');
         }
       });
     
@@ -191,23 +155,21 @@ export const useAdminKycDataFetcher = (isAdmin: boolean | null) => {
       console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [refetch]);
-
+  }, [isAdmin, refetchKyc, refetchUsers]);
+  
   return {
-    kycVerifications,
-    isLoading,
-    error,
-    lastFetchTime,
-    directTestResults,
-    realtimeEnabled,
-    manualRefreshCount,
-    setManualRefreshCount,
+    kycVerifications: mergedKycVerifications,
+    isLoading: isKycLoading || isUsersLoading,
+    error: kycError || usersError,
     showAllUsers,
     setShowAllUsers,
     allUsersWithKyc,
     handleManualRefresh,
-    refetch,
-    refetchAllUsers,
-    setDirectTestResults
+    refetch: () => {
+      refetchKyc();
+      refetchUsers();
+    },
+    realtimeEnabled,
+    manualRefreshCount
   };
 };

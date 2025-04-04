@@ -46,7 +46,7 @@ const KycVerificationsList: React.FC<KycVerificationsListProps> = ({
       </TableHeader>
       <TableBody>
         {verifications.map((verification) => (
-          <TableRow key={verification.id}>
+          <TableRow key={verification.id || verification.user_id}>
             <TableCell>
               <div className="flex items-center gap-2">
                 <div className="bg-gray-100 p-1.5 rounded-full">
@@ -54,10 +54,13 @@ const KycVerificationsList: React.FC<KycVerificationsListProps> = ({
                 </div>
                 <div>
                   <p className="font-medium">
-                    {verification.first_name} {verification.last_name}
+                    {verification.first_name || verification.profile_first_name || 'Unknown'} {verification.last_name || verification.profile_last_name || 'User'}
                   </p>
                   <p className="text-sm text-gray-500">
-                    {verification.profile_first_name} {verification.profile_last_name}
+                    {/* Show either KYC form name or profile name as fallback */}
+                    {verification.profile_first_name && !verification.first_name ? 
+                      `${verification.profile_first_name} ${verification.profile_last_name}` : 
+                      'ID: ' + verification.user_id?.substring(0, 8)}
                   </p>
                 </div>
               </div>
@@ -76,6 +79,16 @@ const KycVerificationsList: React.FC<KycVerificationsListProps> = ({
               {verification.status === 'rejected' && (
                 <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
                   <XCircle className="h-3 w-3 mr-1" /> Rejected
+                </Badge>
+              )}
+              {verification.status === 'not_started' && (
+                <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                  Not Submitted
+                </Badge>
+              )}
+              {verification.status === 'needs_clarification' && (
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  Needs Clarification
                 </Badge>
               )}
             </TableCell>

@@ -7,7 +7,7 @@ import KycDetailModal from '../modals/KycDetailModal';
 import KycDashboardHeader from './KycDashboardHeader';
 import KycVerificationsContainer from './KycVerificationsContainer';
 import { useQuery } from '@tanstack/react-query';
-import { verifyAdminAccess } from '../KycVerificationsService';
+import { verifyAdminAccess, listAllUsersWithKycStatus } from '../KycVerificationsService';
 import { useAdminKycDataFetcher } from './hooks/useAdminKycDataFetcher';
 import AccessDeniedMessage from './components/AccessDeniedMessage';
 import KycAllUsersTable from './components/KycAllUsersTable';
@@ -65,9 +65,9 @@ const KycVerificationsDashboard: React.FC = () => {
     checkAdminAccess();
   }, []);
   
+  // Fetch all users with KYC status
   useEffect(() => {
     // Force immediate data fetch when component mounts
-    console.log('KYC Verifications component mounted, fetching data with updated RLS policies...');
     if (isAdmin) {
       handleManualRefresh();
     }
@@ -80,7 +80,6 @@ const KycVerificationsDashboard: React.FC = () => {
   }, [isViewModalOpen, isAdmin]);
   
   const handleViewDetails = (kyc: typeof selectedKyc) => {
-    console.log('Viewing KYC details:', kyc);
     setSelectedKyc(kyc);
     setRejectionReason('');
     setClarificationMessage('');
