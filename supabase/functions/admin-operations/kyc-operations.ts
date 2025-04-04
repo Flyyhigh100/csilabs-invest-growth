@@ -28,9 +28,6 @@ export const kycOperations = {
       throw new Error(`KYC record with ID ${kycId} not found`);
     }
     
-    // Get original status for logging
-    const originalStatus = currentKyc.status;
-    
     const updateData = {
       status,
       reviewed_at: new Date().toISOString(),
@@ -54,8 +51,7 @@ export const kycOperations = {
     }
     
     // Log the operation and data for debugging
-    console.log(`Admin processing KYC verification: changing status from ${originalStatus} to ${status}`);
-    console.log("Update data:", updateData);
+    console.log("Admin processing KYC verification with update data:", updateData);
     
     // Use the admin client to bypass RLS
     const { data: kycData, error: kycError } = await adminClient
@@ -70,8 +66,8 @@ export const kycOperations = {
       throw kycError;
     }
     
-    console.log(`KYC update successful: changed status from ${originalStatus} to ${status}`);
-    return { kyc: kycData, success: true, previousStatus: originalStatus };
+    console.log("KYC update successful, returned data:", kycData);
+    return { kyc: kycData, success: true };
   },
   
   async requestKycClarification({ kycId, message }, user, adminClient) {
@@ -85,20 +81,6 @@ export const kycOperations = {
     }
     
     console.log(`Admin ${user.id} requesting clarification for KYC ${kycId}`);
-    
-    // First fetch current record to log the status change
-    const { data: currentKyc, error: fetchError } = await adminClient
-      .from("kyc_verifications")
-      .select("*")
-      .eq("id", kycId)
-      .single();
-    
-    if (fetchError || !currentKyc) {
-      console.error("Error fetching KYC record:", fetchError);
-      throw new Error(`Failed to fetch KYC record: ${fetchError?.message || "Record not found"}`);
-    }
-    
-    const originalStatus = currentKyc.status;
     
     // Use the admin client to bypass RLS
     const { data: clarifyData, error: clarifyError } = await adminClient
@@ -120,7 +102,7 @@ export const kycOperations = {
       throw clarifyError;
     }
     
-    console.log(`KYC clarification update successful: changed status from ${originalStatus} to needs_clarification`);
-    return { kyc: clarifyData, success: true, previousStatus: originalStatus };
+    console.log("KYC clarification update successful:", clarifyData);
+    return { kyc: clarifyData, success: true };
   }
 };
