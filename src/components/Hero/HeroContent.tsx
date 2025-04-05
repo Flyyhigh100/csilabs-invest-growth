@@ -23,12 +23,12 @@ const HeroContent: React.FC<HeroContentProps> = ({ isLoaded }) => {
       <div className="flex flex-col sm:flex-row gap-4">
         <Button asChild size="lg" className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity flex-shrink-0">
           <Link to="/register">
-            Contribute Now <ArrowRight className="ml-2 h-4 w-4" />
+            Buy Tokens <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
         <Button asChild variant="outline" size="lg" className="border-cbis-blue text-cbis-blue hover:bg-cbis-blue/5 transition-colors flex-shrink-0">
-          <Link to="/research-documents">
-            View Research Data
+          <Link to="/login">
+            Contribute Now
           </Link>
         </Button>
       </div>

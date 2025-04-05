@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -31,9 +32,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
-        // If the user signs in, redirect to dashboard
+        // If the user signs in, redirect to dashboard/payments
         if (event === 'SIGNED_IN' && location.pathname.includes('/login')) {
-          navigate('/dashboard');
+          navigate('/dashboard/payments');
         }
         
         // If the user signs out, redirect to home

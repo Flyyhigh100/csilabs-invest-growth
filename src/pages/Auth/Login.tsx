@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -31,9 +32,9 @@ const Login = () => {
     },
   });
 
-  // If user is already logged in, redirect to dashboard
+  // If user is already logged in, redirect to dashboard/payments
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/dashboard/payments" replace />;
   }
 
   const onSubmit = async (values: LoginFormValues) => {
