@@ -48,9 +48,10 @@ const DocumentEditDialog: React.FC<DocumentEditDialogProps> = ({
     }
   });
 
-  // Reset form when document changes
+  // Reset form when document changes or dialog opens
   React.useEffect(() => {
-    if (document) {
+    if (document && open) {
+      console.log("Resetting form with document:", document);
       form.reset({
         title: document.title || '',
         description: document.description || '',
@@ -59,14 +60,25 @@ const DocumentEditDialog: React.FC<DocumentEditDialogProps> = ({
         authors: document.authors || ''
       });
     }
-  }, [document, form]);
+  }, [document, form, open]);
 
-  const handleSubmit = async (data: ResearchDocument) => {
+  const handleSubmit = async (data: Partial<ResearchDocument>) => {
     if (!document) return;
     
     setIsSaving(true);
+    console.log("Submitting form with data:", data);
+    
     try {
-      const success = await onSave(document.id, data);
+      // Make sure we're sending all fields to avoid losing data
+      const updatedData = {
+        title: data.title || document.title,
+        description: data.description || document.description,
+        category: data.category || document.category,
+        publishDate: data.publishDate || document.publishDate,
+        authors: data.authors
+      };
+      
+      const success = await onSave(document.id, updatedData);
       if (success) {
         onOpenChange(false);
       }

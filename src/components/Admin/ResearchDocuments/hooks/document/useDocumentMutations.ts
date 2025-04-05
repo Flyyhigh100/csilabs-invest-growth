@@ -58,6 +58,8 @@ export const useDocumentMutations = (
   // Update document metadata
   const updateDocumentMetadata = useCallback(async (docId: string, updatedData: Partial<ResearchDocument>) => {
     try {
+      console.log("Updating document metadata:", docId, updatedData);
+      
       // Find the document to update
       const docIndex = documents.findIndex(doc => doc.id === docId);
       
@@ -78,6 +80,9 @@ export const useDocumentMutations = (
       metadataParams.append('publishDate', updatedData.publishDate || originalDoc.publishDate);
       if (updatedData.authors || originalDoc.authors) metadataParams.append('authors', updatedData.authors || originalDoc.authors || '');
       
+      // Log metadata parameters for debugging
+      console.log("Metadata parameters:", Object.fromEntries(metadataParams.entries()));
+      
       // Check if it's one of the fallback documents (which don't exist in storage)
       const isDefaultDoc = docId.startsWith('doc-') && !docId.includes('?');
       
@@ -89,6 +94,8 @@ export const useDocumentMutations = (
           ...originalDoc,
           ...updatedData
         };
+        
+        console.log("Updated default document:", updatedDoc);
       } else {
         // Since we can't update metadata directly, we need to:
         // 1. Download the file
@@ -124,6 +131,8 @@ export const useDocumentMutations = (
         const fileExt = baseFileName.split('.').pop() || 'pdf';
         const newFileName = `${baseFileName.split('.')[0]}.${fileExt}?${metadataParams.toString()}`;
         
+        console.log("New filename with metadata:", newFileName);
+        
         const { error: uploadError } = await supabase.storage
           .from(bucketName)
           .upload(newFileName, fileData, {
@@ -148,6 +157,8 @@ export const useDocumentMutations = (
           ...updatedData,
           pdfUrl: urlData.publicUrl
         };
+        
+        console.log("Updated storage document:", updatedDoc);
       }
       
       // 4. Update the document in state
