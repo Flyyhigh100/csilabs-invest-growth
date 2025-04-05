@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 interface DocumentsListProps {
   documents: ResearchDocument[];
   isLoading: boolean;
-  onReload: () => void;
+  onReload: () => Promise<void>;
   onUpdateDocument?: (docId: string, data: Partial<ResearchDocument>) => Promise<boolean>;
   onDeleteDocument?: (docId: string) => Promise<boolean>;
 }
@@ -33,14 +33,21 @@ const DocumentsList: React.FC<DocumentsListProps> = ({
 
   const handleSaveDocument = async (docId: string, data: Partial<ResearchDocument>) => {
     if (!onUpdateDocument) return false;
-    const result = await onUpdateDocument(docId, data);
     
-    if (result) {
-      // Force reload documents after update to ensure we're in sync with storage
-      handleReload();
+    try {
+      const result = await onUpdateDocument(docId, data);
+      
+      if (result) {
+        // Force reload documents after update to ensure we're in sync with storage
+        await handleReload();
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Error saving document:", error);
+      toast.error("Failed to save document changes");
+      return false;
     }
-    
-    return result;
   };
   
   const handleReload = async () => {

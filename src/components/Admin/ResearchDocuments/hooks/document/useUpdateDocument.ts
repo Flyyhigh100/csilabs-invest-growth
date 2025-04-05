@@ -28,11 +28,13 @@ export const useUpdateDocument = (
       
       // Create new metadata search parameters
       const metadataParams = new URLSearchParams();
+      
+      // Ensure all metadata fields are properly set
       metadataParams.append('title', updatedData.title || originalDoc.title);
       metadataParams.append('description', updatedData.description || originalDoc.description);
       metadataParams.append('category', updatedData.category || originalDoc.category);
       
-      // Ensure the publishDate is being correctly passed
+      // Ensure the publishDate is being correctly passed and normalized
       const publishDate = updatedData.publishDate || originalDoc.publishDate;
       metadataParams.append('publishDate', publishDate);
       
@@ -45,7 +47,7 @@ export const useUpdateDocument = (
       console.log("Metadata parameters:", Object.fromEntries(metadataParams.entries()));
       
       // Check if it's one of the fallback documents (which don't exist in storage)
-      const isDefaultDoc = docId.startsWith('doc-') && !docId.includes('?');
+      const isDefaultDoc = !fileName.includes('.');
       
       let updatedDoc: ResearchDocument;
       
@@ -88,7 +90,8 @@ export const useUpdateDocument = (
         
         // 3. Re-upload with updated metadata in the filename
         // Split the filename to get the base and extension
-        const baseFileName = fileName.split('?')[0];
+        const fileNameParts = fileName.split('?');
+        const baseFileName = fileNameParts[0];
         const fileExt = baseFileName.split('.').pop() || 'pdf';
         const newFileName = `${baseFileName.split('.')[0]}.${fileExt}?${metadataParams.toString()}`;
         

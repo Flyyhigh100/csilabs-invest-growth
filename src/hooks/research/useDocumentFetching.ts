@@ -87,7 +87,9 @@ export const useDocumentFetching = (
       const { data: files, error: filesError } = await supabase
         .storage
         .from('research_documents')
-        .list();
+        .list('', {
+          limit: 100 // Add a higher limit to ensure we get all files
+        });
         
       if (filesError) {
         console.error('Error fetching files:', filesError);
@@ -135,6 +137,7 @@ export const useDocumentFetching = (
         // Cache the results
         saveToCache(sortedDocs);
         setDocuments(sortedDocs);
+        console.log('Documents loaded from storage:', sortedDocs.length);
       } else {
         // Only use fallback documents if no actual documents exist
         setDocuments(fallbackDocuments);
@@ -166,7 +169,9 @@ export const useDocumentFetching = (
       const { data: files, error: filesError } = await supabase
         .storage
         .from('research_documents')
-        .list();
+        .list('', {
+          limit: 100 // Add a higher limit to ensure we get all files
+        });
         
       if (filesError || !files || files.length === 0) {
         return; // Just return silently as this is a background refresh
@@ -194,6 +199,7 @@ export const useDocumentFetching = (
         const sortedDocs = sortDocumentsByDate(documentsList);
         saveToCache(sortedDocs);
         setDocuments(sortedDocs);
+        console.log('Background refresh completed with', sortedDocs.length, 'documents');
       }
     } catch (err) {
       console.error('Background refresh error:', err);

@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { ResearchDocument } from '../types/documentTypes';
 import DocumentEditForm from './DocumentEditForm';
@@ -37,7 +38,7 @@ const DocumentEditDialog: React.FC<DocumentEditDialogProps> = ({
         description: data.description || document.description,
         category: data.category || document.category,
         publishDate: data.publishDate || document.publishDate,
-        authors: data.authors
+        authors: data.authors || document.authors || ''
       };
       
       const success = await onSave(document.id, updatedData);
@@ -60,6 +61,9 @@ const DocumentEditDialog: React.FC<DocumentEditDialogProps> = ({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit Document Metadata</DialogTitle>
+          <DialogDescription>
+            Update the document information below. Changes will be saved immediately.
+          </DialogDescription>
         </DialogHeader>
         <DocumentEditForm
           document={document}

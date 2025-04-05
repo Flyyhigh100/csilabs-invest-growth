@@ -44,6 +44,12 @@ export const useResearchDocuments = () => {
     }
   }, [fetchDocumentsFromStorage]);
 
+  const forceRefresh = () => {
+    console.log("Forcing document refresh");
+    initialized.current = true; // Ensure we don't trigger another fetch from the useEffect
+    return refreshDocuments();
+  };
+
   return {
     documents,
     filteredDocuments,
@@ -54,7 +60,7 @@ export const useResearchDocuments = () => {
     setSelectedCategory,
     selectedPdf,
     setSelectedPdf,
-    refreshDocuments
+    refreshDocuments: forceRefresh
   };
 };
 

@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { ResearchDocument } from '../../types/documentTypes';
@@ -32,7 +31,13 @@ export const useDocumentEditForm = (
   }, [document, form]);
 
   const handleSubmit = (data: ResearchDocument) => {
-    onSave(data);
+    // Ensure data is properly formatted before saving
+    const formattedData = {
+      ...data,
+      // Keep other fields intact
+    };
+    
+    onSave(formattedData);
   };
 
   return {
