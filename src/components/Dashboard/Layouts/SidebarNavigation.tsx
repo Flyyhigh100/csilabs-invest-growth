@@ -40,7 +40,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     <div className="hidden md:block w-64 bg-white border-r border-gray-200">
       <div className="flex flex-col h-full">
         <div className="p-4">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase">Main Menu</h2>
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Main Menu</h2>
         </div>
         <nav className="flex-1 space-y-1 px-2">
           <TooltipProvider delayDuration={300}>

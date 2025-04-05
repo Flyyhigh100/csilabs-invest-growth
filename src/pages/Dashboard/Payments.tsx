@@ -106,11 +106,11 @@ const Payments = () => {
                     <p className="text-sm text-blue-700">
                       Follow these steps to purchase CSi tokens:
                     </p>
-                    <ol className="text-sm text-blue-600 mt-2 list-decimal pl-5 space-y-1">
-                      <li>Add your Polygon wallet address below</li>
-                      <li>Choose the amount you wish to invest</li>
-                      <li>Select your preferred payment method</li>
-                      <li>Complete the transaction</li>
+                    <ol className="text-sm text-blue-600 mt-2 list-decimal pl-5 space-y-2">
+                      <li className="pl-1">Add your Polygon wallet address below</li>
+                      <li className="pl-1">Choose the amount you wish to invest</li>
+                      <li className="pl-1">Select your preferred payment method</li>
+                      <li className="pl-1">Complete the transaction</li>
                     </ol>
                   </div>
                   <Button 

@@ -164,11 +164,11 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
           <>
             <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 mb-6">
               <h3 className="text-sm font-medium text-blue-800 mb-2">How purchasing works</h3>
-              <ol className="text-sm text-blue-700 list-decimal pl-5 space-y-1">
-                <li>Enter the amount you want to invest</li>
-                <li>Choose your preferred payment method</li>
-                <li>Complete the payment process</li>
-                <li>CSi tokens will be sent to your wallet address</li>
+              <ol className="text-sm text-blue-700 list-decimal pl-5 space-y-2">
+                <li className="pl-1">Enter the amount you want to invest</li>
+                <li className="pl-1">Choose your preferred payment method</li>
+                <li className="pl-1">Complete the payment process</li>
+                <li className="pl-1">CSi tokens will be sent to your wallet address</li>
               </ol>
             </div>
             

@@ -147,8 +147,10 @@ const WalletAddressForm = ({ existingWalletAddress, onWalletUpdated }: {
                         className="font-mono placeholder:font-sans border-2 focus:border-cbis-blue/60 focus:ring-1 focus:ring-cbis-blue/30"
                       />
                     </FormControl>
-                    <FormDescription className="text-gray-500 flex justify-between items-center">
-                      <span>This address will be used to send your CSi tokens</span>
+                    <div className="flex justify-between items-center mt-2">
+                      <FormDescription className="text-gray-500">
+                        This address will be used to send your CSi tokens
+                      </FormDescription>
                       <Button
                         type="button"
                         variant="ghost"
@@ -158,7 +160,7 @@ const WalletAddressForm = ({ existingWalletAddress, onWalletUpdated }: {
                       >
                         {showExample ? "Hide Example" : "Show Example"}
                       </Button>
-                    </FormDescription>
+                    </div>
                     {showExample && (
                       <div className="p-3 bg-gray-50 rounded-md border border-gray-200 mt-2">
                         <div className="flex justify-between items-center">
@@ -198,7 +200,7 @@ const WalletAddressForm = ({ existingWalletAddress, onWalletUpdated }: {
       <Separator />
 
       <CardFooter className="bg-gray-50 px-6 py-4">
-        <div className="text-sm text-gray-500 space-y-1 w-full">
+        <div className="text-sm text-gray-500 space-y-2 w-full">
           <div className="flex items-start gap-2">
             <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
             <p>Make sure to enter your own wallet address that supports the Polygon network.</p>
