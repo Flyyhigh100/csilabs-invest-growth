@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import FadeInSection from '@/components/FadeInSection';
@@ -6,24 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { FileText, Download, ExternalLink, ChevronDown, Info } from 'lucide-react';
+import { FileText, Download, ExternalLink, ChevronDown, Info, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { ResearchDocument } from '@/components/Admin/ResearchDocuments/types/documentTypes';
 
-interface ResearchDocument {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  pdfUrl: string;
-  publishDate: string;
-  authors?: string;
-}
-
-// This is where you can add or modify your research documents.
-// To add a new document:
-// 1. Upload the PDF to the /public folder
-// 2. Add a new entry to this array using the format below
-// For external documents, use complete URLs starting with http:// or https://
-const researchDocuments: ResearchDocument[] = [
+// Default/fallback documents in case storage loading fails
+const fallbackDocuments: ResearchDocument[] = [
   {
     id: "doc-1",
     title: "Cannabinoids as Antioxidants and Neuroprotectants",
@@ -38,32 +27,123 @@ const researchDocuments: ResearchDocument[] = [
     title: "Cannabis and Cannabinoid Research in Cancer",
     description: "Comprehensive research on the effects of cannabinoids on various cancer cell types and mechanisms of action.",
     category: "Clinical Research",
-    pdfUrl: "/sample.pdf", // Example of a local PDF file in public folder
+    pdfUrl: "/sample.pdf",
     publishDate: "March 15, 2022",
     authors: "CSi Labs Research Team"
-  },
-  // Add more documents below
-  // {
-  //   id: "doc-X",
-  //   title: "Your Document Title",
-  //   description: "Description of your document",
-  //   category: "Your Category",
-  //   pdfUrl: "/your-document.pdf", // If file is in public folder
-  //   publishDate: "Publication Date",
-  //   authors: "Document Authors"
-  // },
+  }
 ];
 
-// The rest of the component remains the same
 const ResearchDocuments: React.FC = () => {
   const [selectedPdf, setSelectedPdf] = useState<ResearchDocument | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [documents, setDocuments] = useState<ResearchDocument[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const categories = Array.from(new Set(researchDocuments.map(doc => doc.category)));
+  // Fetch documents from Supabase storage
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      setIsLoading(true);
+      try {
+        // First, try to load from local storage (cache)
+        const cachedDocs = localStorage.getItem('researchDocuments');
+        if (cachedDocs) {
+          setDocuments(JSON.parse(cachedDocs));
+        }
+        
+        // Fetch the list of files from the storage bucket
+        const { data: files, error: filesError } = await supabase
+          .storage
+          .from('research_documents')
+          .list();
+          
+        if (filesError) {
+          console.error('Error fetching files:', filesError);
+          if (!cachedDocs) {
+            // If no cache and error, use fallback
+            setDocuments(fallbackDocuments);
+          }
+          throw new Error(filesError.message);
+        }
+
+        if (!files || files.length === 0) {
+          console.log('No files found in storage, using fallback documents');
+          setDocuments(fallbackDocuments);
+          setIsLoading(false);
+          return;
+        }
+
+        // Get metadata for each file
+        const filePromises = files.map(async (file) => {
+          // The filename should contain metadata in format: title__category__date__authors.pdf
+          // If not properly formatted, extract what we can
+          const fileName = file.name;
+          const nameWithoutExt = fileName.split('.').slice(0, -1).join('.');
+          
+          // Get the public URL
+          const { data: urlData } = supabase
+            .storage
+            .from('research_documents')
+            .getPublicUrl(fileName);
+            
+          // Try to extract metadata from filename or use defaults
+          let title = nameWithoutExt;
+          let category = "Research";
+          let publishDate = new Date().toLocaleDateString();
+          let authors = "";
+          let description = "";
+          
+          // If the file has metadata in the name (from the admin upload)
+          if (file.metadata && typeof file.metadata === 'object') {
+            const meta = file.metadata as any;
+            title = meta.title || title;
+            category = meta.category || category;
+            publishDate = meta.publishDate || publishDate;
+            authors = meta.authors || authors;
+            description = meta.description || description;
+          }
+          
+          return {
+            id: `doc-${fileName}`,
+            title,
+            description: description || `${title} - Research document`,
+            category,
+            pdfUrl: urlData.publicUrl,
+            publishDate,
+            authors
+          } as ResearchDocument;
+        });
+
+        const documentsList = await Promise.all(filePromises);
+        
+        // Combine with fallback documents to ensure we always have some content
+        const combinedDocs = [...documentsList, ...fallbackDocuments];
+        
+        // Cache the results
+        localStorage.setItem('researchDocuments', JSON.stringify(combinedDocs));
+        
+        setDocuments(combinedDocs);
+      } catch (err: any) {
+        console.error('Error loading documents:', err);
+        setError(err.message);
+        
+        // If we haven't set documents yet, use fallbacks
+        if (documents.length === 0) {
+          setDocuments(fallbackDocuments);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDocuments();
+  }, []);
+
+  const categories = Array.from(new Set(documents.map(doc => doc.category)));
   
   const filteredDocuments = selectedCategory 
-    ? researchDocuments.filter(doc => doc.category === selectedCategory) 
-    : researchDocuments;
+    ? documents.filter(doc => doc.category === selectedCategory) 
+    : documents;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -114,46 +194,61 @@ const ResearchDocuments: React.FC = () => {
               </Popover>
             </div>
             <p className="text-sm text-gray-500">
-              Showing {filteredDocuments.length} of {researchDocuments.length} documents
+              Showing {filteredDocuments.length} of {documents.length} documents
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {filteredDocuments.map((document) => (
-              <FadeInSection key={document.id} className="h-full">
-                <Card className="h-full flex flex-col hover:shadow-md transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="bg-blue-50 text-cbis-blue text-xs font-medium px-2.5 py-1 rounded">
-                        {document.category}
-                      </div>
-                      <span className="text-xs text-gray-500">{document.publishDate}</span>
-                    </div>
-                    <CardTitle className="mt-2 text-xl">{document.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex-grow flex flex-col">
-                    <p className="text-gray-600 mb-6 text-sm flex-grow">
-                      {document.description}
-                    </p>
-                    {document.authors && (
-                      <p className="text-xs text-gray-500 mb-4">
-                        <span className="font-medium">Authors:</span> {document.authors}
-                      </p>
-                    )}
-                    <div className="flex gap-2 mt-auto">
-                      <Button 
-                        variant="default" 
-                        className="flex-grow bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90"
-                        onClick={() => setSelectedPdf(document)}
-                      >
-                        <FileText className="mr-2 h-4 w-4" /> View Document
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </FadeInSection>
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-20">
+              <Loader2 className="h-10 w-10 animate-spin text-cbis-blue" />
+              <p className="ml-2 text-gray-600">Loading research documents...</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+              {filteredDocuments.length > 0 ? (
+                filteredDocuments.map((document) => (
+                  <FadeInSection key={document.id} className="h-full">
+                    <Card className="h-full flex flex-col hover:shadow-md transition-shadow">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="bg-blue-50 text-cbis-blue text-xs font-medium px-2.5 py-1 rounded">
+                            {document.category}
+                          </div>
+                          <span className="text-xs text-gray-500">{document.publishDate}</span>
+                        </div>
+                        <CardTitle className="mt-2 text-xl">{document.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex-grow flex flex-col">
+                        <p className="text-gray-600 mb-6 text-sm flex-grow">
+                          {document.description}
+                        </p>
+                        {document.authors && (
+                          <p className="text-xs text-gray-500 mb-4">
+                            <span className="font-medium">Authors:</span> {document.authors}
+                          </p>
+                        )}
+                        <div className="flex gap-2 mt-auto">
+                          <Button 
+                            variant="default" 
+                            className="flex-grow bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90"
+                            onClick={() => setSelectedPdf(document)}
+                          >
+                            <FileText className="mr-2 h-4 w-4" /> View Document
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </FadeInSection>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-10">
+                  <FileText className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                  <h3 className="text-xl font-medium text-gray-700">No documents found</h3>
+                  <p className="text-gray-500 mt-2">There are no research documents in this category.</p>
+                </div>
+              )}
+            </div>
+          )}
           
           <FadeInSection>
             <Card className="mb-16">

@@ -12,7 +12,7 @@ const AdminResearchDocuments = () => {
     isLoading,
     bucketName,
     isAuthenticated,
-    loadDocumentsFromFile,
+    loadDocumentsFromStorage,
     addDocument,
     checkAuthentication
   } = useResearchDocuments();
@@ -51,7 +51,7 @@ const AdminResearchDocuments = () => {
         <DocumentsList 
           documents={documents} 
           isLoading={isLoading} 
-          onReload={loadDocumentsFromFile} 
+          onReload={loadDocumentsFromStorage} 
         />
       </div>
     </AdminLayout>

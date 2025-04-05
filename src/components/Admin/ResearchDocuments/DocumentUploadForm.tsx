@@ -73,15 +73,28 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
         return;
       }
       
-      // 1. Upload file to Supabase Storage
+      // 1. Create a file name with metadata
       const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const fileName = `${Date.now()}-${values.title.replace(/\s+/g, '_')}.${fileExt}`;
       
       console.log(`Uploading to bucket: ${bucketName}, filename: ${fileName}`);
       
+      // 2. Upload file with metadata
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(bucketName)
-        .upload(fileName, selectedFile);
+        .upload(fileName, selectedFile, {
+          contentType: `application/${fileExt}`,
+          upsert: true,
+          cacheControl: '3600',
+          // Store metadata with the file
+          customMetadata: {
+            title: values.title,
+            description: values.description,
+            category: values.category,
+            publishDate: values.publishDate,
+            authors: values.authors || ''
+          }
+        });
       
       if (uploadError) {
         console.error("Storage upload error:", uploadError);
@@ -90,7 +103,7 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
       
       console.log("Upload successful, getting public URL");
       
-      // 2. Get the public URL
+      // 3. Get the public URL
       const { data: publicUrlData } = supabase.storage
         .from(bucketName)
         .getPublicUrl(fileName);
@@ -98,7 +111,7 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
       const publicUrl = publicUrlData.publicUrl;
       console.log("Generated public URL:", publicUrl);
       
-      // 3. Create the new document object
+      // 4. Create the new document object
       const newDocument: ResearchDocument = {
         id: `doc-${Date.now()}`,
         title: values.title,
@@ -109,14 +122,17 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
         authors: values.authors,
       };
       
-      // 4. Add to state via parent callback
+      // 5. Add to state via parent callback
       onDocumentUploaded(newDocument);
       
-      // 5. Clear form
+      // 6. Clear form
       form.reset();
       setSelectedFile(null);
       
-      // 6. Show success message
+      // 7. Clear localStorage cache so the main page will reload from storage
+      localStorage.removeItem('researchDocuments');
+      
+      // 8. Show success message
       toast.success("Document uploaded successfully");
       
     } catch (error: any) {
