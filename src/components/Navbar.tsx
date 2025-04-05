@@ -62,7 +62,10 @@ const Navbar: React.FC = () => {
 
         {/* Mobile Menu Button */}
         <button 
-          className="md:hidden text-cbis-dark p-2" 
+          className={cn(
+            "md:hidden p-2 rounded-md transition-colors z-50",
+            isOpen ? "text-gray-800 bg-white" : "text-cbis-dark"
+          )}
           onClick={() => setIsOpen(!isOpen)}
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -72,31 +75,39 @@ const Navbar: React.FC = () => {
       {/* Mobile Navigation */}
       <div 
         className={cn(
-          "fixed inset-0 bg-white bg-opacity-95 backdrop-blur-md z-40 md:hidden flex flex-col pt-20 px-6",
+          "fixed inset-0 bg-white z-40 md:hidden flex flex-col pt-20 px-6 shadow-lg",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
-        <Link 
-          to="/" 
-          className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
-          onClick={() => setIsOpen(false)}
-        >
-          Home
-        </Link>
-        <Link 
-          to="/research-documents" 
-          className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
-          onClick={() => setIsOpen(false)}
-        >
-          Research
-        </Link>
-        <Link 
-          to="/token-info" 
-          className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
-          onClick={() => setIsOpen(false)}
-        >
-          Token Info
-        </Link>
+        <div className="border-b border-gray-100 py-1">
+          <Link 
+            to="/" 
+            className="block py-3 text-center text-gray-800 hover:text-cbis-blue hover:bg-gray-50 rounded-md"
+            onClick={() => setIsOpen(false)}
+          >
+            Home
+          </Link>
+        </div>
+        
+        <div className="border-b border-gray-100 py-1">
+          <Link 
+            to="/research-documents" 
+            className="block py-3 text-center text-gray-800 hover:text-cbis-blue hover:bg-gray-50 rounded-md"
+            onClick={() => setIsOpen(false)}
+          >
+            Research
+          </Link>
+        </div>
+        
+        <div className="border-b border-gray-100 py-1">
+          <Link 
+            to="/token-info" 
+            className="block py-3 text-center text-gray-800 hover:text-cbis-blue hover:bg-gray-50 rounded-md"
+            onClick={() => setIsOpen(false)}
+          >
+            Token Info
+          </Link>
+        </div>
         
         <div className="mt-6">
           <Button 
@@ -115,7 +126,7 @@ const Navbar: React.FC = () => {
         {user ? (
           <Link 
             to="/dashboard/payments" 
-            className="py-3 mt-4 text-center border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
+            className="py-4 mt-4 text-center flex items-center justify-center gap-2 text-cbis-dark hover:text-cbis-blue hover:bg-gray-50 rounded-md"
             onClick={() => setIsOpen(false)}
           >
             Dashboard
@@ -123,7 +134,7 @@ const Navbar: React.FC = () => {
         ) : (
           <Link 
             to="/login" 
-            className="py-3 mt-4 text-center border-b border-gray-100 flex items-center justify-center gap-2 text-cbis-dark hover:text-cbis-blue"
+            className="py-4 mt-4 text-center flex items-center justify-center gap-2 text-cbis-dark hover:text-cbis-blue hover:bg-gray-50 rounded-md"
             onClick={() => setIsOpen(false)}
           >
             <LogIn className="h-4 w-4" /> Sign In
