@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Menu, X, ChevronDown } from 'lucide-react';
+import { Menu, X, ChevronDown, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -37,7 +37,20 @@ const Navbar: React.FC = () => {
           <Link to="/" className="text-gray-800 hover:text-cbis-blue transition-colors">Home</Link>
           <Link to="/research-documents" className="text-gray-800 hover:text-cbis-blue transition-colors">Research</Link>
           <Link to="/token-info" className="text-gray-800 hover:text-cbis-blue transition-colors">Token Info</Link>
-          {/* Removed the Register link */}
+          
+          {user ? (
+            <Button asChild size="sm" variant="ghost" className="text-gray-800 hover:text-cbis-blue transition-colors">
+              <Link to="/dashboard">Dashboard</Link>
+            </Button>
+          ) : (
+            <Button asChild size="sm" variant="ghost" className="text-gray-800 hover:text-cbis-blue flex items-center gap-1 transition-colors">
+              <Link to="/login">
+                <LogIn className="h-4 w-4" />
+                Sign In
+              </Link>
+            </Button>
+          )}
+          
           <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
             {user ? (
               <Link to="/dashboard/payments">Buy Tokens</Link>
@@ -84,7 +97,25 @@ const Navbar: React.FC = () => {
         >
           Token Info
         </Link>
-        {/* Removed the Register link from mobile menu as well */}
+        
+        {user ? (
+          <Link 
+            to="/dashboard" 
+            className="py-3 border-b border-gray-100 text-cbis-dark hover:text-cbis-blue"
+            onClick={() => setIsOpen(false)}
+          >
+            Dashboard
+          </Link>
+        ) : (
+          <Link 
+            to="/login" 
+            className="py-3 border-b border-gray-100 flex items-center gap-2 text-cbis-dark hover:text-cbis-blue"
+            onClick={() => setIsOpen(false)}
+          >
+            <LogIn className="h-4 w-4" /> Sign In
+          </Link>
+        )}
+        
         <div className="mt-6">
           <Button 
             asChild
