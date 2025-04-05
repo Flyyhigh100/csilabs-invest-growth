@@ -6,7 +6,7 @@ import { ResearchDocument } from '../../types/documentTypes';
 
 export const useDocumentMutations = (
   documents: ResearchDocument[],
-  setDocuments: (docs: ResearchDocument[]) => void,
+  setDocuments: React.Dispatch<React.SetStateAction<ResearchDocument[]>>,
   bucketName: string
 ) => {
   // Add a new document
@@ -132,11 +132,9 @@ export const useDocumentMutations = (
         pdfUrl: urlData.publicUrl
       };
       
-      setDocuments(prevDocs => {
-        const newDocs = [...prevDocs];
-        newDocs[docIndex] = updatedDoc;
-        return newDocs;
-      });
+      const newDocs = [...documents];
+      newDocs[docIndex] = updatedDoc;
+      setDocuments(newDocs);
       
       // Clear localStorage cache to force reload on the public page
       localStorage.removeItem('researchDocuments');
