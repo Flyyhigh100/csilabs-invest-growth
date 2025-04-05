@@ -4,17 +4,20 @@ import { FileText, Loader2 } from 'lucide-react';
 import DocumentCard from './DocumentCard';
 import FadeInSection from '@/components/FadeInSection';
 import { ResearchDocument } from '@/components/Admin/ResearchDocuments/types/documentTypes';
+import { Button } from '@/components/ui/button';
 
 interface DocumentsGridProps {
   documents: ResearchDocument[];
   isLoading: boolean;
   onSelectDocument: (document: ResearchDocument) => void;
+  onRefresh?: () => void;
 }
 
 const DocumentsGrid: React.FC<DocumentsGridProps> = ({ 
   documents, 
   isLoading, 
-  onSelectDocument 
+  onSelectDocument,
+  onRefresh
 }) => {
   if (isLoading) {
     return (
@@ -31,6 +34,15 @@ const DocumentsGrid: React.FC<DocumentsGridProps> = ({
         <FileText className="h-16 w-16 mx-auto text-gray-300 mb-4" />
         <h3 className="text-xl font-medium text-gray-700">No documents found</h3>
         <p className="text-gray-500 mt-2">There are no research documents in this category.</p>
+        {onRefresh && (
+          <Button 
+            variant="outline" 
+            className="mt-4"
+            onClick={onRefresh}
+          >
+            Refresh Documents
+          </Button>
+        )}
       </div>
     );
   }

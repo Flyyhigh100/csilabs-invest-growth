@@ -23,6 +23,9 @@ const DocumentMetadataForm: React.FC<DocumentMetadataFormProps> = ({ form, disab
             <FormControl>
               <Input placeholder="Enter document title" {...field} disabled={disabled} />
             </FormControl>
+            <FormDescription>
+              This will be displayed as the main title of the document card
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
@@ -37,11 +40,14 @@ const DocumentMetadataForm: React.FC<DocumentMetadataFormProps> = ({ form, disab
             <FormControl>
               <Textarea 
                 placeholder="Enter a brief description of the document" 
-                className="resize-none min-h-[80px]" 
+                className="resize-none min-h-[100px]" 
                 {...field}
                 disabled={disabled}
               />
             </FormControl>
+            <FormDescription>
+              A concise summary of the document's content
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
@@ -89,6 +95,9 @@ const DocumentMetadataForm: React.FC<DocumentMetadataFormProps> = ({ form, disab
             <FormControl>
               <Input placeholder="e.g. CSi Labs Research Team" {...field} disabled={disabled} />
             </FormControl>
+            <FormDescription>
+              Names of individuals or organizations that authored the document
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}

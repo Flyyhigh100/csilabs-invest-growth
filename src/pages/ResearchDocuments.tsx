@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import FadeInSection from '@/components/FadeInSection';
@@ -16,8 +16,14 @@ const ResearchDocuments: React.FC = () => {
     selectedCategory,
     setSelectedCategory,
     selectedPdf,
-    setSelectedPdf
+    setSelectedPdf,
+    refreshDocuments
   } = useResearchDocuments();
+
+  // Refresh documents when the page loads
+  useEffect(() => {
+    refreshDocuments();
+  }, [refreshDocuments]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -44,7 +50,7 @@ const ResearchDocuments: React.FC = () => {
               />
             </div>
             <p className="text-sm text-gray-500">
-              Showing {filteredDocuments.length} of {filteredDocuments.length} documents
+              Showing {filteredDocuments.length} document{filteredDocuments.length !== 1 ? 's' : ''}
             </p>
           </div>
 
@@ -52,6 +58,7 @@ const ResearchDocuments: React.FC = () => {
             documents={filteredDocuments}
             isLoading={isLoading}
             onSelectDocument={setSelectedPdf}
+            onRefresh={refreshDocuments}
           />
         </div>
       </div>

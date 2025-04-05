@@ -2,7 +2,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Download } from 'lucide-react';
+import { ExternalLink, Download, FileText } from 'lucide-react';
 import { ResearchDocument } from '@/components/Admin/ResearchDocuments/types/documentTypes';
 
 interface DocumentViewerProps {
@@ -14,24 +14,43 @@ interface DocumentViewerProps {
 const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, onOpenChange }) => {
   if (!document) return null;
 
+  // Format the title to make it more readable
+  const formattedTitle = document.title
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-xl">{document.title}</DialogTitle>
+          <DialogTitle className="text-xl">{formattedTitle}</DialogTitle>
         </DialogHeader>
+        
+        {document.description && (
+          <p className="text-gray-600 mb-4 text-sm">
+            {document.description}
+          </p>
+        )}
+        
+        {document.authors && (
+          <p className="text-xs text-gray-500 mb-4">
+            <span className="font-medium">Authors:</span> {document.authors}
+          </p>
+        )}
+        
         <div className="flex-grow h-[70vh]">
           <iframe 
             src={document.pdfUrl} 
             className="w-full h-full border-0 rounded"
-            title={document.title}
+            title={formattedTitle}
           />
         </div>
         <div className="flex justify-end gap-2 mt-4">
           <Button variant="outline" onClick={() => window.open(document.pdfUrl, '_blank')}>
             <ExternalLink className="mr-2 h-4 w-4" /> Open in New Tab
           </Button>
-          <Button className="bg-gradient-to-r from-cbis-blue to-cbis-teal" onClick={() => window.open(document.pdfUrl, '_blank')}>
+          <Button className="bg-gradient-to-r from-cbis-blue to-cbis-teal" onClick={() => window.open(document.pdfUrl, '_blank', 'download')}>
             <Download className="mr-2 h-4 w-4" /> Download
           </Button>
         </div>

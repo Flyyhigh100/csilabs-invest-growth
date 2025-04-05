@@ -11,8 +11,14 @@ interface DocumentCardProps {
 }
 
 const DocumentCard: React.FC<DocumentCardProps> = ({ document, onSelect }) => {
+  // Format the title to make it more readable (replace underscores with spaces)
+  const formattedTitle = document.title
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+
   return (
-    <Card className="h-full flex flex-col hover:shadow-md transition-shadow border border-gray-100">
+    <Card className="h-full flex flex-col hover:shadow-md transition-shadow border border-gray-200">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="bg-blue-50 text-cbis-blue text-xs font-medium px-2.5 py-1 rounded">
@@ -20,12 +26,16 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onSelect }) => {
           </div>
           <span className="text-xs text-gray-500">{document.publishDate}</span>
         </div>
-        <CardTitle className="mt-3 text-xl leading-tight">{document.title}</CardTitle>
+        <CardTitle className="mt-3 text-xl leading-tight">
+          {formattedTitle}
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col pt-2">
-        <p className="text-gray-600 mb-6 text-sm flex-grow line-clamp-3">
-          {document.description}
-        </p>
+        {document.description && (
+          <p className="text-gray-600 mb-6 text-sm flex-grow line-clamp-3">
+            {document.description}
+          </p>
+        )}
         {document.authors && (
           <p className="text-xs text-gray-500 mb-4">
             <span className="font-medium">Authors:</span> {document.authors}

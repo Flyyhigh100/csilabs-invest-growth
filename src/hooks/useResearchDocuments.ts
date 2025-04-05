@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ResearchDocument } from '@/components/Admin/ResearchDocuments/types/documentTypes';
 
@@ -31,6 +31,11 @@ export const useResearchDocuments = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedPdf, setSelectedPdf] = useState<ResearchDocument | null>(null);
+
+  // Helper function to extract actual filename without params
+  const getBaseFilename = (fullName: string): string => {
+    return fullName.split('?')[0];
+  };
 
   // Fetch documents from Supabase storage
   useEffect(() => {
@@ -75,8 +80,14 @@ export const useResearchDocuments = () => {
             .from('research_documents')
             .getPublicUrl(fileName);
             
-          // Default values
-          let title = "Untitled Research Document";
+          // Default values (use filename as title if nothing else available)
+          const baseFileName = getBaseFilename(fileName);
+          let title = baseFileName
+            .split('.')[0]
+            .replace(/_/g, ' ')
+            .replace(/-/g, ' ')
+            .replace(/^\d+\s*/, ''); // Remove any leading numbers and timestamp
+            
           let category = "Research";
           let publishDate = new Date().toLocaleDateString();
           let authors = "";
@@ -112,9 +123,14 @@ export const useResearchDocuments = () => {
         
         // If we have actual documents from storage, don't use fallback documents
         if (documentsList.length > 0) {
+          // Sort documents by publishDate, newest first
+          const sortedDocs = documentsList.sort((a, b) => {
+            return new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime();
+          });
+          
           // Cache the results
-          localStorage.setItem('researchDocuments', JSON.stringify(documentsList));
-          setDocuments(documentsList);
+          localStorage.setItem('researchDocuments', JSON.stringify(sortedDocs));
+          setDocuments(sortedDocs);
         } else {
           // Only use fallback documents if no actual documents exist
           setDocuments(fallbackDocuments);
@@ -141,6 +157,80 @@ export const useResearchDocuments = () => {
     ? documents.filter(doc => doc.category === selectedCategory) 
     : documents;
 
+  // Add a function to reload documents from storage (for when we need to refresh)
+  const refreshDocuments = useCallback(async () => {
+    localStorage.removeItem('researchDocuments');
+    setIsLoading(true);
+    try {
+      const { data: files, error: filesError } = await supabase
+        .storage
+        .from('research_documents')
+        .list();
+        
+      if (filesError || !files || files.length === 0) {
+        throw new Error(filesError?.message || "No files found");
+      }
+      
+      const documentsList = await Promise.all(files.map(async (file) => {
+        const fileName = file.name;
+        
+        const { data: urlData } = supabase
+          .storage
+          .from('research_documents')
+          .getPublicUrl(fileName);
+          
+        const baseFileName = getBaseFilename(fileName);
+        let title = baseFileName
+          .split('.')[0]
+          .replace(/_/g, ' ')
+          .replace(/-/g, ' ')
+          .replace(/^\d+\s*/, '');
+        
+        let category = "Research";
+        let publishDate = new Date().toLocaleDateString();
+        let authors = "";
+        let description = "";
+        
+        const fileNameParts = fileName.split('?');
+        if (fileNameParts.length > 1) {
+          try {
+            const params = new URLSearchParams(fileNameParts[1]);
+            title = params.get('title') || title;
+            category = params.get('category') || category;
+            description = params.get('description') || description;
+            publishDate = params.get('publishDate') || publishDate;
+            authors = params.get('authors') || authors;
+          } catch (e) {
+            console.log("Could not parse metadata from filename");
+          }
+        }
+        
+        return {
+          id: `doc-${fileName}`,
+          title,
+          description,
+          category,
+          pdfUrl: urlData.publicUrl,
+          publishDate,
+          authors
+        } as ResearchDocument;
+      }));
+      
+      // Sort documents
+      const sortedDocs = documentsList.sort((a, b) => {
+        return new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime();
+      });
+      
+      localStorage.setItem('researchDocuments', JSON.stringify(sortedDocs));
+      setDocuments(sortedDocs);
+    } catch (err: any) {
+      console.error("Error refreshing documents:", err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     documents,
     filteredDocuments,
@@ -150,6 +240,7 @@ export const useResearchDocuments = () => {
     selectedCategory,
     setSelectedCategory,
     selectedPdf,
-    setSelectedPdf
+    setSelectedPdf,
+    refreshDocuments
   };
 };

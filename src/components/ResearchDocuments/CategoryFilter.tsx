@@ -18,8 +18,8 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2">
-          {selectedCategory || "All Categories"}
+        <Button variant="outline" className="flex items-center gap-2 bg-white border-gray-200 hover:bg-gray-50">
+          <span className="font-medium">{selectedCategory || "All Categories"}</span>
           <ChevronDown className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
