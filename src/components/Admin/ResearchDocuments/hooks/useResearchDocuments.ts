@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ResearchDocument } from '../DocumentUploadForm';
-import { checkBucketExists, listAllBuckets } from '@/utils/admin/kyc/storage';
+import { checkBucketExists, listAllBuckets, createBucketIfNotExists } from '@/utils/admin/kyc/storage';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -9,12 +9,16 @@ export const useResearchDocuments = () => {
   const [documents, setDocuments] = useState<ResearchDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [bucketExists, setBucketExists] = useState(false);
-  const [bucketName, setBucketName] = useState('research_documents');
+  const [bucketName] = useState('research_documents');
   const [availableBuckets, setAvailableBuckets] = useState<string[]>([]);
+  const [isCheckingBucket, setIsCheckingBucket] = useState(false);
 
   // Check if the bucket exists
   const checkResearchBucket = useCallback(async () => {
+    if (isCheckingBucket) return; // Prevent multiple simultaneous checks
+    
     console.log("Checking bucket existence:", bucketName);
+    setIsCheckingBucket(true);
     setIsLoading(true);
     
     try {
@@ -25,10 +29,23 @@ export const useResearchDocuments = () => {
         setBucketExists(true);
         console.log(`Found bucket with ID: ${bucketName}`);
         setIsLoading(false);
+        setIsCheckingBucket(false);
         return;
       }
       
-      // If not found, list all available buckets
+      // If not found, try to create it
+      console.log(`Bucket '${bucketName}' not found, attempting to create it automatically...`);
+      const created = await createBucketIfNotExists(bucketName);
+      
+      if (created) {
+        console.log(`Successfully created bucket '${bucketName}'`);
+        setBucketExists(true);
+        setIsLoading(false);
+        setIsCheckingBucket(false);
+        return;
+      }
+      
+      // If still not created, list all available buckets
       const buckets = await listAllBuckets();
       setAvailableBuckets(buckets);
       
@@ -42,7 +59,6 @@ export const useResearchDocuments = () => {
         setBucketName(researchBucket);
         setBucketExists(true);
         console.log(`Found alternative research bucket: ${researchBucket}`);
-        toast.success(`Using existing bucket: ${researchBucket}`);
       } else {
         setBucketExists(false);
         console.log('No research bucket found. Available buckets:', buckets);
@@ -52,8 +68,9 @@ export const useResearchDocuments = () => {
       toast.error("Failed to check storage bucket status");
     } finally {
       setIsLoading(false);
+      setIsCheckingBucket(false);
     }
-  }, [bucketName]);
+  }, [bucketName, isCheckingBucket]);
 
   // Load documents from file
   const loadDocumentsFromFile = useCallback(async () => {
@@ -85,6 +102,12 @@ export const useResearchDocuments = () => {
   // Add a new document
   const addDocument = useCallback((newDocument: ResearchDocument) => {
     setDocuments(prevDocs => [...prevDocs, newDocument]);
+  }, []);
+
+  // Function to set the bucket name
+  const setBucketName = useCallback((name: string) => {
+    console.log(`Setting bucket name to: ${name}`);
+    // This is intentionally left as a no-op since we're using a fixed bucket name
   }, []);
 
   useEffect(() => {

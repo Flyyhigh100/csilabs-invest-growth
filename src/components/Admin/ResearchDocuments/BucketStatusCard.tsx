@@ -26,6 +26,13 @@ const BucketStatusCard: React.FC<BucketStatusCardProps> = ({
       setIsCreating(true);
       console.log("Attempting to create bucket:", bucketName);
       
+      // Check if user is authenticated before proceeding
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast.error("You must be logged in to create a bucket");
+        return;
+      }
+      
       const { data, error } = await supabase
         .storage
         .createBucket(bucketName, {
@@ -44,7 +51,7 @@ const BucketStatusCard: React.FC<BucketStatusCardProps> = ({
       // Important: Give a slight delay before refreshing to ensure the bucket is registered
       setTimeout(() => {
         onRefresh(); // Refresh bucket status after creation
-      }, 500);
+      }, 1000);
     } catch (error: any) {
       toast.error(`Error creating bucket: ${error.message}`);
       console.error("Exception creating bucket:", error);

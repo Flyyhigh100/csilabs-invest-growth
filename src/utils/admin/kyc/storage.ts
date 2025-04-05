@@ -45,3 +45,34 @@ export const listAllBuckets = async (): Promise<string[]> => {
     return [];
   }
 };
+
+/**
+ * Create a bucket if it doesn't exist
+ */
+export const createBucketIfNotExists = async (bucketName: string): Promise<boolean> => {
+  try {
+    // First check if bucket already exists
+    const exists = await checkBucketExists(bucketName);
+    if (exists) {
+      console.log(`Bucket '${bucketName}' already exists, no need to create it`);
+      return true;
+    }
+    
+    console.log(`Creating bucket '${bucketName}'...`);
+    const { data, error } = await supabase.storage.createBucket(bucketName, {
+      public: true,
+      fileSizeLimit: 10485760, // 10MB
+    });
+    
+    if (error) {
+      console.error(`Error creating bucket ${bucketName}:`, error);
+      return false;
+    }
+    
+    console.log(`Successfully created bucket '${bucketName}'`);
+    return true;
+  } catch (error) {
+    console.error(`Exception creating bucket ${bucketName}:`, error);
+    return false;
+  }
+};
