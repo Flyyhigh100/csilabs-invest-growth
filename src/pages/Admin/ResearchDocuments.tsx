@@ -14,7 +14,8 @@ const AdminResearchDocuments = () => {
     bucketName,
     availableBuckets,
     loadDocumentsFromFile,
-    addDocument
+    addDocument,
+    checkResearchBucket
   } = useResearchDocuments();
 
   return (
@@ -24,7 +25,8 @@ const AdminResearchDocuments = () => {
         <BucketStatusCard 
           bucketExists={bucketExists} 
           bucketName={bucketName} 
-          availableBuckets={availableBuckets} 
+          availableBuckets={availableBuckets}
+          onRefresh={checkResearchBucket}
         />
         
         {/* Document Upload Form */}
