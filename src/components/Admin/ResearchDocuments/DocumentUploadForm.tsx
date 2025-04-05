@@ -34,7 +34,7 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<DocumentFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",

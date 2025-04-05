@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { ResearchDocument } from '../DocumentUploadForm';
+import { ResearchDocument } from '../types/documentTypes';
 import { checkBucketExists, listAllBuckets, createBucketIfNotExists } from '@/utils/admin/kyc/storage';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';

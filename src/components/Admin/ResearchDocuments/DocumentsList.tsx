@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { FileText, RefreshCw, Download } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ResearchDocument } from './DocumentUploadForm';
+import { ResearchDocument } from './types/documentTypes';
 import { toast } from 'sonner';
 
 interface DocumentsListProps {
