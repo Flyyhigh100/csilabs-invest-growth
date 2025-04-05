@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Dialog, DialogContent, DialogDescription, 
   DialogHeader, DialogTitle 
@@ -45,6 +45,16 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<string>('info');
   const [activeAction, setActiveAction] = useState<string | null>(null);
+  
+  // Reset fields when modal opens with a new KYC
+  useEffect(() => {
+    if (open && selectedKyc) {
+      // Reset form state when opening with a new KYC
+      setRejectionReason('');
+      setClarificationMessage('');
+      setActiveAction(null);
+    }
+  }, [open, selectedKyc?.id, setRejectionReason, setClarificationMessage]);
 
   if (!selectedKyc) return null;
 

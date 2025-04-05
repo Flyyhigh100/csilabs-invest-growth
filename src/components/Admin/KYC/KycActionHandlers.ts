@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { KycVerificationWithProfile } from './types';
@@ -182,12 +181,6 @@ export const useKycActionHandlers = (
         adminPermissionStatus: 'checking'
       }));
       
-      const toastId = `clarify-kyc-${kycId}-${Date.now()}`;
-      toast.loading(`Sending clarification request...`, {
-        id: toastId,
-        duration: 10000
-      });
-      
       if (!message || message.trim() === '') {
         const errorMessage = 'Clarification message is required';
         console.error(errorMessage);
@@ -198,7 +191,6 @@ export const useKycActionHandlers = (
           error: errorMessage
         }));
         
-        toast.dismiss(toastId);
         toast.error(errorMessage);
         throw new Error(errorMessage);
       }
@@ -245,7 +237,6 @@ export const useKycActionHandlers = (
             currentRetry: null
           }));
           
-          toast.dismiss(toastId);
           toast.error(errorMessage, { duration: 5000 });
           throw new Error(errorMessage);
         }
@@ -257,9 +248,6 @@ export const useKycActionHandlers = (
           supabaseResponse: { success: true, status: 'needs_clarification' },
           currentRetry: null
         }));
-        
-        toast.dismiss(toastId);
-        toast.success('Clarification request sent successfully', { duration: 5000 });
         
         return true;
       } catch (error) {
@@ -274,8 +262,6 @@ export const useKycActionHandlers = (
           currentRetry: null
         }));
         
-        toast.dismiss(toastId);
-        toast.error(`Failed to send clarification request: ${(error as Error).message}`, { duration: 5000 });
         throw error;
       } finally {
         // Clean up the global listeners
@@ -284,7 +270,10 @@ export const useKycActionHandlers = (
       }
     },
     onSuccess: () => {
-      // Run success callback first to close modal
+      // Show success toast
+      toast.success('Clarification request sent successfully', { duration: 5000 });
+      
+      // Run success callback to close modal
       onSuccess();
       
       // IMPORTANT: Invalidate all relevant queries to refresh data

@@ -38,6 +38,7 @@ const KycClarifyForm: React.FC<KycClarifyFormProps> = ({
           onClick={onRequestClarification}
           disabled={isPending || !clarificationMessage.trim()}
           className="bg-blue-600 hover:bg-blue-700"
+          type="button"
         >
           {isPending ? (
             <>

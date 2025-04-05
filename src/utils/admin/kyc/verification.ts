@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -387,21 +386,21 @@ export const requestKycClarification = async (
         
         console.log('Request payload for clarification:', payload);
         
+        // Give a small delay before each retry attempt after the first
+        if (retryCount > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
         const response = await supabase.functions.invoke('admin-operations', {
           body: payload
         });
         
-        console.log('📥 Full response from clarification request:', JSON.stringify(response, null, 2));
+        console.log('📥 Full response from admin-operations function:', JSON.stringify(response, null, 2));
         
         if (response.error) {
-          console.error('❌ Error from clarification request:', response.error);
+          console.error('❌ Error from admin-operations function:', response.error);
           lastError = response.error;
           retryCount++;
-          
-          if (retryCount < maxRetries) {
-            console.log(`Retrying clarification in 1 second... (attempt ${retryCount + 1})`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
           continue;
         }
         
@@ -409,42 +408,29 @@ export const requestKycClarification = async (
         
         // Check if the response contains an error object
         if (data && data.error) {
-          console.error('❌ Error from server in clarification response:', data.error);
+          console.error('❌ Error from admin-operations response:', data.error);
           lastError = new Error(data.error.message || 'Unknown error from server');
           retryCount++;
-          
-          if (retryCount < maxRetries) {
-            console.log(`Retrying in 1 second... (attempt ${retryCount + 1})`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
           continue;
         }
         
+        // Handle case where response has no data
         if (!data) {
-          console.error('❌ No data returned from clarification request');
+          console.error('❌ No data returned from admin-operations function');
           lastError = new Error('No response data received');
           retryCount++;
-          
-          if (retryCount < maxRetries) {
-            console.log(`Retrying clarification in 1 second... (attempt ${retryCount + 1})`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
           continue;
         }
         
-        if (data.error) {
-          console.error('❌ Error in clarification response data:', data.error);
-          lastError = data.error;
+        // Check if kyc object is present and has the expected status
+        if (!data.kyc || data.kyc.status !== 'needs_clarification') {
+          console.error('❌ Invalid response from server:', data);
+          lastError = new Error(`Invalid server response: ${JSON.stringify(data)}`);
           retryCount++;
-          
-          if (retryCount < maxRetries) {
-            console.log(`Retrying clarification in 1 second... (attempt ${retryCount + 1})`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
           continue;
         }
         
-        // If we reach here, the operation was successful
+        // If we get here, the operation was successful
         success = true;
         console.log('✅ Clarification request successful:', data);
       }
@@ -452,11 +438,6 @@ export const requestKycClarification = async (
         console.error('❌ Exception during clarification request:', invokeError);
         lastError = invokeError;
         retryCount++;
-        
-        if (retryCount < maxRetries) {
-          console.log(`Retrying clarification in 1 second... (attempt ${retryCount + 1})`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
       }
     }
     
@@ -469,7 +450,7 @@ export const requestKycClarification = async (
     if (!success) {
       console.error('❌ All clarification retry attempts failed:', lastError);
       toast.dismiss(toastId);
-      toast.error(`Failed to send clarification request after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`, {
+      toast.error(`Failed to send clarification request: ${lastError?.message || 'Unknown error'}`, {
         duration: 5000
       });
       return false;
@@ -479,21 +460,15 @@ export const requestKycClarification = async (
     try {
       console.log('🔄 Verifying clarification update with fresh data fetch');
       const { data: refreshData, error: refreshError } = await supabase
-        .from('kyc_verifications')
-        .select('*')
-        .eq('id', kycId)
+        .from("kyc_verifications")
+        .select("*")
+        .eq("id", kycId)
         .single();
         
       if (refreshData) {
         console.log('✅ Verified clarification update with fresh data:', refreshData);
         console.log(`✅ Current KYC status is now: ${refreshData.status}`);
         console.log(`✅ Clarification message is: ${refreshData.clarification_message}`);
-        
-        // Fix: Use type assertion to allow string comparison
-        // This is the fix for the TypeScript error
-        if (refreshData.status as string !== 'needs_clarification') {
-          console.error(`⚠️ Warning: Expected status 'needs_clarification' but found '${refreshData.status}'`);
-        }
       } else if (refreshError) {
         console.error('❌ Error verifying clarification update:', refreshError);
       }
