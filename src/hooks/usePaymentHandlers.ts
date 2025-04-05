@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useKycVerification } from '@/hooks/kyc/useKycVerification';
 
 type CryptoPaymentDetails = {
   paymentAddress: string;
@@ -19,8 +20,9 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCryptoDialog, setShowCryptoDialog] = useState(false);
   const [cryptoPaymentDetails, setCryptoPaymentDetails] = useState<CryptoPaymentDetails>(null);
+  const { kycData } = useKycVerification();
 
-  const validatePaymentRequest = (amount: number): boolean => {
+  const validatePaymentRequest = (amount: number, isCrypto: boolean = false): boolean => {
     if (!walletAddress) {
       toast.error("Please add a wallet address before proceeding with payment");
       return false;
@@ -29,6 +31,15 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
     if (!amount || amount <= 0) {
       toast.error("Please enter a valid amount");
       return false;
+    }
+
+    // Check KYC verification for high-value crypto payments
+    if (isCrypto && amount >= 3001) {
+      // Check if KYC is approved
+      if (kycData?.status !== 'approved') {
+        toast.error("KYC verification is required for crypto payments of $3,001 or more. Please complete verification first.");
+        return false;
+      }
     }
     
     return true;
@@ -65,7 +76,8 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
   };
 
   const handleCoinPaymentsPayment = async (amount: number, currency: string = 'USDT') => {
-    if (!validatePaymentRequest(amount)) return;
+    // Pass true for isCrypto to validate KYC if needed
+    if (!validatePaymentRequest(amount, true)) return;
     
     setIsProcessing(true);
     
@@ -108,7 +120,8 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
   };
   
   const handleCryptoPayment = async (amount: number) => {
-    if (!validatePaymentRequest(amount)) return;
+    // Pass true for isCrypto to validate KYC if needed
+    if (!validatePaymentRequest(amount, true)) return;
     
     setIsProcessing(true);
     
@@ -151,6 +164,7 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
     cryptoPaymentDetails,
     handleStripePayment,
     handleCoinPaymentsPayment,
-    handleCryptoPayment
+    handleCryptoPayment,
+    kycRequired: (amount: number) => amount >= 3001
   };
 };

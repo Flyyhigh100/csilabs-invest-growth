@@ -3,10 +3,6 @@ import React from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { KycVerificationData } from '@/hooks/kyc/types';
 import VerificationStatus from '@/components/KYC/VerificationStatus';
-import { createTestKycRecord } from '@/hooks/kyc/kycService';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface VerificationStatusTabProps {
   kycData: KycVerificationData | null;
@@ -21,8 +17,6 @@ const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({
   onStartVerification,
   onProvideMoreInfo
 }) => {
-  const { user } = useAuth();
-  
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-10">
@@ -31,42 +25,8 @@ const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({
     );
   }
   
-  const handleCreateTestData = async () => {
-    if (!user) return;
-    
-    try {
-      await createTestKycRecord(user.id);
-      toast.success('Test KYC record created successfully');
-      
-      // Refresh after a short delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    } catch (error) {
-      console.error('Error creating test KYC record:', error);
-      toast.error('Failed to create test KYC record');
-    }
-  };
-  
   return (
     <div>
-      {/* Show admin testing tools in development environment */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mb-6 p-4 bg-gray-100 rounded-md border border-gray-200">
-          <h3 className="text-sm font-medium mb-2">Developer Testing Tools</h3>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleCreateTestData}
-          >
-            Create Test KYC Record
-          </Button>
-          <p className="text-xs text-gray-500 mt-2">
-            This will create a test KYC verification record in "pending" status.
-          </p>
-        </div>
-      )}
-      
       <VerificationStatus
         status={kycData?.status || 'not_started'}
         rejectionReason={kycData?.rejection_reason}
