@@ -32,7 +32,7 @@ export async function executeWithRetries<T>(
       success = true;
       
       return { success: true, data: response };
-    } catch (invokeError) {
+    } catch (invokeError: any) {
       console.error('❌ Exception during operation:', invokeError);
       lastError = invokeError;
       retryCount++;
@@ -41,7 +41,7 @@ export async function executeWithRetries<T>(
         break;
       }
       
-      console.log(`Retrying in 1 second... (attempt ${retryCount + 1})`);
+      console.log(`Retrying in 1 second... (attempt ${retryCount + 1} of ${maxRetries})`);
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait before retry
     }
   }

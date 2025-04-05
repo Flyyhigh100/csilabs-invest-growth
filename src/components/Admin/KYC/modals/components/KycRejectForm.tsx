@@ -16,6 +16,13 @@ const KycRejectForm: React.FC<KycRejectFormProps> = ({
   onReject,
   isPending
 }) => {
+  // Handle keyboard submission (Ctrl/Cmd + Enter)
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && rejectionReason.trim()) {
+      onReject();
+    }
+  };
+
   return (
     <div className="mb-4 border-t pt-4">
       <div className="flex items-start gap-2 mb-2">
@@ -32,6 +39,7 @@ const KycRejectForm: React.FC<KycRejectFormProps> = ({
         onChange={(e) => setRejectionReason(e.target.value)}
         placeholder="Provide a reason for rejection..."
         disabled={isPending}
+        onKeyDown={handleKeyDown}
       />
       <div className="flex justify-end mt-3">
         <Button 

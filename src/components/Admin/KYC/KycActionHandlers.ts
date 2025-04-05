@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { KycVerificationWithProfile } from './types';
@@ -41,6 +42,12 @@ export const useKycActionHandlers = (
     }) => {
       console.log('🚀 Starting KYC verification process:', { kycId, status, rejectionReason });
       
+      // Clear previous error state
+      setDebugInfo(prev => ({
+        ...prev,
+        error: null
+      }));
+      
       // Update debug info at the start
       setDebugInfo(prev => ({
         ...prev,
@@ -54,22 +61,32 @@ export const useKycActionHandlers = (
         adminPermissionStatus: 'checking'
       }));
       
-      try {
-        // Call the utility function to process the verification
-        console.log(`📤 Sending request to Supabase for KYC ID: ${kycId} with status: ${status}`);
+      // Validation for rejection reason if status is 'rejected'
+      if (status === 'rejected' && (!rejectionReason || rejectionReason.trim() === '')) {
+        const errorMsg = 'Rejection reason is required';
+        console.error(errorMsg);
+        setDebugInfo(prev => ({
+          ...prev,
+          error: errorMsg,
+          supabaseTriggered: false
+        }));
         
+        throw new Error(errorMsg);
+      }
+      
+      try {
         // Set up an event listener for the retry attempts
-        const retryListener = (attemptNum: number, maxRetries: number) => {
+        const retryListener = (attemptNum: number | null, maxRetries: number | null) => {
           console.log(`Retry attempt ${attemptNum} of ${maxRetries}`);
           setDebugInfo(prev => ({
             ...prev,
             currentRetry: attemptNum,
-            retryAttempts: maxRetries
+            retryAttempts: maxRetries || prev.retryAttempts
           }));
         };
         
         // Set up a listener for admin permission check
-        const adminPermissionListener = (status: 'verified' | 'failed') => {
+        const adminPermissionListener = (status: 'verified' | 'failed' | 'checking') => {
           console.log(`Admin permission check: ${status}`);
           setDebugInfo(prev => ({
             ...prev,
@@ -81,6 +98,7 @@ export const useKycActionHandlers = (
         (window as any).kycRetryListener = retryListener;
         (window as any).kycAdminPermissionListener = adminPermissionListener;
         
+        console.log(`📤 Sending request to Supabase for KYC ID: ${kycId} with status: ${status}`);
         const success = await processKycVerification(kycId, status, rejectionReason);
         
         console.log(`✅ Verification process completed with result: ${success ? 'SUCCESS' : 'FAILED'}`);
@@ -109,8 +127,6 @@ export const useKycActionHandlers = (
           currentRetry: null
         }));
         
-        toast.success(`KYC verification ${status} successfully`);
-        
         return true;
       } catch (error) {
         console.error('❌ Error processing KYC verification:', error);
@@ -124,7 +140,6 @@ export const useKycActionHandlers = (
           currentRetry: null
         }));
         
-        toast.error(`Failed to process KYC: ${(error as Error).message}`);
         throw error;
       } finally {
         // Clean up the global listeners

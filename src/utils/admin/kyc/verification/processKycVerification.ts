@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { verifyAdminPermissions } from './adminVerifier';
+import { executeWithRetries } from './retryUtils';
 
 /**
  * Process KYC verification - approve or reject
@@ -28,11 +29,7 @@ export const processKycVerification = async (
     
     // Verify admin permissions with improved error handling
     try {
-      if (!await verifyAdminPermissions()) {
-        toast.dismiss(toastId);
-        toast.error('You do not have admin permissions to process KYC verifications');
-        return false;
-      }
+      await verifyAdminPermissions();
     } catch (adminErr) {
       console.error('❌ Exception during admin permission check:', adminErr);
       
@@ -84,7 +81,7 @@ export const processKycVerification = async (
     
     console.log(`Request payload:`, payload);
     
-    // Implement retry logic
+    // Implement retry logic using the executeWithRetries utility
     const result = await executeWithRetries(async () => {
       console.log(`Current time before request: ${new Date().toISOString()}`);
       
@@ -96,7 +93,7 @@ export const processKycVerification = async (
       
       if (response.error) {
         console.error('❌ Error from admin-operations function:', response.error);
-        throw response.error;
+        throw new Error(response.error.message || 'Error from admin-operations function');
       }
       
       const data = response.data;
@@ -161,7 +158,7 @@ export const processKycVerification = async (
     
     // Clear the retry listener
     if (typeof (window as any).kycRetryListener === 'function') {
-      (window as any).kycRetryListener(null, 3);
+      (window as any).kycRetryListener(null, null);
     }
     
     // Dismiss the loading toast and show success
@@ -180,61 +177,3 @@ export const processKycVerification = async (
     return false;
   }
 };
-
-/**
- * Execute a function with retry logic
- */
-async function executeWithRetries<T>(
-  fn: () => Promise<T>,
-  toastId: string,
-  maxRetries: number = 3
-): Promise<{success: boolean, data?: T}> {
-  let retryCount = 0;
-  let success = false;
-  let lastError = null;
-  let response = null;
-  
-  while (retryCount < maxRetries && !success) {
-    try {
-      console.log(`🔄 Attempt ${retryCount + 1} of ${maxRetries}`);
-      
-      // Trigger the retry listener if it exists
-      if (typeof (window as any).kycRetryListener === 'function') {
-        (window as any).kycRetryListener(retryCount + 1, maxRetries);
-      }
-      
-      // Give a small delay before each retry attempt after the first
-      if (retryCount > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-      
-      response = await fn();
-      success = true;
-      
-      return { success: true, data: response };
-    } catch (invokeError) {
-      console.error('❌ Exception during operation:', invokeError);
-      lastError = invokeError;
-      retryCount++;
-      
-      if (retryCount >= maxRetries) {
-        break;
-      }
-      
-      console.log(`Retrying in 1 second... (attempt ${retryCount + 1})`);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait before retry
-    }
-  }
-  
-  // After all retries, check if we were successful
-  if (!success) {
-    console.error('❌ All retry attempts failed:', lastError);
-    toast.dismiss(toastId);
-    toast.error(`Failed to update KYC verification after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`, {
-      duration: 5000
-    });
-    return { success: false };
-  }
-  
-  return { success: true, data: response };
-}

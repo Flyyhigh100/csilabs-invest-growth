@@ -26,6 +26,9 @@ interface KycDetailModalProps {
     supabaseTriggered: boolean;
     supabaseResponse: any | null;
     error: string | null;
+    retryAttempts?: number;
+    currentRetry?: number | null;
+    adminPermissionStatus?: 'verified' | 'failed' | 'checking' | null;
   };
 }
 
@@ -46,20 +49,36 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
   const [activeTab, setActiveTab] = useState<string>('info');
   const [activeAction, setActiveAction] = useState<string | null>(null);
   
-  // Reset fields when modal opens with a new KYC
+  // Reset form state when the modal closes or when a new KYC is selected
   useEffect(() => {
     if (open && selectedKyc) {
-      // Reset form state when opening with a new KYC
       setRejectionReason('');
       setClarificationMessage('');
       setActiveAction(null);
     }
   }, [open, selectedKyc?.id, setRejectionReason, setClarificationMessage]);
+  
+  // Reset action panel if the operation succeeds or fails
+  useEffect(() => {
+    if (!isPending && debugInfo?.supabaseResponse?.success) {
+      setActiveAction(null);
+    }
+  }, [isPending, debugInfo?.supabaseResponse?.success]);
 
   if (!selectedKyc) return null;
+  
+  // Handle closing modal - ensure we reset state if the modal is closed
+  const handleOpenChange = (newOpenState: boolean) => {
+    if (!newOpenState) {
+      setActiveAction(null);
+      setRejectionReason('');
+      setClarificationMessage('');
+    }
+    onOpenChange(newOpenState);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>KYC Verification Details</DialogTitle>

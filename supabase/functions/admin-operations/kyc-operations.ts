@@ -12,6 +12,11 @@ export const kycOperations = {
       throw new Error("Invalid status. Must be one of: approved, rejected, needs_clarification");
     }
     
+    // Validate rejection reason is provided when status is 'rejected'
+    if (status === 'rejected' && !rejectionReason) {
+      throw new Error("Rejection reason is required when rejecting a KYC verification");
+    }
+    
     // Double-check admin permissions explicitly with detailed error handling
     try {
       // Special case for chris.d.conley@gmail.com - always grant access
@@ -59,8 +64,6 @@ export const kycOperations = {
       console.log("Continuing despite access verification error");
     }
     
-    console.log(`Current KYC status before update: ${status}`);
-    
     // Define update data with appropriate type casting for timestamp fields
     const updateData = {
       status,
@@ -86,7 +89,6 @@ export const kycOperations = {
     
     // Log the operation and data for debugging
     console.log("Admin processing KYC verification with update data:", updateData);
-    console.log("Using admin client:", !!adminClient);
     
     try {
       // First, fetch the current KYC record to verify it exists
