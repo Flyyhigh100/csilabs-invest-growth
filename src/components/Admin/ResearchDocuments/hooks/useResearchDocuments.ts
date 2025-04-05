@@ -86,6 +86,7 @@ export const useResearchDocuments = () => {
     bucketName,
     availableBuckets,
     loadDocumentsFromFile,
-    addDocument
+    addDocument,
+    checkResearchBucket  // Make sure this function is included in the returned object
   };
 };
