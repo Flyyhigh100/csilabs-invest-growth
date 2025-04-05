@@ -32,7 +32,7 @@ export const useResearchDocuments = () => {
     setError
   );
 
-  // Load documents when the hook is first called
+  // Load documents when the hook is first called - with empty dependency array to run only once
   useEffect(() => {
     fetchDocumentsFromStorage();
   }, [fetchDocumentsFromStorage]);

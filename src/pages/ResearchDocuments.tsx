@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+
+import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import FadeInSection from '@/components/FadeInSection';
@@ -19,10 +20,9 @@ const ResearchDocuments: React.FC = () => {
     refreshDocuments
   } = useResearchDocuments();
 
-  useEffect(() => {
-    refreshDocuments();
-  }, [refreshDocuments]);
-
+  // This was causing an infinite loop - removed the call to refreshDocuments from here
+  // The useResearchDocuments hook already fetches documents on mount
+  
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <Navbar />
