@@ -20,6 +20,12 @@ export const processKycVerification = async (
       return false;
     }
     
+    // Pre-validate required fields based on status
+    if (status === 'rejected' && (!message || !message.trim())) {
+      toast.error('Rejection reason is required');
+      return false;
+    }
+    
     // Add debug toast to track the start of the process with a unique ID
     const toastId = `process-kyc-${kycId}-${Date.now()}`;
     toast.loading(`Processing KYC verification (${status})...`, {

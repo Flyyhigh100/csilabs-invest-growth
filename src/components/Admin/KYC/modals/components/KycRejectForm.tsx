@@ -19,6 +19,16 @@ const KycRejectForm: React.FC<KycRejectFormProps> = ({
   // Handle keyboard submission (Ctrl/Cmd + Enter)
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && rejectionReason.trim()) {
+      e.preventDefault(); // Prevent any default behavior
+      if (!isPending) {
+        onReject();
+      }
+    }
+  };
+
+  const handleRejectClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (rejectionReason.trim() && !isPending) {
       onReject();
     }
   };
@@ -44,8 +54,9 @@ const KycRejectForm: React.FC<KycRejectFormProps> = ({
       <div className="flex justify-end mt-3">
         <Button 
           variant="destructive"
-          onClick={onReject}
+          onClick={handleRejectClick}
           disabled={isPending || !rejectionReason.trim()}
+          type="button"
         >
           {isPending ? (
             <>
