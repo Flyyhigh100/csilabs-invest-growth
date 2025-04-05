@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -6,7 +5,7 @@ import FadeInSection from '@/components/FadeInSection';
 import DocumentsGrid from '@/components/ResearchDocuments/DocumentsGrid';
 import DocumentViewer from '@/components/ResearchDocuments/DocumentViewer';
 import CategoryFilter from '@/components/ResearchDocuments/CategoryFilter';
-import { useResearchDocuments } from '@/hooks/useResearchDocuments';
+import { useResearchDocuments } from '@/hooks/research/useResearchDocuments';
 
 const ResearchDocuments: React.FC = () => {
   const {
@@ -20,7 +19,6 @@ const ResearchDocuments: React.FC = () => {
     refreshDocuments
   } = useResearchDocuments();
 
-  // Refresh documents when the page loads
   useEffect(() => {
     refreshDocuments();
   }, [refreshDocuments]);
