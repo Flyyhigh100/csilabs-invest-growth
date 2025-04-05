@@ -1,6 +1,9 @@
 
 import { KycProvider, useKycContext } from './KycContext';
-import KycVerifications from './Dashboard';
+import KycVerificationsDashboard from './Dashboard';
 
+// Export the context and hooks
 export { KycProvider, useKycContext };
-export default KycVerifications;
+
+// Export the main component as default
+export default KycVerificationsDashboard;
