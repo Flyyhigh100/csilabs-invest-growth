@@ -58,21 +58,26 @@ export const useResearchDocuments = () => {
           .from(bucketName)
           .getPublicUrl(file.name);
           
-        // Try to extract metadata
-        let title = file.name.split('.')[0];
+        // Try to extract metadata from filename or parameters
+        let title = file.name.split('.')[0].split('-').slice(1).join(' ');
         let category = "Research";
         let description = `Research document: ${title}`;
         let publishDate = new Date().toLocaleDateString();
         let authors = "";
         
-        // If the file has metadata
-        if (file.metadata && typeof file.metadata === 'object') {
-          const meta = file.metadata as any;
-          title = meta.title || title;
-          category = meta.category || category;
-          description = meta.description || description;
-          publishDate = meta.publishDate || publishDate;
-          authors = meta.authors || authors;
+        // Parse file name for metadata, looking for URL-style parameters
+        const fileNameParts = file.name.split('?');
+        if (fileNameParts.length > 1) {
+          try {
+            const params = new URLSearchParams(fileNameParts[1]);
+            title = params.get('title') || title;
+            category = params.get('category') || category;
+            description = params.get('description') || description;
+            publishDate = params.get('publishDate') || publishDate;
+            authors = params.get('authors') || authors;
+          } catch (e) {
+            console.log("Could not parse metadata from filename");
+          }
         }
         
         return {
