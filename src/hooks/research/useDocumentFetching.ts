@@ -68,14 +68,21 @@ export const useDocumentFetching = (
 
   // Fetch documents from Supabase storage
   const fetchDocumentsFromStorage = useCallback(async () => {
+    // First, try to load from local storage cache immediately
+    const cachedDocs = loadFromCache();
+    if (cachedDocs && cachedDocs.length > 0) {
+      console.log('Using cached documents:', cachedDocs.length);
+      setDocuments(cachedDocs);
+      setIsLoading(false);
+      
+      // Fetch fresh docs in background
+      refreshInBackground();
+      return;
+    }
+    
+    // No cache available, show loading state and fetch
     setIsLoading(true);
     try {
-      // First, try to load from local storage (cache)
-      const cachedDocs = loadFromCache();
-      if (cachedDocs) {
-        setDocuments(cachedDocs);
-      }
-      
       // Fetch the list of files from the storage bucket
       const { data: files, error: filesError } = await supabase
         .storage
@@ -84,10 +91,7 @@ export const useDocumentFetching = (
         
       if (filesError) {
         console.error('Error fetching files:', filesError);
-        if (!cachedDocs) {
-          // If no cache and error, use fallback
-          setDocuments(fallbackDocuments);
-        }
+        setDocuments(fallbackDocuments);
         throw new Error(filesError.message);
       }
 
@@ -140,10 +144,7 @@ export const useDocumentFetching = (
       setError(err.message);
       
       // If we haven't set documents yet, use fallbacks
-      const cachedDocs = loadFromCache();
-      if (!cachedDocs) {
-        setDocuments(fallbackDocuments);
-      }
+      setDocuments(fallbackDocuments);
     } finally {
       setIsLoading(false);
     }
@@ -157,6 +158,53 @@ export const useDocumentFetching = (
     parseFileMetadata,
     sortDocumentsByDate,
     fallbackDocuments
+  ]);
+
+  // Background refresh function that doesn't set loading state
+  const refreshInBackground = useCallback(async () => {
+    try {
+      const { data: files, error: filesError } = await supabase
+        .storage
+        .from('research_documents')
+        .list();
+        
+      if (filesError || !files || files.length === 0) {
+        return; // Just return silently as this is a background refresh
+      }
+
+      // Process files as before but without loading states
+      const documentsList = await Promise.all(files.map(async (file) => {
+        const fileName = file.name;
+        const { data: urlData } = supabase.storage.from('research_documents').getPublicUrl(fileName);
+        const baseFileName = getBaseFilename(fileName);
+        const metadata = parseFileMetadata(fileName, baseFileName);
+        
+        return {
+          id: `doc-${fileName}`,
+          title: metadata.title,
+          description: metadata.description,
+          category: metadata.category,
+          pdfUrl: urlData.publicUrl,
+          publishDate: metadata.publishDate,
+          authors: metadata.authors
+        } as ResearchDocument;
+      }));
+      
+      if (documentsList.length > 0) {
+        const sortedDocs = sortDocumentsByDate(documentsList);
+        saveToCache(sortedDocs);
+        setDocuments(sortedDocs);
+      }
+    } catch (err) {
+      console.error('Background refresh error:', err);
+      // Don't set error state as this is a background operation
+    }
+  }, [
+    getBaseFilename,
+    parseFileMetadata,
+    saveToCache,
+    setDocuments,
+    sortDocumentsByDate
   ]);
 
   return { fetchDocumentsFromStorage };

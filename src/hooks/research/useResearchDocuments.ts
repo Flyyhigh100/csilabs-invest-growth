@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useResearchState } from './useResearchState';
 import { useDocumentFetching } from './useDocumentFetching';
 import { useDocumentRefresh } from './useDocumentRefresh';
@@ -31,10 +31,16 @@ export const useResearchDocuments = () => {
     setIsLoading,
     setError
   );
+  
+  // Add a initialization flag to ensure we only fetch once
+  const initialized = useRef(false);
 
   // Load documents when the hook is first called - with empty dependency array to run only once
   useEffect(() => {
-    fetchDocumentsFromStorage();
+    if (!initialized.current) {
+      initialized.current = true;
+      fetchDocumentsFromStorage();
+    }
   }, [fetchDocumentsFromStorage]);
 
   return {

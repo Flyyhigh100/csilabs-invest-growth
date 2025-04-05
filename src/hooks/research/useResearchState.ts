@@ -1,9 +1,11 @@
 
 import { useState } from 'react';
 import { ResearchDocument } from '@/components/Admin/ResearchDocuments/types/documentTypes';
+import { useFallbackDocuments } from './useFallbackDocuments';
 
 export const useResearchState = () => {
-  const [documents, setDocuments] = useState<ResearchDocument[]>([]);
+  const fallbackDocs = useFallbackDocuments();
+  const [documents, setDocuments] = useState<ResearchDocument[]>(fallbackDocs);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
