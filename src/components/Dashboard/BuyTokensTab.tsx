@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -22,6 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { KycRequirementAlert } from './KycStatusAlerts';
 
 interface BuyTokensTabProps {
   walletAddress: string | null;
@@ -46,68 +46,10 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
 
   // Check if KYC is needed based on amount and is not approved
   const isKycNeeded = kycRequired(amount) && kycData?.status !== 'approved';
-  const isKycPending = kycData?.status === 'pending';
-  const isKycRejected = kycData?.status === 'rejected';
 
-  const renderWalletAlert = () => {
-    if (!walletAddress) {
-      return (
-        <Alert className="mb-6 bg-red-50 border-red-200">
-          <AlertTriangle className="h-5 w-5 text-red-500" />
-          <AlertTitle className="text-red-700 font-medium">Wallet Address Required</AlertTitle>
-          <AlertDescription className="text-red-600">
-            Please add your Polygon wallet address above before proceeding with payment.
-            <br />
-            <span className="text-sm font-medium">Your tokens will be sent to this address after purchase.</span>
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    return null;
-  };
-
-  const renderKycAlert = () => {
-    if (amount >= 3001) {
-      if (isKycPending) {
-        return (
-          <Alert className="mb-4 bg-amber-50 border-amber-300">
-            <AlertTriangle className="h-5 w-5 text-amber-600" />
-            <AlertTitle className="text-amber-800">KYC Verification In Progress</AlertTitle>
-            <AlertDescription className="text-amber-700">
-              Your KYC verification is being reviewed. Crypto payments of $3,001 or more will be available once verification is approved.
-            </AlertDescription>
-          </Alert>
-        );
-      } else if (isKycRejected) {
-        return (
-          <Alert className="mb-4 bg-red-50 border-red-300">
-            <AlertTriangle className="h-5 w-5 text-red-600" />
-            <AlertTitle className="text-red-800">KYC Verification Rejected</AlertTitle>
-            <AlertDescription className="text-red-700">
-              Your KYC verification was rejected. Please try again with valid documents to process crypto payments of $3,001 or more.
-              <Button asChild variant="link" className="p-0 ml-2 text-red-700 font-medium">
-                <Link to="/dashboard/kyc">Verify Now</Link>
-              </Button>
-            </AlertDescription>
-          </Alert>
-        );
-      } else if (!kycData?.status || kycData?.status === 'not_started' || kycData?.status === 'needs_clarification') {
-        return (
-          <Alert className="mb-4 bg-amber-50 border-amber-300">
-            <AlertTriangle className="h-5 w-5 text-amber-600" />
-            <AlertTitle className="text-amber-800">KYC Verification Required</AlertTitle>
-            <AlertDescription className="text-amber-700">
-              Crypto payments of $3,001 or more require KYC verification for regulatory compliance.
-              <Button asChild variant="link" className="p-0 ml-2 text-amber-700 font-medium">
-                <Link to="/dashboard/kyc">Verify Now</Link>
-              </Button>
-            </AlertDescription>
-          </Alert>
-        );
-      }
-    }
-    return null;
-  };
+  const renderKycAlert = () => (
+    <KycRequirementAlert amount={amount} kycData={kycData} />
+  );
 
   const handleCoinPaymentWithCurrency = () => {
     handleCoinPaymentsPayment(amount, selectedCurrency);
@@ -158,8 +100,6 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
       </CardHeader>
       
       <CardContent className="space-y-6 rounded-sm pb-8">
-        {renderWalletAlert()}
-        
         {walletAddress && (
           <>
             <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 mb-6">

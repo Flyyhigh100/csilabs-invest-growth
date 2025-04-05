@@ -15,12 +15,16 @@ import SellTokensTab from '@/components/Dashboard/SellTokensTab';
 import KycWarning from '@/components/Dashboard/KycWarning';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import PaymentInfoCard from '@/components/Dashboard/PaymentInfoCard';
+import KycStatusAlerts, { KycRequirementAlert } from '@/components/Dashboard/KycStatusAlerts';
+import WalletRequiredAlert from '@/components/Dashboard/WalletRequiredAlert';
 
 const Payments = () => {
   const { kycData } = useKycVerification();
@@ -31,9 +35,7 @@ const Payments = () => {
   const [searchParams] = useSearchParams();
   const [showInfoCard, setShowInfoCard] = useState(true);
   
-  const isKycPending = kycData?.status === 'pending';
   const isKycApproved = kycData?.status === 'approved';
-  const isKycRejected = kycData?.status === 'rejected';
   // For testing purposes - we're allowing payments even without KYC approval
   const allowPaymentsWithoutKYC = true;
   
@@ -97,46 +99,16 @@ const Payments = () => {
         <KycWarning />
       ) : (
         <>
-          {showInfoCard && (
-            <Card className="mb-6 bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200 shadow-sm">
-              <CardContent className="p-4 md:p-6">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-                  <div>
-                    <h3 className="text-lg font-medium text-cbis-blue mb-2">Welcome to CSi Token Purchases</h3>
-                    <p className="text-sm text-blue-700">
-                      Follow these steps to purchase CSi tokens:
-                    </p>
-                    <ol className="text-sm text-blue-600 mt-2 list-decimal pl-5 space-y-2">
-                      <li className="pl-1">Add your Polygon wallet address below</li>
-                      <li className="pl-1">Choose the amount you wish to invest</li>
-                      <li className="pl-1">Select your preferred payment method</li>
-                      <li className="pl-1">Complete the transaction</li>
-                    </ol>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    className="text-blue-600 hover:text-blue-700 mt-3 md:mt-0"
-                    onClick={() => setShowInfoCard(false)}
-                  >
-                    Dismiss
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <PaymentInfoCard 
+            showInfoCard={showInfoCard} 
+            setShowInfoCard={setShowInfoCard} 
+          />
 
-          {!isKycApproved && allowPaymentsWithoutKYC && (
-            <Alert className="mb-6 bg-amber-50 text-amber-800 border-amber-200">
-              <Info className="h-5 w-5" />
-              <AlertTitle>Test Mode Active</AlertTitle>
-              <AlertDescription>
-                Normally, KYC verification would be required before high-value crypto payments. This is currently in test mode allowing payments without verification.
-                {!kycData?.status && " We recommend completing verification in the KYC section."}
-                {isKycPending && " Your verification is currently being reviewed."}
-                {isKycRejected && " Your verification was rejected. Please try again with valid documents."}
-              </AlertDescription>
-            </Alert>
-          )}
+          <KycStatusAlerts 
+            kycData={kycData} 
+            amount={0} 
+            allowPaymentsWithoutKYC={allowPaymentsWithoutKYC} 
+          />
           
           <div className="space-y-8">
             <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
@@ -200,10 +172,12 @@ const Payments = () => {
                   </TabsList>
                   
                   <TabsContent value="buy" className="mt-0">
+                    <WalletRequiredAlert walletAddress={walletAddress} />
                     <BuyTokensTab walletAddress={walletAddress} />
                   </TabsContent>
                   
                   <TabsContent value="sell" className="mt-0">
+                    <WalletRequiredAlert walletAddress={walletAddress} />
                     <SellTokensTab walletAddress={walletAddress} />
                   </TabsContent>
                 </Tabs>
