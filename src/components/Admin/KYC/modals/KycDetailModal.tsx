@@ -7,56 +7,51 @@ import {
 import { KycVerificationWithProfile } from '../types';
 import KycModalTabs from './KycModalTabs';
 import KycActionPanel from './KycActionPanel';
+import { useKycActionHandlers } from '../hooks/useKycActionHandlers';
 
 interface KycDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedKyc: KycVerificationWithProfile | null;
-  rejectionReason: string;
-  setRejectionReason: (reason: string) => void;
-  clarificationMessage: string;
-  setClarificationMessage: (message: string) => void;
-  onApprove: () => void;
-  onReject: () => void;
-  onRequestClarification: () => void;
-  isPending: boolean;
-  debugInfo?: {
-    lastActionType: string | null;
-    lastActionTimestamp: string | null;
-    supabaseTriggered: boolean;
-    supabaseResponse: any | null;
-    error: string | null;
-    retryAttempts?: number;
-    currentRetry?: number | null;
-    adminPermissionStatus?: 'verified' | 'failed' | 'checking' | null;
-  };
 }
 
 const KycDetailModal: React.FC<KycDetailModalProps> = ({
   open,
   onOpenChange,
-  selectedKyc,
-  rejectionReason,
-  setRejectionReason,
-  clarificationMessage,
-  setClarificationMessage,
-  onApprove,
-  onReject,
-  onRequestClarification,
-  isPending,
-  debugInfo
+  selectedKyc
 }) => {
   const [activeTab, setActiveTab] = useState<string>('info');
   const [activeAction, setActiveAction] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [clarificationMessage, setClarificationMessage] = useState('');
   
+  // Handle modal close
+  const handleCloseModal = () => {
+    setActiveAction(null);
+    setRejectionReason('');
+    setClarificationMessage('');
+    onOpenChange(false);
+  };
+  
+  // Define KYC action handlers
+  const { 
+    handleApprove, 
+    handleReject, 
+    handleRequestClarification, 
+    isPending, 
+    debugInfo,
+    resetDebugInfo
+  } = useKycActionHandlers(handleCloseModal);
+
   // Reset form state when the modal closes or when a new KYC is selected
   useEffect(() => {
     if (open && selectedKyc) {
       setRejectionReason('');
       setClarificationMessage('');
       setActiveAction(null);
+      resetDebugInfo();
     }
-  }, [open, selectedKyc?.id, setRejectionReason, setClarificationMessage]);
+  }, [open, selectedKyc?.id, resetDebugInfo]);
   
   // Reset action panel if the operation succeeds or fails
   useEffect(() => {
@@ -75,6 +70,19 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
       setClarificationMessage('');
     }
     onOpenChange(newOpenState);
+  };
+  
+  // Action handlers
+  const onApprove = () => {
+    handleApprove(selectedKyc);
+  };
+  
+  const onReject = () => {
+    handleReject(selectedKyc, rejectionReason);
+  };
+  
+  const onRequestClarification = () => {
+    handleRequestClarification(selectedKyc, clarificationMessage);
   };
 
   return (
