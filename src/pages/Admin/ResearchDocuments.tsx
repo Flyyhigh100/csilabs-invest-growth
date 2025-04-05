@@ -15,28 +15,38 @@ const AdminResearchDocuments = () => {
     bucketExists,
     bucketName,
     availableBuckets,
+    isAuthenticated,
     loadDocumentsFromFile,
     addDocument,
-    checkResearchBucket
+    checkResearchBucket,
+    checkAuthentication
   } = useResearchDocuments();
 
   // Check authentication status on page load
   useEffect(() => {
     const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
+      const isAuthed = await checkAuthentication();
+      if (!isAuthed) {
         toast.error("You must be logged in to access this page");
       } else {
-        console.log("User authenticated:", data.session.user.email);
+        console.log("User authenticated and ready to use document features");
       }
     };
     
     checkAuth();
-  }, []);
+  }, [checkAuthentication]);
 
   return (
     <AdminLayout title="Manage Research Documents">
       <div className="grid gap-6">
+        {/* Authentication Status */}
+        {!isAuthenticated && (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-md text-amber-800">
+            <h3 className="font-medium mb-1">Authentication Required</h3>
+            <p className="text-sm">You need to be logged in to upload documents and access storage buckets.</p>
+          </div>
+        )}
+        
         {/* Storage Bucket Status Card */}
         <BucketStatusCard 
           bucketExists={bucketExists} 
@@ -50,6 +60,7 @@ const AdminResearchDocuments = () => {
           bucketExists={bucketExists} 
           bucketName={bucketName} 
           onDocumentUploaded={addDocument} 
+          isAuthenticated={isAuthenticated}
         />
         
         {/* Documents List */}

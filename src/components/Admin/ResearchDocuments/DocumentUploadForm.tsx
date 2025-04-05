@@ -16,6 +16,7 @@ interface DocumentUploadFormProps {
   bucketExists: boolean;
   bucketName: string;
   onDocumentUploaded: (newDocument: ResearchDocument) => void;
+  isAuthenticated: boolean;
 }
 
 const formSchema = z.object({
@@ -29,7 +30,8 @@ const formSchema = z.object({
 const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ 
   bucketExists, 
   bucketName, 
-  onDocumentUploaded 
+  onDocumentUploaded,
+  isAuthenticated
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -54,9 +56,15 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
 
   const handleFileSelect = (file: File | null) => {
     setSelectedFile(file);
+    console.log("File selected:", file ? file.name : "No file selected");
   };
 
   const handleSubmit = async (values: DocumentFormValues) => {
+    if (!isAuthenticated) {
+      toast.error("You must be logged in to upload documents");
+      return;
+    }
+    
     if (!selectedFile) {
       toast.error("Please select a PDF file to upload");
       return;
@@ -133,6 +141,9 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
     }
   };
 
+  // Calculate if button should be disabled
+  const isUploadDisabled = !isAuthenticated || !bucketExists || isUploading || !selectedFile;
+
   return (
     <Card>
       <CardHeader>
@@ -146,11 +157,11 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <DocumentMetadataForm 
               form={form} 
-              disabled={!bucketExists || isUploading} 
+              disabled={!isAuthenticated || !bucketExists || isUploading} 
             />
             
             <FileUploader 
-              disabled={!bucketExists || isUploading}
+              disabled={!isAuthenticated || !bucketExists || isUploading}
               onFileSelect={handleFileSelect}
               selectedFile={selectedFile}
             />
@@ -158,8 +169,16 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
             <div className="pt-4">
               <SubmitButton 
                 isUploading={isUploading}
-                disabled={!bucketExists || isUploading || !selectedFile}
+                disabled={isUploadDisabled}
               />
+              
+              {isUploadDisabled && (
+                <p className="text-xs text-gray-500 mt-2">
+                  {!isAuthenticated ? "You must be logged in to upload documents." : 
+                   !bucketExists ? "Storage bucket not available." : 
+                   !selectedFile ? "Please select a file to upload." : ""}
+                </p>
+              )}
             </div>
           </form>
         </Form>

@@ -12,6 +12,22 @@ export const useResearchDocuments = () => {
   const [bucketName] = useState('research_documents');
   const [availableBuckets, setAvailableBuckets] = useState<string[]>([]);
   const [isCheckingBucket, setIsCheckingBucket] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Check authentication status
+  const checkAuthentication = useCallback(async () => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      const isAuthed = !!data.session;
+      setIsAuthenticated(isAuthed);
+      console.log("Authentication check:", isAuthed ? "User is authenticated" : "User is not authenticated");
+      return isAuthed;
+    } catch (error) {
+      console.error("Error checking authentication:", error);
+      setIsAuthenticated(false);
+      return false;
+    }
+  }, []);
 
   // Check if the bucket exists
   const checkResearchBucket = useCallback(async () => {
@@ -22,6 +38,15 @@ export const useResearchDocuments = () => {
     setIsLoading(true);
     
     try {
+      // First check authentication
+      const isAuthed = await checkAuthentication();
+      if (!isAuthed) {
+        console.log("User not authenticated, skipping bucket check");
+        setIsLoading(false);
+        setIsCheckingBucket(false);
+        return;
+      }
+      
       // First check for the exact bucket name
       const exists = await checkBucketExists(bucketName);
       
@@ -56,12 +81,14 @@ export const useResearchDocuments = () => {
       );
       
       if (researchBucket) {
-        setBucketName(researchBucket);
         setBucketExists(true);
         console.log(`Found alternative research bucket: ${researchBucket}`);
       } else {
         setBucketExists(false);
         console.log('No research bucket found. Available buckets:', buckets);
+        
+        // Show explicit error message about missing bucket
+        toast.error("Storage bucket for research documents is not available. Please contact your administrator.");
       }
     } catch (error) {
       console.error("Error checking bucket:", error);
@@ -70,7 +97,7 @@ export const useResearchDocuments = () => {
       setIsLoading(false);
       setIsCheckingBucket(false);
     }
-  }, [bucketName, isCheckingBucket]);
+  }, [bucketName, isCheckingBucket, checkAuthentication]);
 
   // Load documents from file
   const loadDocumentsFromFile = useCallback(async () => {
@@ -102,18 +129,18 @@ export const useResearchDocuments = () => {
   // Add a new document
   const addDocument = useCallback((newDocument: ResearchDocument) => {
     setDocuments(prevDocs => [...prevDocs, newDocument]);
-  }, []);
-
-  // Function to set the bucket name
-  const setBucketName = useCallback((name: string) => {
-    console.log(`Setting bucket name to: ${name}`);
-    // This is intentionally left as a no-op since we're using a fixed bucket name
+    toast.success(`Document "${newDocument.title}" added successfully`);
   }, []);
 
   useEffect(() => {
-    checkResearchBucket();
-    loadDocumentsFromFile();
-  }, [checkResearchBucket, loadDocumentsFromFile]);
+    const init = async () => {
+      await checkAuthentication();
+      await checkResearchBucket();
+      await loadDocumentsFromFile();
+    };
+    
+    init();
+  }, [checkAuthentication, checkResearchBucket, loadDocumentsFromFile]);
 
   return {
     documents,
@@ -121,8 +148,10 @@ export const useResearchDocuments = () => {
     bucketExists,
     bucketName,
     availableBuckets,
+    isAuthenticated,
     loadDocumentsFromFile,
     addDocument,
-    checkResearchBucket
+    checkResearchBucket,
+    checkAuthentication
   };
 };
