@@ -7,7 +7,8 @@ import {
   Users, 
   CheckCircle, 
   FileText,
-  CreditCard
+  CreditCard,
+  BookOpen
 } from 'lucide-react';
 
 interface NavItem {
@@ -41,7 +42,7 @@ export const getAdminNavItems = (): NavItem[] => {
     {
       label: 'Research Documents',
       path: '/admin/research-documents',
-      icon: <FileText size={20} />,
+      icon: <BookOpen size={20} />,
     },
   ];
 };
