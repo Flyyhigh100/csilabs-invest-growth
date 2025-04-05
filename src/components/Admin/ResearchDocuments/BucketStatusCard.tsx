@@ -24,6 +24,7 @@ const BucketStatusCard: React.FC<BucketStatusCardProps> = ({
   const createBucket = async () => {
     try {
       setIsCreating(true);
+      console.log("Attempting to create bucket:", bucketName);
       
       const { data, error } = await supabase
         .storage
@@ -39,7 +40,11 @@ const BucketStatusCard: React.FC<BucketStatusCardProps> = ({
       }
       
       toast.success(`Storage bucket '${bucketName}' created successfully!`);
-      onRefresh(); // Refresh bucket status after creation
+      
+      // Important: Give a slight delay before refreshing to ensure the bucket is registered
+      setTimeout(() => {
+        onRefresh(); // Refresh bucket status after creation
+      }, 500);
     } catch (error: any) {
       toast.error(`Error creating bucket: ${error.message}`);
       console.error("Exception creating bucket:", error);

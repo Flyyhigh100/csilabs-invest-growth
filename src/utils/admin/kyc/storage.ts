@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export const checkBucketExists = async (bucketName: string): Promise<boolean> => {
   try {
+    console.log(`Checking if bucket '${bucketName}' exists...`);
     const { data, error } = await supabase
       .storage
       .getBucket(bucketName);
@@ -15,6 +16,7 @@ export const checkBucketExists = async (bucketName: string): Promise<boolean> =>
       return false;
     }
     
+    console.log(`Bucket check result for '${bucketName}':`, !!data);
     return !!data;
   } catch (error) {
     console.error(`Exception checking bucket ${bucketName}:`, error);
@@ -27,6 +29,7 @@ export const checkBucketExists = async (bucketName: string): Promise<boolean> =>
  */
 export const listAllBuckets = async (): Promise<string[]> => {
   try {
+    console.log('Listing all storage buckets...');
     const { data, error } = await supabase.storage.listBuckets();
     
     if (error) {
