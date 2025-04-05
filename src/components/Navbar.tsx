@@ -40,9 +40,9 @@ const Navbar: React.FC = () => {
           
           <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
             {user ? (
-              <Link to="/dashboard/payments">Buy Tokens</Link>
+              <Link to="/dashboard/payments">Contribute Now</Link>
             ) : (
-              <Link to="/register">Buy Tokens</Link>
+              <Link to="/register">Contribute Now</Link>
             )}
           </Button>
           
@@ -105,9 +105,9 @@ const Navbar: React.FC = () => {
             onClick={() => setIsOpen(false)}
           >
             {user ? (
-              <Link to="/dashboard/payments">Buy Tokens</Link>
+              <Link to="/dashboard/payments">Contribute Now</Link>
             ) : (
-              <Link to="/register">Buy Tokens</Link>
+              <Link to="/register">Contribute Now</Link>
             )}
           </Button>
         </div>

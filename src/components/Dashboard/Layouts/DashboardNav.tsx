@@ -13,7 +13,7 @@ import {
 export const getDashboardNavItems = () => {
   const navItems = [
     { 
-      name: 'Buy Tokens', 
+      name: 'Contribute', 
       href: '/dashboard/payments', 
       icon: <DollarSign className="h-5 w-5" />,
       description: "Purchase CSi tokens with credit card or cryptocurrency"
