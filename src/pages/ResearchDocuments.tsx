@@ -75,8 +75,6 @@ const ResearchDocuments: React.FC = () => {
 
         // Get metadata for each file
         const filePromises = files.map(async (file) => {
-          // The filename should contain metadata in format: title__category__date__authors.pdf
-          // If not properly formatted, extract what we can
           const fileName = file.name;
           
           // Get the public URL
@@ -85,27 +83,32 @@ const ResearchDocuments: React.FC = () => {
             .from('research_documents')
             .getPublicUrl(fileName);
             
-          // Try to extract metadata from filename or use defaults
+          // Default values
           let title = "Untitled Research Document";
           let category = "Research";
           let publishDate = new Date().toLocaleDateString();
           let authors = "";
           let description = "";
           
-          // If the file has metadata in the name (from the admin upload)
-          if (file.metadata && typeof file.metadata === 'object') {
-            const meta = file.metadata as any;
-            title = meta.title || title;
-            category = meta.category || category;
-            publishDate = meta.publishDate || publishDate;
-            authors = meta.authors || authors;
-            description = meta.description || description;
+          // Parse file name for metadata with URL parameters
+          const fileNameParts = fileName.split('?');
+          if (fileNameParts.length > 1) {
+            try {
+              const params = new URLSearchParams(fileNameParts[1]);
+              title = params.get('title') || title;
+              category = params.get('category') || category;
+              description = params.get('description') || description;
+              publishDate = params.get('publishDate') || publishDate;
+              authors = params.get('authors') || authors;
+            } catch (e) {
+              console.log("Could not parse metadata from filename");
+            }
           }
           
           return {
             id: `doc-${fileName}`,
             title,
-            description: description || `${title} - Research document`,
+            description,
             category,
             pdfUrl: urlData.publicUrl,
             publishDate,
@@ -115,13 +118,15 @@ const ResearchDocuments: React.FC = () => {
 
         const documentsList = await Promise.all(filePromises);
         
-        // Combine with fallback documents to ensure we always have some content
-        const combinedDocs = [...documentsList, ...fallbackDocuments];
-        
-        // Cache the results
-        localStorage.setItem('researchDocuments', JSON.stringify(combinedDocs));
-        
-        setDocuments(combinedDocs);
+        // If we have actual documents from storage, don't use fallback documents
+        if (documentsList.length > 0) {
+          // Cache the results
+          localStorage.setItem('researchDocuments', JSON.stringify(documentsList));
+          setDocuments(documentsList);
+        } else {
+          // Only use fallback documents if no actual documents exist
+          setDocuments(fallbackDocuments);
+        }
       } catch (err: any) {
         console.error('Error loading documents:', err);
         setError(err.message);
@@ -207,7 +212,7 @@ const ResearchDocuments: React.FC = () => {
               {filteredDocuments.length > 0 ? (
                 filteredDocuments.map((document) => (
                   <FadeInSection key={document.id} className="h-full">
-                    <Card className="h-full flex flex-col hover:shadow-md transition-shadow">
+                    <Card className="h-full flex flex-col hover:shadow-md transition-shadow border border-gray-100">
                       <CardHeader className="pb-2">
                         <div className="flex items-start justify-between">
                           <div className="bg-blue-50 text-cbis-blue text-xs font-medium px-2.5 py-1 rounded">
@@ -218,7 +223,7 @@ const ResearchDocuments: React.FC = () => {
                         <CardTitle className="mt-3 text-xl leading-tight">{document.title}</CardTitle>
                       </CardHeader>
                       <CardContent className="flex-grow flex flex-col pt-2">
-                        <p className="text-gray-600 mb-6 text-sm flex-grow">
+                        <p className="text-gray-600 mb-6 text-sm flex-grow line-clamp-3">
                           {document.description}
                         </p>
                         {document.authors && (
@@ -253,7 +258,7 @@ const ResearchDocuments: React.FC = () => {
       <Dialog open={!!selectedPdf} onOpenChange={(open) => !open && setSelectedPdf(null)}>
         <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>{selectedPdf?.title}</DialogTitle>
+            <DialogTitle className="text-xl">{selectedPdf?.title}</DialogTitle>
           </DialogHeader>
           <div className="flex-grow h-[70vh]">
             <iframe 

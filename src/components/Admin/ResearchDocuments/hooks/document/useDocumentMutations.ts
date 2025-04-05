@@ -21,18 +21,23 @@ export const useDocumentMutations = (
   // Delete a document
   const deleteDocument = useCallback(async (docId: string) => {
     try {
-      // Extract the filename from the document ID
-      const fileName = docId.replace('doc-', '');
+      // Check if it's one of the fallback documents (which don't exist in storage)
+      const isDefaultDoc = docId.startsWith('doc-') && !docId.includes('?');
       
-      // Delete the file from storage
-      const { error } = await supabase.storage
-        .from(bucketName)
-        .remove([fileName]);
+      if (!isDefaultDoc) {
+        // Extract the filename from the document ID
+        const fileName = docId.replace('doc-', '');
         
-      if (error) {
-        console.error("Error deleting file:", error);
-        toast.error("Failed to delete document");
-        return false;
+        // Delete the file from storage
+        const { error } = await supabase.storage
+          .from(bucketName)
+          .remove([fileName]);
+          
+        if (error) {
+          console.error("Error deleting file:", error);
+          toast.error("Failed to delete document");
+          return false;
+        }
       }
       
       // Update the documents state
@@ -71,67 +76,81 @@ export const useDocumentMutations = (
       metadataParams.append('description', updatedData.description || originalDoc.description);
       metadataParams.append('category', updatedData.category || originalDoc.category);
       metadataParams.append('publishDate', updatedData.publishDate || originalDoc.publishDate);
-      metadataParams.append('authors', updatedData.authors || originalDoc.authors || '');
+      if (updatedData.authors || originalDoc.authors) metadataParams.append('authors', updatedData.authors || originalDoc.authors || '');
       
-      // Since we can't update metadata directly, we need to:
-      // 1. Download the file
-      const { data: fileData, error: downloadError } = await supabase.storage
-        .from(bucketName)
-        .download(fileName);
+      // Check if it's one of the fallback documents (which don't exist in storage)
+      const isDefaultDoc = docId.startsWith('doc-') && !docId.includes('?');
+      
+      let updatedDoc: ResearchDocument;
+      
+      if (isDefaultDoc) {
+        // For default documents, just update the state without touching storage
+        updatedDoc = {
+          ...originalDoc,
+          ...updatedData
+        };
+      } else {
+        // Since we can't update metadata directly, we need to:
+        // 1. Download the file
+        const { data: fileData, error: downloadError } = await supabase.storage
+          .from(bucketName)
+          .download(fileName);
+          
+        if (downloadError) {
+          console.error("Error downloading file:", downloadError);
+          toast.error("Failed to update document metadata");
+          return false;
+        }
         
-      if (downloadError) {
-        console.error("Error downloading file:", downloadError);
-        toast.error("Failed to update document metadata");
-        return false;
+        if (!fileData) {
+          toast.error("Could not download file for update");
+          return false;
+        }
+        
+        // 2. Delete the old file
+        const { error: deleteError } = await supabase.storage
+          .from(bucketName)
+          .remove([fileName]);
+          
+        if (deleteError) {
+          console.error("Error deleting file:", deleteError);
+          toast.error("Failed to update document metadata");
+          return false;
+        }
+        
+        // 3. Re-upload with updated metadata in the filename
+        // Split the filename to get the base and extension
+        const baseFileName = fileName.split('?')[0];
+        const fileExt = baseFileName.split('.').pop() || 'pdf';
+        const newFileName = `${baseFileName.split('.')[0]}.${fileExt}?${metadataParams.toString()}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from(bucketName)
+          .upload(newFileName, fileData, {
+            contentType: `application/${fileExt}`,
+            upsert: true
+          });
+          
+        if (uploadError) {
+          console.error("Error re-uploading file:", uploadError);
+          toast.error("Failed to update document metadata");
+          return false;
+        }
+        
+        // Get the public URL of the updated file
+        const { data: urlData } = supabase.storage
+          .from(bucketName)
+          .getPublicUrl(newFileName);
+          
+        // Create the updated document
+        updatedDoc = {
+          ...originalDoc,
+          ...updatedData,
+          pdfUrl: urlData.publicUrl
+        };
       }
       
-      if (!fileData) {
-        toast.error("Could not download file for update");
-        return false;
-      }
-      
-      // 2. Delete the old file
-      const { error: deleteError } = await supabase.storage
-        .from(bucketName)
-        .remove([fileName]);
-        
-      if (deleteError) {
-        console.error("Error deleting file:", deleteError);
-        toast.error("Failed to update document metadata");
-        return false;
-      }
-      
-      // 3. Re-upload with updated metadata in the filename
-      // Split the filename to get the base and extension
-      const baseFileName = fileName.split('?')[0];
-      const fileExt = baseFileName.split('.').pop() || 'pdf';
-      const newFileName = `${baseFileName.split('.')[0]}.${fileExt}?${metadataParams.toString()}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from(bucketName)
-        .upload(newFileName, fileData, {
-          contentType: `application/${fileExt}`,
-          upsert: true
-        });
-        
-      if (uploadError) {
-        console.error("Error re-uploading file:", uploadError);
-        toast.error("Failed to update document metadata");
-        return false;
-      }
-      
-      // Get the public URL of the updated file
-      const { data: urlData } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(newFileName);
-        
       // 4. Update the document in state
-      const updatedDoc = {
-        ...originalDoc,
-        ...updatedData,
-        pdfUrl: urlData.publicUrl
-      };
-      
       const newDocs = [...documents];
       newDocs[docIndex] = updatedDoc;
       setDocuments(newDocs);
