@@ -3,29 +3,19 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { FilePlus2, Upload, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form } from '@/components/ui/form';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import FileUploader from './components/FileUploader';
+import DocumentMetadataForm from './components/DocumentMetadataForm';
+import SubmitButton from './components/SubmitButton';
+import { ResearchDocument, DocumentFormValues } from './types/documentTypes';
 
 interface DocumentUploadFormProps {
   bucketExists: boolean;
   bucketName: string;
   onDocumentUploaded: (newDocument: ResearchDocument) => void;
-}
-
-export interface ResearchDocument {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  pdfUrl: string;
-  publishDate: string;
-  authors?: string;
 }
 
 const formSchema = z.object({
@@ -55,20 +45,18 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
     },
   });
 
-  // Reset the form when bucket status changes (necessary for re-enabling form after bucket creation)
+  // Reset the form when bucket status changes
   useEffect(() => {
     if (bucketExists) {
       form.reset(form.getValues());
     }
   }, [bucketExists, form]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
+  const handleFileSelect = (file: File | null) => {
     setSelectedFile(file);
-    console.log("File selected:", file);
   };
 
-  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
+  const handleSubmit = async (values: DocumentFormValues) => {
     if (!selectedFile) {
       toast.error("Please select a PDF file to upload");
       return;
@@ -156,133 +144,22 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Document Title</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter document title" {...field} disabled={!bucketExists || isUploading} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+            <DocumentMetadataForm 
+              form={form} 
+              disabled={!bucketExists || isUploading} 
             />
             
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Enter a brief description of the document" 
-                      className="resize-none min-h-[80px]" 
-                      {...field}
-                      disabled={!bucketExists || isUploading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+            <FileUploader 
+              disabled={!bucketExists || isUploading}
+              onFileSelect={handleFileSelect}
+              selectedFile={selectedFile}
             />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Clinical Research, Patents" {...field} disabled={!bucketExists || isUploading} />
-                    </FormControl>
-                    <FormDescription>
-                      Documents are grouped by category
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="publishDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Publication Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} disabled={!bucketExists || isUploading} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <FormField
-              control={form.control}
-              name="authors"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Authors (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. CSi Labs Research Team" {...field} disabled={!bucketExists || isUploading} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className={`border border-dashed rounded-md p-6 ${!bucketExists ? 'opacity-60' : ''}`}>
-              <div className="flex items-center gap-4">
-                <label 
-                  htmlFor="file-upload" 
-                  className={`cursor-pointer flex items-center justify-center w-full h-full ${!bucketExists ? 'pointer-events-none' : ''}`}
-                >
-                  <div className="flex flex-col items-center gap-2 text-center">
-                    <Upload className={`${selectedFile ? 'text-green-500' : 'text-gray-400'} h-8 w-8`} />
-                    <div className="font-medium">
-                      {selectedFile ? selectedFile.name : 'Select PDF file'}
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      {selectedFile 
-                        ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` 
-                        : 'Click to browse or drag and drop'}
-                    </p>
-                  </div>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    className="hidden"
-                    accept="application/pdf"
-                    onChange={handleFileChange}
-                    disabled={!bucketExists || isUploading}
-                  />
-                </label>
-              </div>
-            </div>
 
             <div className="pt-4">
-              <Button 
-                type="submit" 
-                className="w-full sm:w-auto bg-cbis-blue hover:bg-cbis-blue/90"
+              <SubmitButton 
+                isUploading={isUploading}
                 disabled={!bucketExists || isUploading || !selectedFile}
-              >
-                {isUploading ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <FilePlus2 className="mr-2 h-4 w-4" />
-                    Upload Document
-                  </>
-                )}
-              </Button>
+              />
             </div>
           </form>
         </Form>
