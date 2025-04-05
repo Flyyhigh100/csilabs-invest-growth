@@ -23,13 +23,19 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
   const { kycData } = useKycVerification();
 
   const validatePaymentRequest = (amount: number, isCrypto: boolean = false): boolean => {
+    // Validate wallet address
     if (!walletAddress) {
-      toast.error("Please add a wallet address before proceeding with payment");
+      toast.error("Please add a wallet address before proceeding with payment", {
+        description: "Your tokens will be sent to this address after purchase."
+      });
       return false;
     }
     
+    // Validate amount
     if (!amount || amount <= 0) {
-      toast.error("Please enter a valid amount");
+      toast.error("Please enter a valid amount", {
+        description: "The amount must be greater than zero."
+      });
       return false;
     }
 
@@ -37,7 +43,9 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
     if (isCrypto && amount >= 3001) {
       // Check if KYC is approved
       if (kycData?.status !== 'approved') {
-        toast.error("KYC verification is required for crypto payments of $3,001 or more. Please complete verification first.");
+        toast.error("KYC verification required", {
+          description: "Crypto payments of $3,001 or more require KYC verification. Please complete verification first."
+        });
         return false;
       }
     }
@@ -51,25 +59,37 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
     setIsProcessing(true);
     
     try {
+      toast.info("Preparing payment session...", {
+        id: "stripe-preparing"
+      });
+      
       const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
         body: { amount, walletAddress }
       });
       
       if (error) {
         console.error("Stripe checkout error:", error);
+        toast.dismiss("stripe-preparing");
         throw new Error(error.message || "Failed to create payment session");
       }
       
       if (data?.url) {
-        toast.info("Redirecting to Stripe checkout...");
+        toast.dismiss("stripe-preparing");
+        toast.info("Redirecting to Stripe checkout...", {
+          description: "You will be redirected to complete your payment securely."
+        });
+        
         // Redirect to Stripe checkout
         window.location.href = data.url;
       } else {
+        toast.dismiss("stripe-preparing");
         throw new Error("No checkout URL received");
       }
     } catch (error: any) {
       console.error("Error creating Stripe checkout:", error);
-      toast.error(error.message || "Failed to create payment session. Please try again.");
+      toast.error("Payment session failed", {
+        description: error.message || "Please try again or contact support."
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -82,11 +102,18 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
     setIsProcessing(true);
     
     try {
+      toast.info("Creating crypto payment...", {
+        id: "crypto-preparing",
+        description: `Preparing ${currency} payment session.`
+      });
+      
       console.log(`Creating CoinPayments payment with currency: ${currency}`);
       
       const { data, error } = await supabase.functions.invoke('create-coinpayments-payment', {
         body: { amount, walletAddress, currency }
       });
+      
+      toast.dismiss("crypto-preparing");
       
       if (error) {
         console.error("CoinPayments error:", error);
@@ -110,10 +137,14 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
       });
       
       setShowCryptoDialog(true);
-      toast.success("CoinPayments transaction created");
+      toast.success("Payment instructions ready", {
+        description: `Please follow the instructions to complete your ${currency} payment.`
+      });
     } catch (error: any) {
       console.error("Error creating CoinPayments transaction:", error);
-      toast.error(error.message || "Failed to create CoinPayments transaction. Please try again.");
+      toast.error("Crypto payment failed", {
+        description: error.message || "Unable to create payment request. Please try again."
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -126,9 +157,15 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
     setIsProcessing(true);
     
     try {
+      toast.info("Creating crypto payment...", {
+        id: "direct-crypto-preparing"
+      });
+      
       const { data, error } = await supabase.functions.invoke('create-crypto-payment', {
         body: { amount, walletAddress }
       });
+      
+      toast.dismiss("direct-crypto-preparing");
       
       if (error) {
         console.error("Crypto payment error:", error);
@@ -148,10 +185,14 @@ export const usePaymentHandlers = (walletAddress: string | null) => {
       });
       
       setShowCryptoDialog(true);
-      toast.success("Crypto payment request created");
+      toast.success("Payment instructions ready", {
+        description: "Please follow the instructions to complete your USDC payment."
+      });
     } catch (error: any) {
       console.error("Error creating crypto payment:", error);
-      toast.error(error.message || "Failed to create crypto payment. Please try again.");
+      toast.error("Crypto payment failed", {
+        description: error.message || "Unable to create payment request. Please try again."
+      });
     } finally {
       setIsProcessing(false);
     }

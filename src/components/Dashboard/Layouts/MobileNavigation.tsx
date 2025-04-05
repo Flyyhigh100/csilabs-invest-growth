@@ -5,12 +5,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
-import { Menu, X, LogOut, Loader2, ShieldCheck } from 'lucide-react';
+import { Menu, X, LogOut, Loader2, ShieldCheck, Info } from 'lucide-react';
 
 interface NavItem {
   name: string;
   href: string;
   icon: React.ReactNode;
+  description?: string;
 }
 
 interface MobileNavigationProps {
@@ -47,9 +48,9 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
             <Menu className="h-6 w-6" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="right" className="w-[280px] sm:w-[350px]">
+        <SheetContent side="right" className="w-[280px] sm:w-[350px] p-0">
           <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between py-4">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="" alt={email || "User"} />
@@ -65,17 +66,29 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 <X className="h-5 w-5" />
               </Button>
             </div>
-            <Separator />
-            <nav className="flex flex-col gap-1 py-4">
+            
+            <div className="px-4 py-3 bg-blue-50">
+              <div className="flex items-center gap-1.5 text-xs text-blue-700">
+                <Info className="h-3 w-3" />
+                <span>Main Navigation</span>
+              </div>
+            </div>
+            
+            <nav className="flex flex-col gap-1 py-2 px-2">
               {navItems.map((item) => (
                 <Link
                   key={item.name}
                   to={item.href}
-                  className="flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-gray-100"
+                  className="flex flex-col px-3 py-2 rounded-md hover:bg-gray-100"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {item.icon}
-                  {item.name}
+                  <div className="flex items-center gap-3">
+                    <div className="text-cbis-blue">{item.icon}</div>
+                    <span className="font-medium">{item.name}</span>
+                  </div>
+                  {item.description && (
+                    <span className="text-xs text-gray-500 ml-8 mt-1">{item.description}</span>
+                  )}
                 </Link>
               ))}
               {isChecking ? (
@@ -86,24 +99,31 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               ) : isAdmin && (
                 <Link
                   to={adminNavItem.href}
-                  className="flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-gray-100 text-cbis-blue font-medium"
+                  className="flex flex-col px-3 py-2 rounded-md hover:bg-gray-100 bg-blue-50/80"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {adminNavItem.icon}
-                  {adminNavItem.name}
+                  <div className="flex items-center gap-3">
+                    <div className="text-cbis-blue">{adminNavItem.icon}</div>
+                    <span className="font-medium text-cbis-blue">{adminNavItem.name}</span>
+                  </div>
+                  {adminNavItem.description && (
+                    <span className="text-xs text-blue-600 ml-8 mt-1">{adminNavItem.description}</span>
+                  )}
                 </Link>
               )}
             </nav>
             <div className="mt-auto">
               <Separator className="mb-4" />
-              <Button 
-                variant="outline" 
-                className="w-full flex items-center gap-2"
-                onClick={handleLogout}
-              >
-                <LogOut className="h-4 w-4" />
-                Sign out
-              </Button>
+              <div className="px-4 pb-4">
+                <Button 
+                  variant="outline" 
+                  className="w-full flex items-center gap-2"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign out
+                </Button>
+              </div>
             </div>
           </div>
         </SheetContent>

@@ -5,11 +5,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Menu, X, LogOut, Loader2, ShieldCheck } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface NavItem {
   name: string;
   href: string;
   icon: React.ReactNode;
+  description?: string;
 }
 
 interface SidebarNavigationProps {
@@ -36,30 +43,51 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
           <h2 className="text-xs font-semibold text-gray-500 uppercase">Main Menu</h2>
         </div>
         <nav className="flex-1 space-y-1 px-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.name}
-              to={item.href}
-              className="group flex items-center gap-3 px-2 py-2 text-sm font-medium rounded-md hover:bg-gray-50 hover:text-cbis-blue"
-            >
-              {item.icon}
-              {item.name}
-            </Link>
-          ))}
+          <TooltipProvider delayDuration={300}>
+            {navItems.map((item) => (
+              <Tooltip key={item.name}>
+                <TooltipTrigger asChild>
+                  <Link
+                    to={item.href}
+                    className="group flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-50 hover:text-cbis-blue transition-colors"
+                  >
+                    <div className="text-gray-500 group-hover:text-cbis-blue">{item.icon}</div>
+                    {item.name}
+                  </Link>
+                </TooltipTrigger>
+                {item.description && (
+                  <TooltipContent side="right" className="max-w-xs">
+                    <p className="text-sm">{item.description}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            ))}
+          </TooltipProvider>
           
           {isChecking ? (
-            <div className="flex items-center gap-3 px-2 py-2 text-sm font-medium rounded-md">
+            <div className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md">
               <Loader2 className="h-5 w-5 animate-spin" />
               Checking admin status...
             </div>
           ) : isAdmin && (
-            <Link
-              to={adminNavItem.href}
-              className="group flex items-center gap-3 px-2 py-2 text-sm font-medium rounded-md bg-blue-50 text-cbis-blue hover:bg-blue-100"
-            >
-              {adminNavItem.icon}
-              {adminNavItem.name}
-            </Link>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    to={adminNavItem.href}
+                    className="group flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md bg-blue-50 text-cbis-blue hover:bg-blue-100"
+                  >
+                    {adminNavItem.icon}
+                    {adminNavItem.name}
+                  </Link>
+                </TooltipTrigger>
+                {adminNavItem.description && (
+                  <TooltipContent side="right">
+                    <p className="text-sm">{adminNavItem.description}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           )}
         </nav>
         <div className="border-t border-gray-200 p-4">
