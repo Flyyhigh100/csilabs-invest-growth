@@ -1,153 +1,23 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import FadeInSection from '@/components/FadeInSection';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { FileText, Download, ExternalLink, ChevronDown, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { ResearchDocument } from '@/components/Admin/ResearchDocuments/types/documentTypes';
-
-// Default/fallback documents in case storage loading fails
-const fallbackDocuments: ResearchDocument[] = [
-  {
-    id: "doc-1",
-    title: "Cannabinoids as Antioxidants and Neuroprotectants",
-    description: "US Patent #6,630,507 details cannabinoids as potent antioxidants with neuroprotective properties, potentially useful for treating oxidative stress-related diseases.",
-    category: "Patents",
-    pdfUrl: "https://upload.wikimedia.org/wikipedia/commons/3/3f/US-PatentTrademarkOffice-Patent6630507.pdf",
-    publishDate: "October 7, 2003",
-    authors: "Hampson et al., US Department of Health and Human Services"
-  },
-  {
-    id: "doc-2",
-    title: "Cannabis and Cannabinoid Research in Cancer",
-    description: "Comprehensive research on the effects of cannabinoids on various cancer cell types and mechanisms of action.",
-    category: "Clinical Research",
-    pdfUrl: "/sample.pdf",
-    publishDate: "March 15, 2022",
-    authors: "CSi Labs Research Team"
-  }
-];
+import DocumentsGrid from '@/components/ResearchDocuments/DocumentsGrid';
+import DocumentViewer from '@/components/ResearchDocuments/DocumentViewer';
+import CategoryFilter from '@/components/ResearchDocuments/CategoryFilter';
+import { useResearchDocuments } from '@/hooks/useResearchDocuments';
 
 const ResearchDocuments: React.FC = () => {
-  const [selectedPdf, setSelectedPdf] = useState<ResearchDocument | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [documents, setDocuments] = useState<ResearchDocument[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch documents from Supabase storage
-  useEffect(() => {
-    const fetchDocuments = async () => {
-      setIsLoading(true);
-      try {
-        // First, try to load from local storage (cache)
-        const cachedDocs = localStorage.getItem('researchDocuments');
-        if (cachedDocs) {
-          setDocuments(JSON.parse(cachedDocs));
-        }
-        
-        // Fetch the list of files from the storage bucket
-        const { data: files, error: filesError } = await supabase
-          .storage
-          .from('research_documents')
-          .list();
-          
-        if (filesError) {
-          console.error('Error fetching files:', filesError);
-          if (!cachedDocs) {
-            // If no cache and error, use fallback
-            setDocuments(fallbackDocuments);
-          }
-          throw new Error(filesError.message);
-        }
-
-        if (!files || files.length === 0) {
-          console.log('No files found in storage, using fallback documents');
-          setDocuments(fallbackDocuments);
-          setIsLoading(false);
-          return;
-        }
-
-        // Get metadata for each file
-        const filePromises = files.map(async (file) => {
-          const fileName = file.name;
-          
-          // Get the public URL
-          const { data: urlData } = supabase
-            .storage
-            .from('research_documents')
-            .getPublicUrl(fileName);
-            
-          // Default values
-          let title = "Untitled Research Document";
-          let category = "Research";
-          let publishDate = new Date().toLocaleDateString();
-          let authors = "";
-          let description = "";
-          
-          // Parse file name for metadata with URL parameters
-          const fileNameParts = fileName.split('?');
-          if (fileNameParts.length > 1) {
-            try {
-              const params = new URLSearchParams(fileNameParts[1]);
-              title = params.get('title') || title;
-              category = params.get('category') || category;
-              description = params.get('description') || description;
-              publishDate = params.get('publishDate') || publishDate;
-              authors = params.get('authors') || authors;
-            } catch (e) {
-              console.log("Could not parse metadata from filename");
-            }
-          }
-          
-          return {
-            id: `doc-${fileName}`,
-            title,
-            description,
-            category,
-            pdfUrl: urlData.publicUrl,
-            publishDate,
-            authors
-          } as ResearchDocument;
-        });
-
-        const documentsList = await Promise.all(filePromises);
-        
-        // If we have actual documents from storage, don't use fallback documents
-        if (documentsList.length > 0) {
-          // Cache the results
-          localStorage.setItem('researchDocuments', JSON.stringify(documentsList));
-          setDocuments(documentsList);
-        } else {
-          // Only use fallback documents if no actual documents exist
-          setDocuments(fallbackDocuments);
-        }
-      } catch (err: any) {
-        console.error('Error loading documents:', err);
-        setError(err.message);
-        
-        // If we haven't set documents yet, use fallbacks
-        if (documents.length === 0) {
-          setDocuments(fallbackDocuments);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchDocuments();
-  }, []);
-
-  const categories = Array.from(new Set(documents.map(doc => doc.category)));
-  
-  const filteredDocuments = selectedCategory 
-    ? documents.filter(doc => doc.category === selectedCategory) 
-    : documents;
+  const {
+    filteredDocuments,
+    isLoading,
+    categories,
+    selectedCategory,
+    setSelectedCategory,
+    selectedPdf,
+    setSelectedPdf
+  } = useResearchDocuments();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -167,116 +37,30 @@ const ResearchDocuments: React.FC = () => {
 
           <div className="mb-8 flex flex-col sm:flex-row justify-between items-center">
             <div className="mb-4 sm:mb-0">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    {selectedCategory || "All Categories"}
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56 p-0">
-                  <div className="p-1">
-                    <Button 
-                      variant={!selectedCategory ? "default" : "ghost"}
-                      className="w-full justify-start mb-1"
-                      onClick={() => setSelectedCategory(null)}
-                    >
-                      All Categories
-                    </Button>
-                    {categories.map(category => (
-                      <Button
-                        key={category}
-                        variant={selectedCategory === category ? "default" : "ghost"}
-                        className="w-full justify-start mb-1"
-                        onClick={() => setSelectedCategory(category)}
-                      >
-                        {category}
-                      </Button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <CategoryFilter 
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
+              />
             </div>
             <p className="text-sm text-gray-500">
-              Showing {filteredDocuments.length} of {documents.length} documents
+              Showing {filteredDocuments.length} of {filteredDocuments.length} documents
             </p>
           </div>
 
-          {isLoading ? (
-            <div className="flex justify-center items-center py-20">
-              <Loader2 className="h-10 w-10 animate-spin text-cbis-blue" />
-              <p className="ml-2 text-gray-600">Loading research documents...</p>
-            </div>
-          ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-              {filteredDocuments.length > 0 ? (
-                filteredDocuments.map((document) => (
-                  <FadeInSection key={document.id} className="h-full">
-                    <Card className="h-full flex flex-col hover:shadow-md transition-shadow border border-gray-100">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-start justify-between">
-                          <div className="bg-blue-50 text-cbis-blue text-xs font-medium px-2.5 py-1 rounded">
-                            {document.category}
-                          </div>
-                          <span className="text-xs text-gray-500">{document.publishDate}</span>
-                        </div>
-                        <CardTitle className="mt-3 text-xl leading-tight">{document.title}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex-grow flex flex-col pt-2">
-                        <p className="text-gray-600 mb-6 text-sm flex-grow line-clamp-3">
-                          {document.description}
-                        </p>
-                        {document.authors && (
-                          <p className="text-xs text-gray-500 mb-4">
-                            <span className="font-medium">Authors:</span> {document.authors}
-                          </p>
-                        )}
-                        <Button 
-                          variant="default" 
-                          className="w-full mt-auto bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90"
-                          onClick={() => setSelectedPdf(document)}
-                        >
-                          <FileText className="mr-2 h-4 w-4" /> View Document
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </FadeInSection>
-                ))
-              ) : (
-                <div className="col-span-full text-center py-10">
-                  <FileText className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                  <h3 className="text-xl font-medium text-gray-700">No documents found</h3>
-                  <p className="text-gray-500 mt-2">There are no research documents in this category.</p>
-                </div>
-              )}
-            </div>
-          )}
+          <DocumentsGrid 
+            documents={filteredDocuments}
+            isLoading={isLoading}
+            onSelectDocument={setSelectedPdf}
+          />
         </div>
       </div>
 
-      {/* PDF Viewer Dialog */}
-      <Dialog open={!!selectedPdf} onOpenChange={(open) => !open && setSelectedPdf(null)}>
-        <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-xl">{selectedPdf?.title}</DialogTitle>
-          </DialogHeader>
-          <div className="flex-grow h-[70vh]">
-            <iframe 
-              src={selectedPdf?.pdfUrl} 
-              className="w-full h-full border-0 rounded"
-              title={selectedPdf?.title}
-            />
-          </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => window.open(selectedPdf?.pdfUrl, '_blank')}>
-              <ExternalLink className="mr-2 h-4 w-4" /> Open in New Tab
-            </Button>
-            <Button className="bg-gradient-to-r from-cbis-blue to-cbis-teal" onClick={() => window.open(selectedPdf?.pdfUrl, '_blank')}>
-              <Download className="mr-2 h-4 w-4" /> Download
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <DocumentViewer 
+        document={selectedPdf} 
+        open={!!selectedPdf} 
+        onOpenChange={(open) => !open && setSelectedPdf(null)} 
+      />
 
       <Footer />
     </div>
