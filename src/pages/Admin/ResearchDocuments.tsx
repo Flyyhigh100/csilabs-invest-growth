@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { supabase } from '@/integrations/supabase/client';
-import { checkBucketExists } from '@/utils/admin/kyc/storage';
+import { checkBucketExists, listAllBuckets } from '@/utils/admin/kyc/storage';
 
 interface ResearchDocument {
   id: string;
@@ -38,6 +38,8 @@ const AdminResearchDocuments = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [bucketExists, setBucketExists] = useState(false);
+  const [bucketName, setBucketName] = useState('research_documents');
+  const [availableBuckets, setAvailableBuckets] = useState<string[]>([]);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -56,12 +58,32 @@ const AdminResearchDocuments = () => {
   }, []);
 
   async function checkResearchBucket() {
-    const exists = await checkBucketExists('research_documents');
-    setBucketExists(exists);
-    console.log('Research documents bucket exists:', exists);
+    // First check for the exact bucket name
+    const exists = await checkBucketExists(bucketName);
+    if (exists) {
+      setBucketExists(true);
+      console.log(`Found bucket with ID: ${bucketName}`);
+      return;
+    }
     
-    if (!exists) {
+    // If not found, list all available buckets
+    const buckets = await listAllBuckets();
+    setAvailableBuckets(buckets);
+    
+    // Check for any research-related bucket
+    const researchBucket = buckets.find(b => 
+      b.toLowerCase().includes('research') || 
+      b.toLowerCase().includes('document')
+    );
+    
+    if (researchBucket) {
+      setBucketName(researchBucket);
+      setBucketExists(true);
+      console.log(`Found alternative research bucket: ${researchBucket}`);
+      toast.success(`Using existing bucket: ${researchBucket}`);
+    } else {
       toast.error("Storage bucket not configured. Contact your administrator.");
+      console.log('Available buckets:', buckets);
     }
   }
   
@@ -102,6 +124,11 @@ const AdminResearchDocuments = () => {
       return;
     }
     
+    if (!bucketExists) {
+      toast.error(`Storage bucket '${bucketName}' not available`);
+      return;
+    }
+    
     setIsUploading(true);
     
     try {
@@ -109,18 +136,24 @@ const AdminResearchDocuments = () => {
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       
+      console.log(`Uploading to bucket: ${bucketName}, filename: ${fileName}`);
+      
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('research_documents')
+        .from(bucketName)
         .upload(fileName, selectedFile);
       
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Storage upload error:", uploadError);
+        throw uploadError;
+      }
       
       // 2. Get the public URL
       const { data: publicUrlData } = supabase.storage
-        .from('research_documents')
+        .from(bucketName)
         .getPublicUrl(fileName);
       
       const publicUrl = publicUrlData.publicUrl;
+      console.log("Generated public URL:", publicUrl);
       
       // 3. Create the new document object
       const newDocument: ResearchDocument = {
@@ -368,11 +401,19 @@ export default ResearchDocuments;
   return (
     <AdminLayout title="Manage Research Documents">
       <div className="grid gap-6">
-        {!bucketExists && (
+        {!bucketExists ? (
           <Card className="bg-amber-50 border-amber-200">
             <CardContent className="pt-6">
               <p className="text-amber-800">
-                Storage bucket 'research_documents' not found. Please create it in Supabase to enable file uploads.
+                Storage bucket '{bucketName}' not found. Available buckets: {availableBuckets.join(', ') || 'None'}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="bg-green-50 border-green-200">
+            <CardContent className="pt-6">
+              <p className="text-green-800">
+                Using storage bucket: '{bucketName}'
               </p>
             </CardContent>
           </Card>

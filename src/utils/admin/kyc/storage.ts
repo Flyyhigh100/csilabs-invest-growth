@@ -21,3 +21,24 @@ export const checkBucketExists = async (bucketName: string): Promise<boolean> =>
     return false;
   }
 };
+
+/**
+ * List all available storage buckets - useful for debugging
+ */
+export const listAllBuckets = async (): Promise<string[]> => {
+  try {
+    const { data, error } = await supabase.storage.listBuckets();
+    
+    if (error) {
+      console.error('Error listing buckets:', error);
+      return [];
+    }
+    
+    const bucketNames = data.map(bucket => bucket.name);
+    console.log('Available storage buckets:', bucketNames);
+    return bucketNames;
+  } catch (error) {
+    console.error('Exception listing buckets:', error);
+    return [];
+  }
+};
