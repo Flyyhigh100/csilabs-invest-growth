@@ -1,17 +1,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ResearchDocument } from '../types/documentTypes';
-import { checkBucketExists, listAllBuckets, createBucketIfNotExists } from '@/utils/admin/kyc/storage';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useResearchDocuments = () => {
   const [documents, setDocuments] = useState<ResearchDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [bucketExists, setBucketExists] = useState(false);
   const [bucketName] = useState('research_documents');
-  const [availableBuckets, setAvailableBuckets] = useState<string[]>([]);
-  const [isCheckingBucket, setIsCheckingBucket] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Check authentication status
@@ -28,76 +24,6 @@ export const useResearchDocuments = () => {
       return false;
     }
   }, []);
-
-  // Check if the bucket exists
-  const checkResearchBucket = useCallback(async () => {
-    if (isCheckingBucket) return; // Prevent multiple simultaneous checks
-    
-    console.log("Checking bucket existence:", bucketName);
-    setIsCheckingBucket(true);
-    setIsLoading(true);
-    
-    try {
-      // First check authentication
-      const isAuthed = await checkAuthentication();
-      if (!isAuthed) {
-        console.log("User not authenticated, skipping bucket check");
-        setIsLoading(false);
-        setIsCheckingBucket(false);
-        return;
-      }
-      
-      // First check for the exact bucket name
-      const exists = await checkBucketExists(bucketName);
-      
-      if (exists) {
-        setBucketExists(true);
-        console.log(`Found bucket with ID: ${bucketName}`);
-        setIsLoading(false);
-        setIsCheckingBucket(false);
-        return;
-      }
-      
-      // If not found, try to create it
-      console.log(`Bucket '${bucketName}' not found, attempting to create it automatically...`);
-      const created = await createBucketIfNotExists(bucketName);
-      
-      if (created) {
-        console.log(`Successfully created bucket '${bucketName}'`);
-        setBucketExists(true);
-        setIsLoading(false);
-        setIsCheckingBucket(false);
-        return;
-      }
-      
-      // If still not created, list all available buckets
-      const buckets = await listAllBuckets();
-      setAvailableBuckets(buckets);
-      
-      // Check for any research-related bucket
-      const researchBucket = buckets.find(b => 
-        b.toLowerCase().includes('research') || 
-        b.toLowerCase().includes('document')
-      );
-      
-      if (researchBucket) {
-        setBucketExists(true);
-        console.log(`Found alternative research bucket: ${researchBucket}`);
-      } else {
-        setBucketExists(false);
-        console.log('No research bucket found. Available buckets:', buckets);
-        
-        // Show explicit error message about missing bucket
-        toast.error("Storage bucket for research documents is not available. Please contact your administrator.");
-      }
-    } catch (error) {
-      console.error("Error checking bucket:", error);
-      toast.error("Failed to check storage bucket status");
-    } finally {
-      setIsLoading(false);
-      setIsCheckingBucket(false);
-    }
-  }, [bucketName, isCheckingBucket, checkAuthentication]);
 
   // Load documents from file
   const loadDocumentsFromFile = useCallback(async () => {
@@ -135,23 +61,19 @@ export const useResearchDocuments = () => {
   useEffect(() => {
     const init = async () => {
       await checkAuthentication();
-      await checkResearchBucket();
       await loadDocumentsFromFile();
     };
     
     init();
-  }, [checkAuthentication, checkResearchBucket, loadDocumentsFromFile]);
+  }, [checkAuthentication, loadDocumentsFromFile]);
 
   return {
     documents,
     isLoading,
-    bucketExists,
     bucketName,
-    availableBuckets,
     isAuthenticated,
     loadDocumentsFromFile,
     addDocument,
-    checkResearchBucket,
     checkAuthentication
   };
 };

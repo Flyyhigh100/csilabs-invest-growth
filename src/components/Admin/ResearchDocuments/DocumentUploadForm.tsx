@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -13,7 +13,6 @@ import SubmitButton from './components/SubmitButton';
 import { ResearchDocument, DocumentFormValues } from './types/documentTypes';
 
 interface DocumentUploadFormProps {
-  bucketExists: boolean;
   bucketName: string;
   onDocumentUploaded: (newDocument: ResearchDocument) => void;
   isAuthenticated: boolean;
@@ -28,7 +27,6 @@ const formSchema = z.object({
 });
 
 const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ 
-  bucketExists, 
   bucketName, 
   onDocumentUploaded,
   isAuthenticated
@@ -47,13 +45,6 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
     },
   });
 
-  // Reset the form when bucket status changes
-  useEffect(() => {
-    if (bucketExists) {
-      form.reset(form.getValues());
-    }
-  }, [bucketExists, form]);
-
   const handleFileSelect = (file: File | null) => {
     setSelectedFile(file);
     console.log("File selected:", file ? file.name : "No file selected");
@@ -67,11 +58,6 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
     
     if (!selectedFile) {
       toast.error("Please select a PDF file to upload");
-      return;
-    }
-    
-    if (!bucketExists) {
-      toast.error(`Storage bucket '${bucketName}' not available`);
       return;
     }
     
@@ -142,7 +128,7 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
   };
 
   // Calculate if button should be disabled
-  const isUploadDisabled = !isAuthenticated || !bucketExists || isUploading || !selectedFile;
+  const isUploadDisabled = !isAuthenticated || isUploading || !selectedFile;
 
   return (
     <Card>
@@ -157,11 +143,11 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <DocumentMetadataForm 
               form={form} 
-              disabled={!isAuthenticated || !bucketExists || isUploading} 
+              disabled={!isAuthenticated || isUploading} 
             />
             
             <FileUploader 
-              disabled={!isAuthenticated || !bucketExists || isUploading}
+              disabled={!isAuthenticated || isUploading}
               onFileSelect={handleFileSelect}
               selectedFile={selectedFile}
             />
@@ -175,7 +161,6 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
               {isUploadDisabled && (
                 <p className="text-xs text-gray-500 mt-2">
                   {!isAuthenticated ? "You must be logged in to upload documents." : 
-                   !bucketExists ? "Storage bucket not available." : 
                    !selectedFile ? "Please select a file to upload." : ""}
                 </p>
               )}
