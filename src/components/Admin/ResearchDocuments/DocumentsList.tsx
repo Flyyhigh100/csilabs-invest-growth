@@ -28,7 +28,9 @@ const DocumentsList: React.FC<DocumentsListProps> = ({
   const [isReloading, setIsReloading] = useState(false);
 
   const handleEditDocument = (document: ResearchDocument) => {
-    setEditingDocument(document);
+    // Ensure we're working with the latest version of the document
+    const latestDocument = documents.find(doc => doc.id === document.id) || document;
+    setEditingDocument(latestDocument);
   };
 
   const handleSaveDocument = async (docId: string, data: Partial<ResearchDocument>) => {
@@ -40,9 +42,10 @@ const DocumentsList: React.FC<DocumentsListProps> = ({
       if (result) {
         // Force reload documents after update to ensure we're in sync with storage
         await handleReload();
+        return true;
       }
       
-      return result;
+      return false;
     } catch (error) {
       console.error("Error saving document:", error);
       toast.error("Failed to save document changes");
@@ -80,14 +83,14 @@ const DocumentsList: React.FC<DocumentsListProps> = ({
             onDeleteDocument={onDeleteDocument}
           />
         </CardContent>
-        <CardFooter className="flex justify-end gap-4">
+        <CardFooter className="flex justify-between gap-4">
           <Button 
             onClick={handleReload} 
             variant="outline" 
             disabled={isReloading}
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${isReloading ? 'animate-spin' : ''}`} />
-            {isReloading ? 'Reloading...' : 'Reload'}
+            {isReloading ? 'Reloading...' : 'Reload Documents'}
           </Button>
           <CodeGenerator documents={documents} />
         </CardFooter>

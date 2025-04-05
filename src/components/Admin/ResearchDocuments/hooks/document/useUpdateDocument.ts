@@ -37,6 +37,7 @@ export const useUpdateDocument = (
       // Ensure the publishDate is being correctly passed and normalized
       const publishDate = updatedData.publishDate || originalDoc.publishDate;
       metadataParams.append('publishDate', publishDate);
+      console.log("Setting publish date to:", publishDate);
       
       // Add authors if available
       if (updatedData.authors || originalDoc.authors) {

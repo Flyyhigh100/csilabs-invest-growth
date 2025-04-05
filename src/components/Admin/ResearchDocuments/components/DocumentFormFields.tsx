@@ -87,6 +87,10 @@ const DocumentFormFields: React.FC<DocumentFormFieldsProps> = ({
                   type="text" 
                   placeholder="e.g., 5/2/2018"
                   disabled={disabled}
+                  onChange={(e) => {
+                    console.log("Date changed to:", e.target.value);
+                    field.onChange(e.target.value);
+                  }}
                 />
               </FormControl>
               <FormDescription>

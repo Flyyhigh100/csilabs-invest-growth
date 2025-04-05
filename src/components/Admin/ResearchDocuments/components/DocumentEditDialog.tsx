@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { ResearchDocument } from '../types/documentTypes';
 import DocumentEditForm from './DocumentEditForm';
+import { toast } from 'sonner';
 
 interface DocumentEditDialogProps {
   document: ResearchDocument | null;
@@ -41,10 +42,17 @@ const DocumentEditDialog: React.FC<DocumentEditDialogProps> = ({
         authors: data.authors || document.authors || ''
       };
       
+      console.log("Final data being sent to save:", updatedData);
       const success = await onSave(document.id, updatedData);
       if (success) {
+        toast.success("Document updated successfully");
         onOpenChange(false);
+      } else {
+        toast.error("Failed to update document");
       }
+    } catch (error) {
+      console.error("Error saving document:", error);
+      toast.error("An error occurred while saving");
     } finally {
       setIsSaving(false);
     }

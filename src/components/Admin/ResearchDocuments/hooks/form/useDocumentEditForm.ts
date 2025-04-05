@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { ResearchDocument } from '../../types/documentTypes';
@@ -34,9 +35,11 @@ export const useDocumentEditForm = (
     // Ensure data is properly formatted before saving
     const formattedData = {
       ...data,
-      // Keep other fields intact
+      // Ensure publishDate is properly formatted and passed through
+      publishDate: data.publishDate
     };
     
+    console.log("Submitting form with formatted data:", formattedData);
     onSave(formattedData);
   };
 
