@@ -154,8 +154,16 @@ const DocumentEditDialog: React.FC<DocumentEditDialogProps> = ({
                   <FormItem>
                     <FormLabel>Publication Date</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input 
+                        {...field} 
+                        // Use type="text" to allow flexible date formats
+                        type="text" 
+                        placeholder="e.g., 5/2/2018"
+                      />
                     </FormControl>
+                    <FormDescription>
+                      Format: MM/DD/YYYY or custom date format
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

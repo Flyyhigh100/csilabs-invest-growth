@@ -125,7 +125,16 @@ export const useResearchDocuments = () => {
         if (documentsList.length > 0) {
           // Sort documents by publishDate, newest first
           const sortedDocs = documentsList.sort((a, b) => {
-            return new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime();
+            // Try to parse dates in various formats for better comparison
+            const dateA = new Date(a.publishDate);
+            const dateB = new Date(b.publishDate);
+            
+            // Check if dates are valid, if not use string comparison
+            if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+              return a.publishDate.localeCompare(b.publishDate);
+            }
+            
+            return dateB.getTime() - dateA.getTime();
           });
           
           // Cache the results
@@ -216,9 +225,16 @@ export const useResearchDocuments = () => {
         } as ResearchDocument;
       }));
       
-      // Sort documents
+      // Sort documents, ensuring proper date parsing
       const sortedDocs = documentsList.sort((a, b) => {
-        return new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime();
+        const dateA = new Date(a.publishDate);
+        const dateB = new Date(b.publishDate);
+        
+        if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+          return a.publishDate.localeCompare(b.publishDate);
+        }
+        
+        return dateB.getTime() - dateA.getTime();
       });
       
       localStorage.setItem('researchDocuments', JSON.stringify(sortedDocs));

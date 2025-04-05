@@ -77,8 +77,15 @@ export const useDocumentMutations = (
       metadataParams.append('title', updatedData.title || originalDoc.title);
       metadataParams.append('description', updatedData.description || originalDoc.description);
       metadataParams.append('category', updatedData.category || originalDoc.category);
-      metadataParams.append('publishDate', updatedData.publishDate || originalDoc.publishDate);
-      if (updatedData.authors || originalDoc.authors) metadataParams.append('authors', updatedData.authors || originalDoc.authors || '');
+      
+      // Ensure the publishDate is being correctly passed
+      const publishDate = updatedData.publishDate || originalDoc.publishDate;
+      metadataParams.append('publishDate', publishDate);
+      
+      // Add authors if available
+      if (updatedData.authors || originalDoc.authors) {
+        metadataParams.append('authors', updatedData.authors || originalDoc.authors || '');
+      }
       
       // Log metadata parameters for debugging
       console.log("Metadata parameters:", Object.fromEntries(metadataParams.entries()));
