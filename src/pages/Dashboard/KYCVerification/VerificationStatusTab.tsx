@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { KycVerificationData } from '@/hooks/kyc/types';
 import VerificationStatus from '@/components/KYC/VerificationStatus';
 
@@ -34,18 +33,6 @@ const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({
         onStartVerification={onStartVerification}
         onProvideMoreInfo={onProvideMoreInfo}
       />
-      
-      {/* Show detailed status info for debugging (in development only) */}
-      {process.env.NODE_ENV === 'development' && kycData && (
-        <Alert className="mt-8">
-          <AlertTitle>Debug Information</AlertTitle>
-          <AlertDescription>
-            <div className="text-xs font-mono break-words whitespace-pre-wrap mt-2">
-              {JSON.stringify(kycData, null, 2)}
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
     </div>
   );
 };
