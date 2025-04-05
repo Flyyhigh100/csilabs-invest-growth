@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -19,8 +19,12 @@ const BucketStatusCard: React.FC<BucketStatusCardProps> = ({
   availableBuckets,
   onRefresh
 }) => {
+  const [isCreating, setIsCreating] = React.useState(false);
+
   const createBucket = async () => {
     try {
+      setIsCreating(true);
+      
       const { data, error } = await supabase
         .storage
         .createBucket(bucketName, {
@@ -29,16 +33,18 @@ const BucketStatusCard: React.FC<BucketStatusCardProps> = ({
         });
       
       if (error) {
-        toast.error(`Failed to create bucket: ${error.message}`);
         console.error("Error creating bucket:", error);
+        toast.error(`Failed to create bucket: ${error.message}`);
         return;
       }
       
       toast.success(`Storage bucket '${bucketName}' created successfully!`);
-      onRefresh();
+      onRefresh(); // Refresh bucket status after creation
     } catch (error: any) {
       toast.error(`Error creating bucket: ${error.message}`);
       console.error("Exception creating bucket:", error);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -65,8 +71,17 @@ const BucketStatusCard: React.FC<BucketStatusCardProps> = ({
           variant="secondary" 
           className="bg-amber-500 text-white hover:bg-amber-600"
           onClick={createBucket}
+          disabled={isCreating}
         >
-          <PlusCircle className="mr-2 h-4 w-4" /> Create Bucket
+          {isCreating ? (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Creating...
+            </>
+          ) : (
+            <>
+              <PlusCircle className="mr-2 h-4 w-4" /> Create Bucket
+            </>
+          )}
         </Button>
       </CardContent>
     </Card>

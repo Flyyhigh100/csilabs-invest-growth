@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -54,6 +54,13 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
       authors: "",
     },
   });
+
+  // Reset the form when bucket status changes (necessary for re-enabling form after bucket creation)
+  useEffect(() => {
+    if (bucketExists) {
+      form.reset(form.getValues());
+    }
+  }, [bucketExists, form]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -126,6 +133,8 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
     }
   };
 
+  const isFormDisabled = !bucketExists || isUploading;
+
   return (
     <Card>
       <CardHeader>
@@ -144,7 +153,7 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
                 <FormItem>
                   <FormLabel>Document Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter document title" {...field} />
+                    <Input placeholder="Enter document title" {...field} disabled={isFormDisabled} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -161,7 +170,8 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
                     <Textarea 
                       placeholder="Enter a brief description of the document" 
                       className="resize-none min-h-[80px]" 
-                      {...field} 
+                      {...field}
+                      disabled={isFormDisabled}
                     />
                   </FormControl>
                   <FormMessage />
@@ -177,7 +187,7 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
                   <FormItem>
                     <FormLabel>Category</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Clinical Research, Patents" {...field} />
+                      <Input placeholder="e.g. Clinical Research, Patents" {...field} disabled={isFormDisabled} />
                     </FormControl>
                     <FormDescription>
                       Documents are grouped by category
@@ -194,7 +204,7 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
                   <FormItem>
                     <FormLabel>Publication Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} disabled={isFormDisabled} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -209,18 +219,18 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
                 <FormItem>
                   <FormLabel>Authors (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. CSi Labs Research Team" {...field} />
+                    <Input placeholder="e.g. CSi Labs Research Team" {...field} disabled={isFormDisabled} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             
-            <div className="border border-dashed rounded-md p-6">
+            <div className={`border border-dashed rounded-md p-6 ${!bucketExists ? 'opacity-60' : ''}`}>
               <div className="flex items-center gap-4">
                 <label 
                   htmlFor="file-upload" 
-                  className="cursor-pointer flex items-center justify-center w-full h-full"
+                  className={`cursor-pointer flex items-center justify-center w-full h-full ${!bucketExists ? 'pointer-events-none' : ''}`}
                 >
                   <div className="flex flex-col items-center gap-2 text-center">
                     <Upload className={`${selectedFile ? 'text-green-500' : 'text-gray-400'} h-8 w-8`} />
@@ -249,7 +259,7 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
               <Button 
                 type="submit" 
                 className="w-full sm:w-auto bg-cbis-blue hover:bg-cbis-blue/90"
-                disabled={!bucketExists || isUploading || !selectedFile}
+                disabled={isFormDisabled || !selectedFile}
               >
                 {isUploading ? (
                   <>
