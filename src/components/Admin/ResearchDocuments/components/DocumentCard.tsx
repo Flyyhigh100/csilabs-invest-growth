@@ -18,7 +18,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onEdit, onDelete 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="font-medium">{document.title}</h3>
-            <p className="text-sm text-gray-500">{document.category} • {document.publishDate}</p>
+            <p className="text-sm text-gray-500">{document.category}</p>
           </div>
           <div className="flex items-center gap-2">
             <Button 
