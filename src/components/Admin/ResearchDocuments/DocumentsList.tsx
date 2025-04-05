@@ -13,13 +13,15 @@ interface DocumentsListProps {
   isLoading: boolean;
   onReload: () => void;
   onUpdateDocument?: (docId: string, data: Partial<ResearchDocument>) => Promise<boolean>;
+  onDeleteDocument?: (docId: string) => Promise<boolean>;
 }
 
 const DocumentsList: React.FC<DocumentsListProps> = ({ 
   documents, 
   isLoading, 
   onReload,
-  onUpdateDocument
+  onUpdateDocument,
+  onDeleteDocument
 }) => {
   const [editingDocument, setEditingDocument] = useState<ResearchDocument | null>(null);
 
@@ -45,7 +47,8 @@ const DocumentsList: React.FC<DocumentsListProps> = ({
           <DocumentList 
             documents={documents} 
             isLoading={isLoading}
-            onEditDocument={onUpdateDocument ? handleEditDocument : undefined} 
+            onEditDocument={onUpdateDocument ? handleEditDocument : undefined}
+            onDeleteDocument={onDeleteDocument}
           />
         </CardContent>
         <CardFooter className="flex justify-end gap-4">

@@ -2,15 +2,16 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Pencil } from 'lucide-react';
+import { FileText, Pencil, Trash2 } from 'lucide-react';
 import { ResearchDocument } from '../types/documentTypes';
 
 interface DocumentCardProps {
   document: ResearchDocument;
   onEdit?: (document: ResearchDocument) => void;
+  onDelete?: (documentId: string) => void;
 }
 
-const DocumentCard: React.FC<DocumentCardProps> = ({ document, onEdit }) => {
+const DocumentCard: React.FC<DocumentCardProps> = ({ document, onEdit, onDelete }) => {
   return (
     <Card key={document.id} className="bg-gray-50">
       <CardContent className="p-4">
@@ -37,6 +38,17 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onEdit }) => {
                 title="Edit metadata"
               >
                 <Pencil className="h-4 w-4" />
+              </Button>
+            )}
+
+            {onDelete && (
+              <Button 
+                size="sm" 
+                variant="destructive"
+                onClick={() => onDelete(document.id)}
+                title="Delete document"
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
             )}
           </div>

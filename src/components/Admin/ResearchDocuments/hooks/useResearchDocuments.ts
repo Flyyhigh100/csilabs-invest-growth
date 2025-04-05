@@ -143,6 +143,38 @@ export const useResearchDocuments = () => {
     localStorage.removeItem('researchDocuments');
   }, []);
 
+  // Delete a document
+  const deleteDocument = useCallback(async (docId: string) => {
+    try {
+      // Extract the filename from the document ID
+      const fileName = docId.replace('doc-', '');
+      
+      // Delete the file from storage
+      const { error } = await supabase.storage
+        .from(bucketName)
+        .remove([fileName]);
+        
+      if (error) {
+        console.error("Error deleting file:", error);
+        toast.error("Failed to delete document");
+        return false;
+      }
+      
+      // Update the documents state
+      setDocuments(prevDocs => prevDocs.filter(doc => doc.id !== docId));
+      
+      // Clear localStorage cache to force reload on the public page
+      localStorage.removeItem('researchDocuments');
+      
+      toast.success("Document deleted successfully");
+      return true;
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      toast.error("Failed to delete document");
+      return false;
+    }
+  }, [bucketName]);
+
   // Update document metadata
   const updateDocumentMetadata = useCallback(async (docId: string, updatedData: Partial<ResearchDocument>) => {
     try {
@@ -260,6 +292,7 @@ export const useResearchDocuments = () => {
     loadDocumentsFromStorage,
     loadDocumentsFromFile,
     addDocument,
+    deleteDocument,
     checkAuthentication,
     updateDocumentMetadata
   };

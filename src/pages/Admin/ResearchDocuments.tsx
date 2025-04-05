@@ -14,6 +14,7 @@ const AdminResearchDocuments = () => {
     isAuthenticated,
     loadDocumentsFromStorage,
     addDocument,
+    deleteDocument,
     checkAuthentication,
     updateDocumentMetadata
   } = useResearchDocuments();
@@ -86,6 +87,7 @@ const AdminResearchDocuments = () => {
           isLoading={isLoading} 
           onReload={loadDocumentsFromStorage}
           onUpdateDocument={updateDocumentMetadata}
+          onDeleteDocument={deleteDocument}
         />
       </div>
     </AdminLayout>
