@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { FileText, Download, ExternalLink, ChevronDown, Info, Loader2 } from 'lucide-react';
+import { FileText, Download, ExternalLink, ChevronDown, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { ResearchDocument } from '@/components/Admin/ResearchDocuments/types/documentTypes';
 
@@ -78,7 +78,6 @@ const ResearchDocuments: React.FC = () => {
           // The filename should contain metadata in format: title__category__date__authors.pdf
           // If not properly formatted, extract what we can
           const fileName = file.name;
-          const nameWithoutExt = fileName.split('.').slice(0, -1).join('.');
           
           // Get the public URL
           const { data: urlData } = supabase
@@ -87,7 +86,7 @@ const ResearchDocuments: React.FC = () => {
             .getPublicUrl(fileName);
             
           // Try to extract metadata from filename or use defaults
-          let title = nameWithoutExt;
+          let title = "Untitled Research Document";
           let category = "Research";
           let publishDate = new Date().toLocaleDateString();
           let authors = "";
@@ -209,16 +208,16 @@ const ResearchDocuments: React.FC = () => {
                 filteredDocuments.map((document) => (
                   <FadeInSection key={document.id} className="h-full">
                     <Card className="h-full flex flex-col hover:shadow-md transition-shadow">
-                      <CardHeader>
+                      <CardHeader className="pb-2">
                         <div className="flex items-start justify-between">
                           <div className="bg-blue-50 text-cbis-blue text-xs font-medium px-2.5 py-1 rounded">
                             {document.category}
                           </div>
                           <span className="text-xs text-gray-500">{document.publishDate}</span>
                         </div>
-                        <CardTitle className="mt-2 text-xl">{document.title}</CardTitle>
+                        <CardTitle className="mt-3 text-xl leading-tight">{document.title}</CardTitle>
                       </CardHeader>
-                      <CardContent className="flex-grow flex flex-col">
+                      <CardContent className="flex-grow flex flex-col pt-2">
                         <p className="text-gray-600 mb-6 text-sm flex-grow">
                           {document.description}
                         </p>
@@ -227,15 +226,13 @@ const ResearchDocuments: React.FC = () => {
                             <span className="font-medium">Authors:</span> {document.authors}
                           </p>
                         )}
-                        <div className="flex gap-2 mt-auto">
-                          <Button 
-                            variant="default" 
-                            className="flex-grow bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90"
-                            onClick={() => setSelectedPdf(document)}
-                          >
-                            <FileText className="mr-2 h-4 w-4" /> View Document
-                          </Button>
-                        </div>
+                        <Button 
+                          variant="default" 
+                          className="w-full mt-auto bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90"
+                          onClick={() => setSelectedPdf(document)}
+                        >
+                          <FileText className="mr-2 h-4 w-4" /> View Document
+                        </Button>
                       </CardContent>
                     </Card>
                   </FadeInSection>
@@ -249,27 +246,6 @@ const ResearchDocuments: React.FC = () => {
               )}
             </div>
           )}
-          
-          <FadeInSection>
-            <Card className="mb-16">
-              <CardContent className="p-6">
-                <div className="flex flex-col lg:flex-row gap-6 items-center">
-                  <div className="flex items-center justify-center p-6 bg-blue-50 rounded-lg">
-                    <Info className="h-12 w-12 text-cbis-blue" />
-                  </div>
-                  <div className="flex-grow">
-                    <h3 className="text-xl font-semibold mb-2 text-cbis-dark">Request Additional Research</h3>
-                    <p className="text-gray-600 mb-4">
-                      Interested in learning more about our research? Contact our team to request access to additional studies and documentation.
-                    </p>
-                    <Button className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90">
-                      Contact Research Team
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </FadeInSection>
         </div>
       </div>
 
