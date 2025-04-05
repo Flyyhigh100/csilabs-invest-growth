@@ -38,6 +38,7 @@ export const useResearchDocuments = () => {
   // Load documents when the hook is first called - with empty dependency array to run only once
   useEffect(() => {
     if (!initialized.current) {
+      console.log("Initial document fetch");
       initialized.current = true;
       fetchDocumentsFromStorage();
     }

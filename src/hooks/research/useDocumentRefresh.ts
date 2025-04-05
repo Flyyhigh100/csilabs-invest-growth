@@ -18,6 +18,8 @@ export const useDocumentRefresh = (
 
   // Add a function to reload documents from storage (for when we need to refresh)
   const refreshDocuments = useCallback(async () => {
+    // Always clear the cache when explicitly refreshing
+    console.log("Explicitly refreshing documents and clearing cache");
     clearCache();
     setIsLoading(true);
     
@@ -25,21 +27,28 @@ export const useDocumentRefresh = (
       const { data: files, error: filesError } = await supabase
         .storage
         .from('research_documents')
-        .list();
+        .list('', { sortBy: { column: 'name', order: 'asc' } });
         
-      if (filesError || !files || files.length === 0) {
-        throw new Error(filesError?.message || "No files found");
+      if (filesError) {
+        console.error("Error listing files:", filesError);
+        throw new Error(filesError.message || "Failed to list files");
       }
       
+      if (!files || files.length === 0) {
+        console.log("No files found in storage during refresh");
+        setDocuments([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log(`Found ${files.length} files during refresh`);
+
+      // Process files as before but without loading states
       const documentsList = await Promise.all(files.map(async (file) => {
         const fileName = file.name;
-        
-        const { data: urlData } = supabase
-          .storage
-          .from('research_documents')
-          .getPublicUrl(fileName);
-          
+        const { data: urlData } = supabase.storage.from('research_documents').getPublicUrl(fileName);
         const baseFileName = getBaseFilename(fileName);
+        
         let title = baseFileName
           .split('.')[0]
           .replace(/_/g, ' ')
@@ -88,11 +97,12 @@ export const useDocumentRefresh = (
         return dateB.getTime() - dateA.getTime();
       });
       
+      console.log(`Processed ${sortedDocs.length} documents during refresh`);
       saveToCache(sortedDocs);
       setDocuments(sortedDocs);
     } catch (err: any) {
       console.error("Error refreshing documents:", err);
-      setError(err.message);
+      setError(err?.message || "Unknown error refreshing documents");
     } finally {
       setIsLoading(false);
     }

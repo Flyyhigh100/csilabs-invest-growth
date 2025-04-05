@@ -7,6 +7,7 @@ import { ResearchDocument } from './types/documentTypes';
 import DocumentList from './components/DocumentList';
 import CodeGenerator from './components/CodeGenerator';
 import DocumentEditDialog from './components/DocumentEditDialog';
+import { toast } from 'sonner';
 
 interface DocumentsListProps {
   documents: ResearchDocument[];
@@ -24,6 +25,7 @@ const DocumentsList: React.FC<DocumentsListProps> = ({
   onDeleteDocument
 }) => {
   const [editingDocument, setEditingDocument] = useState<ResearchDocument | null>(null);
+  const [isReloading, setIsReloading] = useState(false);
 
   const handleEditDocument = (document: ResearchDocument) => {
     setEditingDocument(document);
@@ -31,7 +33,27 @@ const DocumentsList: React.FC<DocumentsListProps> = ({
 
   const handleSaveDocument = async (docId: string, data: Partial<ResearchDocument>) => {
     if (!onUpdateDocument) return false;
-    return await onUpdateDocument(docId, data);
+    const result = await onUpdateDocument(docId, data);
+    
+    if (result) {
+      // Force reload documents after update to ensure we're in sync with storage
+      handleReload();
+    }
+    
+    return result;
+  };
+  
+  const handleReload = async () => {
+    try {
+      setIsReloading(true);
+      await onReload();
+      toast.success("Documents reloaded successfully");
+    } catch (error) {
+      console.error("Error reloading documents:", error);
+      toast.error("Failed to reload documents");
+    } finally {
+      setIsReloading(false);
+    }
   };
 
   return (
@@ -52,9 +74,13 @@ const DocumentsList: React.FC<DocumentsListProps> = ({
           />
         </CardContent>
         <CardFooter className="flex justify-end gap-4">
-          <Button onClick={onReload} variant="outline">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Reload
+          <Button 
+            onClick={handleReload} 
+            variant="outline" 
+            disabled={isReloading}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isReloading ? 'animate-spin' : ''}`} />
+            {isReloading ? 'Reloading...' : 'Reload'}
           </Button>
           <CodeGenerator documents={documents} />
         </CardFooter>
