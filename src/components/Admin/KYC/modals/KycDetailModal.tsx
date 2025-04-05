@@ -7,6 +7,7 @@ import {
 import { KycVerificationWithProfile } from '../types';
 import KycModalTabs from './KycModalTabs';
 import KycActionPanel from './KycActionPanel';
+import KycDebugInfo from './components/KycDebugInfo';
 
 interface KycDetailModalProps {
   open: boolean;
@@ -58,7 +59,7 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
     }
   }, [open, selectedKyc?.id, setRejectionReason, setClarificationMessage]);
   
-  // Reset action panel if the operation succeeds or fails
+  // Reset action panel if the operation succeeds
   useEffect(() => {
     if (!isPending && debugInfo?.supabaseResponse?.success) {
       setActiveAction(null);
@@ -107,6 +108,18 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
           isPending={isPending}
           debugInfo={debugInfo}
         />
+        
+        {/* Add Debug Information for development */}
+        {debugInfo && (
+          <div className="mt-4 border-t pt-4 text-xs text-gray-500">
+            <KycDebugInfo 
+              selectedKyc={selectedKyc}
+              activeAction={activeAction}
+              isPending={isPending}
+              debugInfo={debugInfo}
+            />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

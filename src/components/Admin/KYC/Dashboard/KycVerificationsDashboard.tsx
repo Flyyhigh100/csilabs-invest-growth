@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { useKycContext } from '../KycContext';
-import { useKycActionHandlers } from '../KycActionHandlers';
+import { useKycActionHandlers } from '../hooks/useKycActionHandlers';
 import { toast } from 'sonner';
 import KycDetailModal from '../modals/KycDetailModal';
 import KycDashboardHeader from './KycDashboardHeader';

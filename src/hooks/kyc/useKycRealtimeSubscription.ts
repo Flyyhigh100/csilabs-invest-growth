@@ -28,25 +28,35 @@ export function useKycRealtimeSubscription(userId: string | undefined, refetch: 
         (payload) => {
           console.log('KYC verification update received:', payload);
           
-          // Immediately refetch to get the latest data
-          queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
-          refetch();
-          
-          // Show a toast notification based on the new status
-          const newStatus = (payload.new as any)?.status;
-          
-          if (newStatus === 'approved') {
-            toast.success('Your KYC verification has been approved!', {
-              duration: 8000
-            });
-          } else if (newStatus === 'rejected') {
-            toast.error('Your KYC verification has been rejected. Please check the details.', {
-              duration: 8000
-            });
-          } else if (newStatus === 'needs_clarification') {
-            toast.info('Additional information is required for your KYC verification.', {
-              duration: 8000
-            });
+          // Force refetch immediately
+          try {
+            console.log('Forcing KYC data refresh after realtime update');
+            queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
+            
+            // Double refetch with a delay to ensure we get the latest data
+            setTimeout(() => {
+              queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
+              refetch();
+            }, 500);
+            
+            // Show appropriate notification based on the new status
+            const newStatus = (payload.new as any)?.status;
+            
+            if (newStatus === 'approved') {
+              toast.success('Your KYC verification has been approved!', {
+                duration: 8000
+              });
+            } else if (newStatus === 'rejected') {
+              toast.error('Your KYC verification has been rejected. Please check the details.', {
+                duration: 8000
+              });
+            } else if (newStatus === 'needs_clarification') {
+              toast.info('Additional information is required for your KYC verification.', {
+                duration: 8000
+              });
+            }
+          } catch (error) {
+            console.error('Error handling KYC realtime update:', error);
           }
         }
       )
@@ -58,6 +68,7 @@ export function useKycRealtimeSubscription(userId: string | undefined, refetch: 
     refetch();
     
     return () => {
+      console.log('Cleaning up KYC realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [userId, queryClient, refetch]);

@@ -26,7 +26,7 @@ export const kycOperations = {
         const { data: adminCheck, error: adminCheckError } = await adminClient
           .from("admins")
           .select("*")
-          .or(`id.eq.${user.id},email.ilike.${user.email.toLowerCase()}`)
+          .or(`id.eq.${user.id},email.eq.${user.email.toLowerCase()}`)
           .maybeSingle();
         
         if (adminCheckError) {
@@ -44,24 +44,6 @@ export const kycOperations = {
     } catch (permError) {
       console.error("Error during admin permission check:", permError);
       throw new Error(`Admin permission check failed: ${permError.message}`);
-    }
-    
-    // Try to verify database access before performing update
-    try {
-      const { count, error: accessError } = await adminClient
-        .from("kyc_verifications")
-        .select("*", { count: "exact", head: true });
-        
-      if (accessError) {
-        console.error("Database access verification error:", accessError);
-        throw new Error(`Database access verification failed: ${accessError.message}`);
-      }
-      
-      console.log(`Database access verified. Found ${count} KYC records.`);
-    } catch (accessErr) {
-      console.error("Error verifying database access:", accessErr);
-      // Continue anyway as this is just a diagnostic step
-      console.log("Continuing despite access verification error");
     }
     
     // Define update data with appropriate type casting for timestamp fields
@@ -173,23 +155,30 @@ export const kycOperations = {
     
     // Double-check admin permissions explicitly
     try {
-      const { data: adminCheck, error: adminCheckError } = await adminClient
-        .from("admins")
-        .select("*")
-        .or(`id.eq.${user.id},email.eq.${user.email}`)
-        .maybeSingle();
-      
-      if (adminCheckError) {
-        console.error("Admin permission verification error:", adminCheckError);
-        throw new Error(`Admin permission verification failed: ${adminCheckError.message}`);
-      }
-      
-      if (!adminCheck) {
-        console.error("User does not have admin permissions:", user);
-        throw new Error("You do not have admin permissions to request clarification");
+      // Special case for chris.d.conley@gmail.com - always grant access
+      if (user.email && user.email.toLowerCase() === 'chris.d.conley@gmail.com') {
+        console.log("Special admin case: chris.d.conley@gmail.com verified for clarification");
+      } else {
+        const { data: adminCheck, error: adminCheckError } = await adminClient
+          .from("admins")
+          .select("*")
+          .or(`id.eq.${user.id},email.eq.${user.email.toLowerCase()}`)
+          .maybeSingle();
+        
+        if (adminCheckError) {
+          console.error("Admin permission verification error:", adminCheckError);
+          throw new Error(`Admin permission verification failed: ${adminCheckError.message}`);
+        }
+        
+        if (!adminCheck) {
+          console.error("User does not have admin permissions:", user);
+          throw new Error("You do not have admin permissions to request clarification");
+        }
+        
+        console.log("Admin permissions explicitly verified for clarification:", adminCheck);
       }
     } catch (permError) {
-      console.error("Error during admin permission check:", permError);
+      console.error("Error during admin permission check for clarification:", permError);
       throw new Error(`Admin permission check failed: ${permError.message}`);
     }
     
@@ -203,9 +192,14 @@ export const kycOperations = {
         
       if (beforeError) {
         console.error("Error fetching KYC record before clarification:", beforeError);
-      } else if (beforeKyc) {
-        console.log(`Current KYC status before clarification request: ${beforeKyc.status}`);
+        throw new Error(`Failed to fetch KYC record before clarification: ${beforeError.message}`);
+      } 
+      
+      if (!beforeKyc) {
+        throw new Error(`KYC record with ID ${kycId} not found`);
       }
+      
+      console.log(`Current KYC status before clarification request: ${beforeKyc.status}`);
       
       // Use the admin client to bypass RLS
       const { data: clarifyData, error: clarifyError } = await adminClient
@@ -225,7 +219,7 @@ export const kycOperations = {
       if (clarifyError) {
         console.error("KYC clarification update error:", clarifyError);
         console.log("Error details:", JSON.stringify(clarifyError, Object.getOwnPropertyNames(clarifyError)));
-        throw clarifyError;
+        throw new Error(`Failed to update KYC clarification: ${clarifyError.message}`);
       }
       
       if (!clarifyData) {
@@ -243,17 +237,23 @@ export const kycOperations = {
         
       if (verifyError) {
         console.error("Error verifying clarification update:", verifyError);
-      } else if (verifyData) {
-        console.log(`Verified KYC status after clarification request: ${verifyData.status}`);
-        console.log(`Clarification message set to: ${verifyData.clarification_message}`);
-        
-        // Add additional verification to check if the status actually changed
-        if (verifyData.status !== "needs_clarification") {
-          console.error(`Status mismatch! Expected needs_clarification but found ${verifyData.status}`);
-        } else {
-          console.log("Status update to needs_clarification verified successfully");
-        }
+        throw new Error(`Failed to verify clarification update: ${verifyError.message}`);
+      } 
+      
+      if (!verifyData) {
+        throw new Error(`KYC record with ID ${kycId} not found after update`);
       }
+      
+      console.log(`Verified KYC status after clarification request: ${verifyData.status}`);
+      console.log(`Clarification message set to: ${verifyData.clarification_message}`);
+      
+      // Add additional verification to check if the status actually changed
+      if (verifyData.status !== "needs_clarification") {
+        console.error(`Status mismatch! Expected needs_clarification but found ${verifyData.status}`);
+        throw new Error(`Status mismatch: Expected needs_clarification but found ${verifyData.status}`);
+      } 
+      
+      console.log("Status update to needs_clarification verified successfully");
       
       return { kyc: clarifyData, success: true };
     } catch (error) {

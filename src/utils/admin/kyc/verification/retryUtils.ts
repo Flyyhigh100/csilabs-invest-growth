@@ -14,6 +14,14 @@ export async function executeWithRetries<T>(
   let lastError = null;
   let response = null;
   
+  // Update toast with retry information
+  const updateToast = (message: string) => {
+    toast.loading(message, {
+      id: toastId,
+      duration: 10000
+    });
+  };
+  
   while (retryCount < maxRetries && !success) {
     try {
       console.log(`🔄 Attempt ${retryCount + 1} of ${maxRetries}`);
@@ -25,11 +33,15 @@ export async function executeWithRetries<T>(
       
       // Give a small delay before each retry attempt after the first
       if (retryCount > 0) {
+        updateToast(`Retrying... (Attempt ${retryCount + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
       response = await fn();
       success = true;
+      
+      // Clear any retry messages
+      toast.dismiss(toastId);
       
       return { success: true, data: response };
     } catch (invokeError: any) {
@@ -41,6 +53,7 @@ export async function executeWithRetries<T>(
         break;
       }
       
+      updateToast(`Retrying in 1 second... (Attempt ${retryCount + 1}/${maxRetries})`);
       console.log(`Retrying in 1 second... (attempt ${retryCount + 1} of ${maxRetries})`);
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait before retry
     }
