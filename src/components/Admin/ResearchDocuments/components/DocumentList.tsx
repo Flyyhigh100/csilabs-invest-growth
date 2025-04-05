@@ -7,9 +7,10 @@ import { ResearchDocument } from '../types/documentTypes';
 interface DocumentListProps {
   documents: ResearchDocument[];
   isLoading: boolean;
+  onEditDocument?: (document: ResearchDocument) => void;
 }
 
-const DocumentList: React.FC<DocumentListProps> = ({ documents, isLoading }) => {
+const DocumentList: React.FC<DocumentListProps> = ({ documents, isLoading, onEditDocument }) => {
   if (isLoading) {
     return (
       <div className="text-center py-8">
@@ -31,7 +32,11 @@ const DocumentList: React.FC<DocumentListProps> = ({ documents, isLoading }) => 
   return (
     <div className="space-y-4">
       {documents.map((doc) => (
-        <DocumentCard key={doc.id} document={doc} />
+        <DocumentCard 
+          key={doc.id} 
+          document={doc}
+          onEdit={onEditDocument} 
+        />
       ))}
     </div>
   );

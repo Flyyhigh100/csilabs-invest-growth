@@ -14,7 +14,8 @@ const AdminResearchDocuments = () => {
     isAuthenticated,
     loadDocumentsFromStorage,
     addDocument,
-    checkAuthentication
+    checkAuthentication,
+    updateDocumentMetadata
   } = useResearchDocuments();
 
   // Check authentication status on page load
@@ -28,6 +29,38 @@ const AdminResearchDocuments = () => {
     
     checkAuth();
   }, [checkAuthentication]);
+
+  // When the page loads, also check for specific document updates from URL
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const docId = searchParams.get('updateDoc');
+    
+    if (docId && documents.length > 0) {
+      // Find the document with this ID
+      const doc = documents.find(d => d.id === `doc-${docId}`);
+      
+      if (doc) {
+        // Update this specific document with Harvard data
+        const harvardUpdate = {
+          title: "Harvard Global Health Catalyst Summit Invitation and Industry Leader Award",
+          description: "Official invitation letter from Harvard Medical School's Global Health Catalyst to Raymond C. Dabney, President & CEO of Cannabis Science Inc., to serve as keynote speaker at the 2018 Harvard Global Health Catalyst Summit. The letter announces Mr. Dabney's selection for the prestigious 2018 Harvard GHC Industry Leader Award in recognition of his groundbreaking collaborations with African institutions to develop cannabinoid-based cancer treatments. The summit focused on building high-impact USA-Africa collaborations to address cancer and other non-communicable diseases.",
+          category: "Awards, Academic Recognition, Institutional Partnerships",
+          publishDate: "May 2, 2018",
+          authors: "Prof. Wilfred Ngwa, MS, PhD, Chair of Organizing Committee, Director of Global Health Catalyst, Dana Farber/Harvard Cancer Center"
+        };
+        
+        updateDocumentMetadata(`doc-${docId}`, harvardUpdate)
+          .then(success => {
+            if (success) {
+              // Remove the query parameter
+              const url = new URL(window.location.href);
+              url.searchParams.delete('updateDoc');
+              window.history.replaceState({}, '', url);
+            }
+          });
+      }
+    }
+  }, [documents, updateDocumentMetadata]);
 
   return (
     <AdminLayout title="Manage Research Documents">
@@ -51,7 +84,8 @@ const AdminResearchDocuments = () => {
         <DocumentsList 
           documents={documents} 
           isLoading={isLoading} 
-          onReload={loadDocumentsFromStorage} 
+          onReload={loadDocumentsFromStorage}
+          onUpdateDocument={updateDocumentMetadata}
         />
       </div>
     </AdminLayout>
