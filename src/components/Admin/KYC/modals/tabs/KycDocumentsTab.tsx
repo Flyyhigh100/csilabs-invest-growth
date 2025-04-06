@@ -24,10 +24,13 @@ const KycDocumentsTab: React.FC<KycDocumentsTabProps> = ({ kyc }) => {
     idBack: null as string | null,
     selfie: null as string | null
   });
+  const [isProcessing, setIsProcessing] = useState(true);
   
   useEffect(() => {
     const processUrls = async () => {
       try {
+        setIsProcessing(true);
+        
         console.log('Starting URL processing for KYC documents:', {
           id_front_url: kyc.id_front_url,
           id_back_url: kyc.id_back_url,
@@ -50,6 +53,8 @@ const KycDocumentsTab: React.FC<KycDocumentsTabProps> = ({ kyc }) => {
       } catch (error) {
         console.error('Error processing document URLs:', error);
         toast.error('Error loading document URLs');
+      } finally {
+        setIsProcessing(false);
       }
     };
     
@@ -95,6 +100,7 @@ const KycDocumentsTab: React.FC<KycDocumentsTabProps> = ({ kyc }) => {
           imageUrl={processedUrls.idFront}
           onOpenFullImage={openFullImage}
           onZoomImage={openZoomModal}
+          isLoading={isProcessing}
         />
         
         <DocumentSection 
@@ -102,6 +108,7 @@ const KycDocumentsTab: React.FC<KycDocumentsTabProps> = ({ kyc }) => {
           imageUrl={processedUrls.idBack}
           onOpenFullImage={openFullImage}
           onZoomImage={openZoomModal}
+          isLoading={isProcessing}
         />
         
         <DocumentSection 
@@ -109,6 +116,7 @@ const KycDocumentsTab: React.FC<KycDocumentsTabProps> = ({ kyc }) => {
           imageUrl={processedUrls.selfie}
           onOpenFullImage={openFullImage}
           onZoomImage={openZoomModal}
+          isLoading={isProcessing}
         />
       </div>
       

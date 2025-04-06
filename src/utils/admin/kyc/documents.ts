@@ -8,14 +8,14 @@ export const getKycDocumentUrl = async (url: string | null): Promise<string | nu
   try {
     console.log('Processing document URL:', url);
     
-    // If the URL is already in the correct format (contains storage/v1/object/public), return it
-    if (url.includes('storage/v1/object/public/')) {
-      console.log('URL is already in the public format:', url);
+    // If the URL is already a complete URL (contains http or https), return it
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      console.log('URL is already a complete URL:', url);
       return url;
     }
     
     // Extract bucket and path information
-    let bucketName = 'kyc_documents'; // Default bucket
+    let bucketName = 'documents';
     let path = url;
     
     // Handle different URL formats
@@ -25,7 +25,11 @@ export const getKycDocumentUrl = async (url: string | null): Promise<string | nu
     } else if (url.includes('/documents/')) {
       bucketName = 'documents';
       path = url.split('/documents/')[1];
+    } else if (url.includes('/kyc/')) {
+      bucketName = 'documents';
+      path = url;
     } else if (url.startsWith('kyc_documents/')) {
+      bucketName = 'kyc_documents';
       path = url.replace('kyc_documents/', '');
     } else if (url.startsWith('documents/')) {
       bucketName = 'documents';
@@ -34,7 +38,7 @@ export const getKycDocumentUrl = async (url: string | null): Promise<string | nu
     
     console.log(`Generating public URL - Bucket: ${bucketName}, Path: ${path}`);
     
-    // Use Supabase Storage getPublicUrl method - direct approach without async
+    // Use Supabase Storage getPublicUrl method
     const { data } = supabase.storage
       .from(bucketName)
       .getPublicUrl(path);
@@ -57,8 +61,8 @@ export const verifyImageUrl = (url: string | null): string | null => {
   if (!url) return null;
   
   try {
-    // Check if URL has a valid protocol
-    if (!url.startsWith('http')) {
+    // Check if URL has a valid protocol or if it's a storage path
+    if (!url.startsWith('http') && !url.includes('storage/v1/object/public')) {
       console.warn('Invalid image URL protocol:', url);
       return null;
     }

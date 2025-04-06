@@ -26,6 +26,14 @@ const KycDebugInfo: React.FC<KycDebugInfoProps> = ({
 }) => {
   if (!debugInfo) return null;
 
+  const formatUrl = (url: string | null) => {
+    if (!url) return 'No URL';
+    if (url.length > 60) {
+      return `${url.substring(0, 30)}...${url.substring(url.length - 30)}`;
+    }
+    return url;
+  };
+
   return (
     <details className="text-xs">
       <summary className="cursor-pointer font-semibold text-gray-600">Debug Information</summary>
@@ -47,6 +55,15 @@ const KycDebugInfo: React.FC<KycDebugInfoProps> = ({
             <p><strong>Admin Permissions:</strong> {debugInfo.adminPermissionStatus}</p>
           )}
           
+          <div className="mt-2">
+            <p className="font-semibold">Document URLs:</p>
+            <div className="mt-1 pl-2 border-l-2 border-gray-200">
+              <p><strong>ID Front:</strong> {formatUrl(selectedKyc.id_front_url)}</p>
+              <p><strong>ID Back:</strong> {formatUrl(selectedKyc.id_back_url)}</p>
+              <p><strong>Selfie:</strong> {formatUrl(selectedKyc.selfie_url)}</p>
+            </div>
+          </div>
+          
           {debugInfo.error && (
             <div className="mt-2 text-red-500">
               <strong>Error:</strong> {debugInfo.error}
@@ -56,7 +73,7 @@ const KycDebugInfo: React.FC<KycDebugInfoProps> = ({
           {debugInfo.supabaseResponse && (
             <div className="mt-2">
               <strong>Response:</strong>
-              <pre className="mt-1 p-1 bg-gray-100 rounded overflow-x-auto">
+              <pre className="mt-1 p-1 bg-gray-100 rounded overflow-x-auto max-h-40">
                 {JSON.stringify(debugInfo.supabaseResponse, null, 2)}
               </pre>
             </div>

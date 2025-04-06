@@ -22,25 +22,33 @@ const KycDocumentImage: React.FC<KycDocumentImageProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
   
   useEffect(() => {
     if (!url) {
       setIsLoading(false);
       setHasError(true);
       setErrorMessage('No image URL provided');
-    } else {
-      // Reset states when URL changes
-      setIsLoading(true);
-      setHasError(false);
-      setErrorMessage(null);
+      setImageSrc(null);
+      return;
     }
-  }, [url]);
+    
+    // Reset states when URL changes
+    setIsLoading(true);
+    setHasError(false);
+    setErrorMessage(null);
+    
+    console.log(`Setting up image for ${alt}:`, url);
+    
+    // Store the URL to use for the image source
+    setImageSrc(url);
+  }, [url, alt]);
   
   const handleImageError = () => {
     console.warn(`Image failed to load: ${alt}`, url);
     setIsLoading(false);
     setHasError(true);
-    setErrorMessage('Image failed to load');
+    setErrorMessage(`Failed to load ${alt} image`);
   };
   
   const handleImageLoad = () => {
@@ -75,27 +83,25 @@ const KycDocumentImage: React.FC<KycDocumentImageProps> = ({
     toast.info('Opening image in new tab');
   };
   
-  if (isLoading && url) {
+  if (isLoading && imageSrc) {
     return (
       <div className="w-full h-48 relative rounded-md overflow-hidden">
         <Skeleton className="w-full h-48 rounded-md" />
         <div className="absolute inset-0 flex items-center justify-center">
           <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
-          {url && (
-            <img 
-              src={url} 
-              alt={alt} 
-              className="hidden" 
-              onError={handleImageError}
-              onLoad={handleImageLoad}
-            />
-          )}
+          <img 
+            src={imageSrc} 
+            alt={alt} 
+            className="hidden" 
+            onError={handleImageError}
+            onLoad={handleImageLoad}
+          />
         </div>
       </div>
     );
   }
   
-  if (hasError || !url) {
+  if (hasError || !imageSrc) {
     return (
       <div className="w-full h-48 bg-gray-50 rounded-md border border-gray-200 flex flex-col items-center justify-center p-4">
         <ShieldAlert className="h-10 w-10 text-gray-400 mb-2" />
@@ -127,7 +133,7 @@ const KycDocumentImage: React.FC<KycDocumentImageProps> = ({
   return (
     <div className="relative group cursor-pointer rounded-md overflow-hidden" onClick={handleOpenFullImage}>
       <img 
-        src={url} 
+        src={imageSrc} 
         alt={alt} 
         className="w-full h-48 object-cover rounded-md border border-gray-200 transition-all duration-200 group-hover:opacity-90" 
         onError={handleImageError}
@@ -148,7 +154,7 @@ const KycDocumentImage: React.FC<KycDocumentImageProps> = ({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Open in new tab</p>
+                <p>View full image</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
