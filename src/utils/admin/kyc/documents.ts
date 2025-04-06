@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 // Get a public URL for Supabase storage files
 export const getKycDocumentUrl = async (url: string | null): Promise<string | null> => {
-  if (!url) return null;
+  if (!url || url.trim() === '') return null;
   
   try {
     console.log('Processing document URL:', url);
@@ -40,9 +40,13 @@ export const getKycDocumentUrl = async (url: string | null): Promise<string | nu
     
     // Use Supabase Storage getPublicUrl method with error handling
     try {
+      // Ensure the path has no leading slash
+      const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+      
+      console.log(`Getting public URL for bucket: ${bucketName}, path: ${cleanPath}`);
       const { data } = supabase.storage
         .from(bucketName)
-        .getPublicUrl(path);
+        .getPublicUrl(cleanPath);
       
       if (data && data.publicUrl) {
         console.log('Generated public URL:', data.publicUrl);
@@ -56,18 +60,23 @@ export const getKycDocumentUrl = async (url: string | null): Promise<string | nu
         
         const { data: altData } = supabase.storage
           .from(alternateBucket)
-          .getPublicUrl(path);
+          .getPublicUrl(cleanPath);
           
         if (altData && altData.publicUrl) {
           console.log('Generated public URL from alternate bucket:', altData.publicUrl);
           return altData.publicUrl;
         }
         
-        return url; // Return original URL as fallback
+        // If all else fails, return the original URL that was passed in
+        console.log('Returning original URL as fallback:', url);
+        return url;
       }
     } catch (storageError) {
       console.error('Storage error when generating URL:', storageError);
-      return url; // Return original URL as fallback
+      
+      // Return original URL as fallback
+      console.log('Returning original URL due to storage error:', url);
+      return url;
     }
   } catch (error) {
     console.error('Error processing document URL:', error);
@@ -77,18 +86,38 @@ export const getKycDocumentUrl = async (url: string | null): Promise<string | nu
 
 // Simple validation of image URL
 export const verifyImageUrl = (url: string | null): string | null => {
-  if (!url) return null;
+  if (!url || url.trim() === '') return null;
   
   try {
-    // Check if URL has a valid protocol or if it's a storage path
-    if (!url.startsWith('http') && !url.includes('storage/v1/object/public')) {
-      console.warn('Invalid image URL protocol:', url);
-      return null;
+    // More permissive check - accept URLs that have http/https or storage path patterns
+    if (url.startsWith('http') || url.includes('storage/v1/object/public') || 
+        url.includes('/kyc_documents/') || url.includes('/documents/') ||
+        url.startsWith('kyc_documents/') || url.startsWith('documents/')) {
+      return url;
     }
     
+    console.warn('Possibly invalid image URL format:', url);
+    // Still return the URL even if format is unexpected - let the component handle display fallbacks
     return url;
   } catch (error) {
     console.error('Error verifying image URL:', error);
     return null;
+  }
+};
+
+// Check if an image exists and can be loaded
+export const checkImageExists = async (url: string | null): Promise<boolean> => {
+  if (!url) return false;
+  
+  try {
+    if (url.startsWith('http') || url.startsWith('https')) {
+      // For security reasons, we can't directly check remote images with fetch due to CORS
+      // So we'll just return true and let the image element handle the loading failure
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error checking if image exists:', error);
+    return false;
   }
 };

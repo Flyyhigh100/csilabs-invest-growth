@@ -18,7 +18,7 @@ const DocumentSection: React.FC<DocumentSectionProps> = ({
   onZoomImage,
   isLoading = false
 }) => {
-  console.log(`Rendering DocumentSection for ${title} with URL:`, imageUrl);
+  const hasImage = !!imageUrl && imageUrl !== '';
   
   return (
     <div className="flex flex-col h-full">
@@ -28,13 +28,17 @@ const DocumentSection: React.FC<DocumentSectionProps> = ({
           <div className="w-full h-48 relative">
             <Skeleton className="w-full h-48 rounded-md" />
           </div>
-        ) : (
+        ) : hasImage ? (
           <KycDocumentImage 
             url={imageUrl} 
             alt={title}
             onOpenFullImage={onOpenFullImage}
             onZoomImage={onZoomImage}
           />
+        ) : (
+          <div className="flex items-center justify-center w-full h-48 bg-gray-100 rounded-md border border-dashed border-gray-300">
+            <p className="text-sm text-gray-400">No document available</p>
+          </div>
         )}
       </div>
     </div>

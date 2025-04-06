@@ -31,6 +31,7 @@ const KycRejectForm: React.FC<KycRejectFormProps> = ({
 
   const handleRejectClick = (e: React.MouseEvent) => {
     e.preventDefault();
+    
     if (!rejectionReason.trim()) {
       toast.error('Please provide a rejection reason');
       return;
@@ -41,8 +42,27 @@ const KycRejectForm: React.FC<KycRejectFormProps> = ({
       return;
     }
     
+    // Clear any previous toast with this ID
+    toast.dismiss('reject-processing-toast');
+    
+    // Show a new processing toast with a timeout
+    toast.loading('Processing rejection request...', { 
+      id: 'reject-processing-toast',
+      duration: 10000 // 10 second timeout
+    });
+    
     console.log('Triggering rejection with reason:', rejectionReason);
     onReject();
+    
+    // Set a timeout to dismiss the infinite loading state if it takes too long
+    const timeoutId = setTimeout(() => {
+      if (isPending) {
+        toast.dismiss('reject-processing-toast');
+        toast.error('Rejection request is taking longer than expected. Please try again.');
+      }
+    }, 15000); // 15 seconds timeout
+    
+    return () => clearTimeout(timeoutId);
   };
 
   return (
@@ -55,7 +75,7 @@ const KycRejectForm: React.FC<KycRejectFormProps> = ({
         Rejection Reason (required)
       </label>
       <textarea
-        className="w-full p-2 border border-gray-300 rounded-md"
+        className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
         rows={3}
         value={rejectionReason}
         onChange={(e) => setRejectionReason(e.target.value)}
@@ -69,6 +89,7 @@ const KycRejectForm: React.FC<KycRejectFormProps> = ({
           onClick={handleRejectClick}
           disabled={isPending || !rejectionReason.trim()}
           type="button"
+          className="relative"
         >
           {isPending ? (
             <>

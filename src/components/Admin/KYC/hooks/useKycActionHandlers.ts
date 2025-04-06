@@ -39,17 +39,27 @@ export const useKycQueryInvalidation = () => {
   return () => {
     console.log('🔄 Invalidating all KYC-related queries');
     
-    // Immediately invalidate and refetch all related queries
+    // Force immediate invalidation of all queries
     queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
     queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
     queryClient.invalidateQueries({ queryKey: ['admin-users'] });
     queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
     
-    // Force a more aggressive refetch with a delay
-    setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'], refetchType: 'all' });
-      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'], refetchType: 'all' });
-    }, 1000);
+    // Force multiple refreshes with delay to ensure UI is updated
+    const refreshTimes = [100, 1000, 3000]; // milliseconds
+    refreshTimes.forEach(delay => {
+      setTimeout(() => {
+        console.log(`🔄 Forced refresh at ${delay}ms delay`);
+        queryClient.invalidateQueries({ 
+          queryKey: ['admin-kyc-verifications'], 
+          refetchType: 'all' 
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: ['admin-dashboard-stats'], 
+          refetchType: 'all' 
+        });
+      }, delay);
+    });
   };
 };
 
@@ -69,7 +79,9 @@ export const useProcessMutation = (onSuccess: () => void, setDebugInfo: any) => 
       status: 'approved' | 'rejected'; 
       rejectionReason?: string;
     }) => {
-      console.log('🚀 Starting KYC verification process:', { kycId, status, rejectionReason });
+      // Generate an operation ID for tracking
+      const operationId = `${status}-${Date.now()}`;
+      console.log(`🚀 [${operationId}] Starting KYC verification process:`, { kycId, status, rejectionReason });
       
       // Clear previous error state
       setDebugInfo(prev => ({
@@ -93,7 +105,8 @@ export const useProcessMutation = (onSuccess: () => void, setDebugInfo: any) => 
       // Validation for rejection reason if status is 'rejected'
       if (status === 'rejected' && (!rejectionReason || rejectionReason.trim() === '')) {
         const errorMsg = 'Rejection reason is required';
-        console.error(errorMsg);
+        console.error(`[${operationId}] ${errorMsg}`);
+        
         setDebugInfo(prev => ({
           ...prev,
           error: errorMsg,
@@ -104,9 +117,21 @@ export const useProcessMutation = (onSuccess: () => void, setDebugInfo: any) => 
       }
       
       try {
+        // Set up a timeout to automatically clear the pending state
+        const safetyTimeout = setTimeout(() => {
+          console.log(`⏰ [${operationId}] Safety timeout triggered after 30 seconds`);
+          setDebugInfo(prev => ({
+            ...prev,
+            error: 'Operation timed out after 30 seconds',
+            currentRetry: null
+          }));
+          
+          toast.error('Operation timed out. Please check network connection and try again.');
+        }, 30000); // 30 seconds timeout
+        
         // Set up an event listener for the retry attempts
         const retryListener = (attemptNum: number | null, maxRetries: number | null) => {
-          console.log(`Retry attempt ${attemptNum} of ${maxRetries}`);
+          console.log(`[${operationId}] Retry attempt ${attemptNum} of ${maxRetries}`);
           setDebugInfo(prev => ({
             ...prev,
             currentRetry: attemptNum,
@@ -116,7 +141,7 @@ export const useProcessMutation = (onSuccess: () => void, setDebugInfo: any) => 
         
         // Set up a listener for admin permission check
         const adminPermissionListener = (status: 'verified' | 'failed' | 'checking') => {
-          console.log(`Admin permission check: ${status}`);
+          console.log(`[${operationId}] Admin permission check: ${status}`);
           setDebugInfo(prev => ({
             ...prev,
             adminPermissionStatus: status
@@ -127,14 +152,17 @@ export const useProcessMutation = (onSuccess: () => void, setDebugInfo: any) => 
         (window as any).kycRetryListener = retryListener;
         (window as any).kycAdminPermissionListener = adminPermissionListener;
         
-        console.log(`📤 Sending request to Supabase for KYC ID: ${kycId} with status: ${status}`);
+        console.log(`[${operationId}] 📤 Sending request to Supabase for KYC ID: ${kycId} with status: ${status}`);
         const success = await processKycVerification(kycId, status, rejectionReason);
         
-        console.log(`✅ Verification process completed with result: ${success ? 'SUCCESS' : 'FAILED'}`);
+        // Clear the safety timeout
+        clearTimeout(safetyTimeout);
+        
+        console.log(`[${operationId}] ✅ Verification process completed with result: ${success ? 'SUCCESS' : 'FAILED'}`);
         
         if (!success) {
           const errorMessage = `Failed to process KYC verification with status: ${status}`;
-          console.error(errorMessage);
+          console.error(`[${operationId}] ${errorMessage}`);
           
           setDebugInfo(prev => ({
             ...prev,
@@ -155,9 +183,12 @@ export const useProcessMutation = (onSuccess: () => void, setDebugInfo: any) => 
           currentRetry: null
         }));
         
+        // Trigger immediate invalidation
+        invalidateQueries();
+        
         return true;
       } catch (error) {
-        console.error('❌ Error processing KYC verification:', error);
+        console.error(`[${operationId}] ❌ Error processing KYC verification:`, error);
         
         setDebugInfo(prev => ({
           ...prev,
@@ -180,11 +211,6 @@ export const useProcessMutation = (onSuccess: () => void, setDebugInfo: any) => 
       
       // Invalidate all relevant queries to refresh data
       invalidateQueries();
-      
-      // Set a timeout to ensure that the UI is updated after the database changes have propagated
-      setTimeout(() => {
-        invalidateQueries();
-      }, 2000);
     },
     onError: (error) => {
       console.error('❌ Error in KYC mutation:', error);
@@ -207,7 +233,9 @@ export const useClarificationMutation = (onSuccess: () => void, setDebugInfo: an
       kycId: string; 
       message: string;
     }) => {
-      console.log('🚀 Starting clarification request:', { kycId, message });
+      // Generate an operation ID for tracking
+      const operationId = `clarify-${Date.now()}`;
+      console.log(`[${operationId}] 🚀 Starting clarification request:`, { kycId, message });
       
       // Update debug info at the start
       setDebugInfo(prev => ({
@@ -224,7 +252,7 @@ export const useClarificationMutation = (onSuccess: () => void, setDebugInfo: an
       
       if (!message || message.trim() === '') {
         const errorMessage = 'Clarification message is required';
-        console.error(errorMessage);
+        console.error(`[${operationId}] ${errorMessage}`);
         
         setDebugInfo(prev => ({
           ...prev,
@@ -236,9 +264,21 @@ export const useClarificationMutation = (onSuccess: () => void, setDebugInfo: an
       }
       
       try {
-        // Set up an event listener for the retry attempts
+        // Set up a timeout to automatically clear the pending state
+        const safetyTimeout = setTimeout(() => {
+          console.log(`⏰ [${operationId}] Safety timeout triggered after 30 seconds`);
+          setDebugInfo(prev => ({
+            ...prev,
+            error: 'Operation timed out after 30 seconds',
+            currentRetry: null
+          }));
+          
+          toast.error('Operation timed out. Please check network connection and try again.');
+        }, 30000); // 30 seconds timeout
+        
+        // Set up listeners similar to process mutation
         const retryListener = (attemptNum: number | null, maxRetries: number | null) => {
-          console.log(`Clarification retry attempt ${attemptNum} of ${maxRetries}`);
+          console.log(`[${operationId}] Clarification retry attempt ${attemptNum} of ${maxRetries}`);
           setDebugInfo(prev => ({
             ...prev,
             currentRetry: attemptNum,
@@ -246,9 +286,8 @@ export const useClarificationMutation = (onSuccess: () => void, setDebugInfo: an
           }));
         };
         
-        // Set up a listener for admin permission check
         const adminPermissionListener = (status: 'verified' | 'failed' | 'checking') => {
-          console.log(`Admin permission check for clarification: ${status}`);
+          console.log(`[${operationId}] Admin permission check for clarification: ${status}`);
           setDebugInfo(prev => ({
             ...prev,
             adminPermissionStatus: status
@@ -259,14 +298,17 @@ export const useClarificationMutation = (onSuccess: () => void, setDebugInfo: an
         (window as any).kycRetryListener = retryListener;
         (window as any).kycAdminPermissionListener = adminPermissionListener;
         
-        console.log(`📤 Sending clarification request to Supabase for KYC ID: ${kycId}`);
+        console.log(`[${operationId}] 📤 Sending clarification request to Supabase for KYC ID: ${kycId}`);
         const success = await requestKycClarification(kycId, message);
         
-        console.log(`✅ Clarification request completed with result: ${success ? 'SUCCESS' : 'FAILED'}`);
+        // Clear the safety timeout
+        clearTimeout(safetyTimeout);
+        
+        console.log(`[${operationId}] ✅ Clarification request completed with result: ${success ? 'SUCCESS' : 'FAILED'}`);
         
         if (!success) {
           const errorMessage = 'Failed to request clarification';
-          console.error(errorMessage);
+          console.error(`[${operationId}] ${errorMessage}`);
           
           setDebugInfo(prev => ({
             ...prev,
@@ -288,9 +330,12 @@ export const useClarificationMutation = (onSuccess: () => void, setDebugInfo: an
           currentRetry: null
         }));
         
+        // Trigger immediate invalidation
+        invalidateQueries();
+        
         return true;
       } catch (error) {
-        console.error('❌ Error sending clarification request:', error);
+        console.error(`[${operationId}] ❌ Error sending clarification request:`, error);
         
         setDebugInfo(prev => ({
           ...prev,
@@ -316,11 +361,6 @@ export const useClarificationMutation = (onSuccess: () => void, setDebugInfo: an
       
       // Invalidate all relevant queries
       invalidateQueries();
-      
-      // Set a timeout to ensure that the UI is updated after the database changes have propagated
-      setTimeout(() => {
-        invalidateQueries();
-      }, 2000);
     },
     onError: (error) => {
       console.error('❌ Error in clarification mutation:', error);
@@ -348,6 +388,12 @@ export const useKycActionHandlers = (onSuccess: () => void) => {
     
     console.log('🚀 Approving KYC for:', selectedKyc.id);
     
+    // Clear any existing toasts
+    toast.dismiss();
+    
+    // Show the processing toast
+    toast.loading('Processing KYC approval...', { id: 'kyc-approval', duration: 20000 });
+    
     processMutation.mutate({
       kycId: selectedKyc.id,
       status: 'approved'
@@ -369,6 +415,12 @@ export const useKycActionHandlers = (onSuccess: () => void) => {
     }
     
     console.log('🚀 Rejecting KYC for:', selectedKyc.id, 'with reason:', rejectionReason);
+    
+    // Clear any existing toasts
+    toast.dismiss();
+    
+    // Show the processing toast
+    toast.loading('Processing KYC rejection...', { id: 'kyc-rejection', duration: 20000 });
     
     processMutation.mutate({
       kycId: selectedKyc.id,
@@ -392,6 +444,12 @@ export const useKycActionHandlers = (onSuccess: () => void) => {
     }
     
     console.log('🚀 Requesting clarification for:', selectedKyc.id, 'with message:', clarificationMessage);
+    
+    // Clear any existing toasts
+    toast.dismiss();
+    
+    // Show the processing toast
+    toast.loading('Processing clarification request...', { id: 'kyc-clarification', duration: 20000 });
     
     clarificationMutation.mutate({
       kycId: selectedKyc.id,
