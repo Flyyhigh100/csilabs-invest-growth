@@ -107,13 +107,16 @@ export const processKycVerification = async (
         });
         
         // Actual function call
-        const functionPromise = supabase.functions.invoke('admin-operations', { body: payload });
+        const functionPromise = supabase.functions.invoke('admin-operations', { 
+          body: payload 
+        });
         
         // Race between timeout and function call
         const response = await Promise.race([functionPromise, timeoutPromise]);
         
         console.log('📥 Full response from admin-operations function:', response);
         
+        // Check if the response has an error property at the root level
         if (response.error) {
           console.error(`❌ Error from admin-operations function (attempt ${currentRetry + 1}):`, response.error);
           lastError = new Error(response.error.message || 'Error from admin-operations function');
@@ -124,10 +127,13 @@ export const processKycVerification = async (
         
         // Type guard to check if response has data property before accessing it
         if ('data' in response) {
-          // Check if the response contains an error object
+          // Check if the response contains an error object inside data
           if (response.data && typeof response.data === 'object' && 'error' in response.data) {
             console.error(`❌ Error from admin-operations response (attempt ${currentRetry + 1}):`, response.data.error);
-            lastError = new Error(response.data.error.message || 'Unknown error from server');
+            lastError = new Error(
+              response.data.error.message || 
+              (typeof response.data.error === 'string' ? response.data.error : 'Unknown error from server')
+            );
             currentRetry++;
             await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
             continue;
@@ -145,6 +151,27 @@ export const processKycVerification = async (
           // If we reach here without continuing to the next iteration, the operation was successful
           console.log(`✅ Successfully processed KYC verification with status: ${status}`, response.data);
           success = true;
+          
+          // Force trigger a direct refresh of the KYC record using a direct database read
+          // This helps confirm the change actually happened
+          try {
+            const { data: refreshCheck } = await supabase
+              .from('kyc_verifications')
+              .select('*')
+              .eq('id', kycId)
+              .single();
+              
+            console.log('🔍 Verification after update:', refreshCheck);
+            
+            if (refreshCheck && refreshCheck.status === status) {
+              console.log('✅ Database update confirmed');
+            } else if (refreshCheck) {
+              console.warn(`⚠️ Database status (${refreshCheck.status}) doesn't match expected status (${status})`);
+            }
+          } catch (refreshErr) {
+            console.error('Failed to verify database state:', refreshErr);
+          }
+          
           break;
         } else {
           console.error(`❌ Response does not contain data property (attempt ${currentRetry + 1})`);

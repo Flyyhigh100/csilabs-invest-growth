@@ -56,6 +56,13 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
       setRejectionReason('');
       setClarificationMessage('');
       setActiveAction(null);
+      
+      // Reset any processing toasts when the modal opens
+      ['reject-processing-toast', 'approve-processing-toast', 'clarify-processing-toast'].forEach(id => {
+        try { 
+          import('sonner').then(({ toast }) => toast.dismiss(id));
+        } catch (e) {}
+      });
     }
   }, [open, selectedKyc?.id, setRejectionReason, setClarificationMessage]);
   
@@ -66,6 +73,17 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
     }
   }, [isPending, debugInfo?.supabaseResponse?.success]);
 
+  // If modal is closed while processing, clean up toasts
+  useEffect(() => {
+    if (!open && isPending) {
+      ['reject-processing-toast', 'approve-processing-toast', 'clarify-processing-toast'].forEach(id => {
+        try { 
+          import('sonner').then(({ toast }) => toast.dismiss(id));
+        } catch (e) {}
+      });
+    }
+  }, [open, isPending]);
+
   if (!selectedKyc) return null;
   
   // Handle closing modal - ensure we reset state if the modal is closed
@@ -74,6 +92,13 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
       setActiveAction(null);
       setRejectionReason('');
       setClarificationMessage('');
+      
+      // Clean up any lingering toasts
+      ['reject-processing-toast', 'approve-processing-toast', 'clarify-processing-toast'].forEach(id => {
+        try { 
+          import('sonner').then(({ toast }) => toast.dismiss(id));
+        } catch (e) {}
+      });
     }
     onOpenChange(newOpenState);
   };

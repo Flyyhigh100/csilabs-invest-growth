@@ -63,7 +63,7 @@ export const kycOperations = {
       updateData.approved_by = null;
       updateData.clarification_message = null;
     } else if (status === "needs_clarification") {
-      updateData.clarification_message = rejectionReason;
+      updateData.clarification_message = rejectionReason || null;
       updateData.approved_at = null;
       updateData.approved_by = null;
       updateData.rejection_reason = null;
@@ -101,7 +101,7 @@ export const kycOperations = {
       
       if (kycError) {
         console.error("KYC update error:", kycError);
-        console.log("Error details:", JSON.stringify(kycError, Object.getOwnPropertyNames(kycError)));
+        console.log("Error details:", JSON.stringify(kycError, null, 2));
         throw new Error(`Failed to update KYC: ${kycError.message}`);
       }
       
@@ -121,22 +121,28 @@ export const kycOperations = {
       if (verifyError) {
         console.error("Error verifying KYC update:", verifyError);
         console.warn("Update may have completed successfully but verification failed");
-      } else if (verifyData) {
-        console.log(`Verified KYC status after update: ${verifyData.status}`);
-        
-        // Add additional verification to check if the status actually changed
-        if (verifyData.status !== status) {
-          console.error(`Status mismatch! Expected ${status} but found ${verifyData.status}`);
-          throw new Error(`Status mismatch: Expected ${status} but found ${verifyData.status}`);
-        } else {
-          console.log("Status update verified successfully");
-        }
+        throw new Error(`Failed to verify update: ${verifyError.message}`);
+      } 
+      
+      if (!verifyData) {
+        console.error(`Could not find KYC record with ID ${kycId} after update`);
+        throw new Error(`Could not find KYC record after update`);
       }
+      
+      console.log(`Verified KYC status after update: ${verifyData.status}`);
+      
+      // Add additional verification to check if the status actually changed
+      if (verifyData.status !== status) {
+        console.error(`Status mismatch! Expected ${status} but found ${verifyData.status}`);
+        throw new Error(`Status mismatch: Expected ${status} but found ${verifyData.status}`);
+      } 
+      
+      console.log("Status update verified successfully");
       
       return { kyc: kycData, success: true };
     } catch (error) {
       console.error("Error in KYC update operation:", error);
-      console.log("Error details:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      console.log("Error details:", JSON.stringify(error, null, 2));
       throw error;
     }
   },
@@ -218,7 +224,7 @@ export const kycOperations = {
       
       if (clarifyError) {
         console.error("KYC clarification update error:", clarifyError);
-        console.log("Error details:", JSON.stringify(clarifyError, Object.getOwnPropertyNames(clarifyError)));
+        console.log("Error details:", JSON.stringify(clarifyError, null, 2));
         throw new Error(`Failed to update KYC clarification: ${clarifyError.message}`);
       }
       
@@ -258,7 +264,7 @@ export const kycOperations = {
       return { kyc: clarifyData, success: true };
     } catch (error) {
       console.error("Error in KYC clarification operation:", error);
-      console.log("Error details:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      console.log("Error details:", JSON.stringify(error, null, 2));
       throw error;
     }
   }

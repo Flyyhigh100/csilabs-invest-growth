@@ -46,7 +46,7 @@ export const useKycQueryInvalidation = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
     
     // Force multiple refreshes with delay to ensure UI is updated
-    const refreshTimes = [100, 1000, 3000]; // milliseconds
+    const refreshTimes = [500, 2000, 5000]; // milliseconds
     refreshTimes.forEach(delay => {
       setTimeout(() => {
         console.log(`🔄 Forced refresh at ${delay}ms delay`);
@@ -126,6 +126,8 @@ export const useProcessMutation = (onSuccess: () => void, setDebugInfo: any) => 
             currentRetry: null
           }));
           
+          toast.dismiss('reject-processing-toast');
+          toast.dismiss('approve-processing-toast');
           toast.error('Operation timed out. Please check network connection and try again.');
         }, 30000); // 30 seconds timeout
         
@@ -160,6 +162,9 @@ export const useProcessMutation = (onSuccess: () => void, setDebugInfo: any) => 
         
         console.log(`[${operationId}] ✅ Verification process completed with result: ${success ? 'SUCCESS' : 'FAILED'}`);
         
+        toast.dismiss('reject-processing-toast');
+        toast.dismiss('approve-processing-toast');
+        
         if (!success) {
           const errorMessage = `Failed to process KYC verification with status: ${status}`;
           console.error(`[${operationId}] ${errorMessage}`);
@@ -185,6 +190,9 @@ export const useProcessMutation = (onSuccess: () => void, setDebugInfo: any) => 
         
         // Trigger immediate invalidation
         invalidateQueries();
+        
+        // Show success toast
+        toast.success(`KYC verification ${status === 'approved' ? 'approved' : 'rejected'} successfully`);
         
         return true;
       } catch (error) {
@@ -273,6 +281,7 @@ export const useClarificationMutation = (onSuccess: () => void, setDebugInfo: an
             currentRetry: null
           }));
           
+          toast.dismiss('clarify-processing-toast');
           toast.error('Operation timed out. Please check network connection and try again.');
         }, 30000); // 30 seconds timeout
         
@@ -303,6 +312,7 @@ export const useClarificationMutation = (onSuccess: () => void, setDebugInfo: an
         
         // Clear the safety timeout
         clearTimeout(safetyTimeout);
+        toast.dismiss('clarify-processing-toast');
         
         console.log(`[${operationId}] ✅ Clarification request completed with result: ${success ? 'SUCCESS' : 'FAILED'}`);
         
@@ -392,7 +402,7 @@ export const useKycActionHandlers = (onSuccess: () => void) => {
     toast.dismiss();
     
     // Show the processing toast
-    toast.loading('Processing KYC approval...', { id: 'kyc-approval', duration: 20000 });
+    toast.loading('Processing KYC approval...', { id: 'approve-processing-toast', duration: 20000 });
     
     processMutation.mutate({
       kycId: selectedKyc.id,
@@ -420,7 +430,7 @@ export const useKycActionHandlers = (onSuccess: () => void) => {
     toast.dismiss();
     
     // Show the processing toast
-    toast.loading('Processing KYC rejection...', { id: 'kyc-rejection', duration: 20000 });
+    toast.loading('Processing KYC rejection...', { id: 'reject-processing-toast', duration: 20000 });
     
     processMutation.mutate({
       kycId: selectedKyc.id,
@@ -449,7 +459,7 @@ export const useKycActionHandlers = (onSuccess: () => void) => {
     toast.dismiss();
     
     // Show the processing toast
-    toast.loading('Processing clarification request...', { id: 'kyc-clarification', duration: 20000 });
+    toast.loading('Processing clarification request...', { id: 'clarify-processing-toast', duration: 20000 });
     
     clarificationMutation.mutate({
       kycId: selectedKyc.id,

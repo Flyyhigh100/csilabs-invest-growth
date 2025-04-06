@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Loader2 } from 'lucide-react';
+import { HelpCircle, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface KycClarifyFormProps {
   clarificationMessage: string;
@@ -16,29 +17,78 @@ const KycClarifyForm: React.FC<KycClarifyFormProps> = ({
   onRequestClarification,
   isPending
 }) => {
+  // Handle keyboard submission (Ctrl/Cmd + Enter)
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && clarificationMessage.trim()) {
+      e.preventDefault();
+      if (!isPending) {
+        handleClarifyClick(e as unknown as React.MouseEvent);
+      }
+    }
+  };
+
+  const handleClarifyClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    if (!clarificationMessage || !clarificationMessage.trim()) {
+      toast.error('Please provide clarification details');
+      return;
+    }
+    
+    if (isPending) {
+      toast.info('Already processing your request, please wait');
+      return;
+    }
+    
+    // Clear any previous toast with this ID
+    toast.dismiss('clarify-processing-toast');
+    
+    // Show a new processing toast with a timeout
+    toast.loading('Sending clarification request...', { 
+      id: 'clarify-processing-toast', 
+      duration: 10000 
+    });
+    
+    console.log('Triggering clarification request with message:', clarificationMessage);
+    onRequestClarification();
+    
+    // Set a timeout to dismiss the infinite loading state if it takes too long
+    const timeoutId = setTimeout(() => {
+      if (isPending) {
+        toast.dismiss('clarify-processing-toast');
+        toast.error('Clarification request is taking longer than expected. Please try again.');
+      }
+    }, 15000); // 15 seconds timeout
+    
+    // Clear timeout when component unmounts
+    return () => clearTimeout(timeoutId);
+  };
+
   return (
     <div className="mb-4 border-t pt-4">
       <div className="flex items-start gap-2 mb-2">
-        <MessageSquare className="h-5 w-5 text-blue-500 mt-0.5" />
-        <h4 className="font-medium text-blue-800">Request Additional Information</h4>
+        <HelpCircle className="h-5 w-5 text-blue-500 mt-0.5" />
+        <h4 className="font-medium text-blue-800">Request Clarification</h4>
       </div>
       <label className="block text-sm font-medium text-gray-700 mb-1">
-        Request Details (required)
+        Clarification Details (required)
       </label>
       <textarea
-        className="w-full p-2 border border-gray-300 rounded-md"
+        className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none"
         rows={3}
         value={clarificationMessage}
         onChange={(e) => setClarificationMessage(e.target.value)}
-        placeholder="Specify what additional information you need from the user..."
+        placeholder="What additional information do you need from the user?"
         disabled={isPending}
+        onKeyDown={handleKeyDown}
       />
       <div className="flex justify-end mt-3">
         <Button 
-          onClick={onRequestClarification}
+          variant="default"
+          onClick={handleClarifyClick}
           disabled={isPending || !clarificationMessage.trim()}
-          className="bg-blue-600 hover:bg-blue-700"
           type="button"
+          className="bg-blue-600 hover:bg-blue-700"
         >
           {isPending ? (
             <>
@@ -46,7 +96,7 @@ const KycClarifyForm: React.FC<KycClarifyFormProps> = ({
               Processing...
             </>
           ) : (
-            "Send Request"
+            "Request Clarification"
           )}
         </Button>
       </div>

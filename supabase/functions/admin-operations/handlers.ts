@@ -63,6 +63,12 @@ export async function handleAdminOperations(action, data, user, adminClient) {
         
         console.log(`Found KYC record with current status: ${kycCheck.status}`);
         
+        // Add validation for rejection reason if status is 'rejected'
+        if (data.status === 'rejected' && !data.rejectionReason) {
+          console.error("Missing rejection reason for rejected KYC");
+          throw new Error("Rejection reason is required for rejected KYC verifications");
+        }
+        
         // Proceed with KYC processing
         console.log(`🚀 Executing KYC operation for ID ${data.kycId} with status ${data.status}`);
         const kycResult = await kycOperations.processKyc(data, user, adminClient);

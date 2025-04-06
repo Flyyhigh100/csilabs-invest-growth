@@ -62,6 +62,7 @@ const KycRejectForm: React.FC<KycRejectFormProps> = ({
       }
     }, 15000); // 15 seconds timeout
     
+    // Clear timeout when component unmounts
     return () => clearTimeout(timeoutId);
   };
 
