@@ -122,28 +122,37 @@ export const processKycVerification = async (
           continue;
         }
         
-        // Check if the response contains an error object
-        if (response.data && response.data.error) {
-          console.error(`❌ Error from admin-operations response (attempt ${currentRetry + 1}):`, response.data.error);
-          lastError = new Error(response.data.error.message || 'Unknown error from server');
+        // Type guard to check if response has data property before accessing it
+        if ('data' in response) {
+          // Check if the response contains an error object
+          if (response.data && typeof response.data === 'object' && 'error' in response.data) {
+            console.error(`❌ Error from admin-operations response (attempt ${currentRetry + 1}):`, response.data.error);
+            lastError = new Error(response.data.error.message || 'Unknown error from server');
+            currentRetry++;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+            continue;
+          }
+          
+          // Handle case where response has no data
+          if (!response.data) {
+            console.error(`❌ No data returned from admin-operations function (attempt ${currentRetry + 1})`);
+            lastError = new Error('No response data received');
+            currentRetry++;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+            continue;
+          }
+          
+          // If we reach here without continuing to the next iteration, the operation was successful
+          console.log(`✅ Successfully processed KYC verification with status: ${status}`, response.data);
+          success = true;
+          break;
+        } else {
+          console.error(`❌ Response does not contain data property (attempt ${currentRetry + 1})`);
+          lastError = new Error('Invalid response format from server');
           currentRetry++;
           await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
           continue;
         }
-        
-        // Handle case where response has no data
-        if (!response.data) {
-          console.error(`❌ No data returned from admin-operations function (attempt ${currentRetry + 1})`);
-          lastError = new Error('No response data received');
-          currentRetry++;
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
-          continue;
-        }
-        
-        // If we reach here without continuing to the next iteration, the operation was successful
-        console.log(`✅ Successfully processed KYC verification with status: ${status}`, response.data);
-        success = true;
-        break;
       } catch (attemptError) {
         console.error(`❌ Exception during attempt ${currentRetry + 1}:`, attemptError);
         lastError = attemptError as Error;
