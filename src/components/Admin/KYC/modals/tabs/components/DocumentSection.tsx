@@ -18,6 +18,8 @@ const DocumentSection: React.FC<DocumentSectionProps> = ({
   onZoomImage,
   isLoading = false
 }) => {
+  console.log(`Rendering DocumentSection for ${title} with URL:`, imageUrl);
+  
   return (
     <div className="flex flex-col h-full">
       <p className="text-sm font-medium text-gray-500 mb-2">{title}</p>

@@ -47,12 +47,12 @@ const KycDebugInfo: React.FC<KycDebugInfoProps> = ({
           <p><strong>Timestamp:</strong> {debugInfo.lastActionTimestamp || 'None'}</p>
           <p><strong>Supabase Triggered:</strong> {debugInfo.supabaseTriggered ? 'Yes' : 'No'}</p>
           
-          {debugInfo.currentRetry !== null && (
-            <p><strong>Retry:</strong> {debugInfo.currentRetry} of {debugInfo.retryAttempts}</p>
-          )}
-          
           {debugInfo.adminPermissionStatus && (
             <p><strong>Admin Permissions:</strong> {debugInfo.adminPermissionStatus}</p>
+          )}
+          
+          {debugInfo.currentRetry !== null && typeof debugInfo.retryAttempts !== 'undefined' && (
+            <p><strong>Retry:</strong> {debugInfo.currentRetry !== null ? `${debugInfo.currentRetry} of ${debugInfo.retryAttempts}` : 'No retries'}</p>
           )}
           
           <div className="mt-2">

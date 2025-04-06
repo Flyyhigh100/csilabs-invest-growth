@@ -2,35 +2,47 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface KycRejectFormProps {
   rejectionReason: string;
   setRejectionReason: (reason: string) => void;
   onReject: () => void;
   isPending: boolean;
+  maxRetries?: number;
 }
 
 const KycRejectForm: React.FC<KycRejectFormProps> = ({
   rejectionReason,
   setRejectionReason,
   onReject,
-  isPending
+  isPending,
+  maxRetries = 3
 }) => {
   // Handle keyboard submission (Ctrl/Cmd + Enter)
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && rejectionReason.trim()) {
       e.preventDefault(); // Prevent any default behavior
       if (!isPending) {
-        onReject();
+        handleRejectClick(e as unknown as React.MouseEvent);
       }
     }
   };
 
   const handleRejectClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (rejectionReason.trim() && !isPending) {
-      onReject();
+    if (!rejectionReason.trim()) {
+      toast.error('Please provide a rejection reason');
+      return;
     }
+    
+    if (isPending) {
+      toast.info('Already processing your request, please wait');
+      return;
+    }
+    
+    console.log('Triggering rejection with reason:', rejectionReason);
+    onReject();
   };
 
   return (

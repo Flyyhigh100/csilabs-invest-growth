@@ -30,12 +30,31 @@ export const processKycVerification = async (
     const toastId = `process-kyc-${kycId}-${Date.now()}`;
     toast.loading(`Processing KYC verification (${status})...`, {
       id: toastId,
-      duration: 15000 // Longer duration to ensure it stays visible during processing
+      duration: 20000 // Longer duration to ensure it stays visible during processing
     });
     
     // Verify admin permissions with improved error handling
     try {
-      await verifyAdminPermissions();
+      const isAdmin = await verifyAdminPermissions();
+      if (!isAdmin) {
+        console.error('❌ Admin permission check failed');
+        
+        // Update the admin permission listener
+        if (typeof (window as any).kycAdminPermissionListener === 'function') {
+          (window as any).kycAdminPermissionListener('failed');
+        }
+        
+        toast.dismiss(toastId);
+        toast.error('Admin permission verification failed');
+        return false;
+      }
+      
+      console.log('✅ Admin permissions verified');
+      
+      // Update the admin permission listener
+      if (typeof (window as any).kycAdminPermissionListener === 'function') {
+        (window as any).kycAdminPermissionListener('verified');
+      }
     } catch (adminErr) {
       console.error('❌ Exception during admin permission check:', adminErr);
       
@@ -87,79 +106,64 @@ export const processKycVerification = async (
     
     console.log(`Request payload:`, payload);
     
-    // Implement retry logic using the executeWithRetries utility
-    const result = await executeWithRetries(async () => {
-      console.log(`Current time before request: ${new Date().toISOString()}`);
-      
-      const response = await supabase.functions.invoke('admin-operations', {
-        body: payload
-      });
-      
-      console.log('📥 Full response from admin-operations function:', JSON.stringify(response, null, 2));
-      
-      if (response.error) {
-        console.error('❌ Error from admin-operations function:', response.error);
-        throw new Error(response.error.message || 'Error from admin-operations function');
-      }
-      
-      const data = response.data;
-      
-      // Check if the response contains an error object
-      if (data && data.error) {
-        console.error('❌ Error from admin-operations response:', data.error);
-        throw new Error(data.error.message || 'Unknown error from server');
-      }
-      
-      // Handle case where response has no data
-      if (!data) {
-        console.error('❌ No data returned from admin-operations function');
-        throw new Error('No response data received');
-      }
-      
-      // Handle case where response has error in data
-      if (data.error) {
-        console.error('❌ Error in admin-operations response data:', data.error);
-        throw new Error(data.error.message || 'Error from server');
-      }
-      
-      if (!data.kyc) {
-        console.error('❌ Invalid response from admin-operations function:', data);
-        throw new Error('Invalid response from server');
-      }
-      
-      // Double-check the status from the response
-      const returnedStatus = data.kyc.status;
-      if (returnedStatus !== status) {
-        console.error(`❌ Status mismatch! Requested: ${status}, Received: ${returnedStatus}`);
-        throw new Error(`Status mismatch: Requested ${status}, Received ${returnedStatus}`);
-      }
-      
-      // If we reach here, the operation was successful
-      console.log(`✅ Successfully processed KYC verification with status: ${status}`, data);
-      return data;
-    }, toastId);
+    // Implement retry logic with a limited number of attempts
+    const maxRetries = 2; // Limiting to prevent too many retries
+    let currentRetry = 0;
+    let success = false;
+    let lastError: Error | null = null;
     
-    if (!result.success) {
-      return false;
-    }
-    
-    // Trigger a refresh of KYC data immediately
-    try {
-      console.log('🔄 Triggering immediate fetch of KYC data after update');
-      const { data: refreshData, error: refreshError } = await supabase
-        .from('kyc_verifications')
-        .select('*')
-        .eq('id', kycId)
-        .single();
+    while (currentRetry <= maxRetries && !success) {
+      try {
+        // Update retry counter in UI if available
+        if (typeof (window as any).kycRetryListener === 'function') {
+          (window as any).kycRetryListener(currentRetry, maxRetries);
+        }
         
-      if (refreshData) {
-        console.log('✅ Verified KYC update with fresh data:', refreshData);
-        console.log(`✅ Current KYC status is now: ${refreshData.status}`);
-      } else if (refreshError) {
-        console.error('❌ Error verifying KYC update:', refreshError);
+        console.log(`Attempt ${currentRetry + 1}/${maxRetries + 1}: Processing KYC verification`);
+        
+        const response = await supabase.functions.invoke('admin-operations', {
+          body: payload
+        });
+        
+        console.log('📥 Full response from admin-operations function:', response);
+        
+        if (response.error) {
+          console.error(`❌ Error from admin-operations function (attempt ${currentRetry + 1}):`, response.error);
+          lastError = new Error(response.error.message || 'Error from admin-operations function');
+          currentRetry++;
+          continue;
+        }
+        
+        // Check if the response contains an error object
+        if (response.data && response.data.error) {
+          console.error(`❌ Error from admin-operations response (attempt ${currentRetry + 1}):`, response.data.error);
+          lastError = new Error(response.data.error.message || 'Unknown error from server');
+          currentRetry++;
+          continue;
+        }
+        
+        // Handle case where response has no data
+        if (!response.data) {
+          console.error(`❌ No data returned from admin-operations function (attempt ${currentRetry + 1})`);
+          lastError = new Error('No response data received');
+          currentRetry++;
+          continue;
+        }
+        
+        // If we reach here without continuing to the next iteration, the operation was successful
+        console.log(`✅ Successfully processed KYC verification with status: ${status}`, response.data);
+        success = true;
+        break;
+      } catch (attemptError) {
+        console.error(`❌ Exception during attempt ${currentRetry + 1}:`, attemptError);
+        lastError = attemptError as Error;
+        currentRetry++;
       }
-    } catch (refreshErr) {
-      console.error('❌ Exception during verification refresh:', refreshErr);
+      
+      // Small delay between retries
+      if (currentRetry <= maxRetries && !success) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     }
     
     // Clear the retry listener
@@ -167,14 +171,44 @@ export const processKycVerification = async (
       (window as any).kycRetryListener(null, null);
     }
     
-    // Dismiss the loading toast and show success
-    toast.dismiss(toastId);
-    toast.success(`KYC verification ${status === 'approved' ? 'approved' : 
-      status === 'rejected' ? 'rejected' : 'updated'} successfully.`, {
-      duration: 5000
-    });
-    
-    return true;
+    // Handle the final result
+    if (success) {
+      // Trigger a refresh of KYC data immediately
+      try {
+        console.log('🔄 Triggering immediate fetch of KYC data after update');
+        const { data: refreshData, error: refreshError } = await supabase
+          .from('kyc_verifications')
+          .select('*')
+          .eq('id', kycId)
+          .single();
+          
+        if (refreshData) {
+          console.log('✅ Verified KYC update with fresh data:', refreshData);
+          console.log(`✅ Current KYC status is now: ${refreshData.status}`);
+        } else if (refreshError) {
+          console.error('❌ Error verifying KYC update:', refreshError);
+        }
+      } catch (refreshErr) {
+        console.error('❌ Exception during verification refresh:', refreshErr);
+      }
+      
+      // Dismiss the loading toast and show success
+      toast.dismiss(toastId);
+      toast.success(`KYC verification ${status === 'approved' ? 'approved' : 
+        status === 'rejected' ? 'rejected' : 'updated'} successfully.`, {
+        duration: 5000
+      });
+      
+      return true;
+    } else {
+      // Failed after all retry attempts
+      toast.dismiss(toastId);
+      toast.error(`Failed to process KYC verification after multiple attempts: ${lastError?.message || 'Unknown error'}`, {
+        duration: 5000
+      });
+      
+      return false;
+    }
   } catch (error) {
     console.error('❌ Error processing KYC verification:', error);
     toast.error(`An error occurred while processing KYC verification: ${(error as Error).message}`, {

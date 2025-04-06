@@ -38,16 +38,35 @@ export const getKycDocumentUrl = async (url: string | null): Promise<string | nu
     
     console.log(`Generating public URL - Bucket: ${bucketName}, Path: ${path}`);
     
-    // Use Supabase Storage getPublicUrl method
-    const { data } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(path);
-    
-    if (data && data.publicUrl) {
-      console.log('Generated public URL:', data.publicUrl);
-      return data.publicUrl;
-    } else {
-      console.error('Failed to generate public URL');
+    // Use Supabase Storage getPublicUrl method with error handling
+    try {
+      const { data } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(path);
+      
+      if (data && data.publicUrl) {
+        console.log('Generated public URL:', data.publicUrl);
+        return data.publicUrl;
+      } else {
+        console.error('Failed to generate public URL - no publicUrl in response');
+        
+        // Try alternate bucket as fallback
+        const alternateBucket = bucketName === 'documents' ? 'kyc_documents' : 'documents';
+        console.log(`Trying alternate bucket: ${alternateBucket}`);
+        
+        const { data: altData } = supabase.storage
+          .from(alternateBucket)
+          .getPublicUrl(path);
+          
+        if (altData && altData.publicUrl) {
+          console.log('Generated public URL from alternate bucket:', altData.publicUrl);
+          return altData.publicUrl;
+        }
+        
+        return url; // Return original URL as fallback
+      }
+    } catch (storageError) {
+      console.error('Storage error when generating URL:', storageError);
       return url; // Return original URL as fallback
     }
   } catch (error) {

@@ -39,7 +39,7 @@ export const useKycQueryInvalidation = () => {
   return () => {
     console.log('🔄 Invalidating all KYC-related queries');
     
-    // Immediately invalidate all related queries
+    // Immediately invalidate and refetch all related queries
     queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
     queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
     queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -47,8 +47,8 @@ export const useKycQueryInvalidation = () => {
     
     // Force a more aggressive refetch with a delay
     setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'], refetchType: 'all' });
     }, 1000);
   };
 };
@@ -180,6 +180,11 @@ export const useProcessMutation = (onSuccess: () => void, setDebugInfo: any) => 
       
       // Invalidate all relevant queries to refresh data
       invalidateQueries();
+      
+      // Set a timeout to ensure that the UI is updated after the database changes have propagated
+      setTimeout(() => {
+        invalidateQueries();
+      }, 2000);
     },
     onError: (error) => {
       console.error('❌ Error in KYC mutation:', error);
@@ -311,6 +316,11 @@ export const useClarificationMutation = (onSuccess: () => void, setDebugInfo: an
       
       // Invalidate all relevant queries
       invalidateQueries();
+      
+      // Set a timeout to ensure that the UI is updated after the database changes have propagated
+      setTimeout(() => {
+        invalidateQueries();
+      }, 2000);
     },
     onError: (error) => {
       console.error('❌ Error in clarification mutation:', error);
