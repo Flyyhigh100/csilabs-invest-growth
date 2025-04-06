@@ -99,22 +99,22 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-6 rounded-sm pb-8">
+      <CardContent className="space-y-6 rounded-sm pb-6">
         {walletAddress && (
           <>
-            <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 mb-6">
-              <h3 className="text-sm font-medium text-blue-800 mb-2">How purchasing works</h3>
-              <ol className="text-sm text-blue-700 list-decimal pl-5 space-y-2">
-                <li className="pl-1">Enter the amount you want to invest</li>
-                <li className="pl-1">Choose your preferred payment method</li>
-                <li className="pl-1">Complete the payment process</li>
-                <li className="pl-1">CSi tokens will be sent to your wallet address</li>
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">How purchasing works</h3>
+              <ol className="text-sm text-gray-600 list-decimal pl-5 space-y-1.5">
+                <li>Enter the amount you want to invest</li>
+                <li>Choose your preferred payment method</li>
+                <li>Complete the payment process</li>
+                <li>CSi tokens will be sent to your wallet address</li>
               </ol>
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-base font-medium" htmlFor="amount-input">Investment Amount (USD)</Label>
+                <Label className="text-base font-medium text-gray-700" htmlFor="amount-input">Investment Amount (USD)</Label>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -131,8 +131,8 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
               
               <PurchaseAmountInput amount={amount} onChange={setAmount} disabled={isProcessing} />
               
-              <div className="px-1 py-2">
-                <div className="flex justify-between text-sm">
+              <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                <div className="flex justify-between text-sm mb-1">
                   <span className="text-gray-600">You will receive approximately:</span>
                   <span className="font-medium text-cbis-blue">{tokenAmount.toLocaleString()} CSi Tokens</span>
                 </div>
@@ -145,11 +145,11 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
             
             {renderKycAlert()}
             
-            <div className="mt-8">
-              <h3 className="text-base font-medium mb-3 text-gray-700">Select Payment Method</h3>
+            <div className="mt-6">
+              <h3 className="text-base font-medium mb-4 text-gray-700">Select Payment Method</h3>
               
               <Tabs defaultValue="card" className="w-full">
-                <TabsList className="grid grid-cols-2 w-full mb-4">
+                <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto mb-4 bg-gray-100">
                   <TabsTrigger value="card" className="data-[state=active]:bg-blue-50 data-[state=active]:text-cbis-blue">
                     <CreditCard className="mr-2 h-4 w-4" />
                     Card Payment
@@ -160,62 +160,62 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
                   </TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="card" className="border rounded-lg p-4 border-blue-100 bg-blue-50/30">
+                <TabsContent value="card" className="border rounded-lg p-4 border-blue-100 bg-blue-50/20">
                   <div className="space-y-4">
                     <div className="flex items-start gap-3 mb-4">
                       <div className="bg-white p-2 rounded-full border border-gray-200">
                         <CreditCard className="h-6 w-6 text-cbis-blue" />
                       </div>
                       <div>
-                        <h4 className="font-medium">Credit/Debit Card Payment</h4>
+                        <h4 className="font-medium text-gray-800">Credit/Debit Card Payment</h4>
                         <p className="text-sm text-gray-600 mt-1">
                           Fast and secure payment using Stripe. No KYC verification required.
                         </p>
                       </div>
                     </div>
                     
-                    <div className="bg-white rounded-lg border border-gray-200 p-4 flex items-center justify-between">
+                    <div className="bg-white p-4 rounded-lg border border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div>
                         <p className="text-sm text-gray-600">Total amount:</p>
-                        <p className="text-lg font-medium">${amount.toLocaleString()}</p>
+                        <p className="text-lg font-medium text-gray-800">${amount.toLocaleString()}</p>
                       </div>
                       <Button 
                         onClick={() => handleStripePayment(amount)} 
                         disabled={isProcessing || !walletAddress}
-                        className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white"
+                        className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white py-2 px-4 sm:w-auto w-full"
                       >
                         Proceed to Payment
                       </Button>
                     </div>
                     
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
                       <CheckCircle className="h-4 w-4 text-green-500" />
                       <span>Secure payment processing by Stripe</span>
                     </div>
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="crypto" className="border rounded-lg p-4 border-blue-100 bg-blue-50/30">
+                <TabsContent value="crypto" className="border rounded-lg p-4 border-blue-100 bg-blue-50/20">
                   <div className="space-y-4">
                     <div className="flex items-start gap-3 mb-4">
                       <div className="bg-white p-2 rounded-full border border-gray-200">
                         <Wallet className="h-6 w-6 text-cbis-blue" />
                       </div>
                       <div>
-                        <h4 className="font-medium">Cryptocurrency Payment</h4>
+                        <h4 className="font-medium text-gray-800">Cryptocurrency Payment</h4>
                         <p className="text-sm text-gray-600 mt-1">
                           Pay with your preferred cryptocurrency. KYC required for amounts $3,001 or more.
                         </p>
                       </div>
                     </div>
                     
-                    <div className="space-y-3 mb-4">
-                      <Label htmlFor="crypto-currency" className="text-sm text-cbis-blue font-medium">Select Cryptocurrency</Label>
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <Label htmlFor="crypto-currency" className="text-sm text-gray-700 font-medium">Select Cryptocurrency</Label>
                       <Select value={selectedCurrency} onValueChange={setSelectedCurrency} disabled={isProcessing}>
-                        <SelectTrigger id="crypto-currency" className="border-2 border-cbis-teal/30 bg-white focus:ring-2 focus:ring-cbis-blue focus:border-cbis-blue transition-all">
+                        <SelectTrigger id="crypto-currency" className="mt-2 border border-gray-200 bg-white focus:ring-2 focus:ring-cbis-blue focus:border-cbis-blue transition-all">
                           <SelectValue placeholder="Select cryptocurrency" />
                         </SelectTrigger>
-                        <SelectContent className="bg-white border-2 border-cbis-teal/30 shadow-lg z-50">
+                        <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
                           <SelectItem value="USDT" className="hover:bg-blue-50">USDT (Tether)</SelectItem>
                           <SelectItem value="BTC" className="hover:bg-blue-50">Bitcoin (BTC)</SelectItem>
                           <SelectItem value="ETH" className="hover:bg-blue-50">Ethereum (ETH)</SelectItem>
@@ -226,29 +226,29 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
                       </Select>
                     </div>
                     
-                    <div className="bg-white rounded-lg border border-gray-200 p-4 flex items-center justify-between">
+                    <div className="bg-white p-4 rounded-lg border border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div>
                         <p className="text-sm text-gray-600">Total amount:</p>
-                        <p className="text-lg font-medium">${amount.toLocaleString()}</p>
+                        <p className="text-lg font-medium text-gray-800">${amount.toLocaleString()}</p>
                       </div>
                       <Button 
                         onClick={handleCoinPaymentWithCurrency} 
                         disabled={isProcessing || !walletAddress || isKycNeeded}
-                        className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white"
+                        className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white py-2 px-4 sm:w-auto w-full"
                       >
                         Pay with {selectedCurrency}
                       </Button>
                     </div>
                     
                     {amount >= 3001 && kycData?.status !== 'approved' && (
-                      <div className="flex items-center gap-2 text-sm text-amber-600">
+                      <div className="flex items-center gap-2 text-sm text-amber-600 mt-2">
                         <AlertTriangle className="h-4 w-4" />
                         <span>KYC verification required for amounts $3,001 or more</span>
                       </div>
                     )}
                     
                     {(amount < 3001 || kycData?.status === 'approved') && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
                         <CheckCircle className="h-4 w-4 text-green-500" />
                         <span>Secure payment processing by CoinPayments</span>
                       </div>

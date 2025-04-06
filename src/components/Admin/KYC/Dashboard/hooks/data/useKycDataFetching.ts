@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { 
   fetchKycVerifications, 
@@ -43,8 +42,14 @@ export const useKycDataFetching = ({ isAdmin, manualRefreshCount }: KycDataFetch
   
   // Combined refetch function
   const refetchAll = () => {
-    refetchKyc();
-    refetchUsers();
+    console.log('Refetching all KYC data...');
+    // Use Promise.all to perform both refetches in parallel
+    return Promise.all([
+      refetchKyc(),
+      refetchUsers()
+    ]).catch(error => {
+      console.error('Error refetching KYC data:', error);
+    });
   };
   
   return {

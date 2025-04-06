@@ -1,4 +1,3 @@
-
 import { TokenPriceData } from '@/types/token';
 import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE, START_DATE, END_DATE, QUOTE_TOKEN, AGGREGATION_DAYS, DAYS_TO_INCLUDE } from './config';
 import { generateMockPriceData, generateMockCurrentPrice } from '../mocks/mockDataGenerators';
@@ -11,10 +10,10 @@ import { generateMockPriceData, generateMockCurrentPrice } from '../mocks/mockDa
 const formatDate = (timestamp: number): string => {
   const date = new Date(timestamp * 1000);
   
-  // For multi-year view, use month and year format
+  // For recent data, use month and day format (Apr 15)
   return date.toLocaleDateString('en-US', { 
     month: 'short',
-    year: 'numeric'
+    day: 'numeric'
   });
 };
 
@@ -24,20 +23,34 @@ const formatDate = (timestamp: number): string => {
  */
 export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
   try {
+    // Log API request details for debugging
     console.log('Fetching token price history with API key:', API_KEY ? 'API key present' : 'No API key');
     console.log(`Fetching data from ${new Date(START_DATE * 1000).toLocaleDateString()} to ${new Date(END_DATE * 1000).toLocaleDateString()}`);
+    
+    // Use mock data if no API key is provided
+    if (!API_KEY) {
+      console.log('No API key provided, using mock data');
+      return generateMockPriceData();
+    }
     
     // Build URL with all necessary parameters - explicitly include timeFrame parameter with days
     const url = `${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/price_history?timeRange=${TIME_RANGE}&quoteToken=${QUOTE_TOKEN}&timeFrame=${DAYS_TO_INCLUDE}d`;
     console.log('Fetching price history from URL:', url);
+    
+    // Add a timeout to the fetch operation
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
     
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'X-API-KEY': API_KEY
-      }
+      },
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -111,15 +124,28 @@ export const fetchCurrentTokenPrice = async (): Promise<number> => {
   try {
     console.log('Fetching current token price');
     
+    // Use mock data if no API key is provided
+    if (!API_KEY) {
+      console.log('No API key provided, using mock current price');
+      return generateMockCurrentPrice();
+    }
+    
     const url = `${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/price?quoteToken=${QUOTE_TOKEN}`;
+    
+    // Add a timeout to the fetch operation
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'X-API-KEY': API_KEY
-      }
+      },
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();

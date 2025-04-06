@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -94,113 +93,92 @@ const WalletAddressForm = ({ existingWalletAddress, onWalletUpdated }: {
   };
 
   return (
-    <Card className="shadow-lg border-cbis-blue/10 overflow-hidden">
-      <div className="h-2 bg-gradient-to-r from-cbis-blue to-cbis-teal"></div>
-      <CardHeader className="space-y-1">
-        <CardTitle className="flex items-center gap-2 text-xl text-cbis-blue">
-          <Wallet className="h-5 w-5 text-cbis-teal" />
-          Polygon Wallet Address
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0 ml-1">
-                  <HelpCircle className="h-4 w-4 text-gray-400" />
-                  <span className="sr-only">What is a wallet address?</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs p-4">
-                <div className="space-y-2">
-                  <p className="font-semibold">What is a Polygon Wallet Address?</p>
-                  <p className="text-sm">A Polygon wallet address is where your CSi tokens will be stored on the Polygon blockchain. It looks like a long string that starts with "0x".</p>
-                  <p className="text-sm font-medium">You can get one by creating a wallet with MetaMask or other crypto wallet providers.</p>
+    <div className="w-full">
+      <div className="mb-6 bg-blue-50/70 p-4 rounded-lg border border-blue-100">
+        <div className="flex gap-3">
+          <div className="mt-0.5">
+            <Wallet className="h-5 w-5 text-blue-500" />
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-1">Wallet Address Required</h3>
+            <p className="text-sm text-gray-600">
+              Your wallet address is required to receive CSi tokens after purchase. This is like your bank account number for cryptocurrency.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="walletAddress"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-gray-700 font-medium text-base">Your Polygon Wallet Address</FormLabel>
+                <div className="mt-1.5">
+                  <FormControl>
+                    <Input 
+                      placeholder="Enter your Polygon wallet address (0x...)" 
+                      {...field} 
+                      className="font-mono text-base placeholder:font-sans border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    />
+                  </FormControl>
                 </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </CardTitle>
-        <CardDescription className="text-gray-600">
-          Add your wallet address to receive CSi tokens on the Polygon network after purchase
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-4">
-              <div className="rounded-lg bg-blue-50/50 p-4 border border-blue-100">
-                <h4 className="text-sm font-medium text-blue-800 mb-2">Why do I need to provide a wallet address?</h4>
-                <p className="text-sm text-blue-700">
-                  Your wallet address is required to receive CSi tokens after purchase. Think of it like your bank account number for receiving cryptocurrency.
-                </p>
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="walletAddress"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-cbis-dark font-medium">ERC-20 Wallet Address</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Enter your ERC-20 wallet address (0x...)" 
-                        {...field} 
-                        className="font-mono placeholder:font-sans border-2 focus:border-cbis-blue/60 focus:ring-1 focus:ring-cbis-blue/30"
-                      />
-                    </FormControl>
-                    <div className="flex justify-between items-center mt-2">
-                      <FormDescription className="text-gray-500">
-                        This address will be used to send your CSi tokens
-                      </FormDescription>
+                
+                <div className="flex justify-between items-center mt-2">
+                  <FormDescription className="text-gray-500 text-sm">
+                    This address will receive your CSi tokens
+                  </FormDescription>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowExample(!showExample)}
+                    className="text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    {showExample ? "Hide Example" : "Show Example"}
+                  </Button>
+                </div>
+                
+                {showExample && (
+                  <div className="p-3 bg-gray-50 rounded-md border border-gray-200 mt-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-mono text-gray-600 break-all">Example: 0x71C7656EC7ab88b098defB751B7401B5f6d8976F</span>
                       <Button
                         type="button"
-                        variant="ghost"
                         size="sm"
-                        onClick={() => setShowExample(!showExample)}
-                        className="text-xs text-cbis-blue hover:text-cbis-blue/80"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 ml-2 flex-shrink-0"
+                        onClick={copyExample}
                       >
-                        {showExample ? "Hide Example" : "Show Example"}
+                        {copied ? 
+                          <CheckCircle className="h-4 w-4 text-green-500" /> : 
+                          <Copy className="h-4 w-4 text-gray-500" />
+                        }
                       </Button>
                     </div>
-                    {showExample && (
-                      <div className="p-3 bg-gray-50 rounded-md border border-gray-200 mt-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-mono text-gray-600">Example: 0x71C7656EC7ab88b098defB751B7401B5f6d8976F</span>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0"
-                            onClick={copyExample}
-                          >
-                            {copied ? 
-                              <CheckCircle className="h-4 w-4 text-green-500" /> : 
-                              <Copy className="h-4 w-4 text-gray-500" />
-                            }
-                          </Button>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">This is just an example. Please use your own wallet address.</p>
-                      </div>
-                    )}
-                    <FormMessage />
-                  </FormItem>
+                    <p className="text-xs text-gray-500 mt-1">This is just an example. Please use your own wallet address.</p>
+                  </div>
                 )}
-              />
-            </div>
-            
-            <Button 
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <div className="flex justify-end mt-6">
+            <Button
               type="submit"
-              className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 transition-all text-white"
+              className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 transition-all text-white px-5 py-2"
             >
               {existingWalletAddress ? "Update Wallet Address" : "Save Wallet Address"}
             </Button>
-          </form>
-        </Form>
-      </CardContent>
-
-      <Separator />
-
-      <CardFooter className="bg-gray-50 px-6 py-4">
-        <div className="text-sm text-gray-500 space-y-2 w-full">
+          </div>
+        </form>
+      </Form>
+      
+      <div className="mt-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <div className="text-sm text-gray-600 space-y-3">
           <div className="flex items-start gap-2">
             <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
             <p>Make sure to enter your own wallet address that supports the Polygon network.</p>
@@ -210,8 +188,8 @@ const WalletAddressForm = ({ existingWalletAddress, onWalletUpdated }: {
             <p>Double-check your address before saving. Transactions sent to incorrect addresses cannot be recovered.</p>
           </div>
         </div>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 };
 

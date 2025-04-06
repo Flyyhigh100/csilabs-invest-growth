@@ -1,9 +1,9 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { KycVerificationWithProfile } from '../types';
 import { processKycVerification, requestKycClarification } from '@/utils/admin/kyc/verification';
 import { useState } from 'react';
+import React from 'react';
 
 /**
  * Debug information state hook
@@ -37,28 +37,27 @@ export const useKycQueryInvalidation = () => {
   const queryClient = useQueryClient();
   
   return () => {
-    console.log('🔄 Invalidating all KYC-related queries');
+    console.log('🔄 Invalidating KYC-related queries');
     
-    // Force immediate invalidation of all queries
-    queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
+    // Single invalidation with proper refetch behavior
+    queryClient.invalidateQueries({ 
+      queryKey: ['admin-kyc-verifications'],
+      refetchType: 'active'
+    });
     
-    // Force multiple refreshes with delay to ensure UI is updated
-    const refreshTimes = [500, 2000, 5000]; // milliseconds
-    refreshTimes.forEach(delay => {
-      setTimeout(() => {
-        console.log(`🔄 Forced refresh at ${delay}ms delay`);
-        queryClient.invalidateQueries({ 
-          queryKey: ['admin-kyc-verifications'], 
-          refetchType: 'all' 
-        });
-        queryClient.invalidateQueries({ 
-          queryKey: ['admin-dashboard-stats'], 
-          refetchType: 'all' 
-        });
-      }, delay);
+    queryClient.invalidateQueries({ 
+      queryKey: ['admin-dashboard-stats'],
+      refetchType: 'active'
+    });
+    
+    queryClient.invalidateQueries({ 
+      queryKey: ['admin-users'],
+      refetchType: 'active'
+    });
+    
+    queryClient.invalidateQueries({ 
+      queryKey: ['admin-all-users-kyc'],
+      refetchType: 'active'
     });
   };
 };
@@ -68,8 +67,12 @@ export const useKycQueryInvalidation = () => {
  */
 export const useProcessMutation = (onSuccess: () => void, setDebugInfo: any) => {
   const invalidateQueries = useKycQueryInvalidation();
+  const queryClient = useQueryClient();
   
-  return useMutation({
+  // Track if mutation is in progress
+  const [isMutating, setIsMutating] = React.useState(false);
+  
+  const processMutation = useMutation({
     mutationFn: async ({ 
       kycId, 
       status, 
@@ -79,152 +82,118 @@ export const useProcessMutation = (onSuccess: () => void, setDebugInfo: any) => 
       status: 'approved' | 'rejected'; 
       rejectionReason?: string;
     }) => {
-      // Generate an operation ID for tracking
-      const operationId = `${status}-${Date.now()}`;
-      console.log(`🚀 [${operationId}] Starting KYC verification process:`, { kycId, status, rejectionReason });
+      // Prevent multiple simultaneous mutations
+      if (isMutating) {
+        console.log('Mutation already in progress, skipping');
+        return false;
+      }
       
-      // Clear previous error state
+      setIsMutating(true);
+      
+      // Clear any existing error state and toasts
+      toast.dismiss();
       setDebugInfo(prev => ({
         ...prev,
-        error: null
-      }));
-      
-      // Update debug info at the start
-      setDebugInfo(prev => ({
-        ...prev,
+        error: null,
         lastActionType: status,
         lastActionTimestamp: new Date().toISOString(),
         supabaseTriggered: true,
         supabaseResponse: null,
-        error: null,
-        retryAttempts: 3,
         currentRetry: 0,
         adminPermissionStatus: 'checking'
       }));
-      
-      // Validation for rejection reason if status is 'rejected'
-      if (status === 'rejected' && (!rejectionReason || rejectionReason.trim() === '')) {
-        const errorMsg = 'Rejection reason is required';
-        console.error(`[${operationId}] ${errorMsg}`);
-        
-        setDebugInfo(prev => ({
-          ...prev,
-          error: errorMsg,
-          supabaseTriggered: false
-        }));
-        
-        throw new Error(errorMsg);
-      }
-      
+
       try {
-        // Set up a timeout to automatically clear the pending state
-        const safetyTimeout = setTimeout(() => {
-          console.log(`⏰ [${operationId}] Safety timeout triggered after 30 seconds`);
-          setDebugInfo(prev => ({
-            ...prev,
-            error: 'Operation timed out after 30 seconds',
-            currentRetry: null
-          }));
-          
-          toast.dismiss('reject-processing-toast');
-          toast.dismiss('approve-processing-toast');
-          toast.error('Operation timed out. Please check network connection and try again.');
-        }, 30000); // 30 seconds timeout
-        
-        // Set up an event listener for the retry attempts
-        const retryListener = (attemptNum: number | null, maxRetries: number | null) => {
-          console.log(`[${operationId}] Retry attempt ${attemptNum} of ${maxRetries}`);
-          setDebugInfo(prev => ({
-            ...prev,
-            currentRetry: attemptNum,
-            retryAttempts: maxRetries || prev.retryAttempts
-          }));
-        };
-        
-        // Set up a listener for admin permission check
-        const adminPermissionListener = (status: 'verified' | 'failed' | 'checking') => {
-          console.log(`[${operationId}] Admin permission check: ${status}`);
-          setDebugInfo(prev => ({
-            ...prev,
-            adminPermissionStatus: status
-          }));
-        };
-        
-        // Register these listeners globally
-        (window as any).kycRetryListener = retryListener;
-        (window as any).kycAdminPermissionListener = adminPermissionListener;
-        
-        console.log(`[${operationId}] 📤 Sending request to Supabase for KYC ID: ${kycId} with status: ${status}`);
         const success = await processKycVerification(kycId, status, rejectionReason);
-        
-        // Clear the safety timeout
-        clearTimeout(safetyTimeout);
-        
-        console.log(`[${operationId}] ✅ Verification process completed with result: ${success ? 'SUCCESS' : 'FAILED'}`);
-        
-        toast.dismiss('reject-processing-toast');
-        toast.dismiss('approve-processing-toast');
-        
         if (!success) {
-          const errorMessage = `Failed to process KYC verification with status: ${status}`;
-          console.error(`[${operationId}] ${errorMessage}`);
-          
-          setDebugInfo(prev => ({
-            ...prev,
-            supabaseTriggered: true,
-            supabaseResponse: { success: false },
-            error: errorMessage,
-            currentRetry: null
-          }));
-          
-          throw new Error(errorMessage);
+          throw new Error('KYC verification failed');
         }
         
-        // Update debug info with success
-        setDebugInfo(prev => ({
-          ...prev,
-          supabaseTriggered: true,
-          supabaseResponse: { success: true, status },
-          currentRetry: null
-        }));
+        // Immediately update the optimistic UI state
+        queryClient.setQueryData(['admin-kyc-verifications'], (oldData: any) => {
+          if (!oldData?.pages) return oldData;
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page: any) => ({
+              ...page,
+              data: page.data.map((item: any) => 
+                item.id === kycId ? { ...item, status } : item
+              )
+            }))
+          };
+        });
         
-        // Trigger immediate invalidation
-        invalidateQueries();
-        
-        // Show success toast
-        toast.success(`KYC verification ${status === 'approved' ? 'approved' : 'rejected'} successfully`);
-        
-        return true;
+        return success;
       } catch (error) {
-        console.error(`[${operationId}] ❌ Error processing KYC verification:`, error);
+        console.error('Error in mutation:', error);
+        // Clear any lingering loading states
+        toast.dismiss();
+        toast.error(`Error: ${(error as Error).message}`);
         
         setDebugInfo(prev => ({
           ...prev,
-          supabaseTriggered: true,
-          supabaseResponse: null,
           error: (error as Error).message,
-          currentRetry: null
+          supabaseTriggered: false,
+          currentRetry: null,
+          adminPermissionStatus: 'failed'
         }));
-        
         throw error;
       } finally {
-        // Clean up the global listeners
-        delete (window as any).kycRetryListener;
-        delete (window as any).kycAdminPermissionListener;
+        // Always release the mutation lock
+        setTimeout(() => {
+          setIsMutating(false);
+        }, 1000);
       }
     },
     onSuccess: () => {
-      // Run success callback first to close modal
+      // Clear any lingering loading states
+      toast.dismiss();
+      
+      // Run success callback first
       onSuccess();
       
-      // Invalidate all relevant queries to refresh data
+      // Then invalidate queries
       invalidateQueries();
+      
+      // Reset debug info
+      setDebugInfo(prev => ({
+        ...prev,
+        lastActionType: null,
+        lastActionTimestamp: null,
+        supabaseTriggered: false,
+        supabaseResponse: null,
+        error: null,
+        currentRetry: null,
+        adminPermissionStatus: null
+      }));
+      
+      // Release the mutation lock
+      setIsMutating(false);
     },
     onError: (error) => {
-      console.error('❌ Error in KYC mutation:', error);
-      toast.error(`Failed to update KYC status: ${(error as Error).message}`);
+      // Clear any lingering loading states
+      toast.dismiss();
+      
+      console.error('Error in KYC mutation:', error);
+      
+      // Reset debug info on error
+      setDebugInfo(prev => ({
+        ...prev,
+        lastActionType: null,
+        lastActionTimestamp: null,
+        supabaseTriggered: false,
+        supabaseResponse: null,
+        error: (error as Error).message,
+        currentRetry: null,
+        adminPermissionStatus: 'failed'
+      }));
+      
+      // Release the mutation lock
+      setIsMutating(false);
     }
   });
+  
+  return processMutation;
 };
 
 /**
@@ -389,21 +358,17 @@ export const useKycActionHandlers = (onSuccess: () => void) => {
   const processMutation = useProcessMutation(onSuccess, setDebugInfo);
   const clarificationMutation = useClarificationMutation(onSuccess, setDebugInfo);
 
-  // Handler functions
+  // Action handlers
   const handleApprove = (selectedKyc: KycVerificationWithProfile | null) => {
     if (!selectedKyc) {
       toast.error('No KYC record selected');
       return;
     }
     
-    console.log('🚀 Approving KYC for:', selectedKyc.id);
-    
-    // Clear any existing toasts
+    // Clear ALL existing toasts before starting
     toast.dismiss();
     
-    // Show the processing toast
-    toast.loading('Processing KYC approval...', { id: 'approve-processing-toast', duration: 20000 });
-    
+    console.log('🚀 Approving KYC for:', selectedKyc.id);
     processMutation.mutate({
       kycId: selectedKyc.id,
       status: 'approved'
@@ -426,11 +391,8 @@ export const useKycActionHandlers = (onSuccess: () => void) => {
     
     console.log('🚀 Rejecting KYC for:', selectedKyc.id, 'with reason:', rejectionReason);
     
-    // Clear any existing toasts
+    // Clear ALL existing toasts before starting
     toast.dismiss();
-    
-    // Show the processing toast
-    toast.loading('Processing KYC rejection...', { id: 'reject-processing-toast', duration: 20000 });
     
     processMutation.mutate({
       kycId: selectedKyc.id,
@@ -441,29 +403,35 @@ export const useKycActionHandlers = (onSuccess: () => void) => {
   
   const handleRequestClarification = (
     selectedKyc: KycVerificationWithProfile | null,
-    clarificationMessage: string
+    message: string
   ) => {
     if (!selectedKyc) {
       toast.error('No KYC record selected');
       return;
     }
     
-    if (!clarificationMessage || !clarificationMessage.trim()) {
-      toast.error('Please provide clarification details');
+    if (!message || !message.trim()) {
+      toast.error('Please provide a clarification message');
       return;
     }
     
-    console.log('🚀 Requesting clarification for:', selectedKyc.id, 'with message:', clarificationMessage);
+    console.log('🚀 Requesting clarification for KYC:', selectedKyc.id, 'with message:', message);
     
-    // Clear any existing toasts
+    // Clear ALL existing toasts before starting
     toast.dismiss();
     
-    // Show the processing toast
-    toast.loading('Processing clarification request...', { id: 'clarify-processing-toast', duration: 20000 });
+    // Create a unique ID for this toast
+    const loadingToastId = `clarification-${selectedKyc.id}-${Date.now()}`;
+    
+    // Show a loading toast
+    toast.loading('Processing clarification request...', { 
+      id: loadingToastId,
+      duration: 10000
+    });
     
     clarificationMutation.mutate({
       kycId: selectedKyc.id,
-      message: clarificationMessage.trim()
+      message: message.trim()
     });
   };
 

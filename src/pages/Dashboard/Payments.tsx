@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -110,18 +109,18 @@ const Payments = () => {
             allowPaymentsWithoutKYC={allowPaymentsWithoutKYC} 
           />
           
-          <div className="space-y-8">
-            <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
-              <div className="p-5 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-                <div className="flex items-center gap-2">
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 transition-all hover:shadow-md">
+              <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                <div className="flex items-center gap-3">
                   <div className="bg-cbis-blue/10 p-2 rounded-full">
                     <Wallet className="h-5 w-5 text-cbis-blue" />
                   </div>
-                  <h2 className="text-lg font-medium text-gray-800">Step 1: Set Up Your Wallet</h2>
+                  <h2 className="text-lg font-semibold text-gray-800">Step 1: Set Up Your Wallet</h2>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="rounded-full h-7 w-7 p-0">
+                        <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 p-0 ml-auto mr-0">
                           <HelpCircle className="h-4 w-4 text-gray-400" />
                         </Button>
                       </TooltipTrigger>
@@ -136,7 +135,7 @@ const Payments = () => {
                 </div>
               </div>
               
-              <div className="p-6">
+              <div className="p-5">
                 <WalletAddressForm 
                   existingWalletAddress={walletAddress || undefined} 
                   onWalletUpdated={handleWalletUpdated} 
@@ -144,39 +143,39 @@ const Payments = () => {
               </div>
             </div>
             
-            <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
-              <div className="p-5 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-                <div className="flex items-center gap-2">
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 transition-all hover:shadow-md">
+              <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                <div className="flex items-center gap-3">
                   <div className="bg-cbis-blue/10 p-2 rounded-full">
                     <ArrowRight className="h-5 w-5 text-cbis-blue" />
                   </div>
-                  <h2 className="text-lg font-medium text-gray-800">Step 2: Purchase or Sell Tokens</h2>
+                  <h2 className="text-lg font-semibold text-gray-800">Step 2: Purchase or Sell Tokens</h2>
                 </div>
               </div>
               
-              <div className="p-6">
+              <div className="p-5">
                 <Tabs defaultValue="buy" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto mb-6">
+                  <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto mb-6 bg-gray-100">
                     <TabsTrigger 
                       value="buy" 
-                      className="data-[state=active]:bg-cbis-blue data-[state=active]:text-white"
+                      className="data-[state=active]:bg-cbis-blue data-[state=active]:text-white transition-all"
                     >
                       Buy Tokens
                     </TabsTrigger>
                     <TabsTrigger 
                       value="sell" 
-                      className="data-[state=active]:bg-cbis-blue data-[state=active]:text-white"
+                      className="data-[state=active]:bg-cbis-blue data-[state=active]:text-white transition-all"
                     >
                       Sell Tokens
                     </TabsTrigger>
                   </TabsList>
                   
-                  <TabsContent value="buy" className="mt-0">
+                  <TabsContent value="buy" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
                     <WalletRequiredAlert walletAddress={walletAddress} />
                     <BuyTokensTab walletAddress={walletAddress} />
                   </TabsContent>
                   
-                  <TabsContent value="sell" className="mt-0">
+                  <TabsContent value="sell" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
                     <WalletRequiredAlert walletAddress={walletAddress} />
                     <SellTokensTab walletAddress={walletAddress} />
                   </TabsContent>

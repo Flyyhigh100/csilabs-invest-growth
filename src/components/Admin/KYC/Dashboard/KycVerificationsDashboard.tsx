@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useKycContext } from '../KycContext';
 import { useKycActionHandlers } from '../hooks/useKycActionHandlers';
@@ -49,7 +48,7 @@ const KycVerificationsDashboard: React.FC = () => {
   // Force immediate data fetch when component mounts
   useEffect(() => {
     if (isAdmin) {
-      handleManualRefresh();
+      refetch();
     }
     
     // Clear messages when modal is closed
@@ -57,7 +56,7 @@ const KycVerificationsDashboard: React.FC = () => {
       setRejectionReason('');
       setClarificationMessage('');
     }
-  }, [isViewModalOpen, isAdmin, handleManualRefresh, setRejectionReason, setClarificationMessage]);
+  }, [isViewModalOpen, isAdmin, refetch, setRejectionReason, setClarificationMessage]);
   
   const handleViewDetails = (kyc: typeof selectedKyc) => {
     setSelectedKyc(kyc);

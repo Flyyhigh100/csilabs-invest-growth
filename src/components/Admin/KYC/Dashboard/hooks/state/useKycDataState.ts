@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { KycVerificationWithProfile } from '../../../types';
@@ -25,11 +24,14 @@ export const useKycDataState = ({
   const mergedKycVerifications = mergeKycData(showAllUsers, allUsersWithKyc, kycVerifications);
   
   // Handle manual refresh
-  const handleManualRefresh = async () => {
+  const handleManualRefresh = () => {
     console.log('Manual refresh triggered');
     setManualRefreshCount(prev => prev + 1);
-    refetchAll();
     toast.success('Refreshing KYC data...');
+    // Call refetchAll after a short delay to prevent state update loops
+    setTimeout(() => {
+      refetchAll();
+    }, 10);
   };
   
   return {

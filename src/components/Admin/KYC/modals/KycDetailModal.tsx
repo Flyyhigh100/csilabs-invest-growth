@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, DialogContent, DialogDescription, 
@@ -56,6 +55,7 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
       setRejectionReason('');
       setClarificationMessage('');
       setActiveAction(null);
+      setActiveTab('info');
       
       // Reset any processing toasts when the modal opens
       ['reject-processing-toast', 'approve-processing-toast', 'clarify-processing-toast'].forEach(id => {
@@ -66,23 +66,40 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
     }
   }, [open, selectedKyc?.id, setRejectionReason, setClarificationMessage]);
   
-  // Reset action panel if the operation succeeds
+  // Reset action panel if the operation succeeds or fails
   useEffect(() => {
-    if (!isPending && debugInfo?.supabaseResponse?.success) {
-      setActiveAction(null);
+    if (!isPending) {
+      if (debugInfo?.supabaseResponse?.success) {
+        setActiveAction(null);
+        setRejectionReason('');
+        setClarificationMessage('');
+      } else if (debugInfo?.error) {
+        // Keep the form open but clear loading state if there was an error
+        ['reject-processing-toast', 'approve-processing-toast', 'clarify-processing-toast'].forEach(id => {
+          try { 
+            import('sonner').then(({ toast }) => toast.dismiss(id));
+          } catch (e) {}
+        });
+      }
     }
-  }, [isPending, debugInfo?.supabaseResponse?.success]);
+  }, [isPending, debugInfo?.supabaseResponse?.success, debugInfo?.error, setRejectionReason, setClarificationMessage]);
 
   // If modal is closed while processing, clean up toasts
   useEffect(() => {
-    if (!open && isPending) {
+    if (!open) {
       ['reject-processing-toast', 'approve-processing-toast', 'clarify-processing-toast'].forEach(id => {
         try { 
           import('sonner').then(({ toast }) => toast.dismiss(id));
         } catch (e) {}
       });
+      
+      // Reset all state
+      setActiveAction(null);
+      setRejectionReason('');
+      setClarificationMessage('');
+      setActiveTab('info');
     }
-  }, [open, isPending]);
+  }, [open, setRejectionReason, setClarificationMessage]);
 
   if (!selectedKyc) return null;
   
@@ -92,6 +109,7 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
       setActiveAction(null);
       setRejectionReason('');
       setClarificationMessage('');
+      setActiveTab('info');
       
       // Clean up any lingering toasts
       ['reject-processing-toast', 'approve-processing-toast', 'clarify-processing-toast'].forEach(id => {

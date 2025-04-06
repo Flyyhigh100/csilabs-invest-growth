@@ -1,4 +1,3 @@
-
 import { TokenVolumeData } from '@/types/token';
 import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE, START_DATE, END_DATE, QUOTE_TOKEN, AGGREGATION_DAYS } from './config';
 import { generateMockVolumeData } from '../mocks/mockDataGenerators';
@@ -11,10 +10,10 @@ import { generateMockVolumeData } from '../mocks/mockDataGenerators';
 const formatDate = (timestamp: number): string => {
   const date = new Date(timestamp * 1000);
   
-  // For time series view, use month and year format
+  // For recent data, use month and day format (Apr 15)
   return date.toLocaleDateString('en-US', { 
     month: 'short',
-    year: 'numeric'
+    day: 'numeric'
   });
 };
 
@@ -24,19 +23,33 @@ const formatDate = (timestamp: number): string => {
  */
 export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
   try {
+    // Log API request details for debugging
     console.log('Fetching token volume history with API key:', API_KEY ? 'API key present' : 'No API key');
+    
+    // Use mock data if no API key is provided
+    if (!API_KEY) {
+      console.log('No API key provided, using mock volume data');
+      return generateMockVolumeData();
+    }
     
     // Build URL with all necessary parameters
     const url = `${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/volume_history?timeRange=${TIME_RANGE}&quoteToken=${QUOTE_TOKEN}`;
     console.log('Fetching volume history from URL:', url);
+    
+    // Add a timeout to the fetch operation
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
     
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'X-API-KEY': API_KEY
-      }
+      },
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -61,7 +74,7 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
         item.timestamp >= START_DATE && item.timestamp <= END_DATE
       );
       
-      console.log(`Filtered ${filteredData.length} data points between ${new Date(START_DATE * 1000).toISOString()} and ${new Date(END_DATE * 1000).toISOString()}`);
+      console.log(`Filtered ${filteredData.length} data points between ${new Date(START_DATE * 1000).toLocaleDateString()} and ${new Date(END_DATE * 1000).toLocaleDateString()}`);
       
       if (filteredData.length === 0) {
         console.warn('No volume data found in specified date range, using mock data');
@@ -70,15 +83,15 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
       
       // Process the data based on the AGGREGATION_DAYS setting
       if (AGGREGATION_DAYS > 1) {
-        // Group data by month for annual view
-        const monthlyData: { [key: string]: { volumes: number[], timestamp: number } } = {};
+        // Group data by day/month for aggregated view
+        const groupedData: { [key: string]: { volumes: number[], timestamp: number } } = {};
         
         filteredData.forEach((item: any) => {
           const timestamp = item.timestamp;
           const formattedDate = formatDate(timestamp);
           
-          if (!monthlyData[formattedDate]) {
-            monthlyData[formattedDate] = {
+          if (!groupedData[formattedDate]) {
+            groupedData[formattedDate] = {
               volumes: [],
               timestamp: timestamp
             };
@@ -90,12 +103,12 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
             : (typeof item.volume_usd === 'number' ? item.volume_usd : 0);
               
           if (!isNaN(volume) && volume > 0) {
-            monthlyData[formattedDate].volumes.push(volume);
+            groupedData[formattedDate].volumes.push(volume);
           }
         });
         
-        // Calculate total volume for each month
-        const result = Object.entries(monthlyData)
+        // Calculate total volume for each group
+        const result = Object.entries(groupedData)
           .map(([date, data]) => ({
             date,
             volume: data.volumes.length > 0 
@@ -104,13 +117,13 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
           }))
           .filter(item => item.volume > 0) // Filter out zero volumes
           .sort((a, b) => {
-            // Sort by timestamp from oldest to newest
+            // Sort by date from oldest to newest
             const dateA = new Date(a.date);
             const dateB = new Date(b.date);
             return dateA.getTime() - dateB.getTime();
           });
         
-        console.log(`Processed ${result.length} monthly data points`);
+        console.log(`Processed ${result.length} aggregated data points`);
         if (result.length > 0) {
           console.log('First data point:', result[0]);
           console.log('Last data point:', result[result.length - 1]);
@@ -148,7 +161,6 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
       }
     } else {
       console.warn('Unexpected volume history data format:', data);
-      console.log('Raw volume data received:', JSON.stringify(data));
       console.log('Using mock data as fallback due to unexpected data format');
       return generateMockVolumeData();
     }
