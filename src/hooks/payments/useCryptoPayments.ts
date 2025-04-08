@@ -14,12 +14,21 @@ export const useCryptoPayments = (walletAddress: string | null) => {
     // Pass true for isCrypto to validate KYC if needed
     if (!validatePaymentRequest(amount, { isCrypto: true })) return false;
     
-    // Early validation for wallet address
+    // Extra validation check for wallet address
     if (!walletAddress) {
       toast.error("Wallet Address Required", {
         description: "You need to provide a wallet address to receive your tokens after purchase.",
         duration: 5000,
       });
+      
+      // Scroll to wallet section
+      setTimeout(() => {
+        document.getElementById('wallet-address-section')?.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }, 500);
+      
       return false;
     }
     
@@ -87,6 +96,15 @@ export const useCryptoPayments = (walletAddress: string | null) => {
         description: "You need to provide a wallet address to receive your tokens after purchase.",
         duration: 5000,
       });
+      
+      // Scroll to wallet section
+      setTimeout(() => {
+        document.getElementById('wallet-address-section')?.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }, 500);
+      
       return false;
     }
     
