@@ -5,7 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
-import { Menu, X, LogOut, Loader2, ShieldCheck, Info } from 'lucide-react';
+import { Menu, X, LogOut, Loader2, ShieldCheck, Info, Home } from 'lucide-react';
+import NotificationsMenu from './NotificationsMenu';
 
 interface NavItem {
   name: string;
@@ -41,7 +42,15 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   console.log("MobileNavigation props:", { email, isAdmin, isChecking });
 
   return (
-    <div className="md:hidden">
+    <div className="md:hidden flex items-center">
+      <Link to="/" className="mr-2 text-gray-600 hover:text-cbis-blue">
+        <Home className="h-5 w-5" />
+      </Link>
+      
+      <div className="mr-2">
+        <NotificationsMenu />
+      </div>
+      
       <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon">
