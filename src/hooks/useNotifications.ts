@@ -31,8 +31,13 @@ export const useNotifications = () => {
     try {
       setIsLoading(true);
       
-      // Use a direct SQL query instead of the Supabase client
-      const { data, error } = await supabase.rpc('get_user_notifications');
+      // Use direct query instead of RPC
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
 
       if (error) throw error;
 
@@ -53,8 +58,12 @@ export const useNotifications = () => {
   // Mark a notification as read
   const markAsRead = async (notificationId: string) => {
     try {
-      // Use a direct SQL function call
-      await supabase.rpc('mark_notification_read', { notification_id: notificationId });
+      // Direct update instead of RPC
+      await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId)
+        .eq('user_id', user?.id); // Ensure user can only mark their own notifications
 
       // Update the local state
       setNotifications(prevNotifications => 
@@ -80,8 +89,11 @@ export const useNotifications = () => {
     if (!user) return;
     
     try {
-      // Use a direct SQL function call
-      await supabase.rpc('mark_all_notifications_read', { user_id_param: user.id });
+      // Direct update instead of RPC
+      await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id);
 
       // Update local state
       setNotifications(prevNotifications => 
