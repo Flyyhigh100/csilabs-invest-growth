@@ -46,6 +46,22 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
       throw error;
     }
     
+    // Create a notification for the user about the KYC submission
+    const { error: notificationError } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        title: 'KYC Verification Submitted',
+        message: 'Your identity verification has been submitted and is under review.',
+        type: 'kyc',
+        read: false
+      });
+    
+    if (notificationError) {
+      console.error('Error creating notification:', notificationError);
+      // Don't throw here, as the KYC submission was successful
+    }
+    
     console.log('KYC verification submitted successfully:', data);
     return true;
   } catch (error) {

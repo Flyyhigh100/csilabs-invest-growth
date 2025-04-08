@@ -39,7 +39,8 @@ export const useNotifications = () => {
 
       if (error) throw error;
 
-      const notificationsData = data as Notification[];
+      // Type assertion to handle the notifications data
+      const notificationsData = data as unknown as Notification[];
       setNotifications(notificationsData);
       
       // Check if there are any unread notifications
@@ -118,7 +119,7 @@ export const useNotifications = () => {
           filter: `user_id=eq.${user.id}`
         },
         payload => {
-          const newNotification = payload.new as Notification;
+          const newNotification = payload.new as unknown as Notification;
           setNotifications(current => [newNotification, ...current]);
           setHasUnread(true);
         }
