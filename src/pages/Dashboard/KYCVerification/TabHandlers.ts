@@ -1,10 +1,10 @@
-
 import { useState } from 'react';
 import { KycVerificationData } from '@/hooks/kyc/types';
 import { useKycVerification } from '@/hooks/kyc/useKycVerification';
 import { useAuth } from '@/contexts/AuthContext';
 import { PersonalInfoValues } from '@/components/KYC/schema/personalInfoSchema';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const TabHandlers = (
   kycData: KycVerificationData | null,
