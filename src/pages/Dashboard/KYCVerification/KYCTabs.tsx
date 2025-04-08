@@ -13,16 +13,26 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
     if (!kycData) return 'personal-info';
     
     const status = kycData.status;
+    console.log('🔍 Determining initial tab based on KYC status:', status);
     
     switch (status) {
       case 'pending':
       case 'approved':
       case 'rejected':
+        console.log('📊 Status indicates we should show status tab');
         return 'status';
       case 'needs_clarification':
+        console.log('❓ User needs to provide clarifications, showing documents tab');
         return 'documents'; // Default to documents tab when clarification is needed
       default:
-        return kycData.first_name ? 'documents' : 'personal-info';
+        // If personal info exists, show documents, otherwise show personal info
+        if (kycData.first_name) {
+          console.log('👤 Personal info exists, showing documents tab');
+          return 'documents';
+        } else {
+          console.log('📋 Personal info missing, showing personal info tab');
+          return 'personal-info';
+        }
     }
   };
   
@@ -31,9 +41,15 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
   // When kycData changes, update the active tab if needed
   useEffect(() => {
     const newTab = getInitialTab();
-    console.log("KYC data updated, status:", kycData?.status, "setting tab to:", newTab);
+    console.log("🔄 KYC data updated, status:", kycData?.status, "setting tab to:", newTab);
     setActiveTab(newTab);
   }, [kycData?.status]);
+  
+  // Debug status changes
+  useEffect(() => {
+    console.log("👁️ KYCTabs component tracking KYC status:", kycData?.status);
+    console.log("👁️ KYCTabs component active tab:", activeTab);
+  }, [kycData?.status, activeTab]);
   
   // Access the tab handlers
   const {
@@ -47,30 +63,43 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
   
   // Determine if each tab is enabled based on validation
   const isDocumentsEnabled = !!kycData?.first_name;
-  const isStatusEnabled = true; // Always allow status tab so users can see their KYC status
+  const isPending = kycData?.status === 'pending';
+  const isApproved = kycData?.status === 'approved';
   
-  // Debug logging for render cycles
+  // Force status tab if status is pending or approved
   useEffect(() => {
-    console.log("KYCTabs rendered, active tab:", activeTab);
-    console.log("Current KYC status:", kycData?.status);
-  }, [activeTab, kycData?.status]);
+    if ((isPending || isApproved) && activeTab !== 'status') {
+      console.log("🔒 Status is pending/approved, forcing status tab display");
+      setActiveTab('status');
+    }
+  }, [isPending, isApproved, activeTab]);
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue={activeTab}>
+    <Tabs 
+      value={activeTab} 
+      onValueChange={setActiveTab} 
+      defaultValue={activeTab}
+      className="w-full"
+    >
       <TabsList className="grid grid-cols-3 mb-8">
         <TabsTrigger 
           value="personal-info"
-          disabled={kycData?.status === 'pending' || kycData?.status === 'approved'}
+          disabled={isPending || isApproved}
+          data-testid="tab-personal-info"
         >
           Personal Info
         </TabsTrigger>
         <TabsTrigger 
           value="documents"
-          disabled={!isDocumentsEnabled || kycData?.status === 'pending' || kycData?.status === 'approved'}
+          disabled={!isDocumentsEnabled || isPending || isApproved}
+          data-testid="tab-documents"
         >
           Documents
         </TabsTrigger>
-        <TabsTrigger value="status">
+        <TabsTrigger 
+          value="status"
+          data-testid="tab-status"
+        >
           Status
         </TabsTrigger>
       </TabsList>

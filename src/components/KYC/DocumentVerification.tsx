@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import DocumentUpload from './DocumentUpload';
 import { AlertCircle } from 'lucide-react';
@@ -28,16 +28,32 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   onUpload,
   clarificationMessage
 }) => {
-  // Local state to track submission attempts
+  // Local state to track submission attempts and progress
   const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
+  const [submissionInProgress, setSubmissionInProgress] = useState(false);
+
+  // Reset submission state when props change
+  useEffect(() => {
+    if (!isSubmitting && submissionInProgress) {
+      console.log("📊 Submission completed, resetting UI state");
+      setSubmissionInProgress(false);
+      setIsAttemptingSubmit(false);
+    }
+  }, [isSubmitting, submissionInProgress]);
 
   const handleSubmitClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     
+    // Prevent button mashing - if already in progress, do nothing
+    if (isSubmitting || isAttemptingSubmit || submissionInProgress) {
+      console.log("🔒 Submission already in progress, ignoring click");
+      return;
+    }
+    
     // Debug - log the state at button click
-    console.log("Submit button clicked, starting submission process...");
-    console.log("Current document states:", { hasIdFront, hasIdBack, hasSelfie });
-    console.log("Current process states:", { isPending, isSubmitting, isAttemptingSubmit });
+    console.log("🚀 Submit button clicked, starting submission process...");
+    console.log("👁️ Current document states:", { hasIdFront, hasIdBack, hasSelfie });
+    console.log("⏱️ Current process states:", { isPending, isSubmitting, isAttemptingSubmit });
     
     // Validation check
     if (!hasIdFront || !hasIdBack || !hasSelfie) {
@@ -45,32 +61,29 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
       return;
     }
     
-    // If we're already in the submission process, prevent additional clicks
-    if (isSubmitting || isAttemptingSubmit) {
-      console.log("Submission already in progress, ignoring click");
-      return;
-    }
-    
     // Set local state to show immediate feedback
     setIsAttemptingSubmit(true);
+    setSubmissionInProgress(true);
     
     try {
-      console.log("Calling onSubmit function");
+      console.log("📤 Calling onSubmit function");
       await onSubmit();
-      console.log("Submission completed successfully");
+      console.log("✅ Submission completed successfully");
+      
+      // Don't reset states here - the effect hook will handle that
+      // based on the isSubmitting prop changing
     } catch (error) {
-      console.error("Error in submission:", error);
+      console.error("❌ Error in submission:", error);
       toast.error(`Failed to submit verification: ${(error as Error).message}`);
-    } finally {
-      // Wait a bit before resetting the local state to ensure the UI has time to update
-      setTimeout(() => {
-        setIsAttemptingSubmit(false);
-      }, 1000);
+      
+      // Reset states after error
+      setIsAttemptingSubmit(false);
+      setSubmissionInProgress(false);
     }
   };
 
   // Combined submission state for UI feedback
-  const showSubmitSpinner = isSubmitting || isAttemptingSubmit;
+  const showSubmitSpinner = isSubmitting || isAttemptingSubmit || submissionInProgress;
   const isButtonDisabled = !hasIdFront || !hasIdBack || !hasSelfie || showSubmitSpinner || isPending;
 
   return (

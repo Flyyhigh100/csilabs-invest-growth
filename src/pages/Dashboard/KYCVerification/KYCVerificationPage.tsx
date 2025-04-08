@@ -20,10 +20,23 @@ const KYCVerificationPage = () => {
   // State to track status changes
   const [lastStatus, setLastStatus] = useState(kycData?.status);
   
+  // Track last refetch time to prevent too frequent refetches
+  const [lastRefetchTime, setLastRefetchTime] = useState(0);
+  
+  // Helper function to perform refetch with rate limiting
+  const performRefetch = () => {
+    const now = Date.now();
+    if (now - lastRefetchTime > 1000) { // Only refetch once per second at most
+      console.log('🔄 Performing controlled refetch of KYC data');
+      refetch();
+      setLastRefetchTime(now);
+    }
+  };
+  
   // Update lastStatus when kycData changes
   useEffect(() => {
     if (kycData?.status && kycData.status !== lastStatus) {
-      console.log(`Status changed: ${lastStatus} -> ${kycData.status}`);
+      console.log(`📊 KYC Status changed: ${lastStatus} -> ${kycData.status}`);
       setLastStatus(kycData.status);
       
       // Show toast notification for status changes
@@ -43,27 +56,32 @@ const KYCVerificationPage = () => {
   useEffect(() => {
     if (!user?.id) return;
     
-    console.log("Setting up realtime subscription for user:", user.id);
+    console.log("🔌 Setting up realtime subscription for user:", user.id);
+    
+    // Immediate fetch on mount
+    performRefetch();
     
     // Set up realtime subscription for KYC status updates
     const channel = supabase
-      .channel('kyc-updates')
+      .channel(`kyc-updates-${user.id}`)
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'kyc_verifications',
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('KYC verification updated:', payload);
+          console.log('📡 KYC verification updated:', payload);
           
           // Get the new status from the payload
           const newStatus = payload.new?.status;
           const oldStatus = payload.old?.status;
           
           if (newStatus && newStatus !== oldStatus) {
+            console.log(`📊 Status changed from ${oldStatus} to ${newStatus}`);
+            
             // Show a toast notification based on the new status
             if (newStatus === 'approved') {
               toast.success('Your KYC verification has been approved!');
@@ -76,24 +94,23 @@ const KYCVerificationPage = () => {
             }
             
             // Refetch KYC data to get the latest status
-            refetch();
+            performRefetch();
+          } else {
+            console.log('🔄 Other KYC data updated, refetching');
+            performRefetch();
           }
         }
       )
       .subscribe((status) => {
-        console.log("Subscription status:", status);
+        console.log("🔌 Supabase subscription status:", status);
       });
-    
-    console.log("Subscribed to KYC updates for user:", user.id);
-    
-    // Force a refetch when component mounts to ensure fresh data
-    refetch();
     
     // Clean up subscription when component unmounts
     return () => {
+      console.log("🔌 Cleaning up KYC subscription");
       supabase.removeChannel(channel);
     };
-  }, [user?.id, refetch]);
+  }, [user?.id]);
 
   if (isLoading) {
     return (

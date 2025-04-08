@@ -18,9 +18,12 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
   // Helper function to invalidate all related queries
   const invalidateRelatedQueries = () => {
     // Invalidate all related queries to ensure fresh data
-    console.log('Invalidating KYC related queries for user:', userId);
+    console.log('🔄 Invalidating KYC related queries for user:', userId);
     
-    queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
+    if (userId) {
+      queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
+    }
+    
     queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
     queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
     queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -32,7 +35,7 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
     mutationFn: async (formData: KycFormData) => {
       if (!userId) throw new Error('User not authenticated');
       
-      console.log('Saving personal info for user:', userId);
+      console.log('💾 Saving personal info for user:', userId);
       
       // Ensure we always create or update the KYC record
       try {
@@ -40,10 +43,10 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
         await ensureKycRecordExists(userId);
         
         const result = await saveKycPersonalInfo(userId, formData);
-        console.log('KYC personal info saved:', result);
+        console.log('✅ KYC personal info saved:', result);
         return result;
       } catch (error) {
-        console.error('Error in savePersonalInfo:', error);
+        console.error('❌ Error in savePersonalInfo:', error);
         throw error;
       }
     },
@@ -53,8 +56,8 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
       toast.success('Personal information saved successfully');
     },
     onError: (error) => {
-      console.error('Error saving personal information:', error);
-      toast.error('Failed to save personal information');
+      console.error('❌ Error saving personal information:', error);
+      toast.error(`Failed to save personal information: ${(error as Error).message}`);
     }
   });
   
@@ -72,7 +75,7 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
       // Ensure KYC record exists before uploading
       await ensureKycRecordExists(userId);
       
-      console.log(`Uploading ${type} document for user:`, userId);
+      console.log(`📤 Uploading ${type} document for user:`, userId);
       return uploadKycDocument(userId, file, type);
     },
     onSuccess: () => {
@@ -80,8 +83,8 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
       refetch();
     },
     onError: (error) => {
-      console.error('Error uploading document:', error);
-      toast.error('Failed to upload document');
+      console.error('❌ Error uploading document:', error);
+      toast.error(`Failed to upload document: ${(error as Error).message}`);
     }
   });
   
@@ -89,36 +92,39 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
   const submitVerification = useMutation({
     mutationFn: async () => {
       if (!userId) {
-        console.error('User not authenticated');
+        console.error('❌ User not authenticated');
         throw new Error('User not authenticated');
       }
       
-      console.log('Submitting verification for user:', userId);
+      console.log('📨 Submitting verification for user:', userId);
       
       // Proceed with submission
       try {
         const result = await submitKycVerification(userId);
-        console.log('Submission result:', result);
+        console.log('🔄 Submission result:', result);
         return result;
       } catch (error) {
-        console.error('Error in submitVerification:', error);
+        console.error('❌ Error in submitVerification:', error);
         throw error;
       }
     },
     onSuccess: () => {
-      console.log("KYC verification submitted successfully");
+      console.log("✅ KYC verification submitted successfully");
       
-      // Force immediate invalidation of all related cached data
+      // Force immediate invalidation of ALL related cached data
       invalidateRelatedQueries();
       
-      // Perform a specific refetch for this user's KYC data
-      queryClient.refetchQueries({ queryKey: ['kyc', userId] });
-      
-      // Additional refetch using the provided function
-      refetch();
+      // Force immediate refetch with minimal delay
+      setTimeout(() => {
+        if (userId) {
+          console.log("🔄 Forcing immediate refetch for user:", userId);
+          queryClient.refetchQueries({ queryKey: ['kyc', userId] });
+        }
+        refetch();
+      }, 200);
     },
     onError: (error) => {
-      console.error('Error submitting verification:', error);
+      console.error('❌ Error submitting verification:', error);
       toast.error(`Failed to submit verification: ${(error as Error).message}`);
     }
   });
