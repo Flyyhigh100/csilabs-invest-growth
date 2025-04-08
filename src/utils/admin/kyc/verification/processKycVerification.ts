@@ -1,6 +1,15 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { verifyAdminPermissions } from './adminVerifier';
+import { isKycLocked, setKycLock, releaseKycLock } from './utils/lockManager';
+import { 
+  setupVerificationListeners, 
+  cleanupVerificationListeners, 
+  notifyAdminPermissionStatus 
+} from './utils/listenerManager';
+import { clearAllToasts, showLoadingToast, dismissToast } from './utils/toastManager';
+import { executeWithRetry, withTimeout } from './utils/retryManager';
 
 interface EdgeFunctionResponse {
   data?: {
@@ -17,11 +26,6 @@ interface EdgeFunctionResponse {
   };
 }
 
-// Add a debounce mechanism to prevent multiple simultaneous calls
-let processingLock = false;
-let lastProcessedKycId = '';
-let lastProcessedTimestamp = 0;
-
 /**
  * Process KYC verification - approve or reject
  */
@@ -31,106 +35,85 @@ export const processKycVerification = async (
   message?: string
 ): Promise<boolean> => {
   // Prevent multiple simultaneous calls for the same KYC ID
-  const now = Date.now();
-  if (processingLock && kycId === lastProcessedKycId && (now - lastProcessedTimestamp) < 10000) {
+  if (isKycLocked(kycId)) {
     console.log(`🔒 Already processing KYC ${kycId} (${status}). Please wait...`);
     toast.info(`Already processing this KYC verification. Please wait...`);
     return false;
   }
   
   // Set the lock
-  processingLock = true;
-  lastProcessedKycId = kycId;
-  lastProcessedTimestamp = now;
+  setKycLock(kycId);
   
   // Generate unique toast IDs for tracking this operation
   const toastId = `process-kyc-${kycId}-${Date.now()}`;
   const loadingToastId = `loading-${toastId}`;
 
   // Clear ALL existing toasts at the start
-  toast.dismiss();
+  clearAllToasts();
 
   try {
     console.log(`🔍 Processing KYC verification ${kycId} with status: ${status}, message: ${message || 'none'}`);
     
     if (!kycId) {
       toast.error('KYC ID is required');
-      processingLock = false;
+      releaseKycLock();
       return false;
     }
     
     // Pre-validate required fields based on status
     if (status === 'rejected' && (!message || !message.trim())) {
       toast.error('Rejection reason is required');
-      processingLock = false;
+      releaseKycLock();
       return false;
     }
     
     // Show a new loading toast with a reasonable timeout
-    toast.loading(`Processing KYC verification (${status})...`, {
-      id: loadingToastId,
-      duration: 10000 // Reduced to 10 seconds to prevent long-hanging states
-    });
+    showLoadingToast(`Processing KYC verification (${status})...`, loadingToastId, 10000);
     
-    // Verify admin permissions first with a timeout
+    // Set up listeners
+    setupVerificationListeners();
+    
+    // Verify admin permissions first
     try {
-      const adminCheckPromise = verifyAdminPermissions();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Admin permission check timed out')), 5000)
-      );
+      notifyAdminPermissionStatus('checking');
       
-      const isAdmin = await Promise.race([adminCheckPromise, timeoutPromise]);
+      const adminCheckPromise = verifyAdminPermissions();
+      const isAdmin = await withTimeout(adminCheckPromise, 5000, 'Admin permission check timed out');
       
       if (!isAdmin) {
-        toast.dismiss(loadingToastId);
+        dismissToast(loadingToastId);
         toast.error('Admin permission verification failed');
-        
-        if (typeof (window as any).kycAdminPermissionListener === 'function') {
-          (window as any).kycAdminPermissionListener('failed');
-        }
-        processingLock = false;
+        notifyAdminPermissionStatus('failed');
+        releaseKycLock();
         return false;
       }
       
-      if (typeof (window as any).kycAdminPermissionListener === 'function') {
-        (window as any).kycAdminPermissionListener('verified');
-      }
+      notifyAdminPermissionStatus('verified');
     } catch (adminErr) {
-      toast.dismiss(loadingToastId);
+      dismissToast(loadingToastId);
       toast.error(`Failed to verify admin permissions: ${(adminErr as Error).message}`);
-      
-      if (typeof (window as any).kycAdminPermissionListener === 'function') {
-        (window as any).kycAdminPermissionListener('failed');
-      }
-      processingLock = false;
+      notifyAdminPermissionStatus('failed');
+      releaseKycLock();
       return false;
     }
 
-    const payload = {
-      action: 'processKyc',
-      data: {
-        kycId,
-        status,
-        rejectionReason: message
-      }
-    };
+    // Process KYC verification
+    return await executeWithRetry(
+      async () => {
+        const payload = {
+          action: 'processKyc',
+          data: {
+            kycId,
+            status,
+            rejectionReason: message
+          }
+        };
 
-    let currentRetry = 0;
-    const maxRetries = 1; // Reduced retries to prevent long-hanging states
-    let lastError: Error | null = null;
-
-    while (currentRetry <= maxRetries) {
-      if (typeof (window as any).kycRetryListener === 'function') {
-        (window as any).kycRetryListener(currentRetry, maxRetries);
-      }
-
-      try {
-        const response = await Promise.race([
+        const response = await withTimeout(
           supabase.functions.invoke('admin-operations', { body: payload }),
-          new Promise<EdgeFunctionResponse>((_, reject) => 
-            setTimeout(() => reject(new Error('Request timed out')), 8000) // Reduced timeout
-          )
-        ]) as EdgeFunctionResponse;
+          8000,
+          'Request timed out'
+        ) as EdgeFunctionResponse;
 
         if (response.error) {
           throw new Error(response.error.message || 'Error from admin-operations function');
@@ -145,57 +128,31 @@ export const processKycVerification = async (
         }
 
         // Success case - clear loading state first
-        toast.dismiss(loadingToastId);
+        dismissToast(loadingToastId);
         toast.success(`KYC verification ${status} successfully`);
-        processingLock = false;
         return true;
-      } catch (error) {
-        lastError = error as Error;
-        console.error(`Attempt ${currentRetry + 1} failed:`, error);
-
-        // Only retry on specific network errors
-        if (currentRetry < maxRetries && 
-            ((error as Error).message.includes('timeout') || 
-             (error as Error).message.includes('network'))) {
-          currentRetry++;
-          await new Promise(resolve => setTimeout(resolve, 2000)); // Fixed 2-second delay
-          continue;
-        }
-
-        // Non-retryable error or max retries reached
-        break;
-      } finally {
-        // Always clean up the loading toast for this attempt
-        toast.dismiss(loadingToastId);
-      }
-    }
-
-    // If we get here, all retries failed
-    toast.error(`Failed to process KYC verification: ${lastError?.message || 'Unknown error'}`);
-    processingLock = false;
-    return false;
+      },
+      1,  // maxRetries
+      2000  // retryDelay
+    ).catch(error => {
+      // Handle errors from the retry process
+      dismissToast(loadingToastId);
+      toast.error(`Failed to process KYC verification: ${error.message || 'Unknown error'}`);
+      console.error('❌ Error in processKycVerification:', error);
+      return false;
+    }).finally(() => {
+      // Always clean up
+      cleanupVerificationListeners();
+      releaseKycLock();
+    });
   } catch (error) {
     console.error('❌ Fatal error in processKycVerification:', error);
     toast.error(`Fatal error: ${(error as Error).message}`);
     
-    // Clean up listeners
-    if (typeof (window as any).kycRetryListener === 'function') {
-      (window as any).kycRetryListener(null, null);
-    }
-    if (typeof (window as any).kycAdminPermissionListener === 'function') {
-      (window as any).kycAdminPermissionListener('failed');
-    }
-    processingLock = false;
+    // Clean up
+    cleanupVerificationListeners();
+    dismissToast(loadingToastId);
+    releaseKycLock();
     return false;
-  } finally {
-    // Final cleanup of ALL toasts and listeners
-    toast.dismiss(loadingToastId);
-    delete (window as any).kycRetryListener;
-    delete (window as any).kycAdminPermissionListener;
-    
-    // Release the lock after 2 seconds to prevent immediate retries
-    setTimeout(() => {
-      processingLock = false;
-    }, 2000);
   }
 };

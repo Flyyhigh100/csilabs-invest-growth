@@ -1,117 +1,172 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { executeWithRetries } from './retryUtils';
+import { verifyAdminPermissions } from './adminVerifier';
+import { isKycLocked, setKycLock, releaseKycLock } from './utils/lockManager';
+import { 
+  setupVerificationListeners, 
+  cleanupVerificationListeners, 
+  notifyAdminPermissionStatus,
+  notifyRetryAttempt
+} from './utils/listenerManager';
+import { clearAllToasts, showLoadingToast, dismissToast } from './utils/toastManager';
+import { withTimeout } from './utils/retryManager';
 
 /**
- * Request clarification from user
+ * Request clarification for KYC verification
  */
 export const requestKycClarification = async (
   kycId: string,
   message: string
 ): Promise<boolean> => {
-  if (!message || message.trim() === '') {
-    toast.error('Please provide a clarification message');
+  // Validate inputs
+  if (!kycId) {
+    toast.error('KYC ID is required');
     return false;
   }
   
-  console.log('🔍 Requesting clarification with message:', message);
+  if (!message || !message.trim()) {
+    toast.error('Clarification message is required');
+    return false;
+  }
   
-  const toastId = `clarify-kyc-${kycId}-${Date.now()}`;
-  toast.loading(`Sending clarification request...`, {
-    id: toastId,
-    duration: 10000
-  });
+  // Generate an operation ID for tracking
+  const operationId = `clarify-${Date.now()}`;
+  console.log(`[${operationId}] 🚀 Starting clarification request:`, { kycId, message });
+  
+  // Prevent multiple simultaneous calls for the same KYC ID
+  if (isKycLocked(kycId)) {
+    console.log(`[${operationId}] 🔒 Already processing KYC ${kycId}. Please wait...`);
+    toast.info(`Already processing this KYC verification. Please wait...`);
+    return false;
+  }
+  
+  // Set the lock
+  setKycLock(kycId);
+  
+  // Clear existing toasts
+  clearAllToasts();
+  
+  // Show a loading toast
+  const loadingToastId = 'clarify-processing-toast';
+  showLoadingToast('Processing clarification request...', loadingToastId);
   
   try {
-    // Use direct call to process with needs_clarification status
-    console.log(`📤 Sending clarification request to Supabase for KYC ID: ${kycId}`);
+    // Set up a timeout to automatically clear the pending state
+    const safetyTimeout = setTimeout(() => {
+      console.log(`⏰ [${operationId}] Safety timeout triggered after 30 seconds`);
+      dismissToast(loadingToastId);
+      toast.error('Operation timed out. Please check network connection and try again.');
+      releaseKycLock();
+    }, 30000); // 30 seconds timeout
     
-    const result = await executeWithRetries(async () => {
-      const payload = {
-        action: 'requestKycClarification',
-        data: {
-          kycId,
-          message: message.trim()
-        }
-      };
-      
-      console.log('Request payload for clarification:', payload);
-      
-      const response = await supabase.functions.invoke('admin-operations', {
-        body: payload
-      });
-      
-      console.log('📥 Full response from admin-operations function:', JSON.stringify(response, null, 2));
-      
-      if (response.error) {
-        console.error('❌ Error from admin-operations function:', response.error);
-        throw response.error;
-      }
-      
-      const data = response.data;
-      
-      // Check if the response contains an error object
-      if (data && data.error) {
-        console.error('❌ Error from admin-operations response:', data.error);
-        throw new Error(data.error.message || 'Unknown error from server');
-      }
-      
-      // Handle case where response has no data
-      if (!data) {
-        console.error('❌ No data returned from admin-operations function');
-        throw new Error('No response data received');
-      }
-      
-      // Check if kyc object is present and has the expected status
-      if (!data.kyc || data.kyc.status !== 'needs_clarification') {
-        console.error('❌ Invalid response from server:', data);
-        throw new Error(`Invalid server response: ${JSON.stringify(data)}`);
-      }
-      
-      // If we get here, the operation was successful
-      console.log('✅ Clarification request successful:', data);
-      return data;
-    }, toastId);
+    // Set up listeners
+    setupVerificationListeners();
     
-    if (!result.success) {
+    // Verify admin permissions
+    try {
+      notifyAdminPermissionStatus('checking');
+      
+      const adminCheckPromise = verifyAdminPermissions();
+      const isAdmin = await withTimeout(adminCheckPromise, 5000, 'Admin permission check timed out');
+      
+      if (!isAdmin) {
+        clearTimeout(safetyTimeout);
+        dismissToast(loadingToastId);
+        toast.error('Admin permission verification failed');
+        notifyAdminPermissionStatus('failed');
+        releaseKycLock();
+        return false;
+      }
+      
+      notifyAdminPermissionStatus('verified');
+    } catch (adminErr) {
+      clearTimeout(safetyTimeout);
+      dismissToast(loadingToastId);
+      toast.error(`Failed to verify admin permissions: ${(adminErr as Error).message}`);
+      notifyAdminPermissionStatus('failed');
+      releaseKycLock();
       return false;
     }
     
-    // Verify the update went through
-    try {
-      console.log('🔄 Verifying clarification update with fresh data fetch');
-      const { data: refreshData, error: refreshError } = await supabase
-        .from("kyc_verifications")
-        .select("*")
-        .eq("id", kycId)
-        .single();
+    // Process clarification request
+    console.log(`[${operationId}] 📤 Sending clarification request to Supabase for KYC ID: ${kycId}`);
+    
+    let maxRetries = 1;
+    let currentRetry = 0;
+    let success = false;
+    let lastError: Error | null = null;
+    
+    while (currentRetry <= maxRetries) {
+      notifyRetryAttempt(currentRetry, maxRetries);
+      
+      try {
+        const payload = {
+          action: 'requestKycClarification',
+          data: {
+            kycId,
+            message: message.trim()
+          }
+        };
         
-      if (refreshData) {
-        console.log('✅ Verified clarification update with fresh data:', refreshData);
-        console.log(`✅ Current KYC status is now: ${refreshData.status}`);
-        console.log(`✅ Clarification message is: ${refreshData.clarification_message}`);
-      } else if (refreshError) {
-        console.error('❌ Error verifying clarification update:', refreshError);
+        const response = await withTimeout(
+          supabase.functions.invoke('admin-operations', { body: payload }),
+          8000,
+          'Request timed out'
+        );
+        
+        if (response.error) {
+          throw new Error(response.error.message || 'Error from admin-operations function');
+        }
+        
+        if (!response.data?.kyc) {
+          throw new Error('Invalid response format from server');
+        }
+        
+        if (response.data.kyc.status !== 'needs_clarification') {
+          throw new Error(`Status update failed: got ${response.data.kyc.status}, expected needs_clarification`);
+        }
+        
+        success = true;
+        break;
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`[${operationId}] Attempt ${currentRetry + 1} failed:`, error);
+        
+        if (currentRetry < maxRetries && 
+            ((error as Error).message.includes('timeout') || 
+             (error as Error).message.includes('network'))) {
+          currentRetry++;
+          await new Promise(resolve => setTimeout(resolve, 2000)); // 2-second delay
+          continue;
+        }
+        
+        break;
       }
-    } catch (refreshErr) {
-      console.error('❌ Exception during verification refresh:', refreshErr);
     }
     
-    toast.dismiss(toastId);
-    toast.success('Clarification request sent successfully', { duration: 5000 });
-    return true;
+    // Clear the safety timeout
+    clearTimeout(safetyTimeout);
+    dismissToast(loadingToastId);
+    
+    // Handle result
+    if (success) {
+      console.log(`[${operationId}] ✅ Clarification request completed successfully`);
+      toast.success('Clarification request sent successfully');
+      return true;
+    } else {
+      console.error(`[${operationId}] ❌ Clarification request failed:`, lastError);
+      toast.error(`Failed to send clarification request: ${lastError?.message || 'Unknown error'}`);
+      return false;
+    }
   } catch (error) {
-    console.error('❌ Error sending clarification request:', error);
-    toast.dismiss(toastId);
-    toast.error(`Failed to send clarification request: ${(error as Error).message}`, { 
-      duration: 5000 
-    });
+    console.error(`[${operationId}] ❌ Error processing clarification request:`, error);
+    toast.error(`Error: ${(error as Error).message}`);
     return false;
   } finally {
-    // Clear the retry listener
-    if (typeof (window as any).kycRetryListener === 'function') {
-      (window as any).kycRetryListener(null, 3);
-    }
+    // Clean up
+    cleanupVerificationListeners();
+    dismissToast(loadingToastId);
+    releaseKycLock(3000);
   }
 };
