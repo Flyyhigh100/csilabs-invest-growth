@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Home, Bell, ShieldCheck } from 'lucide-react';
+import { Home, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import UserMenu from './UserMenu';
 import MobileNavigation from './MobileNavigation';
+import NotificationsMenu from './NotificationsMenu';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -53,10 +54,9 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
             <Link to="/" className="text-gray-600 hover:text-cbis-blue">
               <Home className="h-5 w-5" />
             </Link>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </Button>
+            
+            <NotificationsMenu />
+            
             {isAdmin && (
               <Link 
                 to="/admin" 
