@@ -1,7 +1,7 @@
 
 import React from 'react';
-import DocumentVerification from '@/components/KYC/DocumentVerification';
 import { KycVerificationData } from '@/hooks/kyc/types';
+import DocumentVerification from '@/components/KYC/DocumentVerification';
 
 interface DocumentVerificationTabProps {
   kycData: KycVerificationData | null;
@@ -10,6 +10,7 @@ interface DocumentVerificationTabProps {
   onBack: () => void;
   onSubmit: () => Promise<void>;
   onUpload: (file: File, type: 'id_front' | 'id_back' | 'selfie') => Promise<void>;
+  debugInfo?: any;
 }
 
 const DocumentVerificationTab: React.FC<DocumentVerificationTabProps> = ({
@@ -18,28 +19,27 @@ const DocumentVerificationTab: React.FC<DocumentVerificationTabProps> = ({
   isSubmitting,
   onBack,
   onSubmit,
-  onUpload
+  onUpload,
+  debugInfo
 }) => {
+  const isPending = kycData?.status === 'pending';
   const hasIdFront = !!kycData?.id_front_url;
   const hasIdBack = !!kycData?.id_back_url;
   const hasSelfie = !!kycData?.selfie_url;
-  const isPending = kycData?.status === 'pending';
-  const clarificationMessage = kycData?.clarification_message;
-
+  
   return (
-    <div className="py-4">
-      <DocumentVerification
-        hasIdFront={hasIdFront}
-        hasIdBack={hasIdBack}
-        hasSelfie={hasSelfie}
-        isPending={uploadPending || isPending}
-        isSubmitting={isSubmitting}
-        onBack={onBack}
-        onSubmit={onSubmit}
-        onUpload={onUpload}
-        clarificationMessage={clarificationMessage}
-      />
-    </div>
+    <DocumentVerification
+      hasIdFront={hasIdFront}
+      hasIdBack={hasIdBack}
+      hasSelfie={hasSelfie}
+      isPending={isPending}
+      isSubmitting={isSubmitting}
+      onBack={onBack}
+      onSubmit={onSubmit}
+      onUpload={onUpload}
+      clarificationMessage={kycData?.clarification_message}
+      debugInfo={debugInfo}
+    />
   );
 };
 

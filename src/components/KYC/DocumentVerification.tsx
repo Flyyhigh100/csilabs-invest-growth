@@ -2,8 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import DocumentUpload from './DocumentUpload';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Bug } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DocumentVerificationProps {
   hasIdFront: boolean;
@@ -15,6 +17,7 @@ interface DocumentVerificationProps {
   onSubmit: () => Promise<void>;
   onUpload: (file: File, type: 'id_front' | 'id_back' | 'selfie') => Promise<void>;
   clarificationMessage?: string | null;
+  debugInfo?: any;
 }
 
 const DocumentVerification: React.FC<DocumentVerificationProps> = ({
@@ -26,11 +29,15 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   onBack,
   onSubmit,
   onUpload,
-  clarificationMessage
+  clarificationMessage,
+  debugInfo
 }) => {
+  const { user } = useAuth();
   // Local state to track submission attempts and status
   const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [liveStatus, setLiveStatus] = useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<string | null>(null);
 
   // Reset submission status when component mounts or isPending changes
   useEffect(() => {
@@ -41,12 +48,40 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
       setIsAttemptingSubmit(false);
     }
   }, [isPending]);
+  
+  // Live status checking
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const checkLiveStatus = async () => {
+      try {
+        const { data } = await supabase
+          .from('kyc_verifications')
+          .select('status, submitted_at')
+          .eq('user_id', user.id)
+          .single();
+          
+        setLiveStatus(data?.status || null);
+        setLastRefresh(new Date().toISOString());
+      } catch (error) {
+        console.error('Failed to check live status:', error);
+      }
+    };
+    
+    // Check immediately
+    checkLiveStatus();
+    
+    // Set up interval
+    const interval = setInterval(checkLiveStatus, 3000);
+    
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
   const handleSubmitClick = async () => {
     // Debug - log the state at button click
-    console.log("Submit button clicked, starting submission process...");
-    console.log("Current document states:", { hasIdFront, hasIdBack, hasSelfie });
-    console.log("Current process states:", { isPending, isSubmitting, isAttemptingSubmit });
+    console.log("🎯 Submit button clicked, starting submission process...");
+    console.log("📋 Current document states:", { hasIdFront, hasIdBack, hasSelfie });
+    console.log("⚙️ Current process states:", { isPending, isSubmitting, isAttemptingSubmit });
     
     // Validation check - should never happen due to button disabled state, but double-checking
     if (!hasIdFront || !hasIdBack || !hasSelfie) {
@@ -60,17 +95,42 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     
     try {
       toast.info("Submitting verification...");
-      console.log("Calling onSubmit function");
+      console.log("📞 Calling onSubmit function");
       await onSubmit();
-      console.log("Submission completed successfully");
+      console.log("✅ Submission completed successfully");
       setSubmissionStatus('success');
       toast.success("Verification submitted successfully!");
     } catch (error) {
-      console.error("Error in submission:", error);
+      console.error("❌ Error in submission:", error);
       setSubmissionStatus('error');
       toast.error("Failed to submit verification. Please try again.");
       // Reset attempting submit state so user can try again
       setIsAttemptingSubmit(false);
+    }
+  };
+
+  const handleManualRefresh = async () => {
+    try {
+      toast.info("Manually refreshing status...");
+      
+      if (!user?.id) {
+        toast.error("User not authenticated");
+        return;
+      }
+      
+      const { data } = await supabase
+        .from('kyc_verifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+        
+      console.log("🔍 Manual refresh - KYC data:", data);
+      setLiveStatus(data?.status || null);
+      setLastRefresh(new Date().toISOString());
+      toast.success("Status refreshed");
+    } catch (error) {
+      console.error("Failed to refresh status:", error);
+      toast.error("Failed to refresh status");
     }
   };
 
@@ -94,6 +154,43 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
           </div>
         </div>
       )}
+      
+      {/* Debug Info Panel */}
+      <div className="bg-gray-100 border border-gray-300 rounded-md p-4 mb-4">
+        <div className="flex items-center mb-2">
+          <Bug className="h-5 w-5 text-gray-700 mr-2" />
+          <h4 className="font-medium text-gray-800">Debug Information</h4>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
+          <div><strong>Live Status:</strong> {liveStatus || 'unknown'}</div>
+          <div><strong>Last Refreshed:</strong> {lastRefresh ? new Date(lastRefresh).toLocaleTimeString() : 'never'}</div>
+          <div><strong>Is Pending:</strong> {isPending ? 'true' : 'false'}</div>
+          <div><strong>Is Submitting:</strong> {isSubmitting ? 'true' : 'false'}</div>
+          <div><strong>Local Status:</strong> {submissionStatus}</div>
+          <div><strong>Attempting Submit:</strong> {isAttemptingSubmit ? 'true' : 'false'}</div>
+          {debugInfo && (
+            <>
+              <div className="col-span-1 sm:col-span-2 pt-2 border-t border-gray-300">
+                <strong>Additional Debug Info:</strong>
+              </div>
+              <div><strong>Attempts:</strong> {debugInfo.attempts || 0}</div>
+              <div><strong>Last Attempt:</strong> {debugInfo.lastAttempt ? new Date(debugInfo.lastAttempt).toLocaleTimeString() : 'none'}</div>
+              <div className="col-span-1 sm:col-span-2">
+                <strong>Debug Status:</strong> {debugInfo.currentStatus || 'none'}
+              </div>
+            </>
+          )}
+        </div>
+        <Button 
+          type="button" 
+          variant="outline" 
+          size="sm"
+          className="mt-3"
+          onClick={handleManualRefresh}
+        >
+          Refresh Status
+        </Button>
+      </div>
       
       <div>
         <h3 className="text-lg font-medium mb-2">ID Verification</h3>

@@ -12,6 +12,18 @@ const TabHandlers = (
 ) => {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<{
+    lastAttempt: string | null,
+    attempts: number,
+    lastResult: any | null,
+    currentStatus: string | null
+  }>({
+    lastAttempt: null,
+    attempts: 0,
+    lastResult: null,
+    currentStatus: kycData?.status || null
+  });
+  
   const { 
     savePersonalInfo, 
     uploadDocument, 
@@ -90,29 +102,77 @@ const TabHandlers = (
     setLastSubmissionTime(now);
     
     setIsSubmitting(true);
+    setDebugInfo(prev => ({
+      ...prev,
+      lastAttempt: new Date().toISOString(),
+      attempts: prev.attempts + 1,
+      currentStatus: 'submitting'
+    }));
+    
     try {
-      console.log('Submitting verification...');
+      console.log('🚀 Submitting verification...');
       toast.info('Submitting verification...');
       
+      // Force a refetch before submission to ensure we have the latest data
+      await refetch();
+      
+      // Get the current status before submission
+      const beforeStatus = kycData?.status;
+      console.log('📊 Status before submission:', beforeStatus);
+      
       const result = await submitVerification.mutateAsync();
-      console.log('Verification submission result:', result);
+      console.log('📝 Verification submission result:', result);
+      
+      // Update debug info
+      setDebugInfo(prev => ({
+        ...prev,
+        lastResult: result,
+        currentStatus: result ? 'pending' : 'failed'
+      }));
       
       if (result) {
         toast.success('Verification submitted successfully!');
         
-        // Force an immediate refetch to get the updated status
+        // Force multiple refetches with increasing delays to ensure we get the updated status
         await refetch();
         
-        // Move to the status tab
-        setTimeout(() => {
-          setActiveTab('status');
-        }, 1000);
+        setTimeout(async () => {
+          console.log('🔄 First delayed refetch...');
+          await refetch();
+          
+          // Get the current status after first refetch
+          const { data } = await supabase
+            .from('kyc_verifications')
+            .select('status')
+            .eq('user_id', user.id)
+            .single();
+            
+          console.log('📊 Status after first refetch:', data?.status);
+          
+          setTimeout(async () => {
+            console.log('🔄 Second delayed refetch...');
+            await refetch();
+            
+            // Move to the status tab with a delay
+            console.log('📱 Moving to status tab...');
+            setActiveTab('status');
+          }, 1000);
+        }, 500);
       } else {
         toast.error('Error submitting verification');
+        setDebugInfo(prev => ({
+          ...prev,
+          currentStatus: 'error'
+        }));
       }
     } catch (error) {
-      console.error('Error submitting verification:', error);
+      console.error('❌ Error submitting verification:', error);
       toast.error(`Failed to submit verification: ${(error as Error).message}`);
+      setDebugInfo(prev => ({
+        ...prev,
+        lastResult: { error: (error as Error).message },
+        currentStatus: 'error'
+      }));
     } finally {
       setIsSubmitting(false);
     }
@@ -131,7 +191,8 @@ const TabHandlers = (
     handleVerificationSubmit,
     handleRestartVerification,
     isSubmitting,
-    uploadPending: uploadDocument.isPending
+    uploadPending: uploadDocument.isPending,
+    debugInfo
   };
 };
 

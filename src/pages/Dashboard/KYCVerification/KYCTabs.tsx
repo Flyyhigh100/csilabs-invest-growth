@@ -6,6 +6,7 @@ import TabHandlers from './TabHandlers';
 import PersonalInfoTab from './PersonalInfoTab';
 import DocumentVerificationTab from './DocumentVerificationTab';
 import VerificationStatusTab from './VerificationStatusTab';
+import { supabase } from '@/integrations/supabase/client';
 
 const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
   // Initialize with the appropriate tab based on verification status
@@ -42,7 +43,8 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
     handleVerificationSubmit,
     handleRestartVerification,
     isSubmitting,
-    uploadPending
+    uploadPending,
+    debugInfo
   } = TabHandlers(kycData, setActiveTab);
   
   // Determine if each tab is enabled based on validation
@@ -98,6 +100,7 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
           onBack={() => setActiveTab('personal-info')}
           onSubmit={handleVerificationSubmit}
           onUpload={handleDocumentUpload}
+          debugInfo={debugInfo}
         />
       </TabsContent>
       

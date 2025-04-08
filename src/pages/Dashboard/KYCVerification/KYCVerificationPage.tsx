@@ -1,13 +1,14 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useKycVerification } from '@/hooks/kyc/useKycVerification';
 import KYCTabs from './KYCTabs';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
 
 const KYCVerificationPage = () => {
   const { user } = useAuth();
@@ -17,72 +18,35 @@ const KYCVerificationPage = () => {
     refetch
   } = useKycVerification();
   
-  // Set up realtime subscription for KYC status updates
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [manuallyRefreshing, setManuallyRefreshing] = useState(false);
+  
+  const handleManualRefresh = async () => {
+    setManuallyRefreshing(true);
+    toast.info("Manually refreshing KYC data...");
+    
+    try {
+      await refetch();
+      setLastRefresh(new Date());
+      toast.success("KYC data refreshed");
+    } catch (error) {
+      console.error("Error refreshing KYC data:", error);
+      toast.error("Failed to refresh data");
+    } finally {
+      setManuallyRefreshing(false);
+    }
+  };
+  
+  // Debug data fetching on mount
   useEffect(() => {
-    if (!user?.id) return;
-    
-    console.log('Setting up KYC realtime subscription for user:', user.id);
-    
-    // Set up realtime subscription for KYC status updates
-    const channel = supabase
-      .channel('kyc-status-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'kyc_verifications',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          const newPayload = payload.new as Record<string, any>;
-          const oldPayload = payload.old as Record<string, any>;
-          
-          console.log('KYC verification updated:', payload);
-          
-          // Check if the payload has the expected structure and properties
-          if (newPayload && oldPayload && 'status' in newPayload && 'status' in oldPayload) {
-            // Get the new status from the payload
-            const newStatus = newPayload.status;
-            const oldStatus = oldPayload.status;
-            
-            if (newStatus && newStatus !== oldStatus) {
-              // Show a toast notification based on the new status
-              if (newStatus === 'approved') {
-                toast.success('Your KYC verification has been approved!');
-              } else if (newStatus === 'rejected') {
-                toast.error('Your KYC verification has been rejected. Please check for details.');
-              } else if (newStatus === 'needs_clarification') {
-                toast.info('Additional information is required for your KYC verification.');
-              } else if (newStatus === 'pending') {
-                toast.info('Your KYC verification has been submitted and is pending review.');
-              }
-              
-              // Refetch KYC data to get the latest status
-              refetch();
-            }
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log("Subscription status:", status);
-        
-        if (status === 'SUBSCRIBED') {
-          console.log("✅ Successfully subscribed to KYC updates");
-        } else {
-          console.error("❌ Failed to subscribe to KYC updates");
-        }
-      });
-      
-    // Force a refetch when component mounts to ensure fresh data
+    console.log("🚀 KYC Verification Page mounted");
     refetch();
-    
-    // Clean up subscription when component unmounts
-    return () => {
-      supabase.removeChannel(channel);
-      console.log("Unsubscribed from KYC updates");
-    };
-  }, [user?.id, refetch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  
+  useEffect(() => {
+    console.log("🔍 Current KYC data:", kycData);
+  }, [kycData]);
 
   if (isLoading) {
     return (
@@ -97,11 +61,78 @@ const KYCVerificationPage = () => {
 
   return (
     <DashboardLayout title="KYC Verification">
-      <Card>
-        <CardHeader>
-          <CardTitle>Identity Verification</CardTitle>
-          <CardDescription>
+      <div className="mb-4 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold">Identity Verification</h1>
+          <p className="text-gray-500 text-sm">
             Complete the verification process to unlock full platform access.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleManualRefresh}
+          disabled={manuallyRefreshing}
+        >
+          {manuallyRefreshing ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <RefreshCcw className="h-4 w-4 mr-2" />
+          )}
+          Refresh Data
+        </Button>
+      </div>
+      
+      {/* Debug Info */}
+      <Card className="mb-6 bg-gray-50 border-gray-200">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">Debug Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-xs space-y-1">
+            <div><strong>User ID:</strong> {user?.id || 'Not logged in'}</div>
+            <div><strong>Current Status:</strong> {kycData?.status || 'unknown'}</div>
+            <div><strong>Submitted At:</strong> {kycData?.submitted_at ? new Date(kycData.submitted_at).toLocaleString() : 'Not submitted'}</div>
+            <div><strong>Last Refreshed:</strong> {lastRefresh ? lastRefresh.toLocaleString() : 'Not manually refreshed'}</div>
+            <div className="pt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-xs h-7 px-2"
+                onClick={async () => {
+                  if (!user?.id) {
+                    toast.error("Not logged in");
+                    return;
+                  }
+                  
+                  try {
+                    const { data, error } = await supabase
+                      .from('kyc_verifications')
+                      .select('*')
+                      .eq('user_id', user.id)
+                      .single();
+                    
+                    if (error) throw error;
+                    console.log("🔍 Raw KYC data from direct query:", data);
+                    toast.success("Raw data fetched to console");
+                  } catch (error) {
+                    console.error("Error fetching raw data:", error);
+                    toast.error("Error fetching raw data");
+                  }
+                }}
+              >
+                Fetch Raw Data
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle>Verification Steps</CardTitle>
+          <CardDescription>
+            Follow the steps below to complete your identity verification.
           </CardDescription>
         </CardHeader>
         <CardContent>
