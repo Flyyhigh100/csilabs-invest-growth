@@ -1,3 +1,4 @@
+
 /**
  * API Configuration for Token Data
  * 
@@ -8,8 +9,8 @@
 // Base configuration for Defined.fi API
 export const API_BASE_URL = 'https://api.defined.fi';
 
-// Use mock data when this is empty
-export const API_KEY = '';  // Empty by default to ensure mock data is used
+// API key from custom instructions
+export const API_KEY = '3fe52a290da2025bdddcc45a353c0268810eacf7';  // Defined.fi API key
 
 // Token configuration - CSi token on Polygon network
 export const TOKEN_ADDRESS = '0x4e5f276d29a122d787a8b345b1bc4bd5dd0f40c3';  // CSi token address
