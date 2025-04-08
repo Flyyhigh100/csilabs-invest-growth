@@ -11,7 +11,7 @@ import PaymentOption from './PaymentOption';
 import PurchaseAmountInput from './PurchaseAmountInput';
 import ProcessingIndicator from './ProcessingIndicator';
 import CryptoPaymentDialog from './CryptoPaymentDialog';
-import { usePaymentHandlers } from '@/hooks/usePaymentHandlers';
+import { usePaymentHandlers } from '@/hooks/payments';
 import { useKycVerification } from '@/hooks/kyc/useKycVerification';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -45,10 +45,8 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
     kycRequired
   } = usePaymentHandlers(walletAddress);
 
-  // Check if KYC is needed based on amount and is not approved
   const isKycNeeded = kycRequired(amount) && kycData?.status !== 'approved';
   
-  // Add wallet requirement check
   const isWalletMissing = !walletAddress;
 
   const renderKycAlert = () => (
@@ -59,7 +57,6 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
     handleCoinPaymentsPayment(amount, selectedCurrency);
   };
 
-  // Calculate how many tokens they will receive based on token price ($0.05)
   const tokenAmount = amount / 0.05;
   
   const paymentMethods = [
