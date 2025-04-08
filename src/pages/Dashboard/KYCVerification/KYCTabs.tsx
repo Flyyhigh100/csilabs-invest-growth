@@ -49,8 +49,14 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
   const isDocumentsEnabled = !!kycData?.first_name;
   const isStatusEnabled = true; // Always allow status tab so users can see their KYC status
   
+  // Debug logging for render cycles
+  useEffect(() => {
+    console.log("KYCTabs rendered, active tab:", activeTab);
+    console.log("Current KYC status:", kycData?.status);
+  }, [activeTab, kycData?.status]);
+
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab}>
+    <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue={activeTab}>
       <TabsList className="grid grid-cols-3 mb-8">
         <TabsTrigger 
           value="personal-info"

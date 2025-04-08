@@ -15,6 +15,18 @@ import {
 export function useKycMutations(userId: string | undefined, refetch: () => void) {
   const queryClient = useQueryClient();
   
+  // Helper function to invalidate all related queries
+  const invalidateRelatedQueries = () => {
+    // Invalidate all related queries to ensure fresh data
+    console.log('Invalidating KYC related queries for user:', userId);
+    
+    queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
+    queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
+  };
+  
   // Save KYC personal information
   const savePersonalInfo = useMutation({
     mutationFn: async (formData: KycFormData) => {
@@ -36,13 +48,7 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
       }
     },
     onSuccess: () => {
-      // Invalidate all related queries to ensure fresh data
-      queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
-      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
-      
+      invalidateRelatedQueries();
       refetch();
       toast.success('Personal information saved successfully');
     },
@@ -70,13 +76,7 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
       return uploadKycDocument(userId, file, type);
     },
     onSuccess: () => {
-      // Invalidate all related queries
-      queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
-      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
-      
+      invalidateRelatedQueries();
       refetch();
     },
     onError: (error) => {
@@ -109,12 +109,12 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
       console.log("KYC verification submitted successfully");
       
       // Force immediate invalidation of all related cached data
-      queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
-      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
+      invalidateRelatedQueries();
       
+      // Perform a specific refetch for this user's KYC data
+      queryClient.refetchQueries({ queryKey: ['kyc', userId] });
+      
+      // Additional refetch using the provided function
       refetch();
     },
     onError: (error) => {

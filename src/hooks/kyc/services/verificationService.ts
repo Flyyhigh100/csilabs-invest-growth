@@ -40,7 +40,7 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     console.log('Updating KYC verification status to pending...');
     
     // Update status to 'pending' and set submitted_at timestamp
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('kyc_verifications')
       .update({
         status: 'pending',
@@ -51,6 +51,20 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     if (error) {
       console.error('Error submitting KYC verification:', error);
       throw error;
+    }
+    
+    // Force a direct fetch to ensure we have the latest data
+    const { data: updatedData, error: fetchError } = await supabase
+      .from('kyc_verifications')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+      
+    if (fetchError) {
+      console.error('Error fetching updated KYC status:', fetchError);
+      // We still return true since the update succeeded
+    } else {
+      console.log('Updated KYC status:', updatedData.status);
     }
     
     console.log('KYC verification submitted successfully');

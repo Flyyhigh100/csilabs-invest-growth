@@ -45,22 +45,27 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
       return;
     }
     
+    // If we're already in the submission process, prevent additional clicks
+    if (isSubmitting || isAttemptingSubmit) {
+      console.log("Submission already in progress, ignoring click");
+      return;
+    }
+    
     // Set local state to show immediate feedback
     setIsAttemptingSubmit(true);
     
     try {
-      toast.loading("Submitting verification...", { id: "verification-submit" });
       console.log("Calling onSubmit function");
       await onSubmit();
       console.log("Submission completed successfully");
-      toast.dismiss("verification-submit");
-      toast.success("Verification submitted successfully!");
     } catch (error) {
       console.error("Error in submission:", error);
-      toast.dismiss("verification-submit");
       toast.error(`Failed to submit verification: ${(error as Error).message}`);
     } finally {
-      setIsAttemptingSubmit(false);
+      // Wait a bit before resetting the local state to ensure the UI has time to update
+      setTimeout(() => {
+        setIsAttemptingSubmit(false);
+      }, 1000);
     }
   };
 
@@ -132,6 +137,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
           disabled={isButtonDisabled}
           onClick={handleSubmitClick}
           className="relative"
+          data-testid="submit-verification-button"
         >
           {showSubmitSpinner ? (
             <>

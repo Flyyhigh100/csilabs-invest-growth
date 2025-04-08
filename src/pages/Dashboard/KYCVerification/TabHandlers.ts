@@ -81,21 +81,32 @@ const TabHandlers = (
     setIsSubmitting(true);
     try {
       console.log('Submitting verification...');
+      
+      // Show a persistent toast while submitting
+      toast.loading('Submitting verification...', { id: 'submit-verification' });
+      
+      // Submit the verification
       const result = await submitVerification.mutateAsync();
       console.log('Submission result:', result);
       
-      // Force a refetch to update the UI with the latest status
+      // Dismiss the loading toast and show success
+      toast.dismiss('submit-verification');
+      toast.success('Verification submitted successfully!');
+      
+      // Force a refetch to update the status in the UI
       await refetch();
       
-      // Move to the status tab with a slight delay to ensure data is refreshed
+      // Important: Add a small delay before redirecting to ensure state is updated
       setTimeout(() => {
+        // Move to the status tab
         setActiveTab('status');
-        // One more refetch to be absolutely sure we have the latest data
+        
+        // Perform one more refetch just to be sure
         refetch();
-      }, 1000);
-      
+      }, 500);
     } catch (error) {
       console.error('Error submitting verification:', error);
+      toast.dismiss('submit-verification');
       toast.error(`Failed to submit verification: ${(error as Error).message}`);
     } finally {
       setIsSubmitting(false);
