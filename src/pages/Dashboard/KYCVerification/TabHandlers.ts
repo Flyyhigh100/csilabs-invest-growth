@@ -28,7 +28,7 @@ const TabHandlers = (
 
     setIsSubmitting(true);
     try {
-      console.log('💾 Submitting personal info:', values);
+      console.log('Submitting personal info:', values);
       await savePersonalInfo.mutateAsync({
         first_name: values.first_name,
         last_name: values.last_name,
@@ -44,7 +44,7 @@ const TabHandlers = (
       // Move to the next tab
       setActiveTab('documents');
     } catch (error) {
-      console.error('❌ Error saving personal info:', error);
+      console.error('Error saving personal info:', error);
       toast.error(`Failed to save personal information: ${(error as Error).message}`);
     } finally {
       setIsSubmitting(false);
@@ -59,14 +59,14 @@ const TabHandlers = (
     }
 
     try {
-      console.log(`📤 Uploading ${type} document...`);
+      console.log(`Uploading ${type} document...`);
       await uploadDocument.mutateAsync({ file, type });
       toast.success(`${type.replace('_', ' ')} uploaded successfully`);
       
       // Refresh the data to show the updated document status
       refetch();
     } catch (error) {
-      console.error(`❌ Error uploading ${type}:`, error);
+      console.error(`Error uploading ${type}:`, error);
       toast.error(`Failed to upload ${type.replace('_', ' ')}: ${(error as Error).message}`);
     }
   };
@@ -79,44 +79,15 @@ const TabHandlers = (
     }
 
     setIsSubmitting(true);
-    
-    // Create a unique ID for this toast
-    const submitToastId = 'submit-verification-toast';
-    
     try {
-      console.log('🚀 Starting verification submission...');
-      
-      // Show persistent toast while submitting
-      toast.loading('Submitting verification...', { id: submitToastId, duration: 10000 });
-      
-      // Submit the verification
+      console.log('Submitting verification...');
       await submitVerification.mutateAsync();
-      
-      console.log('✅ Verification submitted successfully');
-      
-      // Clear loading toast and show success
-      toast.dismiss(submitToastId);
       toast.success('Verification submitted successfully!');
       
-      // Force a refetch of the KYC data to ensure we have the latest status
-      await refetch();
-      
-      // Set a small delay to ensure state updates are processed
-      setTimeout(() => {
-        // Move to the status tab
-        console.log('🔄 Moving to status tab after successful submission');
-        setActiveTab('status');
-        
-        // Perform one more refetch for good measure after a short delay
-        setTimeout(() => {
-          refetch();
-        }, 300);
-      }, 500);
+      // Move to the status tab
+      setActiveTab('status');
     } catch (error) {
-      console.error('❌ Error submitting verification:', error);
-      
-      // Clear loading toast and show error
-      toast.dismiss(submitToastId);
+      console.error('Error submitting verification:', error);
       toast.error(`Failed to submit verification: ${(error as Error).message}`);
     } finally {
       setIsSubmitting(false);
@@ -125,10 +96,9 @@ const TabHandlers = (
 
   // Handler for restarting verification
   const handleRestartVerification = async () => {
-    // Refresh the data first
-    await refetch();
-    
-    // Navigate back to the personal info tab
+    // Simply navigate back to the personal info tab
+    // The user will need to fill out the information again
+    refetch();
     setActiveTab('personal-info');
   };
 
@@ -142,4 +112,5 @@ const TabHandlers = (
   };
 };
 
+// Export the TabHandlers function as default
 export default TabHandlers;

@@ -15,27 +15,12 @@ import {
 export function useKycMutations(userId: string | undefined, refetch: () => void) {
   const queryClient = useQueryClient();
   
-  // Helper function to invalidate all related queries
-  const invalidateRelatedQueries = () => {
-    // Invalidate all related queries to ensure fresh data
-    console.log('🔄 Invalidating KYC related queries for user:', userId);
-    
-    if (userId) {
-      queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
-    }
-    
-    queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
-  };
-  
   // Save KYC personal information
   const savePersonalInfo = useMutation({
     mutationFn: async (formData: KycFormData) => {
       if (!userId) throw new Error('User not authenticated');
       
-      console.log('💾 Saving personal info for user:', userId);
+      console.log('Saving personal info for user:', userId);
       
       // Ensure we always create or update the KYC record
       try {
@@ -43,21 +28,27 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
         await ensureKycRecordExists(userId);
         
         const result = await saveKycPersonalInfo(userId, formData);
-        console.log('✅ KYC personal info saved:', result);
+        console.log('KYC personal info saved:', result);
         return result;
       } catch (error) {
-        console.error('❌ Error in savePersonalInfo:', error);
+        console.error('Error in savePersonalInfo:', error);
         throw error;
       }
     },
     onSuccess: () => {
-      invalidateRelatedQueries();
+      // Invalidate all related queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
+      
       refetch();
       toast.success('Personal information saved successfully');
     },
     onError: (error) => {
-      console.error('❌ Error saving personal information:', error);
-      toast.error(`Failed to save personal information: ${(error as Error).message}`);
+      console.error('Error saving personal information:', error);
+      toast.error('Failed to save personal information');
     }
   });
   
@@ -75,16 +66,22 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
       // Ensure KYC record exists before uploading
       await ensureKycRecordExists(userId);
       
-      console.log(`📤 Uploading ${type} document for user:`, userId);
+      console.log(`Uploading ${type} document for user:`, userId);
       return uploadKycDocument(userId, file, type);
     },
     onSuccess: () => {
-      invalidateRelatedQueries();
+      // Invalidate all related queries
+      queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
+      
       refetch();
     },
     onError: (error) => {
-      console.error('❌ Error uploading document:', error);
-      toast.error(`Failed to upload document: ${(error as Error).message}`);
+      console.error('Error uploading document:', error);
+      toast.error('Failed to upload document');
     }
   });
   
@@ -92,42 +89,36 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
   const submitVerification = useMutation({
     mutationFn: async () => {
       if (!userId) {
-        console.error('❌ User not authenticated');
+        console.error('User not authenticated');
         throw new Error('User not authenticated');
       }
       
-      console.log('📨 Submitting verification for user:', userId);
+      console.log('Submitting verification for user:', userId);
       
       // Proceed with submission
-      try {
-        // Submit verification
-        const result = await submitKycVerification(userId);
-        console.log('✅ Verification submission result:', result);
-        return result;
-      } catch (error) {
-        console.error('❌ Error in submitVerification:', error);
-        throw error;
-      }
+      const result = await submitKycVerification(userId);
+      console.log("Submission result:", result);
+      return result;
     },
     onSuccess: () => {
-      console.log("✅ KYC verification submitted successfully");
+      console.log("KYC verification submitted successfully");
+      toast.success("Verification submitted successfully! We will review it shortly.");
       
-      // Force immediate invalidation of related cached data
-      invalidateRelatedQueries();
+      // Force immediate invalidation of all related cached data
+      queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
       
-      // Force immediate refetch with minimal delay
+      // Force a refetch to get the latest data with the updated status
       setTimeout(() => {
         refetch();
-        
-        // Double refetch after a delay to ensure we get the latest data
-        setTimeout(() => {
-          refetch();
-        }, 1000);
-      }, 200);
+      }, 500); // Small delay to ensure database has updated
     },
     onError: (error) => {
-      console.error('❌ Error submitting verification:', error);
-      toast.error(`Failed to submit verification: ${(error as Error).message}`);
+      console.error('Error submitting verification:', error);
+      toast.error('Failed to submit verification. Please try again.');
     }
   });
 

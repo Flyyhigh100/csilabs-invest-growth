@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { KycVerificationData } from '@/hooks/kyc/types';
+import { KycVerificationData, KycStatus } from '@/hooks/kyc/types';
 import TabHandlers from './TabHandlers';
 import PersonalInfoTab from './PersonalInfoTab';
 import DocumentVerificationTab from './DocumentVerificationTab';
@@ -13,52 +13,25 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
     if (!kycData) return 'personal-info';
     
     const status = kycData.status;
-    console.log('🔍 Determining initial tab based on KYC status:', status);
     
     switch (status) {
       case 'pending':
       case 'approved':
       case 'rejected':
-        console.log('📊 Status indicates we should show status tab');
         return 'status';
       case 'needs_clarification':
-        console.log('❓ User needs to provide clarifications, showing documents tab');
         return 'documents'; // Default to documents tab when clarification is needed
       default:
-        // If personal info exists, show documents, otherwise show personal info
-        if (kycData.first_name) {
-          console.log('👤 Personal info exists, showing documents tab');
-          return 'documents';
-        } else {
-          console.log('📋 Personal info missing, showing personal info tab');
-          return 'personal-info';
-        }
+        return kycData.first_name ? 'documents' : 'personal-info';
     }
   };
   
   const [activeTab, setActiveTab] = useState<string>(getInitialTab());
   
-  // Debug log for active tab changes
-  useEffect(() => {
-    console.log('🔄 Active tab changed to:', activeTab);
-  }, [activeTab]);
-  
   // When kycData changes, update the active tab if needed
   useEffect(() => {
-    if (!kycData) return;
-    
-    console.log('🔄 KYC data updated. Current status:', kycData.status, 'Active tab:', activeTab);
-    
-    // Handle status changes that should trigger tab changes
-    if ((kycData.status === 'pending' || kycData.status === 'approved' || kycData.status === 'rejected') 
-        && activeTab !== 'status') {
-      console.log('📊 Status changed to', kycData.status, '- switching to status tab');
-      setActiveTab('status');
-    } else if (kycData.status === 'needs_clarification' && activeTab !== 'documents') {
-      console.log('❓ Status changed to needs clarification - switching to documents tab');
-      setActiveTab('documents');
-    }
-  }, [kycData?.status, activeTab]);
+    setActiveTab(getInitialTab());
+  }, [kycData?.status]);
   
   // Access the tab handlers
   const {
@@ -72,34 +45,24 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
   
   // Determine if each tab is enabled based on validation
   const isDocumentsEnabled = !!kycData?.first_name;
-  const isPending = kycData?.status === 'pending';
-  const isApproved = kycData?.status === 'approved';
-
+  const isStatusEnabled = !!kycData?.id_front_url && !!kycData?.id_back_url && !!kycData?.selfie_url;
+  
   return (
-    <Tabs 
-      value={activeTab} 
-      onValueChange={setActiveTab} 
-      className="w-full"
-    >
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
       <TabsList className="grid grid-cols-3 mb-8">
         <TabsTrigger 
           value="personal-info"
-          disabled={isPending || isApproved}
-          data-testid="tab-personal-info"
+          disabled={kycData?.status === 'pending' || kycData?.status === 'approved'}
         >
           Personal Info
         </TabsTrigger>
         <TabsTrigger 
           value="documents"
-          disabled={!isDocumentsEnabled || isPending || isApproved}
-          data-testid="tab-documents"
+          disabled={!isDocumentsEnabled || kycData?.status === 'pending' || kycData?.status === 'approved'}
         >
           Documents
         </TabsTrigger>
-        <TabsTrigger 
-          value="status"
-          data-testid="tab-status"
-        >
+        <TabsTrigger value="status">
           Status
         </TabsTrigger>
       </TabsList>
