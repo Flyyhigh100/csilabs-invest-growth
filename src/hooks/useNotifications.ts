@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 export type Notification = {
   id: string;
@@ -30,8 +31,9 @@ export const useNotifications = () => {
 
     try {
       setIsLoading(true);
+      // Use a raw query approach since TypeScript doesn't know about our notifications table yet
       const { data, error } = await supabase
-        .from('notifications')
+        .from('notifications' as any)
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -39,7 +41,8 @@ export const useNotifications = () => {
 
       if (error) throw error;
 
-      const notificationsData = data as Notification[];
+      // Cast the data to our Notification type
+      const notificationsData = data as unknown as Notification[];
       setNotifications(notificationsData);
       
       // Check if there are any unread notifications
@@ -56,8 +59,8 @@ export const useNotifications = () => {
   const markAsRead = async (notificationId: string) => {
     try {
       await supabase
-        .from('notifications')
-        .update({ read: true })
+        .from('notifications' as any)
+        .update({ read: true } as any)
         .eq('id', notificationId);
 
       // Update the local state
@@ -85,8 +88,8 @@ export const useNotifications = () => {
     
     try {
       await supabase
-        .from('notifications')
-        .update({ read: true })
+        .from('notifications' as any)
+        .update({ read: true } as any)
         .eq('user_id', user.id);
 
       // Update local state
@@ -94,6 +97,11 @@ export const useNotifications = () => {
         prevNotifications.map(notification => ({ ...notification, read: true }))
       );
       setHasUnread(false);
+      
+      toast({
+        title: "Notifications marked as read",
+        description: "All notifications have been marked as read.",
+      });
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
     }
@@ -106,7 +114,7 @@ export const useNotifications = () => {
     // Initial fetch
     fetchNotifications();
 
-    // Subscribe to new notifications
+    // Subscribe to new notifications using type assertion for channel name
     const channel = supabase
       .channel('notifications-channel')
       .on(
@@ -118,9 +126,15 @@ export const useNotifications = () => {
           filter: `user_id=eq.${user.id}`
         },
         payload => {
-          const newNotification = payload.new as Notification;
+          // Cast the new notification to our type
+          const newNotification = payload.new as unknown as Notification;
           setNotifications(current => [newNotification, ...current]);
           setHasUnread(true);
+          
+          toast({
+            title: newNotification.title,
+            description: newNotification.message,
+          });
         }
       )
       .subscribe();
