@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -110,7 +111,7 @@ const Payments = () => {
           />
           
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 transition-all hover:shadow-md">
+            <div id="wallet-address-section" className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 transition-all hover:shadow-md">
               <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                 <div className="flex items-center gap-3">
                   <div className="bg-cbis-blue/10 p-2 rounded-full">
