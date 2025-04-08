@@ -21,6 +21,8 @@ const KYCVerificationPage = () => {
   useEffect(() => {
     if (!user?.id) return;
     
+    console.log('Setting up KYC realtime subscription for user:', user.id);
+    
     // Set up realtime subscription for KYC status updates
     const channel = supabase
       .channel('kyc-updates')
@@ -33,24 +35,32 @@ const KYCVerificationPage = () => {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
+          const newPayload = payload.new as Record<string, any>;
+          const oldPayload = payload.old as Record<string, any>;
+          
           console.log('KYC verification updated:', payload);
           
-          // Get the new status from the payload
-          const newStatus = payload.new?.status;
-          const oldStatus = payload.old?.status;
-          
-          if (newStatus && newStatus !== oldStatus) {
-            // Show a toast notification based on the new status
-            if (newStatus === 'approved') {
-              toast.success('Your KYC verification has been approved!');
-            } else if (newStatus === 'rejected') {
-              toast.error('Your KYC verification has been rejected. Please check for details.');
-            } else if (newStatus === 'needs_clarification') {
-              toast.info('Additional information is required for your KYC verification.');
-            }
+          // Check if the payload has the expected structure and properties
+          if (newPayload && oldPayload && 'status' in newPayload && 'status' in oldPayload) {
+            // Get the new status from the payload
+            const newStatus = newPayload.status;
+            const oldStatus = oldPayload.status;
             
-            // Refetch KYC data to get the latest status
-            refetch();
+            if (newStatus && newStatus !== oldStatus) {
+              // Show a toast notification based on the new status
+              if (newStatus === 'approved') {
+                toast.success('Your KYC verification has been approved!');
+              } else if (newStatus === 'rejected') {
+                toast.error('Your KYC verification has been rejected. Please check for details.');
+              } else if (newStatus === 'needs_clarification') {
+                toast.info('Additional information is required for your KYC verification.');
+              } else if (newStatus === 'pending') {
+                toast.info('Your KYC verification has been submitted and is pending review.');
+              }
+              
+              // Refetch KYC data to get the latest status
+              refetch();
+            }
           }
         }
       )
@@ -64,8 +74,6 @@ const KYCVerificationPage = () => {
         }
       });
       
-    console.log("Subscribed to KYC updates for user:", user.id);
-    
     // Force a refetch when component mounts to ensure fresh data
     refetch();
     

@@ -71,6 +71,9 @@ const TabHandlers = (
     }
   };
 
+  // Track last submission to prevent duplicate submissions
+  const [lastSubmissionTime, setLastSubmissionTime] = useState(0);
+  
   // Handler for verification submission
   const handleVerificationSubmit = async () => {
     if (!user) {
@@ -78,11 +81,26 @@ const TabHandlers = (
       return;
     }
 
+    // Prevent duplicate submissions (debounce)
+    const now = Date.now();
+    if (now - lastSubmissionTime < 3000) {
+      console.log('Preventing duplicate submission');
+      return;
+    }
+    setLastSubmissionTime(now);
+    
     setIsSubmitting(true);
     try {
       console.log('Submitting verification...');
-      await submitVerification.mutateAsync();
+      toast.info('Submitting verification...');
+      
+      const result = await submitVerification.mutateAsync();
+      console.log('Verification submission result:', result);
+      
       toast.success('Verification submitted successfully!');
+      
+      // Force an immediate refetch to get the updated status
+      await refetch();
       
       // Move to the status tab
       setActiveTab('status');
@@ -97,7 +115,6 @@ const TabHandlers = (
   // Handler for restarting verification
   const handleRestartVerification = async () => {
     // Simply navigate back to the personal info tab
-    // The user will need to fill out the information again
     refetch();
     setActiveTab('personal-info');
   };
@@ -112,5 +129,4 @@ const TabHandlers = (
   };
 };
 
-// Export the TabHandlers function as default
 export default TabHandlers;

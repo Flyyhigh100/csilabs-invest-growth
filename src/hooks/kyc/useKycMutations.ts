@@ -39,9 +39,6 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
       // Invalidate all related queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
       
       refetch();
       toast.success('Personal information saved successfully');
@@ -72,10 +69,6 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
     onSuccess: () => {
       // Invalidate all related queries
       queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
-      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
       
       refetch();
     },
@@ -96,20 +89,13 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
       console.log('Submitting verification for user:', userId);
       
       // Proceed with submission
-      const result = await submitKycVerification(userId);
-      console.log("Submission result:", result);
-      return result;
+      return submitKycVerification(userId);
     },
-    onSuccess: () => {
-      console.log("KYC verification submitted successfully");
-      toast.success("Verification submitted successfully! We will review it shortly.");
+    onSuccess: (result) => {
+      console.log("KYC verification submitted successfully, result:", result);
       
       // Force immediate invalidation of all related cached data
       queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
-      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
       
       // Force a refetch to get the latest data with the updated status
       setTimeout(() => {

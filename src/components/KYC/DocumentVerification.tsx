@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import DocumentUpload from './DocumentUpload';
@@ -28,8 +27,9 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   onUpload,
   clarificationMessage
 }) => {
-  // Local state to track submission attempts
+  // Local state to track submission attempts and status
   const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
+  const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
   const handleSubmitClick = async () => {
     // Debug - log the state at button click
@@ -45,23 +45,30 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     
     // Set local state to show immediate feedback
     setIsAttemptingSubmit(true);
+    setSubmissionStatus('submitting');
     
     try {
       toast.info("Submitting verification...");
       console.log("Calling onSubmit function");
       await onSubmit();
       console.log("Submission completed successfully");
+      setSubmissionStatus('success');
       toast.success("Verification submitted successfully!");
     } catch (error) {
       console.error("Error in submission:", error);
+      setSubmissionStatus('error');
       toast.error("Failed to submit verification. Please try again.");
     } finally {
-      setIsAttemptingSubmit(false);
+      // We keep isAttemptingSubmit true if successful to keep button disabled
+      // Only reset it on error so they can try again
+      if (submissionStatus === 'error') {
+        setIsAttemptingSubmit(false);
+      }
     }
   };
 
   // Combined submission state for UI feedback
-  const showSubmitSpinner = isSubmitting || isAttemptingSubmit;
+  const showSubmitSpinner = isSubmitting || (isAttemptingSubmit && submissionStatus === 'submitting');
   const isButtonDisabled = !hasIdFront || !hasIdBack || !hasSelfie || showSubmitSpinner || isPending;
 
   return (
@@ -119,13 +126,13 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
           type="button" 
           variant="outline"
           onClick={onBack}
-          disabled={showSubmitSpinner}
+          disabled={showSubmitSpinner || submissionStatus === 'success'}
         >
           Back
         </Button>
         <Button 
           type="button"
-          disabled={isButtonDisabled}
+          disabled={isButtonDisabled || submissionStatus === 'success'}
           onClick={handleSubmitClick}
           className="relative"
         >
@@ -134,11 +141,22 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
               <span className="mr-2 h-4 w-4 animate-spin inline-block border-2 border-current border-t-transparent rounded-full"></span>
               Submitting...
             </>
+          ) : submissionStatus === 'success' ? (
+            "Submitted Successfully"
           ) : (
             "Submit Verification"
           )}
         </Button>
       </div>
+      
+      {submissionStatus === 'success' && (
+        <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
+          <p className="text-green-800 text-sm">
+            Your verification has been submitted successfully and is now pending review.
+            You will be redirected to the status page shortly.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

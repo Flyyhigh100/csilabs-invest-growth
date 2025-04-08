@@ -31,21 +31,22 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
       throw new Error('Please complete all required fields before submitting');
     }
     
-    // Update status to 'pending' and set submitted_at timestamp - using string literal
+    // Update status to 'pending' and set submitted_at timestamp
     const { data, error } = await supabase
       .from('kyc_verifications')
       .update({
-        status: "pending",
+        status: 'pending',
         submitted_at: new Date().toISOString()
       })
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .select();
     
     if (error) {
       console.error('Error submitting KYC verification:', error);
       throw error;
     }
     
-    console.log('KYC verification submitted successfully');
+    console.log('KYC verification submitted successfully:', data);
     return true;
   } catch (error) {
     console.error('Exception in submitKycVerification:', error);
