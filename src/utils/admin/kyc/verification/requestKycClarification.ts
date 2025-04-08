@@ -167,6 +167,6 @@ export const requestKycClarification = async (
     // Clean up
     cleanupVerificationListeners();
     dismissToast(loadingToastId);
-    releaseKycLock(kycId, 3000);  // Convert number to string for the last error
+    releaseKycLock(kycId, 3000);  // Properly pass both parameters
   }
 };
