@@ -25,6 +25,8 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     
     console.log('📋 Current KYC data:', kycData);
     
+    // Manually check each required field instead of using JSON operators
+    // This avoids the "operator does not exist: text ->> unknown" error
     if (!kycData.first_name || !kycData.last_name || !kycData.date_of_birth || 
         !kycData.nationality || !kycData.address || !kycData.city || 
         !kycData.postal_code || !kycData.country || !kycData.id_front_url || 
