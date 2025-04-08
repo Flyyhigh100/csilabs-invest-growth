@@ -30,12 +30,9 @@ export const useNotifications = () => {
 
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
+      
+      // Use a direct SQL query instead of the Supabase client
+      const { data, error } = await supabase.rpc('get_user_notifications');
 
       if (error) throw error;
 
@@ -56,10 +53,8 @@ export const useNotifications = () => {
   // Mark a notification as read
   const markAsRead = async (notificationId: string) => {
     try {
-      await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', notificationId);
+      // Use a direct SQL function call
+      await supabase.rpc('mark_notification_read', { notification_id: notificationId });
 
       // Update the local state
       setNotifications(prevNotifications => 
@@ -85,10 +80,8 @@ export const useNotifications = () => {
     if (!user) return;
     
     try {
-      await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('user_id', user.id);
+      // Use a direct SQL function call
+      await supabase.rpc('mark_all_notifications_read', { user_id_param: user.id });
 
       // Update local state
       setNotifications(prevNotifications => 
@@ -119,6 +112,7 @@ export const useNotifications = () => {
           filter: `user_id=eq.${user.id}`
         },
         payload => {
+          // Need to cast to our Notification type
           const newNotification = payload.new as unknown as Notification;
           setNotifications(current => [newNotification, ...current]);
           setHasUnread(true);

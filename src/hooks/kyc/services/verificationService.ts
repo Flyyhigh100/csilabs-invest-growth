@@ -46,15 +46,13 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
       throw error;
     }
     
-    // Create a notification for the user about the KYC submission
+    // Create a notification for the user about the KYC submission using direct SQL
     const { error: notificationError } = await supabase
-      .from('notifications')
-      .insert({
-        user_id: userId,
-        title: 'KYC Verification Submitted',
-        message: 'Your identity verification has been submitted and is under review.',
-        type: 'kyc',
-        read: false
+      .rpc('create_notification', { 
+        _user_id: userId,
+        _title: 'KYC Verification Submitted',
+        _message: 'Your identity verification has been submitted and is under review.',
+        _type: 'kyc'
       });
     
     if (notificationError) {
