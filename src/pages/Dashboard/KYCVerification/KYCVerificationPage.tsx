@@ -17,9 +17,32 @@ const KYCVerificationPage = () => {
     refetch
   } = useKycVerification();
   
+  // State to track status changes
+  const [lastStatus, setLastStatus] = useState(kycData?.status);
+  
+  // Update lastStatus when kycData changes
+  useEffect(() => {
+    if (kycData?.status && kycData.status !== lastStatus) {
+      setLastStatus(kycData.status);
+      
+      // Show toast notification for status changes
+      if (kycData.status === 'pending') {
+        toast.success('Your verification has been submitted for review!');
+      } else if (kycData.status === 'approved') {
+        toast.success('Your KYC verification has been approved!');
+      } else if (kycData.status === 'rejected') {
+        toast.error('Your KYC verification has been rejected. Please check for details.');
+      } else if (kycData.status === 'needs_clarification') {
+        toast.info('Additional information is required for your KYC verification.');
+      }
+    }
+  }, [kycData?.status, lastStatus]);
+  
   // Set up realtime subscription for KYC status updates
   useEffect(() => {
     if (!user?.id) return;
+    
+    console.log("Setting up realtime subscription for user:", user.id);
     
     // Set up realtime subscription for KYC status updates
     const channel = supabase

@@ -38,14 +38,20 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
         status: 'pending',
         submitted_at: new Date().toISOString()
       })
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .select('*'); // Add .select() to return the updated record
     
     if (error) {
       console.error('Error submitting KYC verification:', error);
       throw error;
     }
     
-    console.log('KYC verification submitted successfully');
+    if (!data || data.length === 0) {
+      console.error('No data returned after update');
+      throw new Error('Failed to update KYC verification status');
+    }
+    
+    console.log('KYC verification submitted successfully', data[0]);
     return true;
   } catch (error) {
     console.error('Exception in submitKycVerification:', error);

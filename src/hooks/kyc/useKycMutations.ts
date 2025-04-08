@@ -96,13 +96,10 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
       console.log('Submitting verification for user:', userId);
       
       // Proceed with submission
-      const result = await submitKycVerification(userId);
-      console.log("Submission result:", result);
-      return result;
+      return await submitKycVerification(userId);
     },
     onSuccess: () => {
       console.log("KYC verification submitted successfully");
-      toast.success("Verification submitted successfully! We will review it shortly.");
       
       // Force immediate invalidation of all related cached data
       queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
@@ -111,14 +108,11 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
       
-      // Force a refetch to get the latest data with the updated status
-      setTimeout(() => {
-        refetch();
-      }, 500); // Small delay to ensure database has updated
+      // Don't show toast here as we'll handle it in the component
     },
     onError: (error) => {
       console.error('Error submitting verification:', error);
-      toast.error('Failed to submit verification. Please try again.');
+      // Don't show toast here as we'll handle it in the component
     }
   });
 

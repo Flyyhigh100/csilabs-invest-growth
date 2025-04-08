@@ -49,12 +49,15 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     setIsAttemptingSubmit(true);
     
     try {
-      toast.info("Submitting verification...");
+      toast.loading("Submitting verification...", { id: "verification-submit" });
       console.log("Calling onSubmit function");
       await onSubmit();
       console.log("Submission completed successfully");
+      toast.dismiss("verification-submit");
+      toast.success("Verification submitted successfully!");
     } catch (error) {
       console.error("Error in submission:", error);
+      toast.dismiss("verification-submit");
       toast.error(`Failed to submit verification: ${(error as Error).message}`);
     } finally {
       setIsAttemptingSubmit(false);
@@ -125,7 +128,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
           Back
         </Button>
         <Button 
-          type="button"
+          type="submit"
           disabled={isButtonDisabled}
           onClick={handleSubmitClick}
           className="relative"
