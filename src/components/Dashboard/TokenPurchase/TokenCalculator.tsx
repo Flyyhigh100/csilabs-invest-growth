@@ -22,7 +22,7 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
   onChange,
   disabled
 }) => {
-  const tokenAmount = amount / 0.05;
+  const tokenAmount = amount / 1; // Updated price from 0.05 to 1
 
   return (
     <div className="space-y-4">
@@ -36,7 +36,7 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-xs">
-              <p className="text-sm">This is the amount in USD you wish to invest. The number of tokens you'll receive depends on the current token price ($0.05).</p>
+              <p className="text-sm">This is the amount in USD you wish to invest. The number of tokens you'll receive depends on the current token price ($1.00).</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -51,7 +51,7 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Current token price:</span>
-          <span className="font-medium text-cbis-blue">$0.05 USD</span>
+          <span className="font-medium text-cbis-blue">$1.00 USD</span>
         </div>
       </div>
     </div>
