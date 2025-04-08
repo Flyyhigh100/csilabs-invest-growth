@@ -72,8 +72,14 @@ export const TabHandlers = (
     setIsSubmitting(true);
     try {
       console.log('Submitting verification...');
-      await submitVerification.mutateAsync();
+      
+      const result = await submitVerification.mutateAsync();
+      console.log('Submission result:', result);
+      
       toast.success('Verification submitted successfully!');
+      
+      // Force a refetch to update the UI with the latest status
+      await refetch();
       
       // Move to the status tab
       setActiveTab('status');

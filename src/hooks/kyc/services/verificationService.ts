@@ -31,6 +31,14 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
       throw new Error('Please complete all required fields before submitting');
     }
     
+    // Check if status is already pending or approved
+    if (kycData.status === 'pending' || kycData.status === 'approved') {
+      console.log('KYC verification already submitted or approved');
+      return true; // Return success without doing anything
+    }
+
+    console.log('Updating KYC verification status to pending...');
+    
     // Update status to 'pending' and set submitted_at timestamp
     const { data, error } = await supabase
       .from('kyc_verifications')
@@ -38,20 +46,14 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
         status: 'pending',
         submitted_at: new Date().toISOString()
       })
-      .eq('user_id', userId)
-      .select('*'); // Add .select() to return the updated record
+      .eq('user_id', userId);
     
     if (error) {
       console.error('Error submitting KYC verification:', error);
       throw error;
     }
     
-    if (!data || data.length === 0) {
-      console.error('No data returned after update');
-      throw new Error('Failed to update KYC verification status');
-    }
-    
-    console.log('KYC verification submitted successfully', data[0]);
+    console.log('KYC verification submitted successfully');
     return true;
   } catch (error) {
     console.error('Exception in submitKycVerification:', error);

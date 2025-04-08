@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { KycVerificationData, KycStatus } from '@/hooks/kyc/types';
+import { KycVerificationData } from '@/hooks/kyc/types';
 import TabHandlers from './TabHandlers';
 import PersonalInfoTab from './PersonalInfoTab';
 import DocumentVerificationTab from './DocumentVerificationTab';
@@ -30,7 +30,9 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
   
   // When kycData changes, update the active tab if needed
   useEffect(() => {
-    setActiveTab(getInitialTab());
+    const newTab = getInitialTab();
+    console.log("KYC data updated, status:", kycData?.status, "setting tab to:", newTab);
+    setActiveTab(newTab);
   }, [kycData?.status]);
   
   // Access the tab handlers
@@ -45,7 +47,7 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
   
   // Determine if each tab is enabled based on validation
   const isDocumentsEnabled = !!kycData?.first_name;
-  const isStatusEnabled = !!kycData?.id_front_url && !!kycData?.id_back_url && !!kycData?.selfie_url;
+  const isStatusEnabled = true; // Always allow status tab so users can see their KYC status
   
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>

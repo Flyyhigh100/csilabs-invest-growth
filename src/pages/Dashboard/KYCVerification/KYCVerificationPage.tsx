@@ -23,6 +23,7 @@ const KYCVerificationPage = () => {
   // Update lastStatus when kycData changes
   useEffect(() => {
     if (kycData?.status && kycData.status !== lastStatus) {
+      console.log(`Status changed: ${lastStatus} -> ${kycData.status}`);
       setLastStatus(kycData.status);
       
       // Show toast notification for status changes
@@ -70,6 +71,8 @@ const KYCVerificationPage = () => {
               toast.error('Your KYC verification has been rejected. Please check for details.');
             } else if (newStatus === 'needs_clarification') {
               toast.info('Additional information is required for your KYC verification.');
+            } else if (newStatus === 'pending') {
+              toast.success('Your verification has been submitted for review!');
             }
             
             // Refetch KYC data to get the latest status
@@ -79,14 +82,8 @@ const KYCVerificationPage = () => {
       )
       .subscribe((status) => {
         console.log("Subscription status:", status);
-        
-        if (status === 'SUBSCRIBED') {
-          console.log("✅ Successfully subscribed to KYC updates");
-        } else {
-          console.error("❌ Failed to subscribe to KYC updates");
-        }
       });
-      
+    
     console.log("Subscribed to KYC updates for user:", user.id);
     
     // Force a refetch when component mounts to ensure fresh data
@@ -95,7 +92,6 @@ const KYCVerificationPage = () => {
     // Clean up subscription when component unmounts
     return () => {
       supabase.removeChannel(channel);
-      console.log("Unsubscribed from KYC updates");
     };
   }, [user?.id, refetch]);
 

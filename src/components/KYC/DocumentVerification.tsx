@@ -39,7 +39,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     console.log("Current document states:", { hasIdFront, hasIdBack, hasSelfie });
     console.log("Current process states:", { isPending, isSubmitting, isAttemptingSubmit });
     
-    // Validation check - should never happen due to button disabled state, but double-checking
+    // Validation check
     if (!hasIdFront || !hasIdBack || !hasSelfie) {
       toast.error("Please upload all required documents before submitting");
       return;
@@ -128,7 +128,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
           Back
         </Button>
         <Button 
-          type="submit"
+          type="button"
           disabled={isButtonDisabled}
           onClick={handleSubmitClick}
           className="relative"

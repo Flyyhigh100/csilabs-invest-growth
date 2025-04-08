@@ -96,7 +96,14 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
       console.log('Submitting verification for user:', userId);
       
       // Proceed with submission
-      return await submitKycVerification(userId);
+      try {
+        const result = await submitKycVerification(userId);
+        console.log('Submission result:', result);
+        return result;
+      } catch (error) {
+        console.error('Error in submitVerification:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       console.log("KYC verification submitted successfully");
@@ -108,11 +115,11 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.invalidateQueries({ queryKey: ['admin-all-users-kyc'] });
       
-      // Don't show toast here as we'll handle it in the component
+      refetch();
     },
     onError: (error) => {
       console.error('Error submitting verification:', error);
-      // Don't show toast here as we'll handle it in the component
+      toast.error(`Failed to submit verification: ${(error as Error).message}`);
     }
   });
 
