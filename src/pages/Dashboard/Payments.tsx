@@ -88,6 +88,9 @@ const Payments = () => {
       if (error) throw error;
       
       setWalletAddress(data.wallet_address);
+      toast.success("Wallet address updated successfully", {
+        description: "Your tokens will be sent to this wallet address after purchase."
+      });
     } catch (error) {
       console.error('Error fetching wallet address:', error);
     }
@@ -137,10 +140,16 @@ const Payments = () => {
               </div>
               
               <div className="p-5">
-                <WalletAddressForm 
-                  existingWalletAddress={walletAddress || undefined} 
-                  onWalletUpdated={handleWalletUpdated} 
-                />
+                {isLoadingWallet ? (
+                  <div className="flex items-center justify-center p-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cbis-blue"></div>
+                  </div>
+                ) : (
+                  <WalletAddressForm 
+                    existingWalletAddress={walletAddress || undefined} 
+                    onWalletUpdated={handleWalletUpdated} 
+                  />
+                )}
               </div>
             </div>
             
