@@ -2,9 +2,10 @@
 import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Wallet, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Wallet, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KycVerificationData } from '@/hooks/kyc/types';
+import { toast } from 'sonner';
 
 interface CryptoPaymentTabProps {
   amount: number;
@@ -27,6 +28,35 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
   isWalletMissing,
   kycData
 }) => {
+  const handlePaymentClick = () => {
+    if (isWalletMissing) {
+      toast.error("Wallet Address Required", {
+        description: "You need to provide a wallet address to receive your tokens after purchase.",
+        duration: 5000,
+      });
+      
+      // Scroll to wallet section
+      setTimeout(() => {
+        document.getElementById('wallet-address-section')?.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }, 500);
+      
+      return;
+    }
+    
+    if (isKycNeeded) {
+      toast.error("KYC Verification Required", {
+        description: "For purchases over $3,000, you need to complete KYC verification first.",
+        duration: 5000,
+      });
+      return;
+    }
+    
+    handleCoinPaymentWithCurrency();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3 mb-4">
@@ -40,6 +70,17 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
           </p>
         </div>
       </div>
+      
+      {isWalletMissing && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+          <div className="flex gap-2 items-center">
+            <Info className="h-5 w-5 text-amber-500 flex-shrink-0" />
+            <p className="text-sm text-amber-800">
+              Please add a wallet address in Step 1 before proceeding with crypto payment.
+            </p>
+          </div>
+        </div>
+      )}
       
       <div className="bg-white p-4 rounded-lg border border-gray-200">
         <Label htmlFor="crypto-currency" className="text-sm text-gray-700 font-medium">Select Cryptocurrency</Label>
@@ -64,8 +105,8 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
           <p className="text-lg font-medium text-gray-800">${amount.toLocaleString()}</p>
         </div>
         <Button 
-          onClick={handleCoinPaymentWithCurrency} 
-          disabled={isProcessing || isWalletMissing || isKycNeeded}
+          onClick={handlePaymentClick} 
+          disabled={isProcessing}
           className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white py-2 px-4 sm:w-auto w-full"
         >
           Pay with {selectedCurrency}

@@ -12,16 +12,27 @@ export const usePaymentValidation = (walletAddress: string | null) => {
     
     // Validate wallet address
     if (!walletAddress) {
-      toast.error("Please add a wallet address before proceeding with payment", {
-        description: "Your tokens will be sent to this address after purchase."
+      toast.error("Wallet Address Required", {
+        description: "You must add a wallet address before proceeding with payment. Your tokens will be sent to this address after purchase.",
+        duration: 5000,
       });
+      
+      // Scroll to wallet address section for better UX
+      setTimeout(() => {
+        document.getElementById('wallet-address-section')?.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }, 500);
+      
       return false;
     }
     
     // Validate amount
     if (!amount || amount <= 0) {
-      toast.error("Please enter a valid amount", {
-        description: "The amount must be greater than zero."
+      toast.error("Invalid Amount", {
+        description: "Please enter a valid amount greater than zero.",
+        duration: 3000,
       });
       return false;
     }
@@ -30,8 +41,9 @@ export const usePaymentValidation = (walletAddress: string | null) => {
     if (isCrypto && amount >= 3001) {
       // Check if KYC is approved
       if (kycData?.status !== 'approved') {
-        toast.error("KYC verification required", {
-          description: "Crypto payments of $3,001 or more require KYC verification. Please complete verification first."
+        toast.error("KYC Verification Required", {
+          description: "Crypto payments of $3,001 or more require KYC verification. Please complete verification first.",
+          duration: 5000,
         });
         return false;
       }
