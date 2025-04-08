@@ -57,7 +57,7 @@ export const requestKycClarification = async (
       console.log(`⏰ [${operationId}] Safety timeout triggered after 30 seconds`);
       dismissToast(loadingToastId);
       toast.error('Operation timed out. Please check network connection and try again.');
-      releaseKycLock();
+      releaseKycLock(kycId);
     }, 30000); // 30 seconds timeout
     
     // Set up listeners
@@ -75,7 +75,7 @@ export const requestKycClarification = async (
         dismissToast(loadingToastId);
         toast.error('Admin permission verification failed');
         notifyAdminPermissionStatus('failed');
-        releaseKycLock();
+        releaseKycLock(kycId);
         return false;
       }
       
@@ -85,7 +85,7 @@ export const requestKycClarification = async (
       dismissToast(loadingToastId);
       toast.error(`Failed to verify admin permissions: ${(adminErr as Error).message}`);
       notifyAdminPermissionStatus('failed');
-      releaseKycLock();
+      releaseKycLock(kycId);
       return false;
     }
     
@@ -167,6 +167,6 @@ export const requestKycClarification = async (
     // Clean up
     cleanupVerificationListeners();
     dismissToast(loadingToastId);
-    releaseKycLock(3000);
+    releaseKycLock(kycId, 3000);  // Convert number to string for the last error
   }
 };

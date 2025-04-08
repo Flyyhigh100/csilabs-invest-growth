@@ -56,14 +56,14 @@ export const processKycVerification = async (
     
     if (!kycId) {
       toast.error('KYC ID is required');
-      releaseKycLock();
+      releaseKycLock(kycId);
       return false;
     }
     
     // Pre-validate required fields based on status
     if (status === 'rejected' && (!message || !message.trim())) {
       toast.error('Rejection reason is required');
-      releaseKycLock();
+      releaseKycLock(kycId);
       return false;
     }
     
@@ -84,7 +84,7 @@ export const processKycVerification = async (
         dismissToast(loadingToastId);
         toast.error('Admin permission verification failed');
         notifyAdminPermissionStatus('failed');
-        releaseKycLock();
+        releaseKycLock(kycId);
         return false;
       }
       
@@ -93,7 +93,7 @@ export const processKycVerification = async (
       dismissToast(loadingToastId);
       toast.error(`Failed to verify admin permissions: ${(adminErr as Error).message}`);
       notifyAdminPermissionStatus('failed');
-      releaseKycLock();
+      releaseKycLock(kycId);
       return false;
     }
 
@@ -143,7 +143,7 @@ export const processKycVerification = async (
     }).finally(() => {
       // Always clean up
       cleanupVerificationListeners();
-      releaseKycLock();
+      releaseKycLock(kycId);
     });
   } catch (error) {
     console.error('❌ Fatal error in processKycVerification:', error);
@@ -152,7 +152,7 @@ export const processKycVerification = async (
     // Clean up
     cleanupVerificationListeners();
     dismissToast(loadingToastId);
-    releaseKycLock();
+    releaseKycLock(kycId);
     return false;
   }
 };
