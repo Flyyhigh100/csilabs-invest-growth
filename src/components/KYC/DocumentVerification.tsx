@@ -42,6 +42,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [liveStatus, setLiveStatus] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<string | null>(null);
+  const [isButtonLocked, setIsButtonLocked] = useState(false);
 
   // Reset submission status when component mounts or isPending changes
   useEffect(() => {
@@ -67,6 +68,13 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
           
         setLiveStatus(data?.status || null);
         setLastRefresh(new Date().toISOString());
+        
+        // If status has changed to pending, update our local state
+        if (data?.status === 'pending') {
+          setSubmissionStatus('success');
+          setIsAttemptingSubmit(false);
+          setIsButtonLocked(false);
+        }
       } catch (error) {
         console.error('Failed to check live status:', error);
       }
@@ -82,6 +90,14 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   }, [user?.id]);
 
   const handleSubmitClick = async () => {
+    if (isButtonLocked) {
+      toast.info("Submission in progress, please wait...");
+      return;
+    }
+    
+    // Lock the button to prevent multiple clicks
+    setIsButtonLocked(true);
+    
     // Debug - log the state at button click
     console.log("🎯 Submit button clicked, starting submission process...");
     console.log("📋 Current document states:", { hasIdFront, hasIdBack, hasSelfie });
@@ -90,6 +106,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     // Validation check - should never happen due to button disabled state, but double-checking
     if (!hasIdFront || !hasIdBack || !hasSelfie) {
       toast.error("Please upload all required documents before submitting");
+      setIsButtonLocked(false);
       return;
     }
     
@@ -110,7 +127,13 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
       toast.error("Failed to submit verification. Please try again.");
       // Reset attempting submit state so user can try again
       setIsAttemptingSubmit(false);
+      setIsButtonLocked(false);
     }
+    
+    // Unlock button after a delay to prevent immediate resubmissions
+    setTimeout(() => {
+      setIsButtonLocked(false);
+    }, 5000);
   };
 
   const handleManualRefresh = async () => {
@@ -140,7 +163,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
 
   // Combined submission state for UI feedback
   const showSubmitSpinner = isSubmitting || (isAttemptingSubmit && submissionStatus === 'submitting');
-  const isButtonDisabled = !hasIdFront || !hasIdBack || !hasSelfie || showSubmitSpinner || isPending;
+  const isButtonDisabled = !hasIdFront || !hasIdBack || !hasSelfie || showSubmitSpinner || isPending || isButtonLocked;
 
   return (
     <div className="space-y-6">

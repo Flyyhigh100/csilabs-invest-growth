@@ -113,8 +113,9 @@ const TabHandlers = (
 
     // Prevent duplicate submissions (debounce)
     const now = Date.now();
-    if (now - lastSubmissionTime < 3000) {
-      console.log('Preventing duplicate submission');
+    if (now - lastSubmissionTime < 5000) {  // Increased debounce time to 5 seconds
+      console.log('Preventing duplicate submission, please wait...');
+      toast.info('Please wait, submission in progress...');
       return;
     }
     setLastSubmissionTime(now);
@@ -140,7 +141,24 @@ const TabHandlers = (
       const beforeStatus = kycData?.status;
       console.log('📊 Status before submission:', beforeStatus);
       
-      const result = await submitVerification.mutateAsync();
+      // Execute submission with timeout handling
+      let submissionTimeout: NodeJS.Timeout | null = null;
+      const timeoutPromise = new Promise<boolean>((_, reject) => {
+        submissionTimeout = setTimeout(() => {
+          reject(new Error('Submission timed out after 15 seconds'));
+        }, 15000);
+      });
+      
+      const submissionPromise = submitVerification.mutateAsync();
+      
+      // Race between the submission and the timeout
+      const result = await Promise.race([submissionPromise, timeoutPromise]);
+      
+      // Clear timeout if submission completed
+      if (submissionTimeout) {
+        clearTimeout(submissionTimeout);
+      }
+      
       console.log('📝 Verification submission result:', result);
       
       // Update debug info

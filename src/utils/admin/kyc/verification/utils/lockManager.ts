@@ -39,7 +39,7 @@ export const setKycLock = (kycId: string): void => {
  * @param kycId The KYC ID to release the lock for
  * @param delay Optional delay in milliseconds before releasing the lock (default: 2000)
  */
-export const releaseKycLock = (kycId: string, delay = 2000): void => {
+export const releaseKycLock = (kycId: string, delay: number = 2000): void => {
   // Release with delay to prevent immediate retries
   setTimeout(() => {
     console.log(`Releasing lock for KYC ${kycId}`);

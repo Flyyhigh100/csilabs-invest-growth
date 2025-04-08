@@ -28,13 +28,27 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
   };
   
   const [activeTab, setActiveTab] = useState<string>(getInitialTab());
+  const [isManualTabChange, setIsManualTabChange] = useState(false);
   
   // When kycData changes, update the active tab if needed
   useEffect(() => {
-    const newTab = getInitialTab();
-    console.log('KYC status changed:', kycData?.status, 'Setting tab to:', newTab);
-    setActiveTab(newTab);
-  }, [kycData?.status]);
+    // Only auto-change tabs if there wasn't a manual tab change
+    if (!isManualTabChange) {
+      const newTab = getInitialTab();
+      console.log('KYC status changed:', kycData?.status, 'Setting tab to:', newTab);
+      setActiveTab(newTab);
+    }
+    
+    // Reset the manual flag after use
+    setIsManualTabChange(false);
+  }, [kycData?.status, isManualTabChange]);
+  
+  // Wrapped setter for the active tab that tracks manual changes
+  const handleTabChange = (tab: string) => {
+    console.log('Manual tab change to:', tab);
+    setIsManualTabChange(true);
+    setActiveTab(tab);
+  };
   
   // Access the tab handlers
   const {
@@ -45,7 +59,7 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
     isSubmitting,
     uploadPending,
     debugInfo
-  } = TabHandlers(kycData, setActiveTab);
+  } = TabHandlers(kycData, handleTabChange);
   
   // Determine if each tab is enabled based on validation
   const isDocumentsEnabled = !!kycData?.first_name;
@@ -53,11 +67,12 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
   
   // Force the status tab to be active if verification is pending or complete
   useEffect(() => {
-    if (kycData?.status === 'pending' || kycData?.status === 'approved' || kycData?.status === 'rejected') {
+    // Only force tab if no manual change and status is terminal
+    if (!isManualTabChange && (kycData?.status === 'pending' || kycData?.status === 'approved' || kycData?.status === 'rejected')) {
       console.log('Forcing status tab due to KYC status:', kycData?.status);
       setActiveTab('status');
     }
-  }, [kycData?.status]);
+  }, [kycData?.status, isManualTabChange]);
 
   // Debug log for tab changes
   useEffect(() => {
@@ -65,7 +80,7 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
   }, [activeTab]);
   
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab}>
+    <Tabs value={activeTab} onValueChange={handleTabChange}>
       <TabsList className="grid grid-cols-3 mb-8">
         <TabsTrigger 
           value="personal-info"
@@ -97,7 +112,7 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
           kycData={kycData}
           uploadPending={uploadPending}
           isSubmitting={isSubmitting}
-          onBack={() => setActiveTab('personal-info')}
+          onBack={() => handleTabChange('personal-info')}
           onSubmit={handleVerificationSubmit}
           onUpload={handleDocumentUpload}
           debugInfo={debugInfo}
@@ -109,7 +124,7 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
           kycData={kycData}
           isLoading={false}
           onStartVerification={handleRestartVerification}
-          onProvideMoreInfo={() => setActiveTab('documents')}
+          onProvideMoreInfo={() => handleTabChange('documents')}
         />
       </TabsContent>
     </Tabs>

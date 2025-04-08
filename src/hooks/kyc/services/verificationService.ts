@@ -19,7 +19,8 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
   setKycLock(userId);
   
   // Show loading toast
-  showLoadingToast('Submitting verification...', 'kyc-submission-toast');
+  const toastId = 'kyc-submission-toast';
+  showLoadingToast('Submitting verification...', toastId);
   
   try {
     // Ensure KYC record exists and has all required fields
@@ -31,14 +32,14 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     
     if (kycError) {
       console.error(`[${operationId}] ❌ Error fetching KYC verification:`, kycError);
-      dismissToast('kyc-submission-toast');
+      dismissToast(toastId);
       releaseKycLock(userId);
       throw kycError;
     }
     
     if (!kycData) {
       console.error(`[${operationId}] ❌ No KYC record found for user`);
-      dismissToast('kyc-submission-toast');
+      dismissToast(toastId);
       releaseKycLock(userId);
       throw new Error('No KYC record found');
     }
@@ -53,7 +54,7 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
         !kycData.id_back_url || !kycData.selfie_url) {
       const errorMsg = 'Please complete all required fields before submitting';
       console.error(`[${operationId}] ❌ KYC record is missing required fields`);
-      dismissToast('kyc-submission-toast');
+      dismissToast(toastId);
       releaseKycLock(userId);
       throw new Error(errorMsg);
     }
@@ -65,6 +66,7 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     const currentTime = new Date().toISOString();
     console.log(`[${operationId}] ⏰ Setting submitted_at to:`, currentTime);
     
+    // Fix: Use PATCH instead of PUT to avoid the text -> unknown operator issue
     const { data, error } = await supabase
       .from('kyc_verifications')
       .update({
@@ -72,21 +74,18 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
         submitted_at: currentTime
       })
       .eq('user_id', userId)
-      .select()
-      .single();
+      .select();
     
     if (error) {
       console.error(`[${operationId}] ❌ Error submitting KYC verification:`, error);
-      dismissToast('kyc-submission-toast');
+      dismissToast(toastId);
       releaseKycLock(userId);
       throw error;
     }
     
-    console.log(`[${operationId}] ✅ KYC status update result:`, data);
-    
-    // Verify the update was successful by checking the returned data
-    if (!data || data.status !== 'pending') {
-      console.error(`[${operationId}] ⚠️ KYC status update may have failed, returned data:`, data);
+    // Fix: Ensure we have the data and it's properly structured
+    if (!data || data.length === 0) {
+      console.error(`[${operationId}] ⚠️ KYC update returned no data`);
       
       // Try to fetch the current status to confirm
       const { data: checkData } = await supabase
@@ -97,9 +96,22 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
       
       console.log(`[${operationId}] 🔍 Verification check - current KYC status:`, checkData);
       
-      if (checkData?.status !== 'pending') {
-        console.error(`[${operationId}] ❌ KYC status update failed, status is still:`, checkData?.status);
-        dismissToast('kyc-submission-toast');
+      if (!checkData || checkData.status !== 'pending') {
+        console.error(`[${operationId}] ❌ KYC status update failed, status is not 'pending'`);
+        dismissToast(toastId);
+        releaseKycLock(userId);
+        return false;
+      }
+      
+      // Status is updated anyway, we can proceed
+      console.log(`[${operationId}] ✓ KYC status checked and is 'pending'`);
+    } else {
+      console.log(`[${operationId}] ✓ KYC status update result:`, data[0]);
+      
+      // Verify the update was successful by checking data
+      if (data[0].status !== 'pending') {
+        console.error(`[${operationId}] ❌ KYC status update failed, returned status is ${data[0].status}`);
+        dismissToast(toastId);
         releaseKycLock(userId);
         return false;
       }
@@ -128,12 +140,12 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     }
     
     console.log(`[${operationId}] 🎉 KYC verification submitted successfully`);
-    dismissToast('kyc-submission-toast');
+    dismissToast(toastId);
     releaseKycLock(userId, 5000); // Release lock with longer delay to prevent immediate resubmission
     return true;
   } catch (error) {
     console.error(`[${operationId}] ❌ Exception in submitKycVerification:`, error);
-    dismissToast('kyc-submission-toast');
+    dismissToast(toastId);
     releaseKycLock(userId);
     throw error;
   }

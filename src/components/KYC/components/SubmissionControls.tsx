@@ -31,7 +31,7 @@ const SubmissionControls: React.FC<SubmissionControlsProps> = ({
         type="button"
         disabled={isButtonDisabled || submissionStatus === 'success'}
         onClick={onSubmit}
-        className="relative"
+        className={`relative ${isSubmitting ? 'bg-blue-400' : submissionStatus === 'success' ? 'bg-green-500' : 'bg-blue-500'}`}
       >
         {isSubmitting ? (
           <>
