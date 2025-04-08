@@ -11,6 +11,8 @@ const LOCK_TIMEOUT = 15000; // 15 seconds
  * Check if a KYC is currently locked for processing
  */
 export const isKycLocked = (kycId: string): boolean => {
+  if (!kycId) return false; // Safety check for empty IDs
+  
   const now = Date.now();
   const lockTimestamp = processingLocks.get(kycId);
   
@@ -30,6 +32,8 @@ export const isKycLocked = (kycId: string): boolean => {
  * Set a processing lock for a KYC ID
  */
 export const setKycLock = (kycId: string): void => {
+  if (!kycId) return; // Safety check for empty IDs
+  
   console.log(`Setting lock for KYC ${kycId}`);
   processingLocks.set(kycId, Date.now());
 };
@@ -40,6 +44,8 @@ export const setKycLock = (kycId: string): void => {
  * @param delay Optional delay in milliseconds before releasing the lock (default: 2000)
  */
 export const releaseKycLock = (kycId: string, delay: number = 2000): void => {
+  if (!kycId) return; // Safety check for empty IDs
+  
   // Release with delay to prevent immediate retries
   setTimeout(() => {
     console.log(`Releasing lock for KYC ${kycId}`);

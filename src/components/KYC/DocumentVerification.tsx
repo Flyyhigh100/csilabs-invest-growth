@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-// Import newly created components
+// Import components
 import DebugPanel from './components/DebugPanel';
 import ClarificationMessage from './components/ClarificationMessage';
 import DocumentsSection from './components/DocumentsSection';
@@ -64,16 +64,18 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
           .from('kyc_verifications')
           .select('status, submitted_at')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
           
-        setLiveStatus(data?.status || null);
-        setLastRefresh(new Date().toISOString());
-        
-        // If status has changed to pending, update our local state
-        if (data?.status === 'pending') {
-          setSubmissionStatus('success');
-          setIsAttemptingSubmit(false);
-          setIsButtonLocked(false);
+        if (data) {
+          setLiveStatus(data.status || null);
+          setLastRefresh(new Date().toISOString());
+          
+          // If status has changed to pending, update our local state
+          if (data.status === 'pending' || data.submitted_at) {
+            setSubmissionStatus('success');
+            setIsAttemptingSubmit(false);
+            setIsButtonLocked(false);
+          }
         }
       } catch (error) {
         console.error('Failed to check live status:', error);
@@ -83,7 +85,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     // Check immediately
     checkLiveStatus();
     
-    // Set up interval
+    // Set up interval - check every 3 seconds
     const interval = setInterval(checkLiveStatus, 3000);
     
     return () => clearInterval(interval);
@@ -95,6 +97,12 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
       return;
     }
     
+    // Check for all required documents
+    if (!hasIdFront || !hasIdBack || !hasSelfie) {
+      toast.error("Please upload all required documents before submitting");
+      return;
+    }
+    
     // Lock the button to prevent multiple clicks
     setIsButtonLocked(true);
     
@@ -103,21 +111,18 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     console.log("📋 Current document states:", { hasIdFront, hasIdBack, hasSelfie });
     console.log("⚙️ Current process states:", { isPending, isSubmitting, isAttemptingSubmit });
     
-    // Validation check - should never happen due to button disabled state, but double-checking
-    if (!hasIdFront || !hasIdBack || !hasSelfie) {
-      toast.error("Please upload all required documents before submitting");
-      setIsButtonLocked(false);
-      return;
-    }
-    
     // Set local state to show immediate feedback
     setIsAttemptingSubmit(true);
     setSubmissionStatus('submitting');
     
     try {
+      // Clear any existing toasts
+      toast.dismiss();
       toast.info("Submitting verification...");
+      
       console.log("📞 Calling onSubmit function");
       await onSubmit();
+      
       console.log("✅ Submission completed successfully");
       setSubmissionStatus('success');
       toast.success("Verification submitted successfully!");
@@ -125,6 +130,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
       console.error("❌ Error in submission:", error);
       setSubmissionStatus('error');
       toast.error("Failed to submit verification. Please try again.");
+      
       // Reset attempting submit state so user can try again
       setIsAttemptingSubmit(false);
       setIsButtonLocked(false);
@@ -133,7 +139,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     // Unlock button after a delay to prevent immediate resubmissions
     setTimeout(() => {
       setIsButtonLocked(false);
-    }, 5000);
+    }, 10000); // 10 second lockout
   };
 
   const handleManualRefresh = async () => {
@@ -155,6 +161,11 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
       setLiveStatus(data?.status || null);
       setLastRefresh(new Date().toISOString());
       toast.success("Status refreshed");
+      
+      // If status is pending, update submission status
+      if (data?.status === 'pending' || data?.submitted_at) {
+        setSubmissionStatus('success');
+      }
     } catch (error) {
       console.error("Failed to refresh status:", error);
       toast.error("Failed to refresh status");

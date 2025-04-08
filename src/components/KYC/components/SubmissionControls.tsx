@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 interface SubmissionControlsProps {
   isButtonDisabled: boolean;
@@ -35,11 +36,13 @@ const SubmissionControls: React.FC<SubmissionControlsProps> = ({
       >
         {isSubmitting ? (
           <>
-            <span className="mr-2 h-4 w-4 animate-spin inline-block border-2 border-current border-t-transparent rounded-full"></span>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin inline-block" />
             Submitting...
           </>
         ) : submissionStatus === 'success' ? (
           "Submitted Successfully"
+        ) : submissionStatus === 'error' ? (
+          "Try Again"
         ) : (
           "Submit Verification"
         )}
