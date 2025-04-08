@@ -76,8 +76,11 @@ const KYCVerificationPage = () => {
           console.log('📡 KYC verification updated:', payload);
           
           // Type guard to ensure payload.new and payload.old exist and have status property
-          const newStatus = payload.new && typeof payload.new === 'object' ? (payload.new as Record<string, any>).status : undefined;
-          const oldStatus = payload.old && typeof payload.old === 'object' ? (payload.old as Record<string, any>).status : undefined;
+          const payloadNew = payload.new as Record<string, any> | null;
+          const payloadOld = payload.old as Record<string, any> | null;
+          
+          const newStatus = payloadNew?.status;
+          const oldStatus = payloadOld?.status;
           
           if (newStatus && newStatus !== oldStatus) {
             console.log(`📊 Status changed from ${oldStatus} to ${newStatus}`);

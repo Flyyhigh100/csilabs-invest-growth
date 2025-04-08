@@ -38,17 +38,26 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
   
   const [activeTab, setActiveTab] = useState<string>(getInitialTab());
   
+  // Debug log for active tab changes
+  useEffect(() => {
+    console.log('🔄 Active tab changed to:', activeTab);
+  }, [activeTab]);
+  
   // When kycData changes, update the active tab if needed
   useEffect(() => {
-    const newTab = getInitialTab();
-    console.log("🔄 KYC data updated, status:", kycData?.status, "setting tab to:", newTab);
-    setActiveTab(newTab);
-  }, [kycData?.status]);
-  
-  // Debug status changes
-  useEffect(() => {
-    console.log("👁️ KYCTabs component tracking KYC status:", kycData?.status);
-    console.log("👁️ KYCTabs component active tab:", activeTab);
+    if (!kycData) return;
+    
+    console.log('🔄 KYC data updated. Current status:', kycData.status, 'Active tab:', activeTab);
+    
+    // Handle status changes that should trigger tab changes
+    if ((kycData.status === 'pending' || kycData.status === 'approved' || kycData.status === 'rejected') 
+        && activeTab !== 'status') {
+      console.log('📊 Status changed to', kycData.status, '- switching to status tab');
+      setActiveTab('status');
+    } else if (kycData.status === 'needs_clarification' && activeTab !== 'documents') {
+      console.log('❓ Status changed to needs clarification - switching to documents tab');
+      setActiveTab('documents');
+    }
   }, [kycData?.status, activeTab]);
   
   // Access the tab handlers
@@ -65,20 +74,11 @@ const KYCTabs = ({ kycData }: { kycData: KycVerificationData | null }) => {
   const isDocumentsEnabled = !!kycData?.first_name;
   const isPending = kycData?.status === 'pending';
   const isApproved = kycData?.status === 'approved';
-  
-  // Force status tab if status is pending or approved
-  useEffect(() => {
-    if ((isPending || isApproved) && activeTab !== 'status') {
-      console.log("🔒 Status is pending/approved, forcing status tab display");
-      setActiveTab('status');
-    }
-  }, [isPending, isApproved, activeTab]);
 
   return (
     <Tabs 
       value={activeTab} 
       onValueChange={setActiveTab} 
-      defaultValue={activeTab}
       className="w-full"
     >
       <TabsList className="grid grid-cols-3 mb-8">

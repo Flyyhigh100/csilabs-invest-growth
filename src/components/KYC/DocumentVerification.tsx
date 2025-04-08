@@ -31,6 +31,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   // Local state to track submission attempts and progress
   const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
   const [submissionInProgress, setSubmissionInProgress] = useState(false);
+  const [submitClickTime, setSubmitClickTime] = useState(0);
 
   // Reset submission state when props change
   useEffect(() => {
@@ -43,6 +44,17 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
 
   const handleSubmitClick = async (e: React.MouseEvent) => {
     e.preventDefault();
+    
+    const now = Date.now();
+    
+    // Debounce submissions - prevent multiple clicks within 2 seconds
+    if (now - submitClickTime < 2000) {
+      console.log("🛑 Submission clicked too quickly, debouncing");
+      return;
+    }
+    
+    // Update click time
+    setSubmitClickTime(now);
     
     // Prevent button mashing - if already in progress, do nothing
     if (isSubmitting || isAttemptingSubmit || submissionInProgress) {

@@ -100,8 +100,9 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
       
       // Proceed with submission
       try {
+        // Submit verification
         const result = await submitKycVerification(userId);
-        console.log('🔄 Submission result:', result);
+        console.log('✅ Verification submission result:', result);
         return result;
       } catch (error) {
         console.error('❌ Error in submitVerification:', error);
@@ -111,16 +112,17 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
     onSuccess: () => {
       console.log("✅ KYC verification submitted successfully");
       
-      // Force immediate invalidation of ALL related cached data
+      // Force immediate invalidation of related cached data
       invalidateRelatedQueries();
       
       // Force immediate refetch with minimal delay
       setTimeout(() => {
-        if (userId) {
-          console.log("🔄 Forcing immediate refetch for user:", userId);
-          queryClient.refetchQueries({ queryKey: ['kyc', userId] });
-        }
         refetch();
+        
+        // Double refetch after a delay to ensure we get the latest data
+        setTimeout(() => {
+          refetch();
+        }, 1000);
       }, 200);
     },
     onError: (error) => {
