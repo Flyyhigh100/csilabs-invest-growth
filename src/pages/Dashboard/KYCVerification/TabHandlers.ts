@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { KycVerificationData } from '@/hooks/kyc/types';
 import { useKycVerification } from '@/hooks/kyc/useKycVerification';
@@ -5,6 +6,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PersonalInfoValues } from '@/components/KYC/schema/personalInfoSchema';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { 
+  showLoadingToast, 
+  dismissToast, 
+  showSuccessToast, 
+  showErrorToast 
+} from '@/utils/admin/kyc/verification/utils/toastManager';
 
 const TabHandlers = (
   kycData: KycVerificationData | null,
@@ -34,11 +41,13 @@ const TabHandlers = (
   // Handler for personal info form submission
   const handlePersonalInfoSubmit = async (values: PersonalInfoValues) => {
     if (!user) {
-      toast.error('You must be logged in to complete verification');
+      showErrorToast('You must be logged in to complete verification');
       return;
     }
 
     setIsSubmitting(true);
+    showLoadingToast('Saving your personal information...', 'personal-info-toast');
+    
     try {
       console.log('Submitting personal info:', values);
       await savePersonalInfo.mutateAsync({
@@ -51,13 +60,16 @@ const TabHandlers = (
         postal_code: values.postal_code,
         country: values.country
       });
-      toast.success('Personal information saved successfully');
+      
+      dismissToast('personal-info-toast');
+      showSuccessToast('Personal information saved successfully');
       
       // Move to the next tab
       setActiveTab('documents');
     } catch (error) {
       console.error('Error saving personal info:', error);
-      toast.error(`Failed to save personal information: ${(error as Error).message}`);
+      dismissToast('personal-info-toast');
+      showErrorToast(`Failed to save personal information: ${(error as Error).message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -66,20 +78,26 @@ const TabHandlers = (
   // Handler for document uploads
   const handleDocumentUpload = async (file: File, type: 'id_front' | 'id_back' | 'selfie') => {
     if (!user) {
-      toast.error('You must be logged in to upload documents');
+      showErrorToast('You must be logged in to upload documents');
       return;
     }
 
+    const toastId = `upload-${type}-toast`;
+    showLoadingToast(`Uploading ${type.replace('_', ' ')}...`, toastId);
+    
     try {
       console.log(`Uploading ${type} document...`);
       await uploadDocument.mutateAsync({ file, type });
-      toast.success(`${type.replace('_', ' ')} uploaded successfully`);
+      
+      dismissToast(toastId);
+      showSuccessToast(`${type.replace('_', ' ')} uploaded successfully`);
       
       // Refresh the data to show the updated document status
       refetch();
     } catch (error) {
       console.error(`Error uploading ${type}:`, error);
-      toast.error(`Failed to upload ${type.replace('_', ' ')}: ${(error as Error).message}`);
+      dismissToast(toastId);
+      showErrorToast(`Failed to upload ${type.replace('_', ' ')}: ${(error as Error).message}`);
     }
   };
 
@@ -89,7 +107,7 @@ const TabHandlers = (
   // Handler for verification submission
   const handleVerificationSubmit = async () => {
     if (!user) {
-      toast.error('You must be logged in to submit verification');
+      showErrorToast('You must be logged in to submit verification');
       return;
     }
 
@@ -109,9 +127,11 @@ const TabHandlers = (
       currentStatus: 'submitting'
     }));
     
+    const submissionToastId = 'kyc-submission-toast';
+    showLoadingToast('Submitting verification...', submissionToastId);
+    
     try {
       console.log('🚀 Submitting verification...');
-      toast.info('Submitting verification...');
       
       // Force a refetch before submission to ensure we have the latest data
       await refetch();
@@ -131,7 +151,8 @@ const TabHandlers = (
       }));
       
       if (result) {
-        toast.success('Verification submitted successfully!');
+        dismissToast(submissionToastId);
+        showSuccessToast('Verification submitted successfully!');
         
         // Force multiple refetches with increasing delays to ensure we get the updated status
         await refetch();
@@ -159,7 +180,8 @@ const TabHandlers = (
           }, 1000);
         }, 500);
       } else {
-        toast.error('Error submitting verification');
+        dismissToast(submissionToastId);
+        showErrorToast('Error submitting verification');
         setDebugInfo(prev => ({
           ...prev,
           currentStatus: 'error'
@@ -167,7 +189,8 @@ const TabHandlers = (
       }
     } catch (error) {
       console.error('❌ Error submitting verification:', error);
-      toast.error(`Failed to submit verification: ${(error as Error).message}`);
+      dismissToast(submissionToastId);
+      showErrorToast(`Failed to submit verification: ${(error as Error).message}`);
       setDebugInfo(prev => ({
         ...prev,
         lastResult: { error: (error as Error).message },
