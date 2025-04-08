@@ -40,15 +40,14 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
 
     console.log('📝 Updating KYC verification status to pending...');
     
-    // Use upsert to ensure we're updating the correct record
+    // Update the record with pending status and submitted timestamp
     const { error: updateError } = await supabase
       .from('kyc_verifications')
       .update({
         status: 'pending',
         submitted_at: new Date().toISOString()
       })
-      .eq('user_id', userId)
-      .select();
+      .eq('user_id', userId);
     
     if (updateError) {
       console.error('❌ Error updating KYC verification:', updateError);

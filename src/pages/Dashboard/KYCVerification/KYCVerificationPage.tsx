@@ -75,9 +75,9 @@ const KYCVerificationPage = () => {
         (payload) => {
           console.log('📡 KYC verification updated:', payload);
           
-          // Get the new status from the payload
-          const newStatus = payload.new?.status;
-          const oldStatus = payload.old?.status;
+          // Type guard to ensure payload.new and payload.old exist and have status property
+          const newStatus = payload.new && typeof payload.new === 'object' ? (payload.new as Record<string, any>).status : undefined;
+          const oldStatus = payload.old && typeof payload.old === 'object' ? (payload.old as Record<string, any>).status : undefined;
           
           if (newStatus && newStatus !== oldStatus) {
             console.log(`📊 Status changed from ${oldStatus} to ${newStatus}`);
