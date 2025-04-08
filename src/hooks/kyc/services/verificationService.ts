@@ -32,11 +32,12 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     }
     
     // Update status to 'pending' and set submitted_at timestamp
+    const currentTime = new Date().toISOString();
     const { data, error } = await supabase
       .from('kyc_verifications')
       .update({
         status: 'pending',
-        submitted_at: new Date().toISOString()
+        submitted_at: currentTime
       })
       .eq('user_id', userId)
       .select();

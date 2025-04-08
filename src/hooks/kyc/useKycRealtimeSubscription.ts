@@ -54,6 +54,10 @@ export function useKycRealtimeSubscription(userId: string | undefined, refetch: 
               toast.info('Additional information is required for your KYC verification.', {
                 duration: 8000
               });
+            } else if (newStatus === 'pending') {
+              toast.success('Your KYC verification has been submitted successfully!', {
+                duration: 8000
+              });
             }
           } catch (error) {
             console.error('Error handling KYC realtime update:', error);

@@ -97,13 +97,19 @@ const TabHandlers = (
       const result = await submitVerification.mutateAsync();
       console.log('Verification submission result:', result);
       
-      toast.success('Verification submitted successfully!');
-      
-      // Force an immediate refetch to get the updated status
-      await refetch();
-      
-      // Move to the status tab
-      setActiveTab('status');
+      if (result) {
+        toast.success('Verification submitted successfully!');
+        
+        // Force an immediate refetch to get the updated status
+        await refetch();
+        
+        // Move to the status tab
+        setTimeout(() => {
+          setActiveTab('status');
+        }, 1000);
+      } else {
+        toast.error('Error submitting verification');
+      }
     } catch (error) {
       console.error('Error submitting verification:', error);
       toast.error(`Failed to submit verification: ${(error as Error).message}`);

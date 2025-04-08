@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import DocumentUpload from './DocumentUpload';
 import { AlertCircle } from 'lucide-react';
@@ -31,6 +32,16 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
+  // Reset submission status when component mounts or isPending changes
+  useEffect(() => {
+    if (isPending) {
+      setSubmissionStatus('success'); // If we're already pending, we've successfully submitted
+    } else {
+      setSubmissionStatus('idle');
+      setIsAttemptingSubmit(false);
+    }
+  }, [isPending]);
+
   const handleSubmitClick = async () => {
     // Debug - log the state at button click
     console.log("Submit button clicked, starting submission process...");
@@ -58,12 +69,8 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
       console.error("Error in submission:", error);
       setSubmissionStatus('error');
       toast.error("Failed to submit verification. Please try again.");
-    } finally {
-      // We keep isAttemptingSubmit true if successful to keep button disabled
-      // Only reset it on error so they can try again
-      if (submissionStatus === 'error') {
-        setIsAttemptingSubmit(false);
-      }
+      // Reset attempting submit state so user can try again
+      setIsAttemptingSubmit(false);
     }
   };
 

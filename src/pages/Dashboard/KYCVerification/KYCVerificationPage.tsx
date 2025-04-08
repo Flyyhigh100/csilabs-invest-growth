@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
@@ -25,7 +25,7 @@ const KYCVerificationPage = () => {
     
     // Set up realtime subscription for KYC status updates
     const channel = supabase
-      .channel('kyc-updates')
+      .channel('kyc-status-changes')
       .on(
         'postgres_changes',
         {

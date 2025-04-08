@@ -96,6 +96,7 @@ export function useKycMutations(userId: string | undefined, refetch: () => void)
       
       // Force immediate invalidation of all related cached data
       queryClient.invalidateQueries({ queryKey: ['kyc', userId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-kyc-verifications'] });
       
       // Force a refetch to get the latest data with the updated status
       setTimeout(() => {
