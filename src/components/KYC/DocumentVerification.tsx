@@ -31,7 +31,9 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   // Local state to track submission attempts
   const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
 
-  const handleSubmitClick = async () => {
+  const handleSubmitClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    
     // Debug - log the state at button click
     console.log("Submit button clicked, starting submission process...");
     console.log("Current document states:", { hasIdFront, hasIdBack, hasSelfie });
@@ -51,10 +53,9 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
       console.log("Calling onSubmit function");
       await onSubmit();
       console.log("Submission completed successfully");
-      toast.success("Verification submitted successfully!");
     } catch (error) {
       console.error("Error in submission:", error);
-      toast.error("Failed to submit verification. Please try again.");
+      toast.error(`Failed to submit verification: ${(error as Error).message}`);
     } finally {
       setIsAttemptingSubmit(false);
     }
