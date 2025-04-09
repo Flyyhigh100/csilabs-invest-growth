@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,7 +40,7 @@ interface Transaction {
   updated_at: string;
   transaction_id: string;
   token_sent: boolean;
-  blockchain_tx_id?: string;
+  blockchain_tx_id?: string; // Added this property as optional
   external_transaction_id?: string;
 }
 
