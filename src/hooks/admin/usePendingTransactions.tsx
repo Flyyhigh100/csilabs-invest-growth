@@ -34,7 +34,7 @@ export const usePendingTransactions = () => {
       // Process the data to ensure profiles is properly handled
       const processedData = data.map(item => {
         // Check if profiles exists and is a valid object (not an error)
-        if (item.profiles && typeof item.profiles === 'object' && !('error' in item.profiles)) {
+        if (item.profiles && typeof item.profiles === 'object' && !('error' in (item.profiles || {}))) {
           return {
             ...item,
             profiles: item.profiles
