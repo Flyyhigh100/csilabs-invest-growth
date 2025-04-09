@@ -58,7 +58,7 @@ export const submitKycVerification = async (userId: string): Promise<{ success: 
     
     const currentTime = new Date().toISOString();
     
-    // Direct update with fixed query - no JSON path operators
+    // Fixed update query - using standard equality operator for user_id
     const { data: updateData, error: updateError } = await supabase
       .from('kyc_verifications')
       .update({ 
