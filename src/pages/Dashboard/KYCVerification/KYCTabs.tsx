@@ -51,8 +51,8 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
   const hasIdBack = !!kycData?.id_back_url;
   const hasSelfie = !!kycData?.selfie_url;
   
-  // Enhanced debug info for debugging
-  const enhancedDebugInfo = {
+  // Enhanced debug info for debugging in development only
+  const enhancedDebugInfo = process.env.NODE_ENV === 'development' ? {
     ...debugInfo,
     lastRefresh: lastRefreshTime ? lastRefreshTime.toISOString() : null,
     kycData: {
@@ -64,7 +64,7 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
         hasSelfie
       }
     }
-  };
+  } : debugInfo;
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

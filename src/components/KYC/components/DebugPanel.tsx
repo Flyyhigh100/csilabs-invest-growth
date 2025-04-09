@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { DebugInfo } from '@/pages/Dashboard/KYCVerification/hooks'; // Updated import path
+import { DebugInfo } from '@/pages/Dashboard/KYCVerification/hooks';
 import { RefreshCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -21,6 +21,8 @@ const DebugPanel: React.FC<DebugPanelProps> = ({
   onRefresh, 
   isRefreshing 
 }) => {
+  // Only render in development environment
+  if (process.env.NODE_ENV !== 'development') return null;
   if (!debugInfo) return null;
   
   return (

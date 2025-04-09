@@ -20,6 +20,9 @@ const KycDebugCard: React.FC<KycDebugCardProps> = ({
   directTestResults,
   onRefresh
 }) => {
+  // Only show debug card in development mode
+  if (process.env.NODE_ENV !== 'development') return null;
+  
   // Calculate counts by status
   const statusCounts = kycVerifications.reduce((counts, item) => {
     counts[item.status] = (counts[item.status] || 0) + 1;

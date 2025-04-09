@@ -24,6 +24,8 @@ const KycDebugInfo: React.FC<KycDebugInfoProps> = ({
   isPending, 
   debugInfo 
 }) => {
+  // Only show in development environment
+  if (process.env.NODE_ENV !== 'development') return null;
   if (!debugInfo) return null;
 
   const formatUrl = (url: string | null) => {
