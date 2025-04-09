@@ -39,9 +39,9 @@ const TransactionsTable = ({ transactions, onMarkAsSent }: TransactionsTableProp
             </TableCell>
             <TableCell>
               <div className="font-medium">
-                {tx.profiles?.first_name} {tx.profiles?.last_name}
+                {tx.profiles ? `${tx.profiles.first_name || ''} ${tx.profiles.last_name || ''}` : 'Unknown User'}
               </div>
-              <div className="text-xs text-gray-500">{tx.profiles?.email}</div>
+              <div className="text-xs text-gray-500">{tx.profiles?.email || 'No email available'}</div>
             </TableCell>
             <TableCell>${tx.amount.toFixed(2)}</TableCell>
             <TableCell>

@@ -8,7 +8,7 @@ interface PendingTransactionWithProfile extends Transaction {
     email: string;
     first_name: string;
     last_name: string;
-  };
+  } | null;
 }
 
 export const usePendingTransactions = () => {
@@ -31,8 +31,21 @@ export const usePendingTransactions = () => {
 
       if (error) throw error;
       
-      // Cast the data to ensure it matches our expected type
-      return (data as unknown) as PendingTransactionWithProfile[];
+      // Process the data to ensure profiles is properly handled
+      const processedData = data.map(item => {
+        // Handle case where profiles might be a SelectQueryError
+        if (item.profiles && typeof item.profiles === 'object' && !('error' in item.profiles)) {
+          return item as PendingTransactionWithProfile;
+        }
+        
+        // If profiles has an error or is invalid, set it to null
+        return {
+          ...item,
+          profiles: null
+        } as PendingTransactionWithProfile;
+      });
+      
+      return processedData;
     }
   });
 };
