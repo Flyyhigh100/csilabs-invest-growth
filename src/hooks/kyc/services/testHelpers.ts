@@ -21,7 +21,7 @@ export const insertTestKycVerification = async (userId: string): Promise<boolean
     }
     
     if (existing) {
-      // Update the existing record using string value directly instead of SQL operators
+      // Update the existing record using fixed values - avoid using operators
       const { error } = await supabase
         .from('kyc_verifications')
         .update({
@@ -45,7 +45,7 @@ export const insertTestKycVerification = async (userId: string): Promise<boolean
       
       console.log('Updated test KYC verification:', existing.id);
     } else {
-      // Insert new record using string value directly instead of SQL operators
+      // Insert new record with fixed values
       const { error } = await supabase
         .from('kyc_verifications')
         .insert({

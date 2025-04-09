@@ -36,10 +36,9 @@ const KycStatusTester: React.FC<KycStatusTesterProps> = ({
 
     setTestStatus('running');
     setTestResult(null);
+    toast.info("Creating test KYC record with 'pending' status...");
     
     try {
-      toast.info("Creating test KYC record with 'pending' status...");
-      
       // Create test record
       const success = await createTestKycRecord(user.id);
       
@@ -50,12 +49,20 @@ const KycStatusTester: React.FC<KycStatusTesterProps> = ({
       // Refresh the KYC data
       await onRefresh();
       
+      // Wait a moment for the data to be refreshed
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Check if the status was updated correctly
-      const { data: verifyData } = await supabase
+      const { data: verifyData, error } = await supabase
         .from('kyc_verifications')
         .select('status')
         .eq('user_id', user.id)
         .single();
+        
+      if (error) {
+        console.error("Error verifying KYC status:", error);
+        throw new Error(`Error verifying status: ${error.message}`);
+      }
         
       if (verifyData?.status === 'pending') {
         setTestResult("✅ Success! KYC status was correctly set to 'pending'");

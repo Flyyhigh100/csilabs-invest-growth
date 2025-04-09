@@ -19,6 +19,11 @@ const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({
   const isRejected = kycData?.status === 'rejected';
   const needsClarification = kycData?.status === 'needs_clarification';
   
+  // This is the handler that will be passed to the VerificationStatus component
+  const handleStartVerification = () => {
+    onRestart();
+  };
+  
   return (
     <div className="space-y-6 py-2">
       <div className="flex justify-between items-center">
@@ -29,7 +34,13 @@ const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({
         </Button>
       </div>
       
-      <VerificationStatus status={kycData?.status || 'not_started'} />
+      <VerificationStatus 
+        status={kycData?.status || 'not_started'} 
+        rejectionReason={kycData?.rejection_reason}
+        clarificationMessage={kycData?.clarification_message}
+        onStartVerification={handleStartVerification}
+        onProvideMoreInfo={handleStartVerification}
+      />
       
       {isRejected && kycData?.rejection_reason && (
         <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">

@@ -25,9 +25,11 @@ export const TabHandlers = (
       toast.info("Manually refreshing KYC status...");
       await refetch();
       toast.success("KYC status refreshed");
+      return true;
     } catch (error) {
       console.error("Error refreshing KYC status:", error);
       toast.error("Failed to refresh status");
+      return false;
     }
   };
 
