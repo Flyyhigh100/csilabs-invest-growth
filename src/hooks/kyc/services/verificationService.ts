@@ -74,46 +74,58 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     const currentTime = new Date().toISOString();
     console.log(`[${operationId}] ⏰ Setting submitted_at to:`, currentTime);
     
-    // Critical section: Update the status to pending and set submission timestamp
-    // This is the part that was likely failing before
-    const { error: updateError, data: updateData } = await supabase
-      .from('kyc_verifications')
-      .update({
-        status: 'pending',
-        submitted_at: currentTime
-      })
-      .eq('user_id', userId)
-      .select('status, submitted_at'); // Add .select() to verify the update worked
-    
-    // Check for update errors
-    if (updateError) {
-      console.error(`[${operationId}] ❌ Error updating KYC status:`, updateError);
-      toast.dismiss(toastId);
-      toast.error(`Failed to update verification status: ${updateError.message}`);
-      releaseKycLock(userId);
-      return false;
-    }
-    
-    // Double-check that the update was successful by verifying the returned data
-    if (!updateData || updateData.length === 0 || updateData[0].status !== 'pending') {
-      console.error(`[${operationId}] ⚠️ Update might have failed - returned data:`, updateData);
+    // Use transaction to ensure status update and timestamp are set atomically
+    // This is the critical section where the update was likely failing
+    try {
+      const { data, error } = await supabase.rpc('submit_kyc_verification', { 
+        user_id_param: userId,
+        current_time: currentTime
+      });
       
-      // Make another verification query to check the status directly
-      const { data: verifyData } = await supabase
+      if (error) {
+        throw error;
+      }
+      
+      // Check if the RPC was successful
+      if (!data || data !== true) {
+        throw new Error('Status update failed in database procedure');
+      }
+      
+      console.log(`[${operationId}] ✅ KYC status updated successfully via RPC`);
+      
+      // Double-check the status was actually updated
+      const { data: verifyData, error: verifyError } = await supabase
         .from('kyc_verifications')
         .select('status, submitted_at')
         .eq('user_id', userId)
         .single();
       
-      console.log(`[${operationId}] 🔍 Verification status after double-check:`, verifyData);
-      
-      if (!verifyData || verifyData.status !== 'pending') {
-        console.error(`[${operationId}] ❌ Status update failed - current status:`, verifyData?.status);
-        toast.dismiss(toastId);
-        toast.error('Failed to update verification status. Please try again.');
-        releaseKycLock(userId);
-        return false;
+      if (verifyError) {
+        console.warn(`[${operationId}] ⚠️ Could not verify status update:`, verifyError);
+        // Continue anyway since the RPC reported success
       }
+      
+      console.log(`[${operationId}] 🔍 Verification status after update:`, verifyData);
+      
+      if (verifyData && verifyData.status !== 'pending') {
+        console.error(`[${operationId}] ⚠️ Status may not have been updated properly. Current status:`, verifyData.status);
+        // Try a direct update as fallback
+        const { error: directUpdateError } = await supabase
+          .from('kyc_verifications')
+          .update({ status: 'pending', submitted_at: currentTime })
+          .eq('user_id', userId);
+        
+        if (directUpdateError) {
+          console.error(`[${operationId}] ❌ Direct update fallback failed:`, directUpdateError);
+          throw directUpdateError;
+        }
+      }
+    } catch (txError) {
+      console.error(`[${operationId}] ❌ Transaction error:`, txError);
+      toast.dismiss(toastId);
+      toast.error(`Failed to update verification status: ${(txError as Error).message}`);
+      releaseKycLock(userId);
+      return false;
     }
     
     // Success path - create a notification for the user

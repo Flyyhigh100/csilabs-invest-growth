@@ -1,61 +1,31 @@
 
-/**
- * Utility for managing KYC verification toasts
- */
 import { toast } from 'sonner';
 
 /**
- * Clear all active toasts
+ * Utility functions for managing toasts consistently
  */
-export const clearAllToasts = (): void => {
+
+// Show a loading toast with custom ID and timeout
+export const showLoadingToast = (message: string, id: string = 'loading-toast', timeout: number = 0) => {
+  toast.loading(message, { id, duration: timeout || undefined });
+};
+
+// Dismiss a specific toast by ID
+export const dismissToast = (id: string) => {
+  toast.dismiss(id);
+};
+
+// Show a success toast
+export const showSuccessToast = (message: string) => {
+  toast.success(message);
+};
+
+// Show an error toast
+export const showErrorToast = (message: string) => {
+  toast.error(message);
+};
+
+// Clear all existing toasts
+export const clearAllToasts = () => {
   toast.dismiss();
-};
-
-/**
- * Show a loading toast with a reasonable timeout
- */
-export const showLoadingToast = (
-  message: string,
-  id = 'kyc-processing-toast',
-  duration = 15000
-): void => {
-  // First dismiss any existing toast with the same ID
-  toast.dismiss(id);
-  
-  // Then show the new toast
-  toast.loading(message, { 
-    id, 
-    duration,
-    // Prevent multiple loading toasts for the same operation
-    onAutoClose: (t) => {
-      console.log(`Loading toast ${id} timed out after ${duration}ms`);
-    }
-  });
-};
-
-/**
- * Show a success toast
- */
-export const showSuccessToast = (
-  message: string,
-  duration = 5000
-): void => {
-  toast.success(message, { duration });
-};
-
-/**
- * Show an error toast
- */
-export const showErrorToast = (
-  message: string,
-  duration = 8000
-): void => {
-  toast.error(message, { duration });
-};
-
-/**
- * Dismiss specific toast by ID
- */
-export const dismissToast = (id: string): void => {
-  toast.dismiss(id);
 };
