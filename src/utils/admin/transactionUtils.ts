@@ -2,30 +2,28 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export const markTokensAsSent = async (
-  transactionId: string
-): Promise<boolean> => {
+/**
+ * Marks tokens as sent and adds the blockchain transaction ID
+ */
+export const markTokensAsSent = async (transactionId: string, blockchainTxId: string) => {
   try {
-    const { error } = await supabase
-      .from('transactions')
-      .update({
-        token_sent: true,
-        status: 'completed',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', transactionId);
-    
+    const { data, error } = await supabase.functions.invoke('admin-operations', {
+      body: { 
+        action: 'markTokensSent', 
+        transactionId,
+        blockchainTxId
+      },
+    });
+
     if (error) {
-      console.error('Error marking tokens as sent:', error);
-      toast.error('Failed to update transaction');
-      return false;
+      toast.error(`Failed to update transaction: ${error.message}`);
+      throw error;
     }
-    
+
     toast.success('Transaction updated successfully');
-    return true;
-  } catch (error) {
-    console.error('Error marking tokens as sent:', error);
-    toast.error('An error occurred while updating transaction');
-    return false;
+    return data.transaction;
+  } catch (err) {
+    console.error('Error updating transaction:', err);
+    throw err;
   }
 };

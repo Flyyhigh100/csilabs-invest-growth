@@ -185,6 +185,7 @@ export type Database = {
           admin_notes: string | null
           amount: number
           approval_status: string | null
+          blockchain_tx_id: string | null
           created_at: string
           external_transaction_id: string | null
           high_value_approval_required: boolean | null
@@ -203,6 +204,7 @@ export type Database = {
           admin_notes?: string | null
           amount: number
           approval_status?: string | null
+          blockchain_tx_id?: string | null
           created_at?: string
           external_transaction_id?: string | null
           high_value_approval_required?: boolean | null
@@ -221,6 +223,7 @@ export type Database = {
           admin_notes?: string | null
           amount?: number
           approval_status?: string | null
+          blockchain_tx_id?: string | null
           created_at?: string
           external_transaction_id?: string | null
           high_value_approval_required?: boolean | null
