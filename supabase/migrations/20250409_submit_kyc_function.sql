@@ -1,6 +1,9 @@
 
--- Create a custom function to submit KYC verifications
--- This wraps the update in a transaction and ensures proper status changes
+-- This migration is no longer used as we're doing direct updates instead of RPC calls
+-- Keeping as a placeholder for reference
+
+-- Comment out the function as we're not using it anymore
+/*
 CREATE OR REPLACE FUNCTION public.submit_kyc_verification(user_id_param UUID, current_time TIMESTAMP WITH TIME ZONE)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -24,7 +27,6 @@ BEGIN
 
   -- If update affected any rows, return true
   IF FOUND THEN
-    -- Optional: Create a notification for admins (not implemented here)
     RETURN TRUE;
   ELSE
     RETURN FALSE;
@@ -36,3 +38,7 @@ COMMENT ON FUNCTION public.submit_kyc_verification IS 'Submit KYC verification w
 
 -- Grant execute permission for authenticated users
 GRANT EXECUTE ON FUNCTION public.submit_kyc_verification TO authenticated;
+*/
+
+-- Instead, make sure users have the appropriate permissions via RLS policies
+-- These policies were added in a separate migration

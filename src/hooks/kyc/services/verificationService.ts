@@ -74,24 +74,24 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     const currentTime = new Date().toISOString();
     console.log(`[${operationId}] ⏰ Setting submitted_at to:`, currentTime);
     
-    // Use transaction to ensure status update and timestamp are set atomically
-    // This is the critical section where the update was likely failing
+    // Use direct UPDATE instead of the RPC call
     try {
-      const { data, error } = await supabase.rpc('submit_kyc_verification', { 
-        user_id_param: userId,
-        current_time: currentTime
-      });
+      // Modified: Using direct update instead of RPC
+      const { error: updateError } = await supabase
+        .from('kyc_verifications')
+        .update({ 
+          status: 'pending', 
+          submitted_at: currentTime,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
       
-      if (error) {
-        throw error;
+      if (updateError) {
+        console.error(`[${operationId}] ❌ Error updating KYC status:`, updateError);
+        throw updateError;
       }
       
-      // Check if the RPC was successful
-      if (!data || data !== true) {
-        throw new Error('Status update failed in database procedure');
-      }
-      
-      console.log(`[${operationId}] ✅ KYC status updated successfully via RPC`);
+      console.log(`[${operationId}] ✅ KYC status updated successfully via direct update`);
       
       // Double-check the status was actually updated
       const { data: verifyData, error: verifyError } = await supabase
@@ -102,22 +102,22 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
       
       if (verifyError) {
         console.warn(`[${operationId}] ⚠️ Could not verify status update:`, verifyError);
-        // Continue anyway since the RPC reported success
-      }
-      
-      console.log(`[${operationId}] 🔍 Verification status after update:`, verifyData);
-      
-      if (verifyData && verifyData.status !== 'pending') {
-        console.error(`[${operationId}] ⚠️ Status may not have been updated properly. Current status:`, verifyData.status);
-        // Try a direct update as fallback
-        const { error: directUpdateError } = await supabase
-          .from('kyc_verifications')
-          .update({ status: 'pending', submitted_at: currentTime })
-          .eq('user_id', userId);
+        // Continue anyway since the update reported success
+      } else {
+        console.log(`[${operationId}] 🔍 Verification status after update:`, verifyData);
         
-        if (directUpdateError) {
-          console.error(`[${operationId}] ❌ Direct update fallback failed:`, directUpdateError);
-          throw directUpdateError;
+        if (verifyData && verifyData.status !== 'pending') {
+          console.error(`[${operationId}] ⚠️ Status may not have been updated properly. Current status:`, verifyData.status);
+          // Try a second direct update as fallback
+          const { error: retryError } = await supabase
+            .from('kyc_verifications')
+            .update({ status: 'pending', submitted_at: currentTime })
+            .eq('user_id', userId);
+          
+          if (retryError) {
+            console.error(`[${operationId}] ❌ Direct update fallback failed:`, retryError);
+            throw retryError;
+          }
         }
       }
     } catch (txError) {
