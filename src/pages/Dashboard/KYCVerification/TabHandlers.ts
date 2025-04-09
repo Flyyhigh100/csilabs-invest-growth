@@ -6,11 +6,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PersonalInfoValues } from '@/components/KYC/schema/personalInfoSchema';
 import { toast } from 'sonner';
 
-interface DebugInfo {
+export interface DebugInfo {
   currentStatus: string | null | undefined;
   lastAttempt?: string | null;
   submissionDebug?: any;
   attempts?: number;
+  errors?: any[];
+  apiResponses?: any[];
 }
 
 const TabHandlers = (
@@ -21,7 +23,9 @@ const TabHandlers = (
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [debugInfo, setDebugInfo] = useState<DebugInfo>({
     currentStatus: kycData?.status,
-    attempts: 0
+    attempts: 0,
+    errors: [],
+    apiResponses: []
   });
   
   const { 
@@ -62,7 +66,11 @@ const TabHandlers = (
       setDebugInfo(prev => ({
         ...prev,
         lastAttempt: new Date().toISOString(),
-        error: (error as Error).message
+        errors: [...(prev.errors || []), {
+          type: 'refresh_error',
+          message: (error as Error).message,
+          timestamp: new Date().toISOString()
+        }]
       }));
       
       toast.error("Failed to refresh status");
@@ -81,25 +89,48 @@ const TabHandlers = (
     try {
       console.log('Submitting personal info:', values);
       
-      // Create a KYC form data object with all required fields
+      // Create a KYC form data object with correct property names (snake_case)
       const kycFormData = {
-        first_name: values.firstName,
-        last_name: values.lastName,
-        date_of_birth: values.dateOfBirth,
+        first_name: values.first_name,
+        last_name: values.last_name,
+        date_of_birth: values.date_of_birth,
         nationality: values.nationality,
         address: values.address,
         city: values.city,
-        postal_code: values.postalCode,
+        postal_code: values.postal_code,
         country: values.country
       };
       
-      await savePersonalInfo.mutateAsync(kycFormData);
+      const response = await savePersonalInfo.mutateAsync(kycFormData);
+      
+      // Store response in debug info
+      setDebugInfo(prev => ({
+        ...prev,
+        apiResponses: [...(prev.apiResponses || []), {
+          type: 'personal_info_save',
+          data: response,
+          timestamp: new Date().toISOString()
+        }]
+      }));
+      
       toast.success('Personal information saved successfully');
       
       // Move to the next tab
       setActiveTab('documents');
     } catch (error) {
       console.error('Error saving personal info:', error);
+      
+      // Update debug info with error
+      setDebugInfo(prev => ({
+        ...prev,
+        errors: [...(prev.errors || []), {
+          type: 'personal_info_error',
+          message: (error as Error).message,
+          stack: (error as Error).stack,
+          timestamp: new Date().toISOString()
+        }]
+      }));
+      
       toast.error(`Failed to save personal information: ${(error as Error).message}`);
     } finally {
       setIsSubmitting(false);
@@ -115,13 +146,36 @@ const TabHandlers = (
 
     try {
       console.log(`Uploading ${type} document...`);
-      await uploadDocument.mutateAsync({ file, type });
+      const response = await uploadDocument.mutateAsync({ file, type });
+      
+      // Store response in debug info
+      setDebugInfo(prev => ({
+        ...prev,
+        apiResponses: [...(prev.apiResponses || []), {
+          type: `document_upload_${type}`,
+          data: response,
+          timestamp: new Date().toISOString()
+        }]
+      }));
+      
       toast.success(`${type.replace('_', ' ')} uploaded successfully`);
       
       // Refresh the data to show the updated document status
       refetch();
     } catch (error) {
       console.error(`Error uploading ${type}:`, error);
+      
+      // Update debug info with error
+      setDebugInfo(prev => ({
+        ...prev,
+        errors: [...(prev.errors || []), {
+          type: `document_upload_error_${type}`,
+          message: (error as Error).message,
+          stack: (error as Error).stack,
+          timestamp: new Date().toISOString()
+        }]
+      }));
+      
       toast.error(`Failed to upload ${type.replace('_', ' ')}: ${(error as Error).message}`);
     }
   };
@@ -148,7 +202,12 @@ const TabHandlers = (
       setDebugInfo(prev => ({
         ...prev,
         submissionDebug: result,
-        currentStatus: 'pending' // Optimistic update
+        currentStatus: 'pending', // Optimistic update
+        apiResponses: [...(prev.apiResponses || []), {
+          type: 'verification_submission',
+          data: result,
+          timestamp: new Date().toISOString()
+        }]
       }));
       
       console.log('Verification submission result:', result);
@@ -163,8 +222,12 @@ const TabHandlers = (
       // Update debug info with error
       setDebugInfo(prev => ({
         ...prev,
-        error: (error as Error).message,
-        stack: (error as Error).stack
+        errors: [...(prev.errors || []), {
+          type: 'verification_submission_error',
+          message: (error as Error).message,
+          stack: (error as Error).stack,
+          timestamp: new Date().toISOString()
+        }]
       }));
       
       toast.error(`Failed to submit verification: ${(error as Error).message}`);

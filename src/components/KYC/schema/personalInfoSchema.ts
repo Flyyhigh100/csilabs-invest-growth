@@ -13,6 +13,7 @@ export const countries = [
 ];
 
 // Schema for personal information form validation
+// Using snake_case to match backend/database field names
 export const personalInfoSchema = z.object({
   first_name: z.string().min(2, { message: "First name must be at least 2 characters" }),
   last_name: z.string().min(2, { message: "Last name must be at least 2 characters" }),
