@@ -72,9 +72,9 @@ export const useDocumentHandlers = (
 
     setIsSubmitting(true);
     
-    // Fixed: Directly set the value instead of using a function
+    // Fixed: Use a more direct approach to update debugInfo
     updateDebugInfo({
-      attempts: (updateDebugInfo as any).debugInfo?.attempts ? (updateDebugInfo as any).debugInfo.attempts + 1 : 1,
+      attempts: (prev: any) => (prev?.attempts ? prev.attempts + 1 : 1),
       lastAttempt: new Date().toISOString()
     });
     
@@ -85,7 +85,8 @@ export const useDocumentHandlers = (
       // Capture detailed debug information
       updateDebugInfo({
         submissionDebug: result,
-        currentStatus: 'pending', // Optimistic update
+        // FIXED: Treat status as an enum string, not a JSON field
+        currentStatus: 'pending', // Optimistic update with direct string value
         apiResponses: [{
           type: 'verification_submission',
           data: result,
