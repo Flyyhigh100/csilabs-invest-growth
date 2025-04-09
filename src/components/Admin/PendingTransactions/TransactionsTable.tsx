@@ -19,6 +19,22 @@ interface TransactionsTableProps {
 }
 
 const TransactionsTable = ({ transactions, onMarkAsSent }: TransactionsTableProps) => {
+  // Helper function to safely get user name from profiles
+  const getUserName = (tx: PendingTransactionWithProfile): string => {
+    if (!tx.profiles) return 'Unknown User';
+    
+    const firstName = tx.profiles.first_name || '';
+    const lastName = tx.profiles.last_name || '';
+    
+    if (!firstName && !lastName) return 'Unknown User';
+    return `${firstName} ${lastName}`.trim();
+  };
+  
+  // Helper function to safely get email from profiles
+  const getUserEmail = (tx: PendingTransactionWithProfile): string => {
+    return tx.profiles?.email || 'No email available';
+  };
+  
   return (
     <Table>
       <TableHeader>
@@ -39,9 +55,9 @@ const TransactionsTable = ({ transactions, onMarkAsSent }: TransactionsTableProp
             </TableCell>
             <TableCell>
               <div className="font-medium">
-                {tx.profiles ? `${tx.profiles.first_name || ''} ${tx.profiles.last_name || ''}` : 'Unknown User'}
+                {getUserName(tx)}
               </div>
-              <div className="text-xs text-gray-500">{tx.profiles?.email || 'No email available'}</div>
+              <div className="text-xs text-gray-500">{getUserEmail(tx)}</div>
             </TableCell>
             <TableCell>${tx.amount.toFixed(2)}</TableCell>
             <TableCell>
