@@ -62,12 +62,12 @@ export const submitKycVerification = async (userId: string): Promise<{ success: 
     
     const currentTime = new Date().toISOString();
     
-    // FIXED: Use the correct syntax for status update and avoid text ->> unknown error
-    // Use status value as a string instead of assuming it's a JSON field
+    // Simplified approach: Use the status directly as a string value
+    // No JSON operators, no casting - just plain value assignment
     const { data: updateData, error: updateError } = await supabase
       .from('kyc_verifications')
       .update({
-        status: 'pending',
+        status: 'pending',  // Simple string value
         submitted_at: currentTime,
         updated_at: currentTime
       })
