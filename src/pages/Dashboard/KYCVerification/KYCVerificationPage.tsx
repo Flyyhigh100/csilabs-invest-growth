@@ -9,6 +9,7 @@ import { useKycVerification } from '@/hooks/kyc/useKycVerification';
 import KYCTabs from './KYCTabs';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import KycStatusTester from './TestHelpers/KycStatusTester';
 
 const KYCVerificationPage = () => {
   const { user } = useAuth();
@@ -127,6 +128,12 @@ const KYCVerificationPage = () => {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Add the KYC status tester component */}
+      <KycStatusTester 
+        onRefresh={handleManualRefresh}
+        currentStatus={kycData?.status}
+      />
       
       <Card>
         <CardHeader className="pb-4">

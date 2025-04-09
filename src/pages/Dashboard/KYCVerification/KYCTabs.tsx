@@ -47,6 +47,7 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
       <TabsContent value="personal-info">
         <PersonalInfoTab 
           kycData={kycData} 
+          isPending={isPending}
           onSubmit={handlePersonalInfoSubmit}
           isSubmitting={isSubmitting}
           isDisabled={isPending}
