@@ -8,7 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useKycVerification } from '@/hooks/kyc/useKycVerification';
 import KYCTabs from './KYCTabs';
 import { Button } from '@/components/ui/button';
-import KycStatusTester from './TestHelpers/KycStatusTester';
 
 const KYCVerificationPage = () => {
   const { user } = useAuth();
@@ -83,14 +82,6 @@ const KYCVerificationPage = () => {
           Refresh Status
         </Button>
       </div>
-      
-      {/* KYC status tester is only included in development environment */}
-      {process.env.NODE_ENV === 'development' && (
-        <KycStatusTester 
-          onRefresh={handleManualRefresh}
-          currentStatus={kycData?.status}
-        />
-      )}
       
       <Card>
         <CardHeader className="pb-4">
