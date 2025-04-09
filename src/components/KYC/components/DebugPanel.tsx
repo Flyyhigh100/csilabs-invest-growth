@@ -1,17 +1,16 @@
 
 import React from 'react';
-import { Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RefreshCcw } from 'lucide-react';
 
 interface DebugPanelProps {
   liveStatus: string | null;
   lastRefresh: string | null;
   isPending: boolean;
   isSubmitting: boolean;
-  submissionStatus: 'idle' | 'submitting' | 'success' | 'error';
-  isAttemptingSubmit: boolean;
+  isRefreshing?: boolean;
+  onRefresh: () => void;
   debugInfo?: any;
-  onRefresh: () => Promise<void>;
 }
 
 const DebugPanel: React.FC<DebugPanelProps> = ({
@@ -19,46 +18,87 @@ const DebugPanel: React.FC<DebugPanelProps> = ({
   lastRefresh,
   isPending,
   isSubmitting,
-  submissionStatus,
-  isAttemptingSubmit,
-  debugInfo,
-  onRefresh
+  isRefreshing,
+  onRefresh,
+  debugInfo
 }) => {
+  // Format date to be more readable
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Not available';
+    try {
+      return new Date(dateString).toLocaleTimeString();
+    } catch (e) {
+      return dateString;
+    }
+  };
+  
   return (
-    <div className="bg-gray-100 border border-gray-300 rounded-md p-4 mb-4">
+    <div className="rounded-md bg-gray-50 p-4">
       <div className="flex items-center mb-2">
-        <Bug className="h-5 w-5 text-gray-700 mr-2" />
-        <h4 className="font-medium text-gray-800">Debug Information</h4>
+        <span className="inline-block w-5 h-5 mr-2">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500">
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+            <path d="M12 18v.01" />
+            <path d="M12 6v8" />
+          </svg>
+        </span>
+        <h3 className="text-lg font-medium">Debug Information</h3>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
-        <div><strong>Live Status:</strong> {liveStatus || 'unknown'}</div>
-        <div><strong>Last Refreshed:</strong> {lastRefresh ? new Date(lastRefresh).toLocaleTimeString() : 'never'}</div>
-        <div><strong>Is Pending:</strong> {isPending ? 'true' : 'false'}</div>
-        <div><strong>Is Submitting:</strong> {isSubmitting ? 'true' : 'false'}</div>
-        <div><strong>Local Status:</strong> {submissionStatus}</div>
-        <div><strong>Attempting Submit:</strong> {isAttemptingSubmit ? 'true' : 'false'}</div>
-        {debugInfo && (
-          <>
-            <div className="col-span-1 sm:col-span-2 pt-2 border-t border-gray-300">
-              <strong>Additional Debug Info:</strong>
-            </div>
-            <div><strong>Attempts:</strong> {debugInfo.attempts || 0}</div>
-            <div><strong>Last Attempt:</strong> {debugInfo.lastAttempt ? new Date(debugInfo.lastAttempt).toLocaleTimeString() : 'none'}</div>
-            <div className="col-span-1 sm:col-span-2">
-              <strong>Debug Status:</strong> {debugInfo.currentStatus || 'none'}
-            </div>
-          </>
-        )}
+      
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <p className="text-sm text-gray-500">Live Status:</p>
+          <p className="font-medium">{liveStatus || 'not_started'}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">Last Refreshed:</p>
+          <p className="font-medium">{formatDate(lastRefresh)}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">Is Pending:</p>
+          <p className="font-medium">{isPending ? 'true' : 'false'}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">Is Submitting:</p>
+          <p className="font-medium">{isSubmitting ? 'true' : 'false'}</p>
+        </div>
       </div>
-      <Button 
-        type="button" 
-        variant="outline" 
-        size="sm"
-        className="mt-3"
-        onClick={onRefresh}
-      >
-        Refresh Status
-      </Button>
+      
+      {debugInfo && (
+        <>
+          <hr className="my-3 border-gray-200" />
+          <div className="mt-4">
+            <h4 className="text-sm font-medium mb-2">Additional Debug Info:</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-500">Attempts:</p>
+                <p className="font-medium">{debugInfo.attempts || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Last Attempt:</p>
+                <p className="font-medium">{formatDate(debugInfo.lastAttempt)}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-sm text-gray-500">Debug Status:</p>
+                <p className="font-medium">{debugInfo.currentStatus || 'N/A'}</p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+      
+      <div className="mt-4">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          className="w-full"
+        >
+          <RefreshCcw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          Refresh Status
+        </Button>
+      </div>
     </div>
   );
 };

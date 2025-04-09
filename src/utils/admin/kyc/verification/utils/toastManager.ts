@@ -17,12 +17,17 @@ export const dismissToast = (id: string) => {
 
 // Show a success toast
 export const showSuccessToast = (message: string) => {
-  toast.success(message);
+  toast.success(message, { duration: 5000 });
 };
 
 // Show an error toast
 export const showErrorToast = (message: string) => {
-  toast.error(message);
+  toast.error(message, { duration: 5000 });
+};
+
+// Show an info toast
+export const showInfoToast = (message: string) => {
+  toast.info(message, { duration: 5000 });
 };
 
 // Clear all existing toasts

@@ -40,5 +40,11 @@ COMMENT ON FUNCTION public.submit_kyc_verification IS 'Submit KYC verification w
 GRANT EXECUTE ON FUNCTION public.submit_kyc_verification TO authenticated;
 */
 
--- Instead, make sure users have the appropriate permissions via RLS policies
--- These policies were added in a separate migration
+-- Enable replica identity for the kyc_verifications table to support realtime
+ALTER TABLE public.kyc_verifications REPLICA IDENTITY FULL;
+
+-- Add the kyc_verifications table to the realtime publication
+INSERT INTO supabase_realtime.subscription (publication, name)
+VALUES ('supabase_realtime', 'kyc_verifications') 
+ON CONFLICT DO NOTHING;
+

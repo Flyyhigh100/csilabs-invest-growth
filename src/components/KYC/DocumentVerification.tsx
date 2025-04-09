@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -10,6 +9,9 @@ import ClarificationMessage from './components/ClarificationMessage';
 import DocumentsSection from './components/DocumentsSection';
 import SubmissionControls from './components/SubmissionControls';
 import SuccessMessage from './components/SuccessMessage';
+import { Button } from '@/components/ui/button';
+import { RefreshCcw } from 'lucide-react';
+import { showInfoToast } from '@/utils/admin/kyc/verification/utils/toastManager';
 
 interface DocumentVerificationProps {
   hasIdFront: boolean;
@@ -20,6 +22,7 @@ interface DocumentVerificationProps {
   onBack: () => void;
   onSubmit: () => Promise<void>;
   onUpload: (file: File, type: 'id_front' | 'id_back' | 'selfie') => Promise<void>;
+  onManualRefresh?: () => Promise<void>; // New prop for manual refresh
   clarificationMessage?: string | null;
   debugInfo?: any;
 }
@@ -33,27 +36,14 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   onBack,
   onSubmit,
   onUpload,
+  onManualRefresh,
   clarificationMessage,
   debugInfo
 }) => {
   const { user } = useAuth();
-  // Local state to track submission attempts and status
-  const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
-  const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [liveStatus, setLiveStatus] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<string | null>(null);
-  const [isButtonLocked, setIsButtonLocked] = useState(false);
-  const [submissionAttemptTime, setSubmissionAttemptTime] = useState<number | null>(null);
-
-  // Reset submission status when component mounts or isPending changes
-  useEffect(() => {
-    if (isPending) {
-      setSubmissionStatus('success'); // If we're already pending, we've successfully submitted
-    } else {
-      setSubmissionStatus('idle');
-      setIsAttemptingSubmit(false);
-    }
-  }, [isPending]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Live status checking
   useEffect(() => {
@@ -71,18 +61,9 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
           setLiveStatus(data.status || null);
           setLastRefresh(new Date().toISOString());
           
-          // If status has changed to pending, update our local state
-          if (data.status === 'pending' || data.submitted_at) {
-            setSubmissionStatus('success');
-            setIsAttemptingSubmit(false);
-            setIsButtonLocked(false);
-            
+          // If status has changed to pending, show a message
+          if (data.status === 'pending') {
             console.log("🔄 Live status check found pending status:", data);
-            
-            // If this happened during a submission attempt, show success message
-            if (submissionAttemptTime && Date.now() - submissionAttemptTime < 60000) {
-              toast.success("Verification submitted successfully!");
-            }
           }
         }
       } catch (error) {
@@ -93,121 +74,42 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     // Check immediately
     checkLiveStatus();
     
-    // Set up interval - check every 3 seconds
-    const interval = setInterval(checkLiveStatus, 3000);
+    // Set up interval - check every 5 seconds
+    const interval = setInterval(checkLiveStatus, 5000);
     
     return () => clearInterval(interval);
-  }, [user?.id, submissionAttemptTime]);
-
-  const handleSubmitClick = async () => {
-    // Prevent multiple submissions
-    if (isButtonLocked) {
-      toast.info("Submission in progress, please wait...");
-      return;
-    }
-    
-    // Check for all required documents
-    if (!hasIdFront || !hasIdBack || !hasSelfie) {
-      toast.error("Please upload all required documents before submitting");
-      return;
-    }
-    
-    // Lock the button to prevent multiple clicks
-    setIsButtonLocked(true);
-    setSubmissionAttemptTime(Date.now());
-    
-    // Debug - log the state at button click
-    console.log("🎯 Submit button clicked, starting submission process...");
-    console.log("📋 Current document states:", { hasIdFront, hasIdBack, hasSelfie });
-    
-    // Set local state to show immediate feedback
-    setIsAttemptingSubmit(true);
-    setSubmissionStatus('submitting');
-    
-    try {
-      // Clear any existing toasts
-      toast.dismiss();
-      toast.loading("Submitting verification...");
-      
-      console.log("📞 Calling onSubmit function");
-      await onSubmit();
-      
-      // We don't immediately set success here anymore - we'll wait for the live status check
-      // to confirm the database update was successful
-      
-      // Set a timeout to check if submission succeeded
-      setTimeout(async () => {
-        if (submissionStatus === 'submitting' && user?.id) {
-          // Do a manual check if the status update worked
-          const { data } = await supabase
-            .from('kyc_verifications')
-            .select('status, submitted_at')
-            .eq('user_id', user.id)
-            .maybeSingle();
-            
-          console.log("⏱️ Timeout check for submission result:", data);
-          
-          if (data?.status === 'pending' || data?.submitted_at) {
-            // Database update was successful
-            setSubmissionStatus('success');
-            toast.dismiss();
-            toast.success("Verification submitted successfully!");
-          } else {
-            // Database update failed
-            setSubmissionStatus('error');
-            toast.dismiss();
-            toast.error("Submission may have failed. Please check status or try again.");
-            // Unlock button after delay
-            setTimeout(() => setIsButtonLocked(false), 5000);
-          }
-        }
-      }, 5000); // Check after 5 seconds
-      
-    } catch (error) {
-      console.error("❌ Error in submission:", error);
-      setSubmissionStatus('error');
-      toast.dismiss();
-      toast.error("Failed to submit verification. Please try again.");
-      
-      // Reset attempting submit state so user can try again
-      setIsAttemptingSubmit(false);
-      setIsButtonLocked(false);
-    }
-  };
+  }, [user?.id]);
 
   const handleManualRefresh = async () => {
+    if (isRefreshing) {
+      showInfoToast('Already refreshing, please wait...');
+      return;
+    }
+    
+    setIsRefreshing(true);
     try {
-      toast.info("Manually refreshing status...");
-      
-      if (!user?.id) {
-        toast.error("User not authenticated");
-        return;
-      }
-      
-      const { data } = await supabase
-        .from('kyc_verifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-        
-      console.log("🔍 Manual refresh - KYC data:", data);
-      setLiveStatus(data?.status || null);
-      setLastRefresh(new Date().toISOString());
-      toast.success("Status refreshed");
-      
-      // If status is pending, update submission status
-      if (data?.status === 'pending' || data?.submitted_at) {
-        setSubmissionStatus('success');
+      if (onManualRefresh) {
+        await onManualRefresh();
+      } else {
+        // Fallback if prop not provided
+        if (!user?.id) return;
+        const { data } = await supabase
+          .from('kyc_verifications')
+          .select('status')
+          .eq('user_id', user.id)
+          .single();
+        setLiveStatus(data?.status || null);
+        setLastRefresh(new Date().toISOString());
       }
     } catch (error) {
-      console.error("Failed to refresh status:", error);
-      toast.error("Failed to refresh status");
+      console.error('Error in manual refresh:', error);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
-  // Combined submission state for UI feedback
-  const showSubmitSpinner = isSubmitting || (isAttemptingSubmit && submissionStatus === 'submitting');
-  const isButtonDisabled = !hasIdFront || !hasIdBack || !hasSelfie || showSubmitSpinner || isPending || isButtonLocked;
+  // Check if all required documents are uploaded
+  const allDocumentsUploaded = hasIdFront && hasIdBack && hasSelfie;
 
   return (
     <div className="space-y-6">
@@ -218,10 +120,9 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
         lastRefresh={lastRefresh}
         isPending={isPending}
         isSubmitting={isSubmitting}
-        submissionStatus={submissionStatus}
-        isAttemptingSubmit={isAttemptingSubmit}
-        debugInfo={debugInfo}
         onRefresh={handleManualRefresh}
+        isRefreshing={isRefreshing}
+        debugInfo={debugInfo}
       />
       
       <DocumentsSection 
@@ -232,15 +133,29 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
         onUpload={onUpload}
       />
       
+      {/* Manual refresh button */}
+      <div className="flex justify-center">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={handleManualRefresh}
+          disabled={isRefreshing}
+          className="flex items-center gap-2"
+        >
+          <RefreshCcw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh Status'}
+        </Button>
+      </div>
+      
       <SubmissionControls 
-        isButtonDisabled={isButtonDisabled}
-        isSubmitting={showSubmitSpinner}
-        submissionStatus={submissionStatus}
+        isButtonDisabled={!allDocumentsUploaded || isSubmitting || isPending}
+        isSubmitting={isSubmitting}
+        submissionStatus={isPending ? 'success' : isSubmitting ? 'submitting' : 'idle'}
         onBack={onBack}
-        onSubmit={handleSubmitClick}
+        onSubmit={onSubmit}
       />
       
-      <SuccessMessage show={submissionStatus === 'success'} />
+      <SuccessMessage show={liveStatus === 'pending' || isPending} />
     </div>
   );
 };
