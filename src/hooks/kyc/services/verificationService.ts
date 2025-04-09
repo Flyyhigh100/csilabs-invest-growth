@@ -59,12 +59,13 @@ export const submitKycVerification = async (userId: string): Promise<{ success: 
     const currentTime = new Date().toISOString();
     
     // Direct update - simpler approach
+    // FIXED: Removed the JSON path operator that was causing the error
     const { data: updateData, error: updateError } = await supabase
       .from('kyc_verifications')
       .update({ 
         status: 'pending', 
         submitted_at: currentTime,
-        updated_at: new Date().toISOString()
+        updated_at: currentTime
       })
       .eq('user_id', userId)
       .select();
@@ -73,7 +74,13 @@ export const submitKycVerification = async (userId: string): Promise<{ success: 
     debugInfo.supabaseResponses.push({
       type: 'update',
       data: updateData,
-      error: updateError ? { message: updateError.message, code: updateError.code, details: updateError.details } : null
+      error: updateError ? { message: updateError.message, code: updateError.code, details: updateError.details } : null,
+      query: {
+        table: 'kyc_verifications',
+        action: 'update',
+        values: { status: 'pending', submitted_at: currentTime, updated_at: currentTime },
+        filter: { user_id: userId }
+      }
     });
     
     if (updateError) {
@@ -100,7 +107,13 @@ export const submitKycVerification = async (userId: string): Promise<{ success: 
     debugInfo.supabaseResponses.push({
       type: 'verify',
       data: verifyData,
-      error: verifyError ? { message: verifyError.message, code: verifyError.code, details: verifyError.details } : null
+      error: verifyError ? { message: verifyError.message, code: verifyError.code, details: verifyError.details } : null,
+      query: {
+        table: 'kyc_verifications',
+        action: 'select',
+        fields: 'status, submitted_at, id',
+        filter: { user_id: userId }
+      }
     });
     
     if (verifyError) {
@@ -135,7 +148,17 @@ export const submitKycVerification = async (userId: string): Promise<{ success: 
       debugInfo.supabaseResponses.push({
         type: 'notification',
         data: notifyData,
-        error: notifyError ? { message: notifyError.message, code: notifyError.code, details: notifyError.details } : null
+        error: notifyError ? { message: notifyError.message, code: notifyError.code, details: notifyError.details } : null,
+        query: {
+          table: 'notifications',
+          action: 'insert',
+          values: {
+            user_id: userId,
+            title: 'KYC Verification Submitted',
+            message: 'Your identity verification has been submitted and is under review.',
+            type: 'kyc'
+          }
+        }
       });
       
       if (notifyError) {

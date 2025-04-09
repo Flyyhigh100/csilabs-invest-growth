@@ -13,6 +13,12 @@ export interface DebugInfo {
   attempts?: number;
   errors?: any[];
   apiResponses?: any[];
+  lastError?: {
+    code?: string;
+    message?: string;
+    details?: string;
+    hint?: string;
+  };
 }
 
 const TabHandlers = (
@@ -128,7 +134,13 @@ const TabHandlers = (
           message: (error as Error).message,
           stack: (error as Error).stack,
           timestamp: new Date().toISOString()
-        }]
+        }],
+        lastError: {
+          message: (error as any).message,
+          code: (error as any).code,
+          details: (error as any).details,
+          hint: (error as any).hint
+        }
       }));
       
       toast.error(`Failed to save personal information: ${(error as Error).message}`);
@@ -173,7 +185,13 @@ const TabHandlers = (
           message: (error as Error).message,
           stack: (error as Error).stack,
           timestamp: new Date().toISOString()
-        }]
+        }],
+        lastError: {
+          message: (error as any).message,
+          code: (error as any).code,
+          details: (error as any).details,
+          hint: (error as any).hint
+        }
       }));
       
       toast.error(`Failed to upload ${type.replace('_', ' ')}: ${(error as Error).message}`);
@@ -212,10 +230,19 @@ const TabHandlers = (
       
       console.log('Verification submission result:', result);
       
+      if (!result.success) {
+        throw new Error(result.debugInfo?.errors?.[0]?.message || 'Verification submission failed');
+      }
+      
       toast.success('Verification submitted successfully!');
       
       // Move to the status tab
       setActiveTab('status');
+      
+      // Force a refetch to get the latest data
+      setTimeout(() => {
+        refetch();
+      }, 500);
     } catch (error) {
       console.error('Error submitting verification:', error);
       
@@ -227,7 +254,13 @@ const TabHandlers = (
           message: (error as Error).message,
           stack: (error as Error).stack,
           timestamp: new Date().toISOString()
-        }]
+        }],
+        lastError: {
+          message: (error as any).message,
+          code: (error as any).code,
+          details: (error as any).details,
+          hint: (error as any).hint
+        }
       }));
       
       toast.error(`Failed to submit verification: ${(error as Error).message}`);
