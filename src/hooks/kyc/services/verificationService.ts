@@ -58,8 +58,7 @@ export const submitKycVerification = async (userId: string): Promise<{ success: 
     
     const currentTime = new Date().toISOString();
     
-    // Direct update - simpler approach
-    // FIXED: Removed the JSON path operator that was causing the error
+    // Direct update with fixed query - no JSON path operators
     const { data: updateData, error: updateError } = await supabase
       .from('kyc_verifications')
       .update({ 
