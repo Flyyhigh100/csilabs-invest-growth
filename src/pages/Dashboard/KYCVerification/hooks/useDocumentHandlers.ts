@@ -72,9 +72,14 @@ export const useDocumentHandlers = (
 
     setIsSubmitting(true);
     
-    // Fixed: Use a more direct approach to update debugInfo
+    // FIXED: Instead of using a function to update attempts, get current value first
+    // and then set the new value directly
+    const currentAttempts = localStorage.getItem('kyc_submission_attempts');
+    const attemptCount = currentAttempts ? parseInt(currentAttempts, 10) + 1 : 1;
+    localStorage.setItem('kyc_submission_attempts', attemptCount.toString());
+    
     updateDebugInfo({
-      attempts: (prev: any) => (prev?.attempts ? prev.attempts + 1 : 1),
+      attempts: attemptCount, // Direct number assignment
       lastAttempt: new Date().toISOString()
     });
     
@@ -85,7 +90,7 @@ export const useDocumentHandlers = (
       // Capture detailed debug information
       updateDebugInfo({
         submissionDebug: result,
-        // FIXED: Treat status as an enum string, not a JSON field
+        // Treat status as an enum string, not a JSON field
         currentStatus: 'pending', // Optimistic update with direct string value
         apiResponses: [{
           type: 'verification_submission',
