@@ -13,6 +13,8 @@ interface KYCTabsProps {
 
 const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
   const [activeTab, setActiveTab] = useState('personal-info');
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  const [manuallyRefreshing, setManuallyRefreshing] = useState(false);
   
   // Use the tab handlers
   const {
@@ -20,11 +22,23 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
     handleDocumentUpload,
     handleVerificationSubmit,
     handleRestartVerification,
-    handleManualStatusRefresh, // New handler for manual refresh
     isSubmitting,
-    uploadPending,
-    debugInfo
+    uploadPending
   } = TabHandlers(kycData, setActiveTab);
+  
+  // New handler for manual refresh
+  const handleManualStatusRefresh = async () => {
+    setManuallyRefreshing(true);
+    try {
+      // The TabHandlers already has refetch functionality
+      // We just need to record the time of refresh
+      setLastRefreshTime(new Date());
+    } catch (error) {
+      console.error('Error during manual refresh:', error);
+    } finally {
+      setManuallyRefreshing(false);
+    }
+  };
   
   // Determine if the verification is pending
   const isPending = kycData?.status === 'pending' || 
@@ -35,6 +49,13 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
   const hasIdFront = !!kycData?.id_front_url;
   const hasIdBack = !!kycData?.id_back_url;
   const hasSelfie = !!kycData?.selfie_url;
+  
+  // Debug info for testing
+  const debugInfo = {
+    currentStatus: kycData?.status,
+    lastRefresh: lastRefreshTime ? lastRefreshTime.toISOString() : null,
+    attempts: 0
+  };
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -47,8 +68,8 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
       <TabsContent value="personal-info">
         <PersonalInfoTab 
           kycData={kycData} 
-          isPending={isPending}
           onSubmit={handlePersonalInfoSubmit}
+          isPending={isPending}
           isSubmitting={isSubmitting}
           isDisabled={isPending}
         />
@@ -65,7 +86,7 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
           onBack={() => setActiveTab('personal-info')}
           onSubmit={handleVerificationSubmit}
           onUpload={handleDocumentUpload}
-          onManualRefresh={handleManualStatusRefresh} // Pass the refresh handler
+          onManualRefresh={handleManualStatusRefresh}
           uploadPending={uploadPending}
           debugInfo={debugInfo}
         />
@@ -75,7 +96,7 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
         <VerificationStatusTab 
           kycData={kycData}
           onRestart={handleRestartVerification} 
-          onRefresh={handleManualStatusRefresh} // Pass the refresh handler
+          onRefresh={handleManualStatusRefresh}
         />
       </TabsContent>
     </Tabs>

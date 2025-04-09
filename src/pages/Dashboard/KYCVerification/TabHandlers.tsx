@@ -18,6 +18,18 @@ export const TabHandlers = (
     submitVerification, 
     refetch 
   } = useKycVerification();
+  
+  // Handler for manual status refresh
+  const handleManualStatusRefresh = async () => {
+    try {
+      toast.info("Manually refreshing KYC status...");
+      await refetch();
+      toast.success("KYC status refreshed");
+    } catch (error) {
+      console.error("Error refreshing KYC status:", error);
+      toast.error("Failed to refresh status");
+    }
+  };
 
   // Handler for personal info form submission
   const handlePersonalInfoSubmit = async (values: PersonalInfoValues) => {
@@ -98,8 +110,12 @@ export const TabHandlers = (
     handleDocumentUpload,
     handleVerificationSubmit,
     handleRestartVerification,
+    handleManualStatusRefresh,
     isSubmitting,
-    uploadPending: uploadDocument.isPending
+    uploadPending: uploadDocument.isPending,
+    debugInfo: {
+      currentStatus: kycData?.status
+    }
   };
 };
 

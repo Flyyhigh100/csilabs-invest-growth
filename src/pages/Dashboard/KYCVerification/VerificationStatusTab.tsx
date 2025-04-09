@@ -1,61 +1,69 @@
 
 import React from 'react';
-import { KycVerificationData } from '@/hooks/kyc/types';
-import VerificationStatus from '@/components/KYC/VerificationStatus'; // Fixed import
 import { Button } from '@/components/ui/button';
-import { RefreshCcw } from 'lucide-react';
+import { RefreshCw, AlertTriangle } from 'lucide-react';
+import VerificationStatus from '@/components/KYC/VerificationStatus';
+import { KycVerificationData } from '@/hooks/kyc/types';
 
 interface VerificationStatusTabProps {
   kycData: KycVerificationData | null;
   onRestart: () => void;
-  onRefresh?: () => Promise<void>; // Add refresh handler
+  onRefresh: () => Promise<void>;
 }
 
 const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({ 
-  kycData, 
+  kycData,
   onRestart,
   onRefresh 
 }) => {
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
-  
-  const handleRefresh = async () => {
-    if (!onRefresh) return;
-    setIsRefreshing(true);
-    try {
-      await onRefresh();
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+  const isRejected = kycData?.status === 'rejected';
+  const needsClarification = kycData?.status === 'needs_clarification';
   
   return (
-    <div className="space-y-6">
-      <VerificationStatus 
-        status={kycData?.status || 'not_started'}
-        rejectionReason={kycData?.rejection_reason}
-        clarificationMessage={kycData?.clarification_message}
-        onStartVerification={onRestart}
-      />
-      
-      <div className="flex justify-between gap-4">
-        {kycData?.status === 'rejected' && (
-          <Button onClick={onRestart}>
-            Restart Verification
-          </Button>
-        )}
-        
-        {onRefresh && (
-          <Button 
-            variant="outline" 
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="ml-auto"
-          >
-            <RefreshCcw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh Status'}
-          </Button>
-        )}
+    <div className="space-y-6 py-2">
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-medium">Verification Status</h2>
+        <Button variant="outline" size="sm" onClick={onRefresh}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh Status
+        </Button>
       </div>
+      
+      <VerificationStatus status={kycData?.status || 'not_started'} />
+      
+      {isRejected && kycData?.rejection_reason && (
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+          <div className="flex">
+            <AlertTriangle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0" />
+            <div>
+              <h3 className="font-medium text-red-800">Verification Rejected</h3>
+              <p className="text-sm text-red-700 mt-1">
+                Reason: {kycData.rejection_reason}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {needsClarification && kycData?.clarification_message && (
+        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="flex">
+            <AlertTriangle className="h-5 w-5 text-blue-500 mr-2 flex-shrink-0" />
+            <div>
+              <h3 className="font-medium text-blue-800">Additional Information Needed</h3>
+              <p className="text-sm text-blue-700 mt-1">
+                {kycData.clarification_message}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {(isRejected || needsClarification) && (
+        <Button onClick={onRestart} className="mt-6">
+          Restart Verification Process
+        </Button>
+      )}
     </div>
   );
 };

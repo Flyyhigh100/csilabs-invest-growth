@@ -21,11 +21,11 @@ export const insertTestKycVerification = async (userId: string): Promise<boolean
     }
     
     if (existing) {
-      // Update the existing record - using string literal for status
+      // Update the existing record using string value directly instead of SQL operators
       const { error } = await supabase
         .from('kyc_verifications')
         .update({
-          status: "pending",
+          status: 'pending',
           first_name: 'Test',
           last_name: 'User',
           date_of_birth: '1990-01-01',
@@ -45,12 +45,12 @@ export const insertTestKycVerification = async (userId: string): Promise<boolean
       
       console.log('Updated test KYC verification:', existing.id);
     } else {
-      // Insert new record - using string literal for status
+      // Insert new record using string value directly instead of SQL operators
       const { error } = await supabase
         .from('kyc_verifications')
         .insert({
           user_id: userId,
-          status: "pending",
+          status: 'pending',
           first_name: 'Test',
           last_name: 'User',
           date_of_birth: '1990-01-01',

@@ -100,9 +100,10 @@ const KycStatusTester: React.FC<KycStatusTesterProps> = ({
               <div className="w-3 h-3 rounded-full mr-2" 
                 style={{ 
                   backgroundColor: 
-                    testStatus === 'idle' ? 'gray' : 
-                    testStatus === 'success' ? 'green' : 
-                    testStatus === 'error' ? 'red' : 'blue' 
+                    currentStatus === 'not_started' ? 'red' : 
+                    currentStatus === 'pending' ? 'orange' :
+                    currentStatus === 'approved' ? 'green' :
+                    currentStatus === 'rejected' ? 'red' : 'gray'
                 }}></div>
               <span className="text-sm">Current KYC Status: <strong>{currentStatus || 'none'}</strong></span>
             </div>
