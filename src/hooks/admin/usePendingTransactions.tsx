@@ -19,7 +19,7 @@ export const usePendingTransactions = () => {
         .from('transactions')
         .select(`
           *,
-          profiles:user_id (
+          profiles:profiles!user_id(
             email,
             first_name,
             last_name
