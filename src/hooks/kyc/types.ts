@@ -1,4 +1,3 @@
-
 import { Database } from '@/integrations/supabase/types';
 
 // Modified to be a string type rather than using the enum directly
@@ -28,6 +27,7 @@ export interface KycVerificationData {
   updated_at: string;
 }
 
+// Add additional type for KYC Form Data
 export interface KycFormData {
   first_name: string;
   last_name: string;

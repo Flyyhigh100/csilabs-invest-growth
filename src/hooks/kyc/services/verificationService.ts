@@ -10,11 +10,14 @@ import {
 } from '@/utils/admin/kyc/verification/utils/toastManager';
 
 // Submit KYC verification for review
-export const submitKycVerification = async (userId: string): Promise<boolean> => {
+export const submitKycVerification = async (userId: string): Promise<{ success: boolean; debugInfo: any }> => {
   if (!userId) {
     console.error('User ID is required for KYC submission');
     showErrorToast('Authentication error. Please log in again.');
-    return false;
+    return { 
+      success: false, 
+      debugInfo: { error: 'User ID required', userId }
+    };
   }
   
   // Define a unique ID for this operation - helps with debugging
@@ -25,7 +28,10 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
   if (isKycLocked(userId)) {
     console.warn(`[${operationId}] ⚠️ KYC submission already in progress for this user`);
     showErrorToast('Submission already in progress, please wait...');
-    return false;
+    return { 
+      success: false, 
+      debugInfo: { error: 'Submission locked', userId }
+    };
   }
   
   // Set lock to prevent multiple submissions
@@ -35,6 +41,16 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
   const toastId = 'kyc-submission-toast';
   showLoadingToast('Submitting verification...', toastId);
   
+  // Create a debug info object to capture all relevant data
+  const debugInfo: any = {
+    operation: 'submitKycVerification',
+    operationId,
+    userId,
+    timestamp: new Date().toISOString(),
+    supabaseResponses: [],
+    errors: []
+  };
+  
   try {
     // SIMPLIFIED APPROACH:
     // 1. First update the status to "pending" directly in Supabase
@@ -43,17 +59,31 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     const currentTime = new Date().toISOString();
     
     // Direct update - simpler approach
-    const { error: updateError } = await supabase
+    const { data: updateData, error: updateError } = await supabase
       .from('kyc_verifications')
       .update({ 
         status: 'pending', 
         submitted_at: currentTime,
         updated_at: new Date().toISOString()
       })
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .select();
+    
+    // Add response to debug info
+    debugInfo.supabaseResponses.push({
+      type: 'update',
+      data: updateData,
+      error: updateError ? { message: updateError.message, code: updateError.code, details: updateError.details } : null
+    });
     
     if (updateError) {
       console.error(`[${operationId}] ❌ Error updating KYC status:`, updateError);
+      debugInfo.errors.push({
+        stage: 'update',
+        message: updateError.message,
+        code: updateError.code,
+        details: updateError.details
+      });
       throw updateError;
     }
     
@@ -62,32 +92,70 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     // Verify the update was successful
     const { data: verifyData, error: verifyError } = await supabase
       .from('kyc_verifications')
-      .select('status, submitted_at')
+      .select('status, submitted_at, id')
       .eq('user_id', userId)
       .single();
     
+    // Add verify response to debug info
+    debugInfo.supabaseResponses.push({
+      type: 'verify',
+      data: verifyData,
+      error: verifyError ? { message: verifyError.message, code: verifyError.code, details: verifyError.details } : null
+    });
+    
     if (verifyError) {
       console.warn(`[${operationId}] ⚠️ Could not verify status update:`, verifyError);
+      debugInfo.errors.push({
+        stage: 'verify',
+        message: verifyError.message,
+        code: verifyError.code,
+        details: verifyError.details
+      });
     } else {
       console.log(`[${operationId}] 📊 Verified status after update:`, verifyData);
+      debugInfo.kycStatus = verifyData?.status;
+      debugInfo.kycId = verifyData?.id;
     }
     
     // 2. Create notification for the user
     try {
       console.log(`[${operationId}] Step 2: Creating notification`);
       
-      await supabase
+      const { data: notifyData, error: notifyError } = await supabase
         .from('notifications')
         .insert({
           user_id: userId,
           title: 'KYC Verification Submitted',
           message: 'Your identity verification has been submitted and is under review.',
           type: 'kyc'
-        });
+        })
+        .select();
       
-      console.log(`[${operationId}] ✅ Notification created successfully`);
+      // Add notification response to debug info
+      debugInfo.supabaseResponses.push({
+        type: 'notification',
+        data: notifyData,
+        error: notifyError ? { message: notifyError.message, code: notifyError.code, details: notifyError.details } : null
+      });
+      
+      if (notifyError) {
+        console.warn(`[${operationId}] ⚠️ Error creating notification:`, notifyError);
+        debugInfo.errors.push({
+          stage: 'notification',
+          message: notifyError.message,
+          code: notifyError.code,
+          details: notifyError.details
+        });
+      } else {
+        console.log(`[${operationId}] ✅ Notification created successfully`);
+      }
     } catch (notifError) {
       console.error(`[${operationId}] ⚠️ Exception in notification creation:`, notifError);
+      debugInfo.errors.push({
+        stage: 'notification',
+        message: (notifError as Error).message,
+        stack: (notifError as Error).stack
+      });
       // Continue as notification is not critical
     }
     
@@ -98,12 +166,24 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
     
     // Release lock with longer delay to prevent immediate resubmission
     releaseKycLock(userId, 5000);
-    return true;
+    debugInfo.success = true;
+    return { success: true, debugInfo };
   } catch (error) {
     console.error(`[${operationId}] ❌ Exception in submitKycVerification:`, error);
     dismissToast(toastId);
-    showErrorToast(`Submission error: ${(error as Error).message || 'Unknown error occurred'}`);
+    
+    const errorMessage = (error as Error).message || 'Unknown error occurred';
+    showErrorToast(`Submission error: ${errorMessage}`);
+    
+    // Add final error to debug info
+    debugInfo.errors.push({
+      stage: 'final',
+      message: errorMessage,
+      stack: (error as Error).stack
+    });
+    debugInfo.success = false;
+    
     releaseKycLock(userId);
-    return false;
+    return { success: false, debugInfo };
   }
 };

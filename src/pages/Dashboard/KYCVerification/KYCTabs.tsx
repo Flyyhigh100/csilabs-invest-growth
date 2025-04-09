@@ -22,16 +22,17 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
     handleDocumentUpload,
     handleVerificationSubmit,
     handleRestartVerification,
+    handleManualStatusRefresh,
     isSubmitting,
-    uploadPending
+    uploadPending,
+    debugInfo
   } = TabHandlers(kycData, setActiveTab);
   
   // New handler for manual refresh
-  const handleManualStatusRefresh = async () => {
+  const handleManualRefreshWrapper = async () => {
     setManuallyRefreshing(true);
     try {
-      // The TabHandlers already has refetch functionality
-      // We just need to record the time of refresh
+      await handleManualStatusRefresh();
       setLastRefreshTime(new Date());
     } catch (error) {
       console.error('Error during manual refresh:', error);
@@ -50,11 +51,19 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
   const hasIdBack = !!kycData?.id_back_url;
   const hasSelfie = !!kycData?.selfie_url;
   
-  // Debug info for testing
-  const debugInfo = {
-    currentStatus: kycData?.status,
+  // Enhanced debug info for debugging
+  const enhancedDebugInfo = {
+    ...debugInfo,
     lastRefresh: lastRefreshTime ? lastRefreshTime.toISOString() : null,
-    attempts: 0
+    kycData: {
+      id: kycData?.id,
+      status: kycData?.status,
+      documents: {
+        hasIdFront,
+        hasIdBack,
+        hasSelfie
+      }
+    }
   };
 
   return (
@@ -86,9 +95,9 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
           onBack={() => setActiveTab('personal-info')}
           onSubmit={handleVerificationSubmit}
           onUpload={handleDocumentUpload}
-          onManualRefresh={handleManualStatusRefresh}
+          onManualRefresh={handleManualRefreshWrapper}
           uploadPending={uploadPending}
-          debugInfo={debugInfo}
+          debugInfo={enhancedDebugInfo}
         />
       </TabsContent>
       
@@ -96,7 +105,7 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
         <VerificationStatusTab 
           kycData={kycData}
           onRestart={handleRestartVerification} 
-          onRefresh={handleManualStatusRefresh}
+          onRefresh={handleManualRefreshWrapper}
         />
       </TabsContent>
     </Tabs>

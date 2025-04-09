@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { KycVerificationData } from '@/hooks/kyc/types';
 import { useKycVerification } from '@/hooks/kyc/useKycVerification';
@@ -5,12 +6,24 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PersonalInfoValues } from '@/components/KYC/schema/personalInfoSchema';
 import { toast } from 'sonner';
 
+interface DebugInfo {
+  currentStatus: string | null | undefined;
+  lastAttempt?: string | null;
+  submissionDebug?: any;
+  attempts?: number;
+}
+
 const TabHandlers = (
   kycData: KycVerificationData | null,
   setActiveTab: (tab: string) => void
 ) => {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<DebugInfo>({
+    currentStatus: kycData?.status,
+    attempts: 0
+  });
+  
   const { 
     savePersonalInfo, 
     uploadDocument, 
@@ -33,10 +46,25 @@ const TabHandlers = (
       await refetch();
       console.log("✅ KYC data refreshed");
       
+      // Update debug info
+      setDebugInfo(prev => ({
+        ...prev,
+        lastAttempt: new Date().toISOString(),
+        currentStatus: kycData?.status
+      }));
+      
       toast.success("KYC status refreshed");
       return true;
     } catch (error) {
       console.error("❌ Error refreshing KYC status:", error);
+      
+      // Update debug info with error
+      setDebugInfo(prev => ({
+        ...prev,
+        lastAttempt: new Date().toISOString(),
+        error: (error as Error).message
+      }));
+      
       toast.error("Failed to refresh status");
       return false;
     }
@@ -52,7 +80,20 @@ const TabHandlers = (
     setIsSubmitting(true);
     try {
       console.log('Submitting personal info:', values);
-      await savePersonalInfo.mutateAsync(values);
+      
+      // Create a KYC form data object with all required fields
+      const kycFormData = {
+        first_name: values.firstName,
+        last_name: values.lastName,
+        date_of_birth: values.dateOfBirth,
+        nationality: values.nationality,
+        address: values.address,
+        city: values.city,
+        postal_code: values.postalCode,
+        country: values.country
+      };
+      
+      await savePersonalInfo.mutateAsync(kycFormData);
       toast.success('Personal information saved successfully');
       
       // Move to the next tab
@@ -93,15 +134,39 @@ const TabHandlers = (
     }
 
     setIsSubmitting(true);
+    setDebugInfo(prev => ({
+      ...prev,
+      attempts: (prev.attempts || 0) + 1,
+      lastAttempt: new Date().toISOString()
+    }));
+    
     try {
       console.log('Submitting verification...');
-      await submitVerification.mutateAsync();
+      const result = await submitVerification.mutateAsync();
+      
+      // Capture detailed debug information
+      setDebugInfo(prev => ({
+        ...prev,
+        submissionDebug: result,
+        currentStatus: 'pending' // Optimistic update
+      }));
+      
+      console.log('Verification submission result:', result);
+      
       toast.success('Verification submitted successfully!');
       
       // Move to the status tab
       setActiveTab('status');
     } catch (error) {
       console.error('Error submitting verification:', error);
+      
+      // Update debug info with error
+      setDebugInfo(prev => ({
+        ...prev,
+        error: (error as Error).message,
+        stack: (error as Error).stack
+      }));
+      
       toast.error(`Failed to submit verification: ${(error as Error).message}`);
     } finally {
       setIsSubmitting(false);
@@ -118,13 +183,14 @@ const TabHandlers = (
 
   return {
     handlePersonalInfoSubmit,
-    handleDocumentUpload: uploadDocument.mutate,
+    handleDocumentUpload,
     handleVerificationSubmit,
     handleRestartVerification,
     handleManualStatusRefresh,
     isSubmitting,
     uploadPending: uploadDocument.isPending,
     debugInfo: {
+      ...debugInfo,
       currentStatus: kycData?.status
     }
   };
