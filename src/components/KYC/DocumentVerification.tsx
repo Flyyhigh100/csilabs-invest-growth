@@ -115,15 +115,16 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     <div className="space-y-6">
       <ClarificationMessage message={clarificationMessage} />
       
-      <DebugPanel 
-        liveStatus={liveStatus}
-        lastRefresh={lastRefresh}
-        isPending={isPending}
-        isSubmitting={isSubmitting}
-        onRefresh={handleManualRefresh}
-        isRefreshing={isRefreshing}
-        debugInfo={debugInfo}
-      />
+      {debugInfo && (
+        <DebugPanel 
+          debugInfo={debugInfo}
+          isSubmitting={isSubmitting}
+          liveStatus={liveStatus}
+          lastRefresh={lastRefresh}
+          onRefresh={handleManualRefresh}
+          isRefreshing={isRefreshing}
+        />
+      )}
       
       <DocumentsSection 
         hasIdFront={hasIdFront}

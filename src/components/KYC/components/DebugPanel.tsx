@@ -1,13 +1,26 @@
 
 import React from 'react';
 import { DebugInfo } from '@/pages/Dashboard/KYCVerification/TabHandlers';
+import { RefreshCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface DebugPanelProps {
   debugInfo: DebugInfo;
   isSubmitting: boolean;
+  liveStatus?: string | null;
+  lastRefresh?: string | null;
+  onRefresh?: () => Promise<void>;
+  isRefreshing?: boolean;
 }
 
-const DebugPanel: React.FC<DebugPanelProps> = ({ debugInfo, isSubmitting }) => {
+const DebugPanel: React.FC<DebugPanelProps> = ({ 
+  debugInfo, 
+  isSubmitting, 
+  liveStatus, 
+  lastRefresh, 
+  onRefresh, 
+  isRefreshing 
+}) => {
   if (!debugInfo) return null;
   
   return (
@@ -18,7 +31,17 @@ const DebugPanel: React.FC<DebugPanelProps> = ({ debugInfo, isSubmitting }) => {
         <div>
           <span className="font-bold">Current Status:</span>{' '}
           <span className="bg-blue-100 px-1 rounded">{debugInfo.currentStatus || 'not_started'}</span>
+          {liveStatus && liveStatus !== debugInfo.currentStatus && (
+            <span className="ml-2 text-orange-500">(Live: {liveStatus})</span>
+          )}
         </div>
+        
+        {lastRefresh && (
+          <div>
+            <span className="font-bold">Last Status Check:</span>{' '}
+            {new Date(lastRefresh).toLocaleString()}
+          </div>
+        )}
         
         {debugInfo.lastAttempt && (
           <div>
@@ -30,6 +53,21 @@ const DebugPanel: React.FC<DebugPanelProps> = ({ debugInfo, isSubmitting }) => {
         {debugInfo.attempts !== undefined && (
           <div>
             <span className="font-bold">Submission Attempts:</span> {debugInfo.attempts}
+          </div>
+        )}
+        
+        {onRefresh && (
+          <div className="mt-1">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="h-7 text-xs flex items-center gap-1"
+            >
+              <RefreshCcw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh Status'}
+            </Button>
           </div>
         )}
         

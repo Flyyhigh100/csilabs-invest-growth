@@ -101,7 +101,7 @@ export const submitKycVerification = async (userId: string): Promise<{ success: 
       .from('kyc_verifications')
       .select('status, submitted_at, id')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
     
     // Add verify response to debug info
     debugInfo.supabaseResponses.push({
