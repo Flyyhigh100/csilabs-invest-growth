@@ -1,5 +1,5 @@
 
-export { isUserAdmin, addSelfAsAdmin } from './isUserAdmin';
+export { isUserAdmin, addSelfAsAdmin } from './auth';
 export { 
   processKycVerification, 
   requestKycClarification, 

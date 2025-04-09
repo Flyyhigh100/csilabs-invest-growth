@@ -30,7 +30,9 @@ export const usePendingTransactions = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as PendingTransactionWithProfile[];
+      
+      // Cast the data to ensure it matches our expected type
+      return (data as unknown) as PendingTransactionWithProfile[];
     }
   });
 };
