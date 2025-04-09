@@ -71,8 +71,10 @@ export const useDocumentHandlers = (
     }
 
     setIsSubmitting(true);
+    
+    // Fixed: Directly set the value instead of using a function
     updateDebugInfo({
-      attempts: (prev) => (prev || 0) + 1,
+      attempts: (updateDebugInfo as any).debugInfo?.attempts ? (updateDebugInfo as any).debugInfo.attempts + 1 : 1,
       lastAttempt: new Date().toISOString()
     });
     

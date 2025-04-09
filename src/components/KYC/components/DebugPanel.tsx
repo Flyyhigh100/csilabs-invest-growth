@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { DebugInfo } from '@/pages/Dashboard/KYCVerification/TabHandlers';
+import { DebugInfo } from '@/pages/Dashboard/KYCVerification/hooks'; // Updated import path
 import { RefreshCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
