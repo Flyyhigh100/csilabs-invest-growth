@@ -8,12 +8,16 @@ interface PersonalInfoTabProps {
   kycData: KycVerificationData | null;
   isPending: boolean;
   onSubmit: (values: PersonalInfoValues) => Promise<void>;
+  isSubmitting?: boolean; // Add this prop
+  isDisabled?: boolean;   // Add this prop
 }
 
 const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ 
   kycData, 
   isPending, 
-  onSubmit 
+  onSubmit,
+  isSubmitting = false,  // Provide default value
+  isDisabled = false     // Provide default value
 }) => {
   const defaultValues = {
     first_name: kycData?.first_name || "",
@@ -31,7 +35,7 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({
       <PersonalInfoForm 
         defaultValues={defaultValues} 
         onSubmit={onSubmit}
-        isPending={isPending}
+        isPending={isPending || isSubmitting || isDisabled}
       />
     </div>
   );

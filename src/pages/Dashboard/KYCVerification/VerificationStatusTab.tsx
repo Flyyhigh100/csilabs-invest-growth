@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { KycVerificationData } from '@/hooks/kyc/types';
-import { VerificationStatus } from '@/components/KYC/VerificationStatus';
+import VerificationStatus from '@/components/KYC/VerificationStatus'; // Fixed import
 import { Button } from '@/components/ui/button';
 import { RefreshCcw } from 'lucide-react';
 
@@ -30,7 +30,12 @@ const VerificationStatusTab: React.FC<VerificationStatusTabProps> = ({
   
   return (
     <div className="space-y-6">
-      <VerificationStatus kycData={kycData} />
+      <VerificationStatus 
+        status={kycData?.status || 'not_started'}
+        rejectionReason={kycData?.rejection_reason}
+        clarificationMessage={kycData?.clarification_message}
+        onStartVerification={onRestart}
+      />
       
       <div className="flex justify-between gap-4">
         {kycData?.status === 'rejected' && (
