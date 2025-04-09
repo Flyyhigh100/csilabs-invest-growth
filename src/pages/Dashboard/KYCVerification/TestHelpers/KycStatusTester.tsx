@@ -27,35 +27,47 @@ const KycStatusTester: React.FC<KycStatusTesterProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error' | 'running'>('idle');
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   const createTestSubmission = async () => {
     if (!user?.id) {
-      toast.error("Not logged in");
+      toast.error("You must be logged in to test KYC functionality");
+      setTestStatus('error');
+      setTestResult("❌ Error: Not authenticated. Please log in first.");
       return;
     }
 
     setTestStatus('running');
     setTestResult(null);
+    setDebugInfo(null);
     toast.info("Creating test KYC record with 'pending' status...");
     
     try {
+      // Store the user ID we're testing with for debug purposes
+      setDebugInfo(`Testing with user ID: ${user.id}`);
+      console.log("🧪 Starting KYC test with user ID:", user.id);
+      
       // Create test record
       const success = await createTestKycRecord(user.id);
       
       if (!success) {
-        throw new Error("Failed to create test record");
+        throw new Error("Failed to create test KYC record");
       }
+      
+      console.log("✅ Test record created successfully");
       
       // Refresh the KYC data
       await onRefresh();
+      console.log("🔄 KYC data refreshed after test");
       
-      // Wait a moment for the data to be refreshed
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Give the database a moment to process the update
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Check if the status was updated correctly
+      console.log("🔍 Verifying KYC status...");
       const { data: verifyData, error } = await supabase
         .from('kyc_verifications')
-        .select('status')
+        .select('status, id')
         .eq('user_id', user.id)
         .single();
         
@@ -63,20 +75,28 @@ const KycStatusTester: React.FC<KycStatusTesterProps> = ({
         console.error("Error verifying KYC status:", error);
         throw new Error(`Error verifying status: ${error.message}`);
       }
+      
+      console.log("📊 Current KYC status:", verifyData?.status, "Record ID:", verifyData?.id);
         
       if (verifyData?.status === 'pending') {
         setTestResult("✅ Success! KYC status was correctly set to 'pending'");
         setTestStatus('success');
+        console.log("🎉 Test succeeded - status is 'pending'");
         toast.success("Test succeeded! KYC status is correctly updated to 'pending'");
       } else {
         setTestResult(`⚠️ Issue detected: Expected status 'pending' but found '${verifyData?.status || 'none'}'`);
         setTestStatus('error');
+        console.log("⚠️ Test failed - unexpected status:", verifyData?.status);
         toast.error("Test failed! KYC status was not updated correctly");
       }
+      
+      // One more refresh to ensure UI is up to date
+      await onRefresh();
     } catch (error) {
-      console.error("Error in test:", error);
+      console.error("❌ Error in test:", error);
       setTestResult(`❌ Error: ${(error as Error).message}`);
       setTestStatus('error');
+      setDebugInfo(`Error details: ${JSON.stringify(error)}`);
       toast.error("Test failed with error");
     }
   };
@@ -115,23 +135,29 @@ const KycStatusTester: React.FC<KycStatusTesterProps> = ({
               <span className="text-sm">Current KYC Status: <strong>{currentStatus || 'none'}</strong></span>
             </div>
             
-            <Button 
-              onClick={createTestSubmission} 
-              className="flex items-center"
-              disabled={testStatus === 'running'}
-              variant={testStatus === 'success' ? 'outline' : 'default'}
-            >
-              {testStatus === 'running' ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : testStatus === 'success' ? (
-                <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-              ) : testStatus === 'error' ? (
-                <XCircle className="h-4 w-4 mr-2 text-red-600" />
-              ) : (
-                <AlertTriangle className="h-4 w-4 mr-2" />
-              )}
-              {testStatus === 'running' ? 'Running Test...' : 'Run Test'}
-            </Button>
+            {user?.id ? (
+              <Button 
+                onClick={createTestSubmission} 
+                className="flex items-center"
+                disabled={testStatus === 'running'}
+                variant={testStatus === 'success' ? 'outline' : 'default'}
+              >
+                {testStatus === 'running' ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : testStatus === 'success' ? (
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                ) : testStatus === 'error' ? (
+                  <XCircle className="h-4 w-4 mr-2 text-red-600" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                )}
+                {testStatus === 'running' ? 'Running Test...' : 'Run Test'}
+              </Button>
+            ) : (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded">
+                <p className="text-sm text-amber-800">You must be logged in to run this test.</p>
+              </div>
+            )}
             
             {testResult && (
               <div className={`mt-4 p-3 rounded text-sm ${
@@ -139,6 +165,12 @@ const KycStatusTester: React.FC<KycStatusTesterProps> = ({
                 'bg-red-50 border border-red-200'
               }`}>
                 {testResult}
+              </div>
+            )}
+            
+            {debugInfo && testStatus === 'error' && (
+              <div className="mt-2 p-2 bg-gray-100 rounded border text-xs font-mono overflow-x-auto">
+                {debugInfo}
               </div>
             )}
             

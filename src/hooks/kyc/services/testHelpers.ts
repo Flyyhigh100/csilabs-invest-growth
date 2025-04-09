@@ -6,6 +6,11 @@ export const insertTestKycVerification = async (userId: string): Promise<boolean
   try {
     console.log('Creating test KYC verification for user:', userId);
     
+    if (!userId) {
+      console.error('Error: No user ID provided to insertTestKycVerification');
+      return false;
+    }
+    
     const now = new Date().toISOString();
     
     // Check if user already has a record
@@ -21,7 +26,8 @@ export const insertTestKycVerification = async (userId: string): Promise<boolean
     }
     
     if (existing) {
-      // Update the existing record using fixed values - avoid using operators
+      console.log('Existing KYC record found, updating to pending status...');
+      // Update the existing record
       const { error } = await supabase
         .from('kyc_verifications')
         .update({
@@ -45,7 +51,8 @@ export const insertTestKycVerification = async (userId: string): Promise<boolean
       
       console.log('Updated test KYC verification:', existing.id);
     } else {
-      // Insert new record with fixed values
+      console.log('No existing KYC record, creating new one...');
+      // Insert new record
       const { error } = await supabase
         .from('kyc_verifications')
         .insert({
@@ -70,7 +77,20 @@ export const insertTestKycVerification = async (userId: string): Promise<boolean
       console.log('Created new test KYC verification for user:', userId);
     }
     
-    return true;
+    // Double-check the record was created/updated successfully
+    const { data: verifyRecord, error: verifyError } = await supabase
+      .from('kyc_verifications')
+      .select('status')
+      .eq('user_id', userId)
+      .single();
+      
+    if (verifyError) {
+      console.error('Error verifying KYC record creation:', verifyError);
+      return false;
+    }
+    
+    console.log('Verified KYC status after update:', verifyRecord?.status);
+    return verifyRecord?.status === 'pending';
   } catch (error) {
     console.error('Error in insertTestKycVerification:', error);
     return false;
