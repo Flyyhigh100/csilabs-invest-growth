@@ -5,7 +5,7 @@
 
 // Lock state for KYC processing
 let processingLocks = new Map<string, number>();
-const LOCK_TIMEOUT = 15000; // 15 seconds
+const LOCK_TIMEOUT = 30000; // 30 seconds - increased from 15s for more reliable operations
 
 /**
  * Check if a KYC is currently locked for processing

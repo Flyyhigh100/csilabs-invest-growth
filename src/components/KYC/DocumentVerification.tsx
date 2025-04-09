@@ -43,6 +43,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   const [liveStatus, setLiveStatus] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<string | null>(null);
   const [isButtonLocked, setIsButtonLocked] = useState(false);
+  const [submissionAttemptTime, setSubmissionAttemptTime] = useState<number | null>(null);
 
   // Reset submission status when component mounts or isPending changes
   useEffect(() => {
@@ -75,6 +76,13 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
             setSubmissionStatus('success');
             setIsAttemptingSubmit(false);
             setIsButtonLocked(false);
+            
+            console.log("🔄 Live status check found pending status:", data);
+            
+            // If this happened during a submission attempt, show success message
+            if (submissionAttemptTime && Date.now() - submissionAttemptTime < 60000) {
+              toast.success("Verification submitted successfully!");
+            }
           }
         }
       } catch (error) {
@@ -89,9 +97,10 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     const interval = setInterval(checkLiveStatus, 3000);
     
     return () => clearInterval(interval);
-  }, [user?.id]);
+  }, [user?.id, submissionAttemptTime]);
 
   const handleSubmitClick = async () => {
+    // Prevent multiple submissions
     if (isButtonLocked) {
       toast.info("Submission in progress, please wait...");
       return;
@@ -105,11 +114,11 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     
     // Lock the button to prevent multiple clicks
     setIsButtonLocked(true);
+    setSubmissionAttemptTime(Date.now());
     
     // Debug - log the state at button click
     console.log("🎯 Submit button clicked, starting submission process...");
     console.log("📋 Current document states:", { hasIdFront, hasIdBack, hasSelfie });
-    console.log("⚙️ Current process states:", { isPending, isSubmitting, isAttemptingSubmit });
     
     // Set local state to show immediate feedback
     setIsAttemptingSubmit(true);
@@ -118,28 +127,52 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     try {
       // Clear any existing toasts
       toast.dismiss();
-      toast.info("Submitting verification...");
+      toast.loading("Submitting verification...");
       
       console.log("📞 Calling onSubmit function");
       await onSubmit();
       
-      console.log("✅ Submission completed successfully");
-      setSubmissionStatus('success');
-      toast.success("Verification submitted successfully!");
+      // We don't immediately set success here anymore - we'll wait for the live status check
+      // to confirm the database update was successful
+      
+      // Set a timeout to check if submission succeeded
+      setTimeout(async () => {
+        if (submissionStatus === 'submitting' && user?.id) {
+          // Do a manual check if the status update worked
+          const { data } = await supabase
+            .from('kyc_verifications')
+            .select('status, submitted_at')
+            .eq('user_id', user.id)
+            .maybeSingle();
+            
+          console.log("⏱️ Timeout check for submission result:", data);
+          
+          if (data?.status === 'pending' || data?.submitted_at) {
+            // Database update was successful
+            setSubmissionStatus('success');
+            toast.dismiss();
+            toast.success("Verification submitted successfully!");
+          } else {
+            // Database update failed
+            setSubmissionStatus('error');
+            toast.dismiss();
+            toast.error("Submission may have failed. Please check status or try again.");
+            // Unlock button after delay
+            setTimeout(() => setIsButtonLocked(false), 5000);
+          }
+        }
+      }, 5000); // Check after 5 seconds
+      
     } catch (error) {
       console.error("❌ Error in submission:", error);
       setSubmissionStatus('error');
+      toast.dismiss();
       toast.error("Failed to submit verification. Please try again.");
       
       // Reset attempting submit state so user can try again
       setIsAttemptingSubmit(false);
       setIsButtonLocked(false);
     }
-    
-    // Unlock button after a delay to prevent immediate resubmissions
-    setTimeout(() => {
-      setIsButtonLocked(false);
-    }, 10000); // 10 second lockout
   };
 
   const handleManualRefresh = async () => {

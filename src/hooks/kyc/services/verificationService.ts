@@ -30,7 +30,7 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
   toast.loading('Submitting verification...', { id: toastId });
   
   try {
-    // Ensure KYC record exists and has all required fields
+    // First, check if KYC record exists
     const { data: kycData, error: kycError } = await supabase
       .from('kyc_verifications')
       .select('*')
@@ -53,9 +53,11 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
       return false;
     }
     
+    // Log current status and data for debugging
     console.log(`[${operationId}] 📋 Current KYC data:`, kycData);
+    console.log(`[${operationId}] 🔍 Current KYC status:`, kycData.status);
     
-    // Manually check each required field
+    // Manually check required fields
     if (!kycData.first_name || !kycData.last_name || !kycData.date_of_birth || 
         !kycData.nationality || !kycData.address || !kycData.city || 
         !kycData.postal_code || !kycData.country || !kycData.id_front_url || 
@@ -68,40 +70,53 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
       return false;
     }
     
-    // Log the current status before updating
-    console.log(`[${operationId}] 🔍 Current KYC status:`, kycData.status);
-    
-    // Avoid using update with .select() as it's causing operator issues
-    // Instead, do the update first, then fetch separately if needed
+    // Set timestamp for submission
     const currentTime = new Date().toISOString();
     console.log(`[${operationId}] ⏰ Setting submitted_at to:`, currentTime);
     
-    const { error } = await supabase
+    // Critical section: Update the status to pending and set submission timestamp
+    // This is the part that was likely failing before
+    const { error: updateError, data: updateData } = await supabase
       .from('kyc_verifications')
       .update({
         status: 'pending',
         submitted_at: currentTime
       })
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .select('status, submitted_at'); // Add .select() to verify the update worked
     
-    if (error) {
-      console.error(`[${operationId}] ❌ Error submitting KYC verification:`, error);
+    // Check for update errors
+    if (updateError) {
+      console.error(`[${operationId}] ❌ Error updating KYC status:`, updateError);
       toast.dismiss(toastId);
-      toast.error(`Submission failed: ${error.message || 'Unknown error'}`);
+      toast.error(`Failed to update verification status: ${updateError.message}`);
       releaseKycLock(userId);
       return false;
     }
     
-    // After successful update, fetch the current record to verify
-    const { data: verifyData } = await supabase
-      .from('kyc_verifications')
-      .select('status, submitted_at')
-      .eq('user_id', userId)
-      .single();
+    // Double-check that the update was successful by verifying the returned data
+    if (!updateData || updateData.length === 0 || updateData[0].status !== 'pending') {
+      console.error(`[${operationId}] ⚠️ Update might have failed - returned data:`, updateData);
       
-    console.log(`[${operationId}] ✓ Verification status after update:`, verifyData);
+      // Make another verification query to check the status directly
+      const { data: verifyData } = await supabase
+        .from('kyc_verifications')
+        .select('status, submitted_at')
+        .eq('user_id', userId)
+        .single();
+      
+      console.log(`[${operationId}] 🔍 Verification status after double-check:`, verifyData);
+      
+      if (!verifyData || verifyData.status !== 'pending') {
+        console.error(`[${operationId}] ❌ Status update failed - current status:`, verifyData?.status);
+        toast.dismiss(toastId);
+        toast.error('Failed to update verification status. Please try again.');
+        releaseKycLock(userId);
+        return false;
+      }
+    }
     
-    // Create a notification for the user about the KYC submission
+    // Success path - create a notification for the user
     try {
       await supabase
         .from('notifications')
@@ -118,6 +133,7 @@ export const submitKycVerification = async (userId: string): Promise<boolean> =>
       // Continue as notification is not critical
     }
     
+    // Everything succeeded
     console.log(`[${operationId}] 🎉 KYC verification submitted successfully`);
     toast.dismiss(toastId);
     toast.success('Verification submitted successfully! We will review your information shortly.');
