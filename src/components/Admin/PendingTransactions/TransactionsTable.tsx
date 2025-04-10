@@ -12,13 +12,19 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PendingTransactionWithProfile } from '@/hooks/admin/usePendingTransactions';
+import SyncWithStripeButton from './SyncWithStripeButton';
 
 interface TransactionsTableProps {
   transactions: PendingTransactionWithProfile[];
   onMarkAsSent: (tx: PendingTransactionWithProfile) => void;
+  onTransactionUpdated?: () => void;
 }
 
-const TransactionsTable = ({ transactions, onMarkAsSent }: TransactionsTableProps) => {
+const TransactionsTable = ({ 
+  transactions, 
+  onMarkAsSent,
+  onTransactionUpdated
+}: TransactionsTableProps) => {
   // Helper function to safely get user name from profiles
   const getUserName = (tx: PendingTransactionWithProfile): string => {
     if (!tx.profiles) return 'Unknown User';
@@ -33,6 +39,13 @@ const TransactionsTable = ({ transactions, onMarkAsSent }: TransactionsTableProp
   // Helper function to safely get email from profiles
   const getUserEmail = (tx: PendingTransactionWithProfile): string => {
     return tx.profiles?.email || 'No email available';
+  };
+
+  // Handle sync completion
+  const handleSyncComplete = () => {
+    if (onTransactionUpdated) {
+      onTransactionUpdated();
+    }
   };
   
   return (
@@ -77,6 +90,15 @@ const TransactionsTable = ({ transactions, onMarkAsSent }: TransactionsTableProp
                   <Clock className="h-3 w-3 mr-1" />
                   Pending Distribution
                 </Badge>
+                {tx.status === 'pending' && tx.payment_method === 'stripe' && (
+                  <div className="mt-1">
+                    <SyncWithStripeButton 
+                      transaction={tx} 
+                      onSyncComplete={handleSyncComplete}
+                      size="sm" 
+                    />
+                  </div>
+                )}
               </TableCell>
               <TableCell className="text-right">
                 <Button 

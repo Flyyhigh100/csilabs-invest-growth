@@ -9,6 +9,7 @@ import ErrorState from './Transactions/ErrorState';
 import EmptyState from './Transactions/EmptyState';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
+import { Transaction } from '@/types/transactions';
 
 const TransactionsList = () => {
   const { user } = useAuth();
@@ -24,6 +25,13 @@ const TransactionsList = () => {
   
   const handleRefresh = () => {
     refetch();
+  };
+  
+  // Handle transaction sync completion
+  const handleSyncComplete = (updatedTransaction: Transaction | null) => {
+    if (updatedTransaction) {
+      refetch();
+    }
   };
   
   if (isLoading) {
@@ -57,6 +65,7 @@ const TransactionsList = () => {
         transactions={transactions} 
         expandedItem={expandedItem}
         setExpandedItem={setExpandedItem}
+        onSyncComplete={handleSyncComplete}
       />
 
       {/* Expanded Transaction Details */}

@@ -1,69 +1,103 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { 
-  Table, TableBody, TableCell, TableHead, 
-  TableHeader, TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
-import { Transaction } from '@/types/transactions';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import StatusBadge from './StatusBadge';
 import PaymentMethodIcon from './PaymentMethodIcon';
+import { Transaction } from '@/types/transactions';
+import SyncStripePaymentButton from './SyncStripePaymentButton';
 
 interface TransactionsTableProps {
   transactions: Transaction[];
   expandedItem: string | null;
   setExpandedItem: (id: string | null) => void;
+  onSyncComplete?: (updatedTransaction: Transaction | null) => void;
 }
 
-const TransactionsTable = ({ 
-  transactions, 
-  expandedItem, 
-  setExpandedItem 
-}: TransactionsTableProps) => (
-  <Table>
-    <TableHeader>
-      <TableRow>
-        <TableHead>Date</TableHead>
-        <TableHead>Amount</TableHead>
-        <TableHead>Method</TableHead>
-        <TableHead>Status</TableHead>
-        <TableHead className="text-right">Details</TableHead>
-      </TableRow>
-    </TableHeader>
-    <TableBody>
-      {transactions.map((transaction) => (
-        <TableRow key={transaction.id}>
-          <TableCell>
-            {new Date(transaction.created_at).toLocaleDateString()}
-            <div className="text-xs text-gray-500">
-              {new Date(transaction.created_at).toLocaleTimeString()}
-            </div>
-          </TableCell>
-          <TableCell>
-            <div className="font-medium">${transaction.amount.toFixed(2)}</div>
-          </TableCell>
-          <TableCell>
-            <div className="flex items-center">
-              <PaymentMethodIcon method={transaction.payment_method} />
-              <span className="ml-2 capitalize">{transaction.payment_method}</span>
-            </div>
-          </TableCell>
-          <TableCell>
-            <StatusBadge transaction={transaction} />
-          </TableCell>
-          <TableCell className="text-right">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setExpandedItem(expandedItem === transaction.id ? null : transaction.id)}
-            >
-              {expandedItem === transaction.id ? 'Hide' : 'View'}
-            </Button>
-          </TableCell>
+const TransactionsTable: React.FC<TransactionsTableProps> = ({
+  transactions,
+  expandedItem,
+  setExpandedItem,
+  onSyncComplete
+}) => {
+  const formatAmount = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  const toggleExpand = (id: string) => {
+    if (expandedItem === id) {
+      setExpandedItem(null);
+    } else {
+      setExpandedItem(id);
+    }
+  };
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-[80px]">Date</TableHead>
+          <TableHead>Amount</TableHead>
+          <TableHead>Method</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
         </TableRow>
-      ))}
-    </TableBody>
-  </Table>
-);
+      </TableHeader>
+      <TableBody>
+        {transactions.map((tx) => (
+          <TableRow 
+            key={tx.id}
+            className="cursor-pointer hover:bg-muted/50"
+            onClick={() => toggleExpand(tx.id)}
+          >
+            <TableCell>{formatDate(tx.created_at)}</TableCell>
+            <TableCell>{formatAmount(tx.amount)}</TableCell>
+            <TableCell>
+              <div className="flex items-center gap-2">
+                <PaymentMethodIcon method={tx.payment_method} />
+                <span className="capitalize">{tx.payment_method}</span>
+              </div>
+            </TableCell>
+            <TableCell>
+              <StatusBadge status={tx.status} />
+              {tx.status === 'pending' && tx.payment_method === 'stripe' && tx.external_transaction_id && (
+                <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+                  <SyncStripePaymentButton 
+                    transaction={tx}
+                    onSyncComplete={onSyncComplete}
+                  />
+                </div>
+              )}
+            </TableCell>
+            <TableCell className="text-right">
+              <Button variant="ghost" size="sm">
+                {expandedItem === tx.id ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+};
 
 export default TransactionsTable;

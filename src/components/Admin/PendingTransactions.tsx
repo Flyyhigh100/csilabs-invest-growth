@@ -50,6 +50,11 @@ const PendingTransactions = () => {
     }
   };
 
+  // Handle transaction updates from sync operation
+  const handleTransactionUpdated = () => {
+    refetch();
+  };
+
   // Add some debugging for the error condition
   if (error) {
     console.error('Error in PendingTransactions component:', error);
@@ -75,6 +80,7 @@ const PendingTransactions = () => {
             <TransactionsTable 
               transactions={transactions} 
               onMarkAsSent={openDialog} 
+              onTransactionUpdated={handleTransactionUpdated}
             />
           )}
         </CardContent>

@@ -117,6 +117,16 @@ export async function handleAdminOperations(action, data, user, adminClient) {
       case "markTokensSent":
         return await transactionOperations.markTokensSent(data, adminClient);
 
+      // Add the new syncStripePaymentStatus action
+      case "syncStripePaymentStatus":
+        const { Stripe } = await import("https://esm.sh/stripe@14.21.0");
+        const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+        if (!stripeSecretKey) {
+          throw new Error("STRIPE_SECRET_KEY is not configured");
+        }
+        const stripe = new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" });
+        return await transactionOperations.syncStripePaymentStatus(data, adminClient, stripe);
+
       default:
         console.error("Unknown admin operation:", action);
         throw new Error(`Unknown action: ${action}`);
