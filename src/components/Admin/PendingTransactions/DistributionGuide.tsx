@@ -59,6 +59,32 @@ const DistributionGuide: React.FC = () => {
                   <li>Reduce the risk of errors with automated processes</li>
                 </ul>
               </div>
+              
+              <div>
+                <h4 className="font-medium mb-2">Resources for New Users</h4>
+                <ul className="list-disc ml-5 space-y-2">
+                  <li>
+                    <a 
+                      href="https://phantom.com/learn/guides/how-to-create-a-new-wallet" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline flex items-center gap-1"
+                    >
+                      How to create a new wallet <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </li>
+                  <li>
+                    <a 
+                      href="https://cagechain.com" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline flex items-center gap-1"
+                    >
+                      Learn more at Cagechain.com <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </li>
+                </ul>
+              </div>
             </div>
           </CardContent>
         </CollapsibleContent>

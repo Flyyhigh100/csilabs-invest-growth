@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Wallet, ArrowRight, HelpCircle } from 'lucide-react';
+import { Wallet, ArrowRight, HelpCircle, ExternalLink } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -73,10 +73,42 @@ export const WalletSection: React.FC<{
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cbis-blue"></div>
           </div>
         ) : (
-          <WalletAddressForm 
-            existingWalletAddress={walletAddress || undefined} 
-            onWalletUpdated={onWalletUpdated} 
-          />
+          <>
+            {/* New wallet help section */}
+            {!walletAddress && (
+              <div className="mb-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                <h3 className="text-sm font-medium text-blue-800 mb-2">New to crypto wallets?</h3>
+                <p className="text-sm text-blue-700 mb-3">
+                  If you don't have a wallet yet, here are some resources to help you get started:
+                </p>
+                <div className="space-y-2">
+                  <a 
+                    href="https://phantom.com/learn/guides/how-to-create-a-new-wallet" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="flex items-center text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                    How to create a new wallet (Step-by-step guide)
+                  </a>
+                  <a 
+                    href="https://cagechain.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                    Learn more about blockchain at Cagechain.com
+                  </a>
+                </div>
+              </div>
+            )}
+            
+            <WalletAddressForm 
+              existingWalletAddress={walletAddress || undefined} 
+              onWalletUpdated={onWalletUpdated} 
+            />
+          </>
         )}
       </div>
     </div>
