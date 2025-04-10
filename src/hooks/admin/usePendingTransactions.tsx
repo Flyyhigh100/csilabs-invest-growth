@@ -5,9 +5,9 @@ import { Transaction } from '@/types/transactions';
 
 interface PendingTransactionWithProfile extends Transaction {
   profiles: {
-    email: string;
-    first_name: string;
-    last_name: string;
+    email: string | null;
+    first_name: string | null;
+    last_name: string | null;
   } | null;
 }
 
@@ -15,43 +15,47 @@ export const usePendingTransactions = () => {
   return useQuery({
     queryKey: ['admin-pending-transactions'],
     queryFn: async () => {
-      // First, let's check if the join works with a simpler query
       console.log('Fetching pending transactions with profiles...');
       
       try {
-        const { data, error } = await supabase
+        // First, let's query the transactions
+        const { data: transactions, error: txError } = await supabase
           .from('transactions')
-          .select(`
-            *,
-            profiles:user_id(
-              email,
-              first_name,
-              last_name
-            )
-          `)
+          .select('*')
           .eq('token_sent', false)
           .eq('status', 'completed')
           .order('created_at', { ascending: false });
 
-        if (error) {
-          console.error('Error fetching pending transactions:', error);
-          throw error;
+        if (txError) {
+          console.error('Error fetching pending transactions:', txError);
+          throw txError;
         }
         
-        console.log('Raw transaction data:', data);
+        // If we have transactions, fetch profiles separately to avoid join issues
+        const processedTransactions: PendingTransactionWithProfile[] = [];
         
-        // Process the data to ensure profiles is properly handled
-        const processedData = data.map(item => {
-          console.log('Processing transaction item:', item);
+        if (transactions && transactions.length > 0) {
+          console.log(`Found ${transactions.length} pending transactions`);
           
-          return {
-            ...item,
-            profiles: item.profiles || null
-          } as PendingTransactionWithProfile;
-        });
+          // For each transaction, get the associated profile
+          for (const tx of transactions) {
+            // Fetch the profile for this transaction's user_id
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('email, first_name, last_name')
+              .eq('id', tx.user_id)
+              .single();
+              
+            // Add to our processed array with properly typed profile data
+            processedTransactions.push({
+              ...tx,
+              profiles: profileData || null
+            });
+          }
+        }
         
-        console.log('Processed transaction data:', processedData);
-        return processedData;
+        console.log('Processed transaction data:', processedTransactions);
+        return processedTransactions;
       } catch (err) {
         console.error('Exception in pendingTransactions query:', err);
         throw err;
