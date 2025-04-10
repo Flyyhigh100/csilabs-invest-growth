@@ -50,6 +50,11 @@ const PendingTransactions = () => {
     }
   };
 
+  // Add some debugging for the error condition
+  if (error) {
+    console.error('Error in PendingTransactions component:', error);
+  }
+
   return (
     <div className="space-y-6">
       <Card>

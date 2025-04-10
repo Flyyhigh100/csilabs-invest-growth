@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
@@ -14,50 +15,50 @@ export const usePendingTransactions = () => {
   return useQuery({
     queryKey: ['admin-pending-transactions'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select(`
-          *,
-          profiles:user_id(
-            email,
-            first_name,
-            last_name
-          )
-        `)
-        .eq('token_sent', false)
-        .eq('status', 'completed')
-        .order('created_at', { ascending: false });
+      // First, let's check if the join works with a simpler query
+      console.log('Fetching pending transactions with profiles...');
+      
+      try {
+        const { data, error } = await supabase
+          .from('transactions')
+          .select(`
+            *,
+            profiles:user_id(
+              email,
+              first_name,
+              last_name
+            )
+          `)
+          .eq('token_sent', false)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      // Process the data to ensure profiles is properly handled
-      const processedData = data.map(item => {
-        // First check if profiles exists at all
-        if (!item.profiles) {
-          return {
-            ...item,
-            profiles: null
-          } as PendingTransactionWithProfile;
+        if (error) {
+          console.error('Error fetching pending transactions:', error);
+          throw error;
         }
         
-        // Now we know profiles is not null
-        // Check if profiles is an array with data
-        if (Array.isArray(item.profiles)) {
+        console.log('Raw transaction data:', data);
+        
+        // Process the data to ensure profiles is properly handled
+        const processedData = data.map(item => {
+          console.log('Processing transaction item:', item);
+          
           return {
             ...item,
-            profiles: item.profiles.length > 0 ? item.profiles[0] : null
+            profiles: item.profiles || null
           } as PendingTransactionWithProfile;
-        }
+        });
         
-        // If profiles is not an array but an object, keep it
-        return {
-          ...item,
-          profiles: (typeof item.profiles === 'object') ? item.profiles : null
-        } as PendingTransactionWithProfile;
-      });
-      
-      return processedData;
-    }
+        console.log('Processed transaction data:', processedData);
+        return processedData;
+      } catch (err) {
+        console.error('Exception in pendingTransactions query:', err);
+        throw err;
+      }
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchOnWindowFocus: true,
   });
 };
 

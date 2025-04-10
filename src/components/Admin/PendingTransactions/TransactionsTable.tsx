@@ -48,39 +48,47 @@ const TransactionsTable = ({ transactions, onMarkAsSent }: TransactionsTableProp
         </TableRow>
       </TableHeader>
       <TableBody>
-        {transactions.map((tx) => (
-          <TableRow key={tx.id}>
-            <TableCell>
-              {new Date(tx.created_at).toLocaleDateString()}
-            </TableCell>
-            <TableCell>
-              <div className="font-medium">
-                {getUserName(tx)}
-              </div>
-              <div className="text-xs text-gray-500">{getUserEmail(tx)}</div>
-            </TableCell>
-            <TableCell>${tx.amount.toFixed(2)}</TableCell>
-            <TableCell>
-              <div className="font-mono text-xs max-w-[150px] truncate">
-                {tx.wallet_address}
-              </div>
-            </TableCell>
-            <TableCell>
-              <Badge className="bg-amber-500">
-                <Clock className="h-3 w-3 mr-1" />
-                Pending Distribution
-              </Badge>
-            </TableCell>
-            <TableCell className="text-right">
-              <Button 
-                size="sm"
-                onClick={() => onMarkAsSent(tx)}
-              >
-                Mark as Sent
-              </Button>
+        {transactions.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+              No pending token distributions found
             </TableCell>
           </TableRow>
-        ))}
+        ) : (
+          transactions.map((tx) => (
+            <TableRow key={tx.id}>
+              <TableCell>
+                {new Date(tx.created_at).toLocaleDateString()}
+              </TableCell>
+              <TableCell>
+                <div className="font-medium">
+                  {getUserName(tx)}
+                </div>
+                <div className="text-xs text-gray-500">{getUserEmail(tx)}</div>
+              </TableCell>
+              <TableCell>${tx.amount.toFixed(2)}</TableCell>
+              <TableCell>
+                <div className="font-mono text-xs max-w-[150px] truncate">
+                  {tx.wallet_address}
+                </div>
+              </TableCell>
+              <TableCell>
+                <Badge className="bg-amber-500">
+                  <Clock className="h-3 w-3 mr-1" />
+                  Pending Distribution
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right">
+                <Button 
+                  size="sm"
+                  onClick={() => onMarkAsSent(tx)}
+                >
+                  Mark as Sent
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))
+        )}
       </TableBody>
     </Table>
   );
