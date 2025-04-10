@@ -49,7 +49,7 @@ serve(async (req) => {
     
     console.log(`Webhook event received: ${event.type}`);
     
-    // Initialize Supabase client
+    // Initialize Supabase client with service role key for admin access
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -70,56 +70,44 @@ serve(async (req) => {
         
         console.log(`Processing completed payment for session: ${session.id}`);
         
-        // Update transaction in database
-        const { data, error } = await supabaseClient
-          .from('transactions')
-          .update({
-            status: 'completed',
-            updated_at: new Date().toISOString(),
-            external_transaction_id: session.payment_intent || null
-          })
-          .eq('transaction_id', session.id)
-          .select();
-          
-        if (error) {
-          console.error(`Error updating transaction: ${error.message}`);
-          throw error;
-        }
-        
-        console.log(`Updated transaction status for session ${session.id}`, data);
-        
-        // Create a notification for the user
-        if (session.metadata?.user_id) {
-          const { error: notificationError } = await supabaseClient
-            .from('notifications')
-            .insert({
-              user_id: session.metadata.user_id,
-              type: 'payment_confirmed',
-              title: 'Payment Confirmed',
-              message: `Your payment of $${(session.amount_total / 100).toFixed(2)} has been confirmed. Tokens will be sent to your wallet shortly.`
-            });
-            
-          if (notificationError) {
-            console.error(`Error creating notification: ${notificationError.message}`);
-          }
-          
-          // Also trigger token sending process by updating admin-operations
-          const { data: tokenData, error: tokenError } = await supabaseClient
+        try {
+          // Update transaction in database with completed status AND token_sent=false
+          // This ensures transactions move from pending to "processing" state
+          const { data, error } = await supabaseClient
             .from('transactions')
             .update({
-              token_sent: false,  // Marking for processing
-              updated_at: new Date().toISOString()
+              status: 'completed',
+              updated_at: new Date().toISOString(),
+              external_transaction_id: session.payment_intent || null,
+              token_sent: false // Explicitly mark for processing
             })
             .eq('transaction_id', session.id)
-            .eq('status', 'completed')
-            .is('token_sent', null)
             .select();
             
-          if (tokenError) {
-            console.error(`Error marking tokens for sending: ${tokenError.message}`);
-          } else {
-            console.log(`Marked tokens for sending: ${JSON.stringify(tokenData)}`);
+          if (error) {
+            console.error(`Error updating transaction: ${error.message}`);
+            throw error;
           }
+          
+          console.log(`Updated transaction status for session ${session.id}`, data);
+          
+          // Create a notification for the user
+          if (session.metadata?.user_id) {
+            const { error: notificationError } = await supabaseClient
+              .from('notifications')
+              .insert({
+                user_id: session.metadata.user_id,
+                type: 'payment_confirmed',
+                title: 'Payment Confirmed',
+                message: `Your payment of $${(session.amount_total / 100).toFixed(2)} has been confirmed. Tokens will be sent to your wallet shortly.`
+              });
+              
+            if (notificationError) {
+              console.error(`Error creating notification: ${notificationError.message}`);
+            }
+          }
+        } catch (updateError) {
+          console.error(`Exception in transaction update: ${updateError.message}`);
         }
         
         break;

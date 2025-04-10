@@ -60,6 +60,11 @@ serve(async (req) => {
     // Use dynamic pricing based on user input instead of fixed price
     const unitAmount = Math.round(amount * 100); // Convert to cents for Stripe
     
+    // Include the auth token in the success/cancel URLs to maintain the session
+    const origin = req.headers.get('origin') || '';
+    const successUrl = `${origin}/dashboard/transactions?success=true&token=${encodeURIComponent(token)}`;
+    const cancelUrl = `${origin}/dashboard/transactions?canceled=true&token=${encodeURIComponent(token)}`;
+    
     // Create a checkout session with dynamic pricing
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -74,8 +79,8 @@ serve(async (req) => {
         },
       ],
       mode: 'payment',
-      success_url: `${req.headers.get('origin')}/dashboard/transactions?success=true`,
-      cancel_url: `${req.headers.get('origin')}/dashboard/transactions?canceled=true`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         user_id: user.id,
         wallet_address: walletAddress,

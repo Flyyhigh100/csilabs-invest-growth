@@ -11,10 +11,13 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle, XCircle } from "lucide-react";
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Transactions = () => {
   const { kycData } = useKycVerification();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const isKycApproved = kycData?.status === 'approved';
   
   // In test mode, we'll allow transactions without KYC
@@ -22,6 +25,31 @@ const Transactions = () => {
   
   const success = searchParams.get('success');
   const canceled = searchParams.get('canceled');
+  const token = searchParams.get('token');
+  
+  // Handle auth token from redirect
+  useEffect(() => {
+    const handleAuthTokenFromUrl = async () => {
+      if (token && !user) {
+        console.log("Attempting to restore session from token in URL");
+        try {
+          // Attempt to set the session with the token from URL
+          const { data, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error("Failed to restore session:", error);
+            toast.error("Your session expired. Please sign in again.");
+          } else if (data.session) {
+            console.log("Session restored successfully");
+          }
+        } catch (error) {
+          console.error("Error restoring session:", error);
+        }
+      }
+    };
+
+    handleAuthTokenFromUrl();
+  }, [token, user]);
   
   useEffect(() => {
     if (success === 'true') {
