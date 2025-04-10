@@ -1,103 +1,46 @@
 
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, Clock, AlertTriangle } from 'lucide-react';
-import { Transaction } from '@/types/transactions';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface StatusBadgeProps {
-  transaction: Transaction;
+  status: string;
 }
 
-const StatusBadge = ({ transaction }: StatusBadgeProps) => {
-  switch (transaction.status) {
-    case 'completed':
-      return transaction.token_sent ? (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge className="bg-green-500">
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Complete
-              </Badge>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p className="text-xs">Tokens sent to wallet</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      ) : (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge className="bg-amber-500">
-                <Clock className="h-3 w-3 mr-1" />
-                Processing
-              </Badge>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p className="text-xs">Payment confirmed, tokens pending</p>
-              {transaction.blockchain_tx_id && (
-                <p className="text-xs mt-1">TX: {transaction.blockchain_tx_id.substring(0, 10)}...</p>
-              )}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    case 'pending':
-      return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge variant="outline" className="border-amber-500 text-amber-700">
-                <Clock className="h-3 w-3 mr-1" />
-                Pending
-              </Badge>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <div className="max-w-xs">
-                <p className="text-xs">Payment is being processed</p>
-                {transaction.transaction_id && (
-                  <p className="text-xs mt-1 opacity-75">ID: {transaction.transaction_id.substring(0, 10)}...</p>
-                )}
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    case 'failed':
-      return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge variant="destructive">
-                <XCircle className="h-3 w-3 mr-1" />
-                Failed
-              </Badge>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p className="text-xs">Payment processing failed</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    default:
-      return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge variant="outline">
-                <AlertTriangle className="h-3 w-3 mr-1" />
-                {transaction.status}
-              </Badge>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p className="text-xs">Unknown status: {transaction.status}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-  }
+const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
+  const getStatusStyles = () => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800 border-green-300';
+      case 'pending':
+        return 'bg-amber-100 text-amber-800 border-amber-300';
+      case 'failed':
+        return 'bg-red-100 text-red-800 border-red-300';
+      case 'canceled':
+        return 'bg-gray-100 text-gray-800 border-gray-300';
+      default:
+        return 'bg-blue-100 text-blue-800 border-blue-300';
+    }
+  };
+
+  const getStatusLabel = () => {
+    switch (status) {
+      case 'completed':
+        return 'Completed';
+      case 'pending':
+        return 'Pending';
+      case 'failed':
+        return 'Failed';
+      case 'canceled':
+        return 'Canceled';
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+  };
+
+  return (
+    <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusStyles()}`}>
+      {getStatusLabel()}
+    </span>
+  );
 };
 
 export default StatusBadge;

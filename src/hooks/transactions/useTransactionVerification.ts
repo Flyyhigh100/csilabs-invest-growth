@@ -43,6 +43,46 @@ export const useTransactionVerification = ({
     }
   }, []);
 
+  // Check for realtime updates to the transaction
+  useEffect(() => {
+    if (!sessionId || !userId) return;
+    
+    // Subscribe to updates for this specific transaction
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transactions',
+          filter: `transaction_id=eq.${sessionId}`
+        },
+        (payload) => {
+          console.log('Realtime transaction update received:', payload);
+          
+          // If the transaction status changed to completed, update our state
+          if (payload.new && payload.new.status === 'completed') {
+            setTransaction(payload.new as Transaction);
+            setHasCheckedStatus(true);
+            
+            // Show a toast notification when the status changes to completed
+            toast.success('Payment status updated', {
+              description: 'Your payment has been confirmed!'
+            });
+            
+            // Clean up localStorage
+            localStorage.removeItem('stripe_session_data');
+          }
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [sessionId, userId]);
+
   const handleRefresh = async () => {
     if (!userId) return;
     
