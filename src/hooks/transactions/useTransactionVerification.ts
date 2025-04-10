@@ -61,18 +61,21 @@ export const useTransactionVerification = ({
         (payload) => {
           console.log('Realtime transaction update received:', payload);
           
-          // If the transaction status changed to completed, update our state
-          if (payload.new && payload.new.status === 'completed') {
-            setTransaction(payload.new as Transaction);
-            setHasCheckedStatus(true);
-            
-            // Show a toast notification when the status changes to completed
-            toast.success('Payment status updated', {
-              description: 'Your payment has been confirmed!'
-            });
-            
-            // Clean up localStorage
-            localStorage.removeItem('stripe_session_data');
+          // Check if the payload has a new object with a status property
+          if (payload.new && typeof payload.new === 'object' && 'status' in payload.new) {
+            // If the transaction status changed to completed, update our state
+            if (payload.new.status === 'completed') {
+              setTransaction(payload.new as Transaction);
+              setHasCheckedStatus(true);
+              
+              // Show a toast notification when the status changes to completed
+              toast.success('Payment status updated', {
+                description: 'Your payment has been confirmed!'
+              });
+              
+              // Clean up localStorage
+              localStorage.removeItem('stripe_session_data');
+            }
           }
         }
       )

@@ -1,11 +1,20 @@
 
 import React from 'react';
+import { Transaction } from '@/types/transactions';
 
 interface StatusBadgeProps {
   status: string;
 }
 
-const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
+// Support both direct status string or transaction object
+interface ExtendedStatusBadgeProps extends Partial<StatusBadgeProps> {
+  transaction?: Transaction;
+}
+
+const StatusBadge: React.FC<ExtendedStatusBadgeProps> = ({ status: directStatus, transaction }) => {
+  // Get status either from direct prop or transaction object
+  const status = directStatus || (transaction ? transaction.status : '');
+
   const getStatusStyles = () => {
     switch (status) {
       case 'completed':
