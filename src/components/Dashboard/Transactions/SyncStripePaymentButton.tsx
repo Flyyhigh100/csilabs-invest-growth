@@ -3,28 +3,28 @@ import React from 'react';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Transaction } from '@/types/transactions';
-import { useStripeFallbackCheck } from '@/hooks/payments/useStripeFallbackCheck';
+import { useStripeSync } from '@/hooks/admin/useStripeSync';
 
 interface SyncStripePaymentButtonProps {
   transaction: Transaction;
   onSyncComplete?: (updatedTransaction: Transaction | null) => void;
+  size?: 'default' | 'sm' | 'lg' | 'icon'; // Add size prop to match the expected type
 }
 
-const SyncStripePaymentButton = ({ 
+const SyncWithStripeButton = ({ 
   transaction, 
-  onSyncComplete 
+  onSyncComplete,
+  size = 'sm' // Default to 'sm' if not provided
 }: SyncStripePaymentButtonProps) => {
-  const { verifyPendingPayment, isVerifying } = useStripeFallbackCheck();
+  const { syncTransaction, isSyncing } = useStripeSync();
   
   // Only show for stripe transactions in pending status
-  if (transaction.payment_method !== 'stripe' || 
-      transaction.status !== 'pending' || 
-      !transaction.external_transaction_id) {
+  if (transaction.payment_method !== 'stripe' || transaction.status !== 'pending') {
     return null;
   }
 
-  const handleVerify = async () => {
-    const updatedTransaction = await verifyPendingPayment(transaction);
+  const handleSync = async () => {
+    const updatedTransaction = await syncTransaction(transaction);
     if (onSyncComplete && updatedTransaction) {
       onSyncComplete(updatedTransaction);
     }
@@ -33,15 +33,14 @@ const SyncStripePaymentButton = ({
   return (
     <Button
       variant="ghost"
-      size="sm"
-      onClick={handleVerify}
-      disabled={isVerifying}
-      className="text-xs"
+      size={size}
+      onClick={handleSync}
+      disabled={isSyncing}
     >
-      <RefreshCw className={`h-3 w-3 mr-1 ${isVerifying ? 'animate-spin' : ''}`} />
-      {isVerifying ? 'Checking...' : 'Verify Payment'}
+      <RefreshCw className={`h-3 w-3 mr-1 ${isSyncing ? 'animate-spin' : ''}`} />
+      {isSyncing ? 'Syncing...' : 'Sync with Stripe'}
     </Button>
   );
 };
 
-export default SyncStripePaymentButton;
+export default SyncWithStripeButton;
