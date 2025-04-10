@@ -121,10 +121,13 @@ serve(async (req) => {
             // Transaction exists, update it
             console.log(`[WEBHOOK] Found transaction to update:`, JSON.stringify({
               id: pendingTx.id,
-              status: pendingTx.status,
+              current_status: pendingTx.status,
               amount: pendingTx.amount,
               wallet_address: pendingTx.wallet_address
             }));
+            
+            // Add explicit status log before updating
+            console.log(`[WEBHOOK] STATUS UPDATE: Changing transaction ${pendingTx.id} status from "${pendingTx.status}" to "completed"`);
             
             const { data: updatedTx, error: updateError } = await supabaseClient
               .from('transactions')
@@ -255,6 +258,9 @@ serve(async (req) => {
                 amount: pendingTx.amount
               }));
               
+              // Add explicit status log before updating
+              console.log(`[WEBHOOK] STATUS UPDATE: Changing transaction ${pendingTx.id} status from "${pendingTx.status}" to "completed"`);
+              
               const { error: updateError } = await supabaseClient
                 .from('transactions')
                 .update({
@@ -291,6 +297,31 @@ serve(async (req) => {
             } else {
               console.log(`[WEBHOOK] No transaction found with payment intent: ${paymentIntent.id}`);
               
+              // Try to find by transaction_id in case external_transaction_id is not set
+              const { data: txByTransactionId, error: txError } = await supabaseClient
+                .from('transactions')
+                .select('*')
+                .eq('status', 'pending')
+                .order('created_at', { ascending: false })
+                .limit(5);
+                
+              if (txError) {
+                console.error(`[WEBHOOK] Error finding recent pending transactions: ${txError.message}`);
+              } else if (txByTransactionId && txByTransactionId.length > 0) {
+                console.log(`[WEBHOOK] Found ${txByTransactionId.length} recent pending transactions, checking for matches`);
+                
+                // Log all recent transactions for debugging
+                txByTransactionId.forEach((tx, idx) => {
+                  console.log(`[WEBHOOK] Recent pending tx #${idx+1}:`, JSON.stringify({
+                    id: tx.id,
+                    transaction_id: tx.transaction_id,
+                    external_transaction_id: tx.external_transaction_id,
+                    status: tx.status,
+                    created_at: tx.created_at
+                  }));
+                });
+              }
+              
               // Try to find by metadata if available
               if (paymentIntent.metadata?.session_id) {
                 console.log(`[WEBHOOK] Trying to find transaction by session ID: ${paymentIntent.metadata.session_id}`);
@@ -308,6 +339,9 @@ serve(async (req) => {
                     tx_id: sessionTx.id,
                     current_status: sessionTx.status
                   }));
+                  
+                  // Add explicit status log before updating
+                  console.log(`[WEBHOOK] STATUS UPDATE: Changing transaction ${sessionTx.id} status from "${sessionTx.status}" to "completed"`);
                   
                   const { error: updateError } = await supabaseClient
                     .from('transactions')
