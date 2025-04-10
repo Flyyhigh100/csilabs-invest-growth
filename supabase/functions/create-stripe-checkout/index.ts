@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
@@ -56,12 +57,19 @@ serve(async (req) => {
     console.log('Creating Stripe checkout session...');
     console.log(`Amount: $${amount}, Wallet: ${walletAddress}`);
 
-    // Use the specific product and price IDs
+    // Use dynamic pricing based on user input instead of fixed price
+    const unitAmount = Math.round(amount * 100); // Convert to cents for Stripe
+    
+    // Create a checkout session with dynamic pricing
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
-          price: 'price_1RBVH8JqTmC1qQvvYaPyK8L1', // Your specific price ID
+          price_data: {
+            currency: 'usd',
+            product: 'prod_S5gefbBmLHAKG2', // Your specific product ID
+            unit_amount: unitAmount, // Dynamic amount from user input
+          },
           quantity: 1,
         },
       ],
@@ -72,6 +80,7 @@ serve(async (req) => {
         user_id: user.id,
         wallet_address: walletAddress,
         product_id: 'prod_S5gefbBmLHAKG2', // Your specific product ID
+        amount: amount.toString() // Store the original amount in metadata
       },
     });
 

@@ -60,6 +60,8 @@ serve(async (req) => {
       case 'checkout.session.completed': {
         const session = event.data.object;
         
+        console.log('Processing completed session:', JSON.stringify(session));
+        
         // Skip if not a payment or payment not successful
         if (session.mode !== 'payment' || session.payment_status !== 'paid') {
           console.log('Not a completed payment, skipping');
@@ -99,6 +101,24 @@ serve(async (req) => {
             
           if (notificationError) {
             console.error(`Error creating notification: ${notificationError.message}`);
+          }
+          
+          // Also trigger token sending process by updating admin-operations
+          const { data: tokenData, error: tokenError } = await supabaseClient
+            .from('transactions')
+            .update({
+              token_sent: false,  // Marking for processing
+              updated_at: new Date().toISOString()
+            })
+            .eq('transaction_id', session.id)
+            .eq('status', 'completed')
+            .is('token_sent', null)
+            .select();
+            
+          if (tokenError) {
+            console.error(`Error marking tokens for sending: ${tokenError.message}`);
+          } else {
+            console.log(`Marked tokens for sending: ${JSON.stringify(tokenData)}`);
           }
         }
         

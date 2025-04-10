@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,6 +18,8 @@ export const useStripePayment = (walletAddress: string | null) => {
         id: "stripe-preparing"
       });
       
+      console.log(`Creating Stripe checkout for $${amount} to wallet ${walletAddress}`);
+      
       const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
         body: { amount, walletAddress }
       });
@@ -33,6 +36,10 @@ export const useStripePayment = (walletAddress: string | null) => {
           description: "You will be redirected to complete your payment securely."
         });
         
+        // Log the URL before redirecting (for debugging)
+        console.log("Redirecting to Stripe checkout URL:", data.url);
+        
+        // Redirect to Stripe checkout
         window.location.href = data.url;
       } else {
         toast.dismiss("stripe-preparing");
