@@ -10,7 +10,7 @@ import TransactionsList from '@/components/Dashboard/TransactionsList';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle, XCircle, RefreshCw } from "lucide-react";
+import { CheckCircle, XCircle, RefreshCw, Clock } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -20,6 +20,8 @@ const Transactions = () => {
   const { user, refreshSession } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
+  const [pollingCount, setPollingCount] = useState(0);
+  const [transaction, setTransaction] = useState<any>(null);
   
   const isKycApproved = kycData?.status === 'approved';
   
@@ -42,6 +44,23 @@ const Transactions = () => {
     }
   };
   
+  // Check for Stripe session data in localStorage
+  useEffect(() => {
+    const stripeData = localStorage.getItem('stripe_session_data');
+    if (stripeData) {
+      try {
+        const data = JSON.parse(stripeData);
+        console.log("Found Stripe session data in localStorage:", {
+          session_id: data.session_id,
+          payment_intent: data.payment_intent,
+          timestamp: new Date(data.timestamp).toISOString()
+        });
+      } catch (e) {
+        console.error("Error parsing Stripe session data:", e);
+      }
+    }
+  }, []);
+  
   // Check session and transaction status
   useEffect(() => {
     if (sessionId && !hasCheckedStatus && user?.id) {
@@ -59,51 +78,77 @@ const Transactions = () => {
           
           if (error) {
             console.error("Error checking transaction:", error);
-            if (success === 'true') {
-              toast.error("Could not find your transaction", {
-                description: "Please refresh the page or contact support if the problem persists."
+            if (success === 'true' && pollingCount === 0) {
+              toast.info("Checking payment status...", {
+                description: "Please wait while we verify your payment."
               });
             }
           } else if (data) {
-            console.log("Transaction found:", data.status);
+            setTransaction(data);
+            console.log("Transaction found:", data.status, data);
             
             if (data.status === 'completed') {
               // Transaction is completed, show success message
-              if (success === 'true' && !hasCheckedStatus) {
+              if (success === 'true') {
                 toast.success("Payment successful!", {
                   description: "Your tokens will be sent to your wallet shortly."
                 });
               }
+              setHasCheckedStatus(true);
             } else if (data.status === 'pending' && success === 'true') {
               // Transaction is still pending but Stripe says success, wait and check again
-              toast.info("Processing your payment...", {
-                description: "This may take a moment, please wait."
-              });
+              if (pollingCount === 0) {
+                toast.info("Verifying your payment...", {
+                  description: "This may take a moment, please wait."
+                });
+              }
               
-              // Check again after delay
-              setTimeout(() => {
-                checkTransaction();
+              // Poll with exponential backoff
+              if (pollingCount < 5) {
+                const delay = Math.min(2000 * Math.pow(1.5, pollingCount), 10000);
+                console.log(`Payment still pending. Will check again in ${delay}ms (attempt ${pollingCount + 1})`);
+                
+                setTimeout(() => {
+                  setPollingCount(prev => prev + 1);
+                  checkTransaction();
+                }, delay);
                 return;
-              }, 3000);
+              } else {
+                // After several polling attempts, suggest manual refresh
+                toast.info("Payment processing may take longer than expected", {
+                  description: "You can manually refresh to check status updates.",
+                  action: {
+                    label: "Refresh",
+                    onClick: handleRefresh
+                  }
+                });
+                setHasCheckedStatus(true);
+              }
             }
           } else {
             console.log("No transaction found for session ID:", sessionId);
             
             // If success is true but no transaction found, show a message
-            if (success === 'true' && !hasCheckedStatus) {
-              toast.info("Finalizing your payment...", {
-                description: "Please wait while we confirm your payment."
+            if (success === 'true' && pollingCount === 0) {
+              toast.info("Checking payment status...", {
+                description: "Please wait while we verify your payment."
               });
               
-              // Check again after delay 
-              setTimeout(() => {
-                checkTransaction();
+              // Poll with exponential backoff
+              if (pollingCount < 5) {
+                const delay = Math.min(2000 * Math.pow(1.5, pollingCount), 10000);
+                setTimeout(() => {
+                  setPollingCount(prev => prev + 1);
+                  checkTransaction();
+                }, delay);
                 return;
-              }, 5000);
+              }
             }
           }
           
-          setHasCheckedStatus(true);
+          if (pollingCount >= 5) {
+            setHasCheckedStatus(true);
+          }
           setIsRefreshing(false);
         } catch (err) {
           console.error("Error in transaction check:", err);
@@ -113,7 +158,7 @@ const Transactions = () => {
       
       checkTransaction();
     }
-  }, [sessionId, success, canceled, user?.id, hasCheckedStatus]);
+  }, [sessionId, success, canceled, user?.id, hasCheckedStatus, pollingCount]);
   
   // Handle initial success/cancel messages from URL parameters
   useEffect(() => {
@@ -127,12 +172,50 @@ const Transactions = () => {
   return (
     <DashboardLayout title="Transactions">
       {/* Payment Status Alerts */}
-      {success === 'true' && (
-        <Alert className="mb-6 bg-green-50 text-green-800 border-green-200">
-          <CheckCircle className="h-5 w-5" />
-          <AlertTitle>Payment Successful</AlertTitle>
+      {success === 'true' && transaction && (
+        <Alert className={`mb-6 ${
+          transaction.status === 'completed' 
+            ? 'bg-green-50 text-green-800 border-green-200'
+            : 'bg-amber-50 text-amber-800 border-amber-200'
+        }`}>
+          {transaction.status === 'completed' ? (
+            <CheckCircle className="h-5 w-5" />
+          ) : (
+            <Clock className="h-5 w-5" />
+          )}
+          <AlertTitle>
+            {transaction.status === 'completed' 
+              ? 'Payment Successful' 
+              : 'Payment Processing'}
+          </AlertTitle>
           <AlertDescription>
-            Your payment was processed successfully. Your tokens will be sent to your wallet shortly.
+            {transaction.status === 'completed'
+              ? 'Your payment was processed successfully. Your tokens will be sent to your wallet shortly.'
+              : 'Your payment is being processed. This may take a few moments to complete.'}
+            {transaction.status !== 'completed' && (
+              <div className="mt-2">
+                <Button size="sm" variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  Check Status
+                </Button>
+              </div>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {success === 'true' && !transaction && !isRefreshing && hasCheckedStatus && (
+        <Alert className="mb-6 bg-amber-50 text-amber-800 border-amber-200">
+          <Clock className="h-5 w-5" />
+          <AlertTitle>Payment Being Verified</AlertTitle>
+          <AlertDescription>
+            We're still verifying your payment. This process may take a few moments to complete.
+            <div className="mt-2">
+              <Button size="sm" variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Check Status
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       )}

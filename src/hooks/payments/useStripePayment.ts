@@ -41,7 +41,7 @@ export const useStripePayment = (walletAddress: string | null) => {
       if (data?.url) {
         toast.dismiss(toastId);
         toast.info("Redirecting to Stripe checkout...", {
-          description: "You will be redirected to complete your payment securely."
+          description: "For testing, use card 4242 4242 4242 4242, any future date, and any CVC."
         });
         
         // Store session information in localStorage before redirecting
@@ -49,6 +49,7 @@ export const useStripePayment = (walletAddress: string | null) => {
           // Save current auth session ID and timestamp to help recover auth state
           const sessionObject = {
             session_id: data.session_id,
+            payment_intent: data.payment_intent || null,
             user_id: data.user_id,
             timestamp: Date.now(),
             auth_refresh_token: sessionData.session?.refresh_token || null
@@ -57,11 +58,12 @@ export const useStripePayment = (walletAddress: string | null) => {
           localStorage.setItem('stripe_session_data', JSON.stringify(sessionObject));
           console.log("Saved session data to localStorage before redirect:", { 
             session_id: data.session_id,
+            payment_intent: data.payment_intent,
             timestamp: Date.now() 
           });
         }
         
-        console.log("Redirecting to Stripe checkout URL");
+        console.log("Redirecting to Stripe checkout URL:", data.url);
         
         // Redirect to Stripe checkout
         window.location.href = data.url;

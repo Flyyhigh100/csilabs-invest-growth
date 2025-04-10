@@ -93,32 +93,36 @@ serve(async (req) => {
     });
 
     console.log('[CHECKOUT] Checkout session created:', session.id);
+    console.log('[CHECKOUT] Payment intent created:', session.payment_intent);
 
     // Calculate the actual amount from the session for record keeping
     const sessionAmount = session.amount_total ? session.amount_total / 100 : amount;
 
     // Log the transaction in your database
-    const { error: insertError } = await supabaseClient.from('transactions').insert({
+    const { data: transaction, error: insertError } = await supabaseClient.from('transactions').insert({
       user_id: user.id,
       amount: sessionAmount,
       wallet_address: walletAddress,
       payment_method: 'stripe',
       status: 'pending',
       transaction_id: session.id,
-    });
+      external_transaction_id: session.payment_intent || null,
+    }).select().single();
 
     if (insertError) {
       console.error('[CHECKOUT] Error inserting transaction record:', insertError);
       throw new Error('Failed to record transaction');
     }
 
-    console.log('[CHECKOUT] Transaction record created, returning checkout URL');
+    console.log('[CHECKOUT] Transaction record created:', transaction.id);
+    console.log('[CHECKOUT] Returning checkout URL');
 
     return new Response(
       JSON.stringify({ 
         url: session.url,
         session_id: session.id,
-        user_id: user.id
+        user_id: user.id,
+        payment_intent: session.payment_intent
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
