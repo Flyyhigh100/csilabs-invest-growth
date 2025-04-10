@@ -7,6 +7,8 @@ import TransactionDetails from './Transactions/TransactionDetails';
 import LoadingState from './Transactions/LoadingState';
 import ErrorState from './Transactions/ErrorState';
 import EmptyState from './Transactions/EmptyState';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 const TransactionsList = () => {
   const { user } = useAuth();
@@ -16,8 +18,13 @@ const TransactionsList = () => {
     data: transactions,
     isLoading,
     error,
-    refetch
+    refetch,
+    isFetching
   } = useTransactions(user?.id);
+  
+  const handleRefresh = () => {
+    refetch();
+  };
   
   if (isLoading) {
     return <LoadingState />;
@@ -33,6 +40,19 @@ const TransactionsList = () => {
   
   return (
     <div className="space-y-4">
+      <div className="flex justify-end mb-2">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleRefresh}
+          disabled={isFetching}
+          className="text-xs"
+        >
+          <RefreshCw className={`h-3 w-3 mr-1 ${isFetching ? 'animate-spin' : ''}`} />
+          {isFetching ? 'Refreshing...' : 'Refresh'}
+        </Button>
+      </div>
+      
       <TransactionsTable 
         transactions={transactions} 
         expandedItem={expandedItem}

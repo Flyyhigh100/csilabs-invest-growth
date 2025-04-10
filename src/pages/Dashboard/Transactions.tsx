@@ -44,7 +44,7 @@ const Transactions = () => {
     }
   };
   
-  // Check for Stripe session data in localStorage
+  // Check for Stripe session data in localStorage and handle transaction recovery
   useEffect(() => {
     const stripeData = localStorage.getItem('stripe_session_data');
     if (stripeData) {
@@ -53,13 +53,56 @@ const Transactions = () => {
         console.log("Found Stripe session data in localStorage:", {
           session_id: data.session_id,
           payment_intent: data.payment_intent,
-          timestamp: new Date(data.timestamp).toISOString()
+          timestamp: new Date(data.timestamp).toISOString(),
+          amount: data.amount,
+          wallet_address: data.wallet_address
         });
+        
+        // If we returned from Stripe with success but no transaction found,
+        // we could use this data to recover and verify the transaction
+        if (success === 'true' && !sessionId && data.session_id) {
+          console.log("Success param without session_id, using stored session:", data.session_id);
+          // Use stored session ID to check transaction
+          const checkStoredTransaction = async () => {
+            try {
+              const { data: txData, error } = await supabase
+                .from('transactions')
+                .select('*')
+                .eq('transaction_id', data.session_id)
+                .maybeSingle();
+                
+              if (error) {
+                console.error("Error checking stored transaction:", error);
+              } else if (txData) {
+                console.log("Found transaction using stored session ID:", txData);
+                setTransaction(txData);
+                setHasCheckedStatus(true);
+                
+                // Clean up localStorage if we found the transaction
+                localStorage.removeItem('stripe_session_data');
+                return;
+              }
+              
+              // If we get here, we didn't find a transaction for the stored session ID
+              // This might be a case where the webhook hasn't processed yet
+              // Set up polling to check again
+              if (!hasCheckedStatus) {
+                setTimeout(() => {
+                  setPollingCount(prev => prev + 1);
+                }, 2000);
+              }
+            } catch (err) {
+              console.error("Error in stored transaction check:", err);
+            }
+          };
+          
+          checkStoredTransaction();
+        }
       } catch (e) {
         console.error("Error parsing Stripe session data:", e);
       }
     }
-  }, []);
+  }, [success, sessionId, pollingCount]);
   
   // Check session and transaction status
   useEffect(() => {
@@ -74,7 +117,7 @@ const Transactions = () => {
             .from('transactions')
             .select('*')
             .eq('transaction_id', sessionId)
-            .single();
+            .maybeSingle();
           
           if (error) {
             console.error("Error checking transaction:", error);
@@ -95,6 +138,9 @@ const Transactions = () => {
                 });
               }
               setHasCheckedStatus(true);
+              
+              // Clean up localStorage if we found the transaction
+              localStorage.removeItem('stripe_session_data');
             } else if (data.status === 'pending' && success === 'true') {
               // Transaction is still pending but Stripe says success, wait and check again
               if (pollingCount === 0) {

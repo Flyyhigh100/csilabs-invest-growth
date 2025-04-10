@@ -62,11 +62,13 @@ export const useStripePayment = (walletAddress: string | null) => {
           payment_intent: data.payment_intent || null,
           user_id: data.user_id,
           timestamp: Date.now(),
-          auth_refresh_token: sessionData.session?.refresh_token || null
+          auth_refresh_token: sessionData.session?.refresh_token || null,
+          amount: amount,
+          wallet_address: walletAddress
         };
         
         localStorage.setItem('stripe_session_data', JSON.stringify(sessionObject));
-        console.log("Saved session data to localStorage before redirect");
+        console.log("Saved enhanced session data to localStorage before redirect");
       }
       
       // Multiple redirection approaches
