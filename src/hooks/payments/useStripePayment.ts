@@ -56,7 +56,7 @@ export const useStripePayment = (walletAddress: string | null) => {
       
       // Store session information in localStorage before redirecting
       if (data.session_id) {
-        // Save current auth session ID and timestamp to help recover auth state
+        // Save enhanced session data that includes auth info and transaction details
         const sessionObject = {
           session_id: data.session_id,
           payment_intent: data.payment_intent || null,

@@ -30,7 +30,7 @@ serve(async (req) => {
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', // Use service role key for admin operations
     );
 
     // Get the user from the authorization header
@@ -102,7 +102,8 @@ serve(async (req) => {
     // Calculate the actual amount from the session for record keeping
     const sessionAmount = session.amount_total ? session.amount_total / 100 : amount;
 
-    // Log the transaction in your database - use RLS policies
+    // IMPORTANT: Create the transaction record with SERVICE_ROLE to bypass RLS
+    // Log the transaction in your database
     try {
       const { data: transaction, error: insertError } = await supabaseClient.from('transactions').insert({
         user_id: user.id,
@@ -116,7 +117,6 @@ serve(async (req) => {
 
       if (insertError) {
         console.error('[CHECKOUT] Error inserting transaction record:', insertError);
-        // Continue even if transaction record fails - we'll handle it with webhooks
         console.log('[CHECKOUT] Continuing despite transaction record error');
       } else {
         console.log('[CHECKOUT] Transaction record created:', transaction.id);

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
@@ -22,12 +22,51 @@ export const useTransactionVerification = ({
   const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
   const [pollingCount, setPollingCount] = useState(0);
 
+  const verifyTransaction = useCallback(async (id: string) => {
+    try {
+      console.log(`Checking transaction with ID: ${id}`);
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('transaction_id', id)
+        .maybeSingle();
+        
+      if (error) {
+        console.error("Error fetching transaction:", error);
+        return null;
+      }
+      
+      return data;
+    } catch (err) {
+      console.error("Error in transaction verification:", err);
+      return null;
+    }
+  }, []);
+
   const handleRefresh = async () => {
+    if (!userId) return;
+    
     setIsRefreshing(true);
     try {
+      console.log("Manually refreshing transactions...");
       await refreshSession();
+      
+      // If we have a specific session ID to check
+      if (sessionId) {
+        const tx = await verifyTransaction(sessionId);
+        if (tx) {
+          setTransaction(tx);
+          toast.success("Transaction data refreshed");
+        } else {
+          toast.info("Transaction still processing", {
+            description: "Your payment may still be processing. Please check back soon."
+          });
+        }
+      }
+      
       toast.success("Transactions refreshed");
     } catch (err) {
+      console.error("Error refreshing data:", err);
       toast.error("Failed to refresh transactions");
     } finally {
       setIsRefreshing(false);
@@ -55,15 +94,8 @@ export const useTransactionVerification = ({
           // Use stored session ID to check transaction
           const checkStoredTransaction = async () => {
             try {
-              const { data: txData, error } = await supabase
-                .from('transactions')
-                .select('*')
-                .eq('transaction_id', data.session_id)
-                .maybeSingle();
-                
-              if (error) {
-                console.error("Error checking stored transaction:", error);
-              } else if (txData) {
+              const txData = await verifyTransaction(data.session_id);
+              if (txData) {
                 console.log("Found transaction using stored session ID:", txData);
                 setTransaction(txData);
                 setHasCheckedStatus(true);
@@ -92,7 +124,7 @@ export const useTransactionVerification = ({
         console.error("Error parsing Stripe session data:", e);
       }
     }
-  }, [success, sessionId, pollingCount]);
+  }, [success, sessionId, pollingCount, verifyTransaction, hasCheckedStatus]);
 
   // Check session and transaction status
   useEffect(() => {
@@ -103,24 +135,13 @@ export const useTransactionVerification = ({
           setIsRefreshing(true);
           
           // Check if the transaction exists and update UI accordingly
-          const { data, error } = await supabase
-            .from('transactions')
-            .select('*')
-            .eq('transaction_id', sessionId)
-            .maybeSingle();
+          const txData = await verifyTransaction(sessionId);
           
-          if (error) {
-            console.error("Error checking transaction:", error);
-            if (success === 'true' && pollingCount === 0) {
-              toast.info("Checking payment status...", {
-                description: "Please wait while we verify your payment."
-              });
-            }
-          } else if (data) {
-            setTransaction(data);
-            console.log("Transaction found:", data.status, data);
+          if (txData) {
+            setTransaction(txData);
+            console.log("Transaction found:", txData.status, txData);
             
-            if (data.status === 'completed') {
+            if (txData.status === 'completed') {
               // Transaction is completed, show success message
               if (success === 'true') {
                 toast.success("Payment successful!", {
@@ -131,7 +152,7 @@ export const useTransactionVerification = ({
               
               // Clean up localStorage if we found the transaction
               localStorage.removeItem('stripe_session_data');
-            } else if (data.status === 'pending' && success === 'true') {
+            } else if (txData.status === 'pending' && success === 'true') {
               // Transaction is still pending but Stripe says success, wait and check again
               if (pollingCount === 0) {
                 toast.info("Verifying your payment...", {
@@ -146,7 +167,6 @@ export const useTransactionVerification = ({
                 
                 setTimeout(() => {
                   setPollingCount(prev => prev + 1);
-                  checkTransaction();
                 }, delay);
                 return;
               } else {
@@ -175,7 +195,6 @@ export const useTransactionVerification = ({
                 const delay = Math.min(2000 * Math.pow(1.5, pollingCount), 10000);
                 setTimeout(() => {
                   setPollingCount(prev => prev + 1);
-                  checkTransaction();
                 }, delay);
                 return;
               }
@@ -194,7 +213,7 @@ export const useTransactionVerification = ({
       
       checkTransaction();
     }
-  }, [sessionId, success, userId, hasCheckedStatus, pollingCount, refreshSession]);
+  }, [sessionId, success, userId, hasCheckedStatus, pollingCount, handleRefresh, verifyTransaction]);
 
   // Handle initial success/cancel messages
   useEffect(() => {
