@@ -1,197 +1,33 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-
-interface AuthContextType {
-  session: Session | null;
-  user: User | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
-  refreshSession: () => Promise<void>;
-}
+import { useSessionManagement } from '@/hooks/auth/useSessionManagement';
+import { useAuthOperations } from '@/hooks/auth/useAuthOperations';
+import { AuthContextType } from '@/hooks/auth/types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  
+  const { session, user, loading, refreshSession } = useSessionManagement();
+  const { signIn, signUp, signOut, resetPassword } = useAuthOperations();
 
-  // Function to refresh the session
-  const refreshSession = async (): Promise<void> => {
-    try {
-      console.log("Attempting to refresh auth session...");
-      const { data, error } = await supabase.auth.refreshSession();
-      
-      if (error) {
-        console.error("Error refreshing session:", error);
-        throw error;
-      }
-      
-      console.log("Session refreshed successfully");
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-    } catch (error) {
-      console.error("Session refresh failed:", error);
-      throw error;
-    }
-  };
-
-  useEffect(() => {
-    // First set up the auth state listener
-    console.log("Setting up auth state listener");
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        console.log("Auth state change:", event);
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        
-        // If the user signs in, redirect to dashboard/payments
-        if (event === 'SIGNED_IN' && location.pathname.includes('/login')) {
-          navigate('/dashboard/payments');
-        }
-        
-        // If the user signs out, redirect to home
-        if (event === 'SIGNED_OUT') {
-          navigate('/');
-        }
-      }
-    );
-
-    // Then check for existing session
-    const initializeAuth = async () => {
-      try {
-        console.log("Checking for session data...");
-        // Check if there's session information in localStorage from Stripe redirect
-        const stripeSessionData = localStorage.getItem('stripe_session_data');
-        if (stripeSessionData) {
-          try {
-            const parsedData = JSON.parse(stripeSessionData);
-            console.log("Found Stripe session data:", parsedData);
-            
-            // Only process if the data isn't too old (30 minutes)
-            const expiryTime = 30 * 60 * 1000; // 30 minutes in milliseconds
-            if (Date.now() - parsedData.timestamp < expiryTime) {
-              console.log("Session data is recent, attempting to refresh session...");
-              
-              // Try to refresh the session
-              try {
-                await refreshSession();
-                console.log("Session refreshed after Stripe redirect");
-                
-                // If we're on the transaction page with a success parameter, show a success toast
-                if (location.pathname.includes('/transactions') && location.search.includes('success=true')) {
-                  toast.success("Payment completed successfully!");
-                }
-              } catch (refreshError) {
-                console.error("Failed to refresh session after Stripe redirect:", refreshError);
-                toast.error("Session expired", { 
-                  description: "Please sign in again to view your transaction." 
-                });
-              }
-            } else {
-              console.log("Session data expired, removing...");
-            }
-            
-            // Clear the stored session data regardless of whether it was used
-            localStorage.removeItem('stripe_session_data');
-          } catch (parseError) {
-            console.error("Error parsing Stripe session data:", parseError);
-            localStorage.removeItem('stripe_session_data');
-          }
-        }
-        
-        // Get current session
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        console.log("Current session check:", currentSession ? "Session exists" : "No session");
-        
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-      } catch (error) {
-        console.error("Error getting auth session:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    initializeAuth();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [navigate, location]);
-
-  const signIn = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in');
-      throw error;
-    }
-  };
-
-  const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            firstName,
-            lastName
-          }
-        }
-      });
-      if (error) throw error;
-      toast.success('Registration successful! Please check your email to verify your account.');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign up');
-      throw error;
-    }
-  };
-
-  const signOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign out');
-      throw error;
-    }
-  };
-
-  const resetPassword = async (email: string) => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to send password reset email');
-      throw error;
-    }
+  // Context value combining session management and auth operations
+  const contextValue: AuthContextType = {
+    session,
+    user,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+    resetPassword,
+    refreshSession
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      session, 
-      user, 
-      loading, 
-      signIn, 
-      signUp, 
-      signOut, 
-      resetPassword,
-      refreshSession
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
