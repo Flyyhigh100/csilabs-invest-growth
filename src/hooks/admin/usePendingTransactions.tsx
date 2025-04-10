@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
@@ -38,14 +39,14 @@ export const usePendingTransactions = () => {
           if (Array.isArray(item.profiles) && item.profiles.length > 0) {
             return {
               ...item,
-              profiles: item.profiles[0]
+              profiles: item.profiles[0] || null
             } as PendingTransactionWithProfile;
           }
           
           // If profiles is already an object (not an array), keep it as is
           return {
             ...item,
-            profiles: item.profiles
+            profiles: item.profiles || null
           } as PendingTransactionWithProfile;
         }
         
