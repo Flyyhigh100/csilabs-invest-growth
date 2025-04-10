@@ -29,15 +29,16 @@ const createStripeClient = () => {
   });
 };
 
-// Verify Stripe webhook signature
-const verifyStripeSignature = (body: string, signature: string) => {
+// Verify Stripe webhook signature - ASYNC version
+const verifyStripeSignatureAsync = async (body: string, signature: string) => {
   const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
   if (!webhookSecret) {
     throw new Error("STRIPE_WEBHOOK_SECRET is not set in environment variables");
   }
   
   const stripe = createStripeClient();
-  return stripe.webhooks.constructEvent(body, signature, webhookSecret);
+  // Use constructEventAsync instead of constructEvent
+  return await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
 };
 
 // Create notification for user when payment is confirmed
@@ -546,10 +547,11 @@ const handleStripeWebhook = async (req) => {
     const body = await req.text();
     console.log("[WEBHOOK] Webhook body received (truncated):", body.substring(0, 100) + "...");
     
-    // Verify the webhook signature
+    // Verify the webhook signature using the ASYNC version
     let event;
     try {
-      event = verifyStripeSignature(body, signature);
+      // Use the async verification method
+      event = await verifyStripeSignatureAsync(body, signature);
       console.log(`[WEBHOOK] Event successfully constructed: ${event.type}`);
       console.log(`[WEBHOOK] Event ID: ${event.id}`);
     } catch (err) {
