@@ -14,9 +14,6 @@ export const useStripePayment = (walletAddress: string | null) => {
     setIsProcessing(true);
     
     try {
-      const toastId = "stripe-preparing";
-      toast.info("Preparing payment session...", { id: toastId });
-      
       console.log(`Creating Stripe checkout for $${amount} to wallet ${walletAddress}`);
       
       // Get the current auth session token
@@ -29,13 +26,13 @@ export const useStripePayment = (walletAddress: string | null) => {
         return;
       }
       
+      console.log("Invoking create-stripe-checkout function...");
       const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
         body: { amount, walletAddress }
       });
       
       if (error) {
         console.error("Stripe checkout error:", error);
-        toast.dismiss(toastId);
         toast.error("Payment session failed", { 
           description: error.message || "Please try again or contact support." 
         });
@@ -43,74 +40,88 @@ export const useStripePayment = (walletAddress: string | null) => {
         return;
       }
       
-      if (data?.url) {
-        toast.dismiss(toastId);
-        toast.info("Redirecting to Stripe checkout...", {
-          description: "For testing, use card 4242 4242 4242 4242, any future date, and any CVC."
-        });
-        
-        // Store session information in localStorage before redirecting
-        if (data.session_id && data.user_id) {
-          // Save current auth session ID and timestamp to help recover auth state
-          const sessionObject = {
-            session_id: data.session_id,
-            payment_intent: data.payment_intent || null,
-            user_id: data.user_id,
-            timestamp: Date.now(),
-            auth_refresh_token: sessionData.session?.refresh_token || null
-          };
-          
-          localStorage.setItem('stripe_session_data', JSON.stringify(sessionObject));
-          console.log("Saved session data to localStorage before redirect:", { 
-            session_id: data.session_id,
-            payment_intent: data.payment_intent,
-            timestamp: Date.now() 
-          });
-        }
-        
-        console.log("Redirecting to Stripe checkout URL:", data.url);
-        
-        try {
-          // Primary redirection method
-          window.location.href = data.url;
-          
-          // If the above doesn't trigger a redirect within 1.5 seconds, try alternative approaches
-          setTimeout(() => {
-            console.log("Attempting fallback redirection to:", data.url);
-            
-            // Fallback: Try opening in a new tab
-            const opened = window.open(data.url, '_blank');
-            if (!opened) {
-              toast.error("Redirect failed", { 
-                description: "Please click the link to continue to payment.",
-                action: {
-                  label: "Open Checkout",
-                  onClick: () => window.open(data.url, '_blank')
-                }
-              });
-            } else {
-              toast.info("Checkout opened in a new tab");
-            }
-            setIsProcessing(false);
-          }, 1500);
-        } catch (err) {
-          console.error("Error during redirection:", err);
-          toast.error("Redirect failed", {
-            description: "Please click the link to continue to payment.",
-            action: {
-              label: "Open Checkout",
-              onClick: () => window.open(data.url, '_blank')
-            }
-          });
-          setIsProcessing(false);
-        }
-      } else {
-        toast.dismiss(toastId);
+      if (!data?.url) {
+        console.error("No checkout URL received from Stripe");
         toast.error("Payment session failed", {
           description: "No checkout URL received. Please try again."
         });
         setIsProcessing(false);
+        return;
       }
+      
+      console.log("Received Stripe checkout URL:", data.url);
+      toast.success("Redirecting to Stripe checkout...", {
+        description: "For testing, use card 4242 4242 4242 4242, any future date, and any CVC."
+      });
+      
+      // Store session information in localStorage before redirecting
+      if (data.session_id) {
+        // Save current auth session ID and timestamp to help recover auth state
+        const sessionObject = {
+          session_id: data.session_id,
+          payment_intent: data.payment_intent || null,
+          user_id: data.user_id,
+          timestamp: Date.now(),
+          auth_refresh_token: sessionData.session?.refresh_token || null
+        };
+        
+        localStorage.setItem('stripe_session_data', JSON.stringify(sessionObject));
+        console.log("Saved session data to localStorage before redirect");
+      }
+      
+      // Multiple redirection approaches
+      try {
+        console.log("Attempting primary redirection method to:", data.url);
+        
+        // Primary method: direct location change
+        window.location.assign(data.url);
+        
+        // Set a timer to check if redirection worked
+        setTimeout(() => {
+          console.log("Checking if redirection occurred...");
+          
+          // If we're still here, try a different approach
+          try {
+            console.log("Attempting secondary redirection method (open in new tab)");
+            window.open(data.url, '_blank');
+            
+            // Show a toast with a manual link as last resort
+            toast.info("Click below if you weren't redirected", {
+              duration: 10000,
+              action: {
+                label: "Open Checkout",
+                onClick: () => window.open(data.url, '_blank')
+              }
+            });
+          } catch (err) {
+            console.error("Error with fallback redirection:", err);
+            
+            // Final fallback: Just show a toast with the link
+            toast.info("Click to continue to payment", {
+              duration: 15000,
+              action: {
+                label: "Open Checkout",
+                onClick: () => window.open(data.url, '_blank')
+              }
+            });
+          }
+          
+          // Reset processing state if we're still here
+          setIsProcessing(false);
+        }, 3000);
+        
+      } catch (err) {
+        console.error("Error during redirection:", err);
+        toast.error("Redirect failed", {
+          description: "Please click the link to continue to payment.",
+          action: {
+            label: "Open Checkout",
+            onClick: () => window.open(data.url, '_blank')
+          }
+        });
+        setIsProcessing(false);
+      }
+      
     } catch (error: any) {
       console.error("Error creating Stripe checkout:", error);
       toast.error("Payment session failed", {

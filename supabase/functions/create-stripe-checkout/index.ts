@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
@@ -101,24 +102,31 @@ serve(async (req) => {
     // Calculate the actual amount from the session for record keeping
     const sessionAmount = session.amount_total ? session.amount_total / 100 : amount;
 
-    // Log the transaction in your database
-    const { data: transaction, error: insertError } = await supabaseClient.from('transactions').insert({
-      user_id: user.id,
-      amount: sessionAmount,
-      wallet_address: walletAddress,
-      payment_method: 'stripe',
-      status: 'pending',
-      transaction_id: session.id,
-      external_transaction_id: session.payment_intent || null,
-    }).select().single();
+    // Log the transaction in your database - use RLS policies
+    try {
+      const { data: transaction, error: insertError } = await supabaseClient.from('transactions').insert({
+        user_id: user.id,
+        amount: sessionAmount,
+        wallet_address: walletAddress,
+        payment_method: 'stripe',
+        status: 'pending',
+        transaction_id: session.id,
+        external_transaction_id: session.payment_intent || null,
+      }).select().single();
 
-    if (insertError) {
-      console.error('[CHECKOUT] Error inserting transaction record:', insertError);
-      throw new Error('Failed to record transaction');
+      if (insertError) {
+        console.error('[CHECKOUT] Error inserting transaction record:', insertError);
+        // Continue even if transaction record fails - we'll handle it with webhooks
+        console.log('[CHECKOUT] Continuing despite transaction record error');
+      } else {
+        console.log('[CHECKOUT] Transaction record created:', transaction.id);
+      }
+    } catch (dbError) {
+      console.error('[CHECKOUT] Database error when creating transaction:', dbError);
+      // Continue despite DB error - don't fail the checkout process
     }
 
-    console.log('[CHECKOUT] Transaction record created:', transaction.id);
-    console.log('[CHECKOUT] Returning checkout URL');
+    console.log('[CHECKOUT] Returning checkout URL and session data');
 
     return new Response(
       JSON.stringify({ 

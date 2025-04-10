@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { CreditCard, CheckCircle } from 'lucide-react';
+import { CreditCard, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CardPaymentTabProps {
@@ -19,9 +19,10 @@ const CardPaymentTab: React.FC<CardPaymentTabProps> = ({
 }) => {
   const handlePaymentClick = async () => {
     try {
-      toast.info("Preparing payment session...");
+      const toastId = toast.loading("Preparing payment session...");
       console.log("Payment button clicked, amount:", amount);
       await handleStripePayment(amount);
+      toast.dismiss(toastId);
     } catch (error) {
       console.error("Error initiating payment:", error);
       toast.error("Failed to initiate payment", {
@@ -52,9 +53,16 @@ const CardPaymentTab: React.FC<CardPaymentTabProps> = ({
         <Button 
           onClick={handlePaymentClick} 
           disabled={isProcessing || isWalletMissing}
-          className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white py-2 px-4 sm:w-auto w-full"
+          className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white py-2 px-4 sm:w-auto w-full relative"
         >
-          Proceed to Payment
+          {isProcessing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            "Proceed to Payment"
+          )}
         </Button>
       </div>
       
