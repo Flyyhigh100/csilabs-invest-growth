@@ -7,5 +7,4 @@ export {
   verifyImageUrl,
   checkBucketExists 
 } from './kyc';
-export { markTokensAsSent } from './admin';
-
+export { markTokensAsSent } from './transactions';
