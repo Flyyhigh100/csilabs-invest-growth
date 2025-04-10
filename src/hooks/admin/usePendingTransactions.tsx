@@ -33,27 +33,27 @@ export const usePendingTransactions = () => {
       
       // Process the data to ensure profiles is properly handled
       const processedData = data.map(item => {
-        // Check if profiles exists and is a valid array/object
-        if (item.profiles && typeof item.profiles === 'object') {
-          // If profiles is an array with data, get first item (should be only one)
-          if (Array.isArray(item.profiles) && item.profiles.length > 0) {
-            return {
-              ...item,
-              profiles: item.profiles[0] || null
-            } as PendingTransactionWithProfile;
-          }
-          
-          // If profiles is already an object (not an array), keep it as is
+        // First check if profiles exists at all
+        if (!item.profiles) {
           return {
             ...item,
-            profiles: item.profiles || null
+            profiles: null
+          } as PendingTransactionWithProfile;
+        }
+        
+        // Now we know profiles is not null
+        // Check if profiles is an array with data
+        if (Array.isArray(item.profiles)) {
+          return {
+            ...item,
+            profiles: item.profiles.length > 0 ? item.profiles[0] : null
           } as PendingTransactionWithProfile;
         }
         
         // If profiles is null or invalid, set it to null
         return {
           ...item,
-          profiles: null
+          profiles: (typeof item.profiles === 'object') ? item.profiles : null
         } as PendingTransactionWithProfile;
       });
       
