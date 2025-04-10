@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
@@ -19,7 +18,7 @@ export const usePendingTransactions = () => {
         .from('transactions')
         .select(`
           *,
-          profiles(
+          profiles:user_id(
             email,
             first_name,
             last_name
@@ -50,7 +49,7 @@ export const usePendingTransactions = () => {
           } as PendingTransactionWithProfile;
         }
         
-        // If profiles is null or invalid, set it to null
+        // If profiles is not an array but an object, keep it
         return {
           ...item,
           profiles: (typeof item.profiles === 'object') ? item.profiles : null
