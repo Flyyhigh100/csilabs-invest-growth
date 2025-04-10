@@ -16,12 +16,16 @@ import EmptyState from './PendingTransactions/EmptyState';
 import TransactionsTable from './PendingTransactions/TransactionsTable';
 import TransactionDialog from './PendingTransactions/TransactionDialog';
 import DownloadCSVButton from './PendingTransactions/DownloadCSVButton';
+import DistributionGuide from './PendingTransactions/DistributionGuide';
+import DistributionStats from './PendingTransactions/DistributionStats';
+import BulkActionsBar from './PendingTransactions/BulkActionsBar';
 
 const PendingTransactions = () => {
   const [selectedTx, setSelectedTx] = useState<PendingTransactionWithProfile | null>(null);
   const [blockchainTxId, setBlockchainTxId] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedTransactions, setSelectedTransactions] = useState<PendingTransactionWithProfile[]>([]);
 
   const { data: transactions, isLoading, error, refetch } = usePendingTransactions();
 
@@ -51,9 +55,52 @@ const PendingTransactions = () => {
     }
   };
 
+  // Handle bulk action to mark multiple transactions as sent
+  const handleBulkMarkAsSent = async (transactionIds: string[], blockchainTxId: string) => {
+    if (!blockchainTxId.trim()) {
+      toast.error('Please enter a blockchain transaction ID');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      // Process each transaction in sequence
+      for (const txId of transactionIds) {
+        await markTokensAsSent(txId, blockchainTxId);
+      }
+      
+      refetch();
+      setSelectedTransactions([]); // Clear selections after successful update
+      toast.success(`${transactionIds.length} transactions marked as sent`);
+    } catch (err) {
+      console.error('Error marking transactions as sent:', err);
+      toast.error('Failed to update transaction status');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Handle transaction updates from sync operation
   const handleTransactionUpdated = () => {
     refetch();
+  };
+
+  // Handle selection of a transaction
+  const handleSelectTransaction = (tx: PendingTransactionWithProfile, isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedTransactions(prev => [...prev, tx]);
+    } else {
+      setSelectedTransactions(prev => prev.filter(item => item.id !== tx.id));
+    }
+  };
+
+  // Handle select all transactions
+  const handleSelectAll = (isSelected: boolean) => {
+    if (isSelected && transactions) {
+      setSelectedTransactions([...transactions]);
+    } else {
+      setSelectedTransactions([]);
+    }
   };
 
   // Add some debugging for the error condition
@@ -63,6 +110,10 @@ const PendingTransactions = () => {
 
   return (
     <div className="space-y-6">
+      {/* Distribution Guide - Collapsible help section */}
+      <DistributionGuide />
+      
+      {/* Main Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -76,6 +127,19 @@ const PendingTransactions = () => {
           )}
         </CardHeader>
         <CardContent>
+          {/* Distribution Statistics */}
+          {transactions && transactions.length > 0 && (
+            <DistributionStats transactions={transactions} />
+          )}
+          
+          {/* Bulk Actions Bar */}
+          <BulkActionsBar 
+            selectedTransactions={selectedTransactions}
+            onMarkAsSent={handleBulkMarkAsSent}
+            disabled={isSubmitting}
+          />
+          
+          {/* Transactions Table */}
           {isLoading ? (
             <LoadingState />
           ) : error ? (
@@ -87,11 +151,15 @@ const PendingTransactions = () => {
               transactions={transactions} 
               onMarkAsSent={openDialog} 
               onTransactionUpdated={handleTransactionUpdated}
+              selectedTransactions={selectedTransactions}
+              onSelectTransaction={handleSelectTransaction}
+              onSelectAll={handleSelectAll}
             />
           )}
         </CardContent>
       </Card>
 
+      {/* Transaction Dialog */}
       <TransactionDialog 
         isOpen={isDialogOpen}
         setIsOpen={setIsDialogOpen}

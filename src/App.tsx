@@ -19,6 +19,7 @@ import Profile from '@/pages/Dashboard/Profile';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import NotFound from '@/pages/NotFound';
 import { Toaster } from "@/components/ui/toaster"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 // Import admin pages
 import AdminDashboard from './pages/Admin/Dashboard';
@@ -36,47 +37,49 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <div className="App">
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/token-info" element={<TokenInfo />} />
-              <Route 
-                path="/research-documents" 
-                element={
-                  <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-                    <ResearchDocuments />
-                  </Suspense>
-                } 
-              />
-              
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/signup" element={<Navigate to="/register" replace />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              
-              {/* Redirect from dashboard to payments */}
-              <Route path="/dashboard" element={<Navigate to="/dashboard/payments" replace />} />
-              
-              {/* Protected dashboard routes */}
-              <Route path="/dashboard/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
-              <Route path="/dashboard/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
-              <Route path="/dashboard/kyc" element={<ProtectedRoute><KYCVerification /></ProtectedRoute>} />
-              <Route path="/dashboard/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
-              <Route path="/dashboard/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              
-              {/* Admin Routes - Note the adminOnly prop */}
-              <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminDashboard /></ProtectedRoute>} />
-              <Route path="/admin/kyc" element={<ProtectedRoute adminOnly={true}><AdminKycPage /></ProtectedRoute>} />
-              <Route path="/admin/transactions" element={<ProtectedRoute adminOnly={true}><AdminTransactionsPage /></ProtectedRoute>} />
-              <Route path="/admin/users" element={<ProtectedRoute adminOnly={true}><AdminUsersPage /></ProtectedRoute>} />
-              <Route path="/admin/research-documents" element={<ProtectedRoute adminOnly={true}><AdminResearchDocuments /></ProtectedRoute>} />
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <Toaster />
-          </div>
+          <TooltipProvider>
+            <div className="App">
+              <Routes>
+                {/* Public routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/token-info" element={<TokenInfo />} />
+                <Route 
+                  path="/research-documents" 
+                  element={
+                    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+                      <ResearchDocuments />
+                    </Suspense>
+                  } 
+                />
+                
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/signup" element={<Navigate to="/register" replace />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                
+                {/* Redirect from dashboard to payments */}
+                <Route path="/dashboard" element={<Navigate to="/dashboard/payments" replace />} />
+                
+                {/* Protected dashboard routes */}
+                <Route path="/dashboard/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
+                <Route path="/dashboard/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
+                <Route path="/dashboard/kyc" element={<ProtectedRoute><KYCVerification /></ProtectedRoute>} />
+                <Route path="/dashboard/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+                <Route path="/dashboard/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                
+                {/* Admin Routes - Note the adminOnly prop */}
+                <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminDashboard /></ProtectedRoute>} />
+                <Route path="/admin/kyc" element={<ProtectedRoute adminOnly={true}><AdminKycPage /></ProtectedRoute>} />
+                <Route path="/admin/transactions" element={<ProtectedRoute adminOnly={true}><AdminTransactionsPage /></ProtectedRoute>} />
+                <Route path="/admin/users" element={<ProtectedRoute adminOnly={true}><AdminUsersPage /></ProtectedRoute>} />
+                <Route path="/admin/research-documents" element={<ProtectedRoute adminOnly={true}><AdminResearchDocuments /></ProtectedRoute>} />
+                
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <Toaster />
+            </div>
+          </TooltipProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
