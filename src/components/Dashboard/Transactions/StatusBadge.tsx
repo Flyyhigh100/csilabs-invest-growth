@@ -1,9 +1,11 @@
 
 import React from 'react';
 import { Transaction } from '@/types/transactions';
+import { CheckCircle2, Clock } from 'lucide-react';
 
 interface StatusBadgeProps {
   status: string;
+  tokenSent?: boolean;
 }
 
 // Support both direct status string or transaction object
@@ -11,11 +13,20 @@ interface ExtendedStatusBadgeProps extends Partial<StatusBadgeProps> {
   transaction?: Transaction;
 }
 
-const StatusBadge: React.FC<ExtendedStatusBadgeProps> = ({ status: directStatus, transaction }) => {
+const StatusBadge: React.FC<ExtendedStatusBadgeProps> = ({ 
+  status: directStatus, 
+  tokenSent: directTokenSent, 
+  transaction 
+}) => {
   // Get status either from direct prop or transaction object
   const status = directStatus || (transaction ? transaction.status : '');
+  const tokenSent = directTokenSent || (transaction ? transaction.token_sent : false);
 
   const getStatusStyles = () => {
+    if (tokenSent) {
+      return 'bg-green-100 text-green-800 border-green-300';
+    }
+
     switch (status) {
       case 'completed':
         return 'bg-green-100 text-green-800 border-green-300';
@@ -31,9 +42,23 @@ const StatusBadge: React.FC<ExtendedStatusBadgeProps> = ({ status: directStatus,
   };
 
   const getStatusLabel = () => {
+    if (tokenSent) {
+      return (
+        <span className="flex items-center">
+          <CheckCircle2 className="h-3 w-3 mr-1" />
+          Tokens Delivered
+        </span>
+      );
+    }
+
     switch (status) {
       case 'completed':
-        return 'Completed';
+        return (
+          <span className="flex items-center">
+            <Clock className="h-3 w-3 mr-1" />
+            Processing Delivery
+          </span>
+        );
       case 'pending':
         return 'Pending';
       case 'failed':

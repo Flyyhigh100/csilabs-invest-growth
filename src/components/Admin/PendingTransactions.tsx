@@ -15,6 +15,7 @@ import ErrorState from './PendingTransactions/ErrorState';
 import EmptyState from './PendingTransactions/EmptyState';
 import TransactionsTable from './PendingTransactions/TransactionsTable';
 import TransactionDialog from './PendingTransactions/TransactionDialog';
+import DownloadCSVButton from './PendingTransactions/DownloadCSVButton';
 
 const PendingTransactions = () => {
   const [selectedTx, setSelectedTx] = useState<PendingTransactionWithProfile | null>(null);
@@ -63,11 +64,16 @@ const PendingTransactions = () => {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>Pending Token Distributions</CardTitle>
-          <CardDescription>
-            Send tokens to user wallets and mark transactions as completed
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Pending Token Distributions</CardTitle>
+            <CardDescription>
+              Send tokens to user wallets and mark transactions as completed
+            </CardDescription>
+          </div>
+          {transactions && transactions.length > 0 && (
+            <DownloadCSVButton transactions={transactions} />
+          )}
         </CardHeader>
         <CardContent>
           {isLoading ? (

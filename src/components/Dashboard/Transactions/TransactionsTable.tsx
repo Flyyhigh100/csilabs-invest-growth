@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, CheckCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import StatusBadge from './StatusBadge';
 import PaymentMethodIcon from './PaymentMethodIcon';
@@ -55,6 +55,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
           <TableHead>Amount</TableHead>
           <TableHead>Method</TableHead>
           <TableHead>Status</TableHead>
+          <TableHead>Delivery</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -82,6 +83,23 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
                     onSyncComplete={onSyncComplete}
                   />
                 </div>
+              )}
+            </TableCell>
+            <TableCell>
+              {tx.token_sent ? (
+                <span className="text-green-600 flex items-center text-sm">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Delivered
+                </span>
+              ) : tx.status === 'completed' ? (
+                <span className="text-amber-600 flex items-center text-sm">
+                  <Clock className="h-3 w-3 mr-1" />
+                  Processing
+                </span>
+              ) : (
+                <span className="text-gray-400 text-sm">
+                  Pending payment
+                </span>
               )}
             </TableCell>
             <TableCell className="text-right">

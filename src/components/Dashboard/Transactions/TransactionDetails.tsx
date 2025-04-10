@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Copy, ExternalLink, CheckCircle2, Clock } from 'lucide-react';
+import { Copy, ExternalLink, CheckCircle2, Clock, Link } from 'lucide-react';
 import { Transaction } from '@/types/transactions';
 import {
   Tooltip,
@@ -151,6 +151,25 @@ const TransactionDetails = ({ transaction }: TransactionDetailsProps) => {
             </div>
           </div>
         </div>
+
+        {transaction.token_sent && transaction.blockchain_tx_id && (
+          <div className="mt-4 p-3 bg-green-50 border border-green-100 rounded-md">
+            <div className="flex items-center text-green-800 text-sm">
+              <Link className="h-4 w-4 mr-2" />
+              <span>
+                Your tokens have been sent to your wallet. You can view the transaction on 
+                <a 
+                  href={`https://polygonscan.com/tx/${transaction.blockchain_tx_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium underline ml-1 hover:text-green-700"
+                >
+                  PolygonScan
+                </a>.
+              </span>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
