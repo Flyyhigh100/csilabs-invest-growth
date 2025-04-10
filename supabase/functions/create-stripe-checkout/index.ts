@@ -17,6 +17,7 @@ serve(async (req) => {
   const { amount, walletAddress } = await req.json();
   
   if (!walletAddress) {
+    console.error('[CHECKOUT] Missing wallet address');
     return new Response(
       JSON.stringify({ error: 'Missing wallet address' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -66,6 +67,7 @@ serve(async (req) => {
     const unitAmount = Math.round(amount * 100); // Convert to cents for Stripe
     
     const origin = req.headers.get('origin') || '';
+    console.log('[CHECKOUT] Origin for success/cancel URLs:', origin);
     
     // Create a checkout session with dynamic pricing
     const session = await stripe.checkout.sessions.create({
@@ -94,6 +96,7 @@ serve(async (req) => {
 
     console.log('[CHECKOUT] Checkout session created:', session.id);
     console.log('[CHECKOUT] Payment intent created:', session.payment_intent);
+    console.log('[CHECKOUT] Checkout URL:', session.url);
 
     // Calculate the actual amount from the session for record keeping
     const sessionAmount = session.amount_total ? session.amount_total / 100 : amount;

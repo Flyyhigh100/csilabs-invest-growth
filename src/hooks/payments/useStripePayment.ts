@@ -25,6 +25,7 @@ export const useStripePayment = (walletAddress: string | null) => {
         toast.error("Authentication required", { 
           description: "You must be logged in to make a payment."
         });
+        setIsProcessing(false);
         return;
       }
       
@@ -35,7 +36,11 @@ export const useStripePayment = (walletAddress: string | null) => {
       if (error) {
         console.error("Stripe checkout error:", error);
         toast.dismiss(toastId);
-        throw new Error(error.message || "Failed to create payment session");
+        toast.error("Payment session failed", { 
+          description: error.message || "Please try again or contact support." 
+        });
+        setIsProcessing(false);
+        return;
       }
       
       if (data?.url) {
@@ -65,18 +70,52 @@ export const useStripePayment = (walletAddress: string | null) => {
         
         console.log("Redirecting to Stripe checkout URL:", data.url);
         
-        // Redirect to Stripe checkout
-        window.location.href = data.url;
+        try {
+          // Primary redirection method
+          window.location.href = data.url;
+          
+          // If the above doesn't trigger a redirect within 1.5 seconds, try alternative approaches
+          setTimeout(() => {
+            console.log("Attempting fallback redirection to:", data.url);
+            
+            // Fallback: Try opening in a new tab
+            const opened = window.open(data.url, '_blank');
+            if (!opened) {
+              toast.error("Redirect failed", { 
+                description: "Please click the link to continue to payment.",
+                action: {
+                  label: "Open Checkout",
+                  onClick: () => window.open(data.url, '_blank')
+                }
+              });
+            } else {
+              toast.info("Checkout opened in a new tab");
+            }
+            setIsProcessing(false);
+          }, 1500);
+        } catch (err) {
+          console.error("Error during redirection:", err);
+          toast.error("Redirect failed", {
+            description: "Please click the link to continue to payment.",
+            action: {
+              label: "Open Checkout",
+              onClick: () => window.open(data.url, '_blank')
+            }
+          });
+          setIsProcessing(false);
+        }
       } else {
         toast.dismiss(toastId);
-        throw new Error("No checkout URL received");
+        toast.error("Payment session failed", {
+          description: "No checkout URL received. Please try again."
+        });
+        setIsProcessing(false);
       }
     } catch (error: any) {
       console.error("Error creating Stripe checkout:", error);
       toast.error("Payment session failed", {
         description: error.message || "Please try again or contact support."
       });
-    } finally {
       setIsProcessing(false);
     }
   };
