@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const location = useLocation();
 
   // Function to refresh the session
-  const refreshSession = async () => {
+  const refreshSession = async (): Promise<void> => {
     try {
       const { data, error } = await supabase.auth.refreshSession();
       
@@ -37,7 +37,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setSession(data.session);
       setUser(data.session?.user ?? null);
-      return data;
+      
+      // Return void instead of returning data
     } catch (error) {
       console.error("Session refresh failed:", error);
       throw error;
@@ -67,6 +68,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Then check for existing session
     const initializeAuth = async () => {
       try {
+        // Check if there's session information in localStorage from Stripe redirect
+        const stripeSessionData = localStorage.getItem('stripe_session_data');
+        if (stripeSessionData) {
+          const parsedData = JSON.parse(stripeSessionData);
+          console.log("Found Stripe session data:", parsedData);
+          
+          // Only process if the data isn't too old (15 minutes)
+          const expiryTime = 15 * 60 * 1000; // 15 minutes in milliseconds
+          if (Date.now() - parsedData.timestamp < expiryTime) {
+            // Try to refresh the session
+            try {
+              await refreshSession();
+              console.log("Session refreshed after Stripe redirect");
+              toast.success("Welcome back! Payment completed successfully.");
+            } catch (refreshError) {
+              console.error("Failed to refresh session after Stripe redirect:", refreshError);
+            }
+          }
+          // Clear the stored session data regardless of whether it was used
+          localStorage.removeItem('stripe_session_data');
+        }
+        
+        // Get current session
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
