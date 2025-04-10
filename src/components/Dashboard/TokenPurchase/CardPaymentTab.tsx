@@ -16,15 +16,6 @@ const CardPaymentTab: React.FC<CardPaymentTabProps> = ({
   isProcessing,
   isWalletMissing
 }) => {
-  const handlePaymentClick = async () => {
-    try {
-      await handleStripePayment(amount);
-    } catch (error) {
-      console.error("Payment initiation error:", error);
-      // This will help us see if there's an error in the console
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3 mb-4">
@@ -45,7 +36,7 @@ const CardPaymentTab: React.FC<CardPaymentTabProps> = ({
           <p className="text-lg font-medium text-gray-800">${amount.toLocaleString()}</p>
         </div>
         <Button 
-          onClick={handlePaymentClick}
+          onClick={() => handleStripePayment(amount)} 
           disabled={isProcessing || isWalletMissing}
           className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white py-2 px-4 sm:w-auto w-full"
         >

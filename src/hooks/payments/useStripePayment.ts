@@ -65,21 +65,8 @@ export const useStripePayment = (walletAddress: string | null) => {
         
         console.log("Redirecting to Stripe checkout URL:", data.url);
         
-        // Enhanced redirect with fallback mechanism
-        try {
-          // Primary method: direct location change
-          window.location.href = data.url;
-          
-          // Fallback: If the above doesn't trigger within 1 second, try opening in a new tab
-          setTimeout(() => {
-            console.log("Attempting fallback redirect...");
-            window.open(data.url, '_blank');
-          }, 1000);
-        } catch (redirectError) {
-          console.error("Redirect error, trying fallback:", redirectError);
-          // If direct redirect fails, try opening in a new tab
-          window.open(data.url, '_blank');
-        }
+        // Redirect to Stripe checkout
+        window.location.href = data.url;
       } else {
         toast.dismiss(toastId);
         throw new Error("No checkout URL received");
