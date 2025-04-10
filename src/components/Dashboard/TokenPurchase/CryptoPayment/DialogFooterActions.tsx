@@ -35,3 +35,6 @@ export const DialogFooterActions: React.FC<DialogFooterActionsProps> = ({
     </div>
   );
 };
+
+// Add this line to export as default as well
+export default DialogFooterActions;

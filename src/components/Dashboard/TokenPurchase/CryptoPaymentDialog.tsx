@@ -18,20 +18,32 @@ import { Transaction } from '@/types/transactions';
 
 interface CryptoPaymentDialogProps {
   open: boolean;
-  onClose: () => void;
+  onOpenChange?: (show: boolean) => void;
+  onClose?: () => void;
   paymentDetails: CryptoPaymentDetails;
+  amount?: number;
+  selectedCurrency?: string;
 }
 
 const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({ 
   open, 
+  onOpenChange,
   onClose, 
-  paymentDetails 
+  paymentDetails,
+  amount,
+  selectedCurrency
 }) => {
   const { user } = useAuth();
   const { data: transactions, refetch } = useTransactions(user?.id);
   const { checkTransactionStatus, isChecking } = useCryptoStatusCheck();
   const [pendingTransaction, setPendingTransaction] = useState<Transaction | null>(null);
   const [statusCheckInterval, setStatusCheckInterval] = useState<number | null>(null);
+
+  // Handle the close event from either prop
+  const handleClose = () => {
+    if (onClose) onClose();
+    if (onOpenChange) onOpenChange(false);
+  };
 
   // Find matching transaction when transactions load
   useEffect(() => {
@@ -99,7 +111,7 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={isOpen => !isOpen && onClose()}>
+    <Dialog open={open} onOpenChange={onOpenChange || (() => handleClose())}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Complete Your Crypto Payment</DialogTitle>
@@ -112,7 +124,7 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
         
         <DialogFooter>
           <DialogFooterActions 
-            onClose={onClose} 
+            onClose={handleClose}
             onCheckStatus={handleCheckStatus}
             isChecking={isChecking}
           />

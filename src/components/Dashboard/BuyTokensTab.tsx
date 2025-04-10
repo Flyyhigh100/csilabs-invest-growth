@@ -8,7 +8,7 @@ import { useKycVerification } from '@/hooks/kyc/useKycVerification';
 import { KycRequirementAlert } from './KycStatusAlerts';
 import WalletRequiredAlert from './WalletRequiredAlert';
 import ProcessingIndicator from './ProcessingIndicator';
-import CryptoPaymentDialog from './CryptoPaymentDialog';
+import CryptoPaymentDialog from './TokenPurchase/CryptoPaymentDialog';
 import TokenCalculator from './TokenPurchase/TokenCalculator';
 import PaymentTabs from './TokenPurchase/PaymentTabs';
 import WalletMissingContent from './TokenPurchase/WalletMissingContent';
@@ -41,6 +41,10 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
 
   const handleCoinPaymentWithCurrency = () => {
     handleCoinPaymentsPayment(amount, selectedCurrency);
+  };
+
+  const handleDialogOpenChange = (show: boolean) => {
+    setShowCryptoDialog(show);
   };
 
   return (
@@ -101,7 +105,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
       
       <CryptoPaymentDialog 
         open={showCryptoDialog} 
-        onOpenChange={setShowCryptoDialog} 
+        onOpenChange={handleDialogOpenChange} 
         paymentDetails={cryptoPaymentDetails}
         amount={amount} 
         selectedCurrency={selectedCurrency} 

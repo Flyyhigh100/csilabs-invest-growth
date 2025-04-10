@@ -7,4 +7,5 @@ export { default as TimeRemainingAlert } from './TimeRemainingAlert';
 export { default as InstructionsSection } from './InstructionsSection';
 export { default as StatusCheckSection } from './StatusCheckSection';
 export { default as DialogContent } from './DialogContent';
+export { DialogFooterActions } from './DialogFooterActions';
 export { default as DialogFooterActions } from './DialogFooterActions';
