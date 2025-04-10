@@ -65,7 +65,9 @@ serve(async (req) => {
     // Use dynamic pricing based on user input instead of fixed price
     const unitAmount = Math.round(amount * 100); // Convert to cents for Stripe
     
+    // Get the origin from the request headers or set a default
     const origin = req.headers.get('origin') || '';
+    console.log('[CHECKOUT] Request origin:', origin);
     
     // Create a checkout session with dynamic pricing
     const session = await stripe.checkout.sessions.create({
@@ -94,6 +96,7 @@ serve(async (req) => {
 
     console.log('[CHECKOUT] Checkout session created:', session.id);
     console.log('[CHECKOUT] Payment intent created:', session.payment_intent);
+    console.log('[CHECKOUT] Checkout URL:', session.url);
 
     // Calculate the actual amount from the session for record keeping
     const sessionAmount = session.amount_total ? session.amount_total / 100 : amount;
@@ -115,7 +118,7 @@ serve(async (req) => {
     }
 
     console.log('[CHECKOUT] Transaction record created:', transaction.id);
-    console.log('[CHECKOUT] Returning checkout URL');
+    console.log('[CHECKOUT] Returning checkout URL:', session.url);
 
     return new Response(
       JSON.stringify({ 
