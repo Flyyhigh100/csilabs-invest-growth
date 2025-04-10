@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import TransactionsList from './TransactionsList';
+import TransactionsList from '@/components/Dashboard/TransactionsList';
 
 interface TransactionContentProps {
   isKycApproved: boolean;
