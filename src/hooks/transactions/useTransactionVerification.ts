@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
+import { useStripeFallbackCheck } from '@/hooks/payments/useStripeFallbackCheck';
 
 interface VerificationOptions {
   sessionId: string | null;
@@ -21,7 +22,8 @@ export const useTransactionVerification = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
   const [pollingCount, setPollingCount] = useState(0);
-
+  const { verifyPendingPayment, isVerifying } = useStripeFallbackCheck();
+  
   // Function to verify a transaction by ID
   const verifyTransaction = useCallback(async (id: string) => {
     try {
@@ -44,7 +46,7 @@ export const useTransactionVerification = ({
     }
   }, []);
 
-  // Function to handle manual refresh
+  // Function to handle manual refresh with fallback verification
   const handleRefresh = useCallback(async () => {
     if (!userId) return;
     
@@ -57,23 +59,38 @@ export const useTransactionVerification = ({
       if (sessionId) {
         const tx = await verifyTransaction(sessionId);
         if (tx) {
-          setTransaction(tx);
-          toast.success("Transaction data refreshed");
+          // If transaction is still pending, try direct Stripe verification
+          if (tx.status === 'pending' && tx.external_transaction_id) {
+            console.log(`Transaction still pending, attempting direct Stripe verification`);
+            toast.info("Verifying payment status directly with Stripe...");
+            
+            const updatedTx = await verifyPendingPayment(tx);
+            if (updatedTx) {
+              setTransaction(updatedTx);
+              if (updatedTx.status === 'completed') {
+                toast.success("Payment verified successfully!");
+              }
+            } else {
+              setTransaction(tx);
+              toast.info("Payment status check complete");
+            }
+          } else {
+            setTransaction(tx);
+            toast.success("Transaction data refreshed");
+          }
         } else {
           toast.info("Transaction still processing", {
             description: "Your payment may still be processing. Please check back soon."
           });
         }
       }
-      
-      toast.success("Transactions refreshed");
     } catch (err) {
       console.error("Error refreshing data:", err);
       toast.error("Failed to refresh transactions");
     } finally {
       setIsRefreshing(false);
     }
-  }, [userId, sessionId, refreshSession, verifyTransaction]);
+  }, [userId, sessionId, refreshSession, verifyTransaction, verifyPendingPayment]);
 
   // Function to set up realtime subscription for transaction updates
   const setupRealtimeUpdates = useCallback(() => {
@@ -142,7 +159,7 @@ export const useTransactionVerification = ({
     } catch (e) {
       console.error("Error parsing Stripe session data:", e);
     }
-  }, [success, sessionId, verifyTransaction]);
+  }, [success, sessionId]);
 
   // Function to check a stored transaction
   const checkStoredTransaction = useCallback(async (storedSessionId: string) => {
@@ -152,6 +169,15 @@ export const useTransactionVerification = ({
         console.log("Found transaction using stored session ID:", txData);
         setTransaction(txData);
         setHasCheckedStatus(true);
+        
+        // Check if transaction is still pending but we have payment intent info
+        if (txData.status === 'pending' && txData.external_transaction_id) {
+          console.log("Transaction is still pending, will try direct verification");
+          const updatedTx = await verifyPendingPayment(txData);
+          if (updatedTx && updatedTx.status === 'completed') {
+            setTransaction(updatedTx);
+          }
+        }
         
         // Clean up localStorage if we found the transaction
         localStorage.removeItem('stripe_session_data');
@@ -169,7 +195,7 @@ export const useTransactionVerification = ({
     } catch (err) {
       console.error("Error in stored transaction check:", err);
     }
-  }, [verifyTransaction, hasCheckedStatus]);
+  }, [verifyTransaction, hasCheckedStatus, verifyPendingPayment]);
 
   // Function to check current session transaction status
   const checkSessionTransaction = useCallback(async () => {
@@ -198,6 +224,16 @@ export const useTransactionVerification = ({
           // Clean up localStorage if we found the transaction
           localStorage.removeItem('stripe_session_data');
         } else if (txData.status === 'pending' && success === 'true') {
+          // If transaction is pending but we have payment intent ID, try direct verification
+          if (txData.external_transaction_id) {
+            console.log("Transaction is pending but Stripe reports success - trying direct verification");
+            const updatedTx = await verifyPendingPayment(txData);
+            if (updatedTx && updatedTx.status === 'completed') {
+              setTransaction(updatedTx);
+              setHasCheckedStatus(true);
+              return;
+            }
+          }
           handlePendingTransaction();
         }
       } else {
@@ -225,7 +261,7 @@ export const useTransactionVerification = ({
       console.error("Error in transaction check:", err);
       setIsRefreshing(false);
     }
-  }, [sessionId, success, userId, hasCheckedStatus, pollingCount, verifyTransaction]);
+  }, [sessionId, success, userId, hasCheckedStatus, pollingCount, verifyTransaction, verifyPendingPayment]);
 
   // Helper function to handle pending transactions
   const handlePendingTransaction = useCallback(() => {
@@ -287,9 +323,10 @@ export const useTransactionVerification = ({
     }
   }, [success, sessionId]);
 
+  // Add config to Supabase config.toml
   return {
     transaction,
-    isRefreshing,
+    isRefreshing: isRefreshing || isVerifying,
     hasCheckedStatus,
     handleRefresh
   };
