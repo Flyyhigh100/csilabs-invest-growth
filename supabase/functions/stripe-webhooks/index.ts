@@ -29,10 +29,15 @@ serve(async (req) => {
       apiVersion: "2023-10-16",
     });
 
+    // Get the webhook secret from environment variables
+    const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+    if (!webhookSecret) {
+      throw new Error("STRIPE_WEBHOOK_SECRET is not set in environment variables");
+    }
+
     // Verify the webhook signature
     let event;
     try {
-      const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET") || "";
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err) {
       console.error(`Webhook signature verification failed: ${err.message}`);
@@ -68,7 +73,8 @@ serve(async (req) => {
           .from('transactions')
           .update({
             status: 'completed',
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            external_transaction_id: session.payment_intent || null
           })
           .eq('transaction_id', session.id)
           .select();

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
@@ -17,9 +16,9 @@ serve(async (req) => {
   // Get request data
   const { amount, walletAddress } = await req.json();
   
-  if (!amount || amount <= 0 || !walletAddress) {
+  if (!walletAddress) {
     return new Response(
-      JSON.stringify({ error: 'Invalid amount or missing wallet address' }),
+      JSON.stringify({ error: 'Missing wallet address' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     );
   }
@@ -57,22 +56,12 @@ serve(async (req) => {
     console.log('Creating Stripe checkout session...');
     console.log(`Amount: $${amount}, Wallet: ${walletAddress}`);
 
-    // Calculate token amount (1:1 ratio with USD for simplicity)
-    const tokenAmount = amount;
-    
-    // Create a Stripe checkout session with your specific price ID
+    // Use the specific product and price IDs
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'CSi Tokens',
-              description: `${tokenAmount} CSi Tokens`,
-            },
-            unit_amount: amount * 100, // Convert to cents
-          },
+          price: 'price_1RBVH8JqTmC1qQvvYaPyK8L1', // Your specific price ID
           quantity: 1,
         },
       ],
@@ -82,16 +71,19 @@ serve(async (req) => {
       metadata: {
         user_id: user.id,
         wallet_address: walletAddress,
-        token_amount: tokenAmount.toString(),
+        product_id: 'prod_S5gefbBmLHAKG2', // Your specific product ID
       },
     });
 
     console.log('Checkout session created:', session.id);
 
+    // Calculate the actual amount from the session for record keeping
+    const sessionAmount = session.amount_total ? session.amount_total / 100 : amount;
+
     // Log the transaction in your database
     const { error: insertError } = await supabaseClient.from('transactions').insert({
       user_id: user.id,
-      amount: amount,
+      amount: sessionAmount,
       wallet_address: walletAddress,
       payment_method: 'stripe',
       status: 'pending',

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,7 +33,6 @@ export const useStripePayment = (walletAddress: string | null) => {
           description: "You will be redirected to complete your payment securely."
         });
         
-        // Redirect to Stripe checkout
         window.location.href = data.url;
       } else {
         toast.dismiss("stripe-preparing");
