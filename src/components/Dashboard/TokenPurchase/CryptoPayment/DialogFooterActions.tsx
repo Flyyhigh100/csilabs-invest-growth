@@ -1,40 +1,37 @@
 
 import React from 'react';
-import { DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 interface DialogFooterActionsProps {
   onClose: () => void;
-  checkStatusUrl?: string;
+  onCheckStatus?: () => void;
+  isChecking?: boolean;
 }
 
-const DialogFooterActions: React.FC<DialogFooterActionsProps> = ({ onClose, checkStatusUrl }) => {
+export const DialogFooterActions: React.FC<DialogFooterActionsProps> = ({ 
+  onClose,
+  onCheckStatus,
+  isChecking = false
+}) => {
   return (
-    <DialogFooter className="flex flex-col sm:flex-row gap-3">
-      <Button 
-        variant="outline" 
-        onClick={onClose}
-        className="sm:order-1"
-      >
+    <div className="flex justify-between w-full">
+      <div>
+        {onCheckStatus && (
+          <Button 
+            variant="outline" 
+            onClick={onCheckStatus} 
+            disabled={isChecking}
+            className="mr-2"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isChecking ? 'animate-spin' : ''}`} />
+            {isChecking ? 'Checking...' : 'Check Payment Status'}
+          </Button>
+        )}
+      </div>
+      <Button onClick={onClose}>
         Close
       </Button>
-      
-      {checkStatusUrl && (
-        <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white">
-          <a 
-            href={checkStatusUrl} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2"
-          >
-            Check Payment Status
-            <ExternalLink className="h-4 w-4" />
-          </a>
-        </Button>
-      )}
-    </DialogFooter>
+    </div>
   );
 };
-
-export default DialogFooterActions;

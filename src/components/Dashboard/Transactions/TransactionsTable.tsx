@@ -1,19 +1,13 @@
 
 import React from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { ChevronDown, ChevronRight, CheckCircle, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { Transaction } from "@/types/transactions";
 import StatusBadge from './StatusBadge';
 import PaymentMethodIcon from './PaymentMethodIcon';
-import { Transaction } from '@/types/transactions';
+import { formatCurrency } from '@/utils/format';
 import SyncStripePaymentButton from './SyncStripePaymentButton';
+import SyncCryptoPaymentButton from './SyncCryptoPaymentButton';
 
 interface TransactionsTableProps {
   transactions: Transaction[];
@@ -22,99 +16,103 @@ interface TransactionsTableProps {
   onSyncComplete?: (updatedTransaction: Transaction | null) => void;
 }
 
-const TransactionsTable: React.FC<TransactionsTableProps> = ({
+const TransactionsTable = ({
   transactions,
   expandedItem,
   setExpandedItem,
   onSyncComplete
-}) => {
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  const toggleExpand = (id: string) => {
-    if (expandedItem === id) {
+}: TransactionsTableProps) => {
+  const handleRowClick = (txId: string) => {
+    if (expandedItem === txId) {
       setExpandedItem(null);
     } else {
-      setExpandedItem(id);
+      setExpandedItem(txId);
     }
   };
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-[80px]">Date</TableHead>
-          <TableHead>Amount</TableHead>
-          <TableHead>Method</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Delivery</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {transactions.map((tx) => (
-          <TableRow 
-            key={tx.id}
-            className="cursor-pointer hover:bg-muted/50"
-            onClick={() => toggleExpand(tx.id)}
-          >
-            <TableCell>{formatDate(tx.created_at)}</TableCell>
-            <TableCell>{formatAmount(tx.amount)}</TableCell>
-            <TableCell>
-              <div className="flex items-center gap-2">
-                <PaymentMethodIcon method={tx.payment_method} />
-                <span className="capitalize">{tx.payment_method}</span>
-              </div>
-            </TableCell>
-            <TableCell>
-              <StatusBadge status={tx.status} />
-              {tx.status === 'pending' && tx.payment_method === 'stripe' && tx.external_transaction_id && (
-                <div className="mt-1" onClick={(e) => e.stopPropagation()}>
-                  <SyncStripePaymentButton 
-                    transaction={tx}
-                    onSyncComplete={onSyncComplete}
-                  />
+    <div className="overflow-hidden border border-gray-200 rounded-md">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Date
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Amount
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Method
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Status
+            </th>
+            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {transactions.map((tx) => (
+            <tr 
+              key={tx.id} 
+              className="hover:bg-gray-50 cursor-pointer"
+              onClick={() => handleRowClick(tx.id)}
+            >
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {new Date(tx.created_at).toLocaleDateString()}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                {formatCurrency(tx.amount)}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <div className="flex items-center space-x-2">
+                  <PaymentMethodIcon method={tx.payment_method} />
+                  <span className="capitalize">{tx.payment_method}</span>
                 </div>
-              )}
-            </TableCell>
-            <TableCell>
-              {tx.token_sent ? (
-                <span className="text-green-600 flex items-center text-sm">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Delivered
-                </span>
-              ) : tx.status === 'completed' ? (
-                <span className="text-amber-600 flex items-center text-sm">
-                  <Clock className="h-3 w-3 mr-1" />
-                  Processing
-                </span>
-              ) : (
-                <span className="text-gray-400 text-sm">
-                  Pending payment
-                </span>
-              )}
-            </TableCell>
-            <TableCell className="text-right">
-              <Button variant="ghost" size="sm">
-                {expandedItem === tx.id ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </Button>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex items-center space-x-2">
+                  <StatusBadge transaction={tx} />
+                  {/* Sync buttons for Stripe and Crypto payments */}
+                  {tx.status === 'pending' && tx.payment_method === 'stripe' && (
+                    <SyncStripePaymentButton 
+                      transaction={tx} 
+                      onSyncComplete={onSyncComplete} 
+                      size="sm" 
+                    />
+                  )}
+                  {tx.status === 'pending' && tx.payment_method === 'coinpayments' && (
+                    <SyncCryptoPaymentButton 
+                      transaction={tx} 
+                      onSyncComplete={onSyncComplete} 
+                      size="sm" 
+                    />
+                  )}
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    handleRowClick(tx.id); 
+                  }}
+                >
+                  {expandedItem === tx.id ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                  <span className="sr-only">Expand</span>
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 };
 

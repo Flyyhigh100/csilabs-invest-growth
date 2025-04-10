@@ -4,11 +4,13 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CryptoPaymentDetails } from './types';
 import { usePaymentValidation } from './usePaymentValidation';
+import { useCryptoStatusCheck } from './useCryptoStatusCheck';
 
 export const useCryptoPayments = (walletAddress: string | null) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [cryptoPaymentDetails, setCryptoPaymentDetails] = useState<CryptoPaymentDetails>(null);
   const { validatePaymentRequest } = usePaymentValidation(walletAddress);
+  const { checkTransactionStatus } = useCryptoStatusCheck();
 
   const handleCoinPaymentsPayment = async (amount: number, currency: string = 'USDT') => {
     // Pass true for isCrypto to validate KYC if needed
@@ -156,12 +158,36 @@ export const useCryptoPayments = (walletAddress: string | null) => {
     }
   };
 
+  // Check status of a payment by transaction ID in Supabase
+  const checkPaymentStatus = async (transactionId: string) => {
+    try {
+      // Get the transaction from Supabase
+      const { data: transaction, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('transaction_id', transactionId)
+        .single();
+        
+      if (error || !transaction) {
+        console.error("Error fetching transaction:", error);
+        return false;
+      }
+      
+      // Use the checkTransactionStatus function from useCryptoStatusCheck
+      return await checkTransactionStatus(transaction);
+    } catch (err) {
+      console.error("Error checking payment status:", err);
+      return false;
+    }
+  };
+
   return {
     handleCoinPaymentsPayment,
     handleCryptoPayment,
     cryptoPaymentDetails,
     setCryptoPaymentDetails,
     isProcessing,
-    setIsProcessing
+    setIsProcessing,
+    checkPaymentStatus
   };
 };

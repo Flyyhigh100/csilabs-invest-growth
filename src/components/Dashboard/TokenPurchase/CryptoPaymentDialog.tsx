@@ -1,53 +1,122 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { CryptoPaymentDetails } from '@/hooks/payments/types';
+  DialogFooter,
+} from '@/components/ui/dialog';
 import DialogContentComponent from './CryptoPayment/DialogContent';
-import DialogFooterActions from './CryptoPayment/DialogFooterActions';
+import { DialogFooterActions } from './CryptoPayment/DialogFooterActions';
+import { CryptoPaymentDetails } from '@/hooks/payments/types';
+import { useCryptoStatusCheck } from '@/hooks/payments/useCryptoStatusCheck';
+import { useTransactions } from '@/hooks/transactions/useTransactions';
+import { useAuth } from '@/contexts/AuthContext';
+import { Transaction } from '@/types/transactions';
 
 interface CryptoPaymentDialogProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
   paymentDetails: CryptoPaymentDetails;
-  amount: number;
-  selectedCurrency: string;
 }
 
-const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
-  open,
-  onOpenChange,
-  paymentDetails,
-  amount,
-  selectedCurrency
+const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({ 
+  open, 
+  onClose, 
+  paymentDetails 
 }) => {
+  const { user } = useAuth();
+  const { data: transactions, refetch } = useTransactions(user?.id);
+  const { checkTransactionStatus, isChecking } = useCryptoStatusCheck();
+  const [pendingTransaction, setPendingTransaction] = useState<Transaction | null>(null);
+  const [statusCheckInterval, setStatusCheckInterval] = useState<number | null>(null);
+
+  // Find matching transaction when transactions load
+  useEffect(() => {
+    if (!transactions || !paymentDetails?.transactionId) return;
+    
+    const matchingTx = transactions.find(tx => 
+      tx.transaction_id === paymentDetails.transactionId
+    );
+    
+    if (matchingTx) {
+      setPendingTransaction(matchingTx);
+    }
+  }, [transactions, paymentDetails]);
+
+  // Set up automatic status check
+  useEffect(() => {
+    if (!open || !pendingTransaction) return;
+    
+    // Clear any existing interval
+    if (statusCheckInterval) {
+      window.clearInterval(statusCheckInterval);
+    }
+    
+    // Don't set up checks for completed transactions
+    if (pendingTransaction.status === 'completed') return;
+    
+    // Check every 60 seconds
+    const interval = window.setInterval(() => {
+      checkTransactionStatus(pendingTransaction)
+        .then(updatedTx => {
+          if (updatedTx && updatedTx.status === 'completed') {
+            // Clear interval if completed
+            window.clearInterval(interval);
+            setStatusCheckInterval(null);
+            
+            // Refresh transactions list
+            refetch();
+          }
+        });
+    }, 60000); // 60 seconds
+    
+    setStatusCheckInterval(interval);
+    
+    // Initial check
+    checkTransactionStatus(pendingTransaction);
+    
+    return () => {
+      if (interval) window.clearInterval(interval);
+    };
+  }, [open, pendingTransaction, checkTransactionStatus, refetch]);
+
+  // Clear interval when dialog is closed
+  useEffect(() => {
+    if (!open && statusCheckInterval) {
+      window.clearInterval(statusCheckInterval);
+      setStatusCheckInterval(null);
+    }
+  }, [open, statusCheckInterval]);
+
+  const handleCheckStatus = async () => {
+    if (!pendingTransaction) return;
+    
+    await checkTransactionStatus(pendingTransaction);
+    refetch();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md sm:max-w-lg md:max-w-xl">
+    <Dialog open={open} onOpenChange={isOpen => !isOpen && onClose()}>
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <span>Complete Your {paymentDetails?.currency || selectedCurrency} Payment</span>
-            <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 border-none ml-2">
-              Amount: ${amount}
-            </Badge>
-          </DialogTitle>
-          <DialogDescription className="text-gray-600">
-            Please follow the instructions below to complete your payment
+          <DialogTitle>Complete Your Crypto Payment</DialogTitle>
+          <DialogDescription>
+            Follow the instructions below to complete your purchase with crypto.
           </DialogDescription>
         </DialogHeader>
-        
+
         <DialogContentComponent paymentDetails={paymentDetails} />
         
-        <DialogFooterActions 
-          onClose={() => onOpenChange(false)} 
-          checkStatusUrl={paymentDetails?.checkStatusUrl}
-        />
+        <DialogFooter>
+          <DialogFooterActions 
+            onClose={onClose} 
+            onCheckStatus={handleCheckStatus}
+            isChecking={isChecking}
+          />
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
