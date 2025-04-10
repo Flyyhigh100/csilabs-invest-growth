@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import DashboardLayout from '@/components/Dashboard/Layout';
@@ -10,14 +10,16 @@ import TransactionsList from '@/components/Dashboard/TransactionsList';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, RefreshCw } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Transactions = () => {
   const { kycData } = useKycVerification();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, refreshSession } = useAuth();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
   const isKycApproved = kycData?.status === 'approved';
   
   // In test mode, we'll allow transactions without KYC
@@ -25,31 +27,53 @@ const Transactions = () => {
   
   const success = searchParams.get('success');
   const canceled = searchParams.get('canceled');
-  const token = searchParams.get('token');
+  const sessionId = searchParams.get('session_id');
   
-  // Handle auth token from redirect
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshSession();
+      toast.success("Transactions refreshed");
+    } catch (err) {
+      toast.error("Failed to refresh transactions");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+  
+  // Check session and transaction status
   useEffect(() => {
-    const handleAuthTokenFromUrl = async () => {
-      if (token && !user) {
-        console.log("Attempting to restore session from token in URL");
+    if (sessionId && (success === 'true' || canceled === 'true')) {
+      const checkTransaction = async () => {
         try {
-          // Attempt to set the session with the token from URL
-          const { data, error } = await supabase.auth.getSession();
+          // Check if the transaction exists and update UI accordingly
+          const { data, error } = await supabase
+            .from('transactions')
+            .select('*')
+            .eq('transaction_id', sessionId)
+            .single();
           
           if (error) {
-            console.error("Failed to restore session:", error);
-            toast.error("Your session expired. Please sign in again.");
-          } else if (data.session) {
-            console.log("Session restored successfully");
+            console.error("Error checking transaction:", error);
+          } else if (data) {
+            console.log("Transaction found:", data.status);
+            
+            // If transaction exists but still pending, check again in a few seconds
+            if (data.status === 'pending' && success === 'true') {
+              setTimeout(() => {
+                toast.info("Checking payment status...");
+                checkTransaction();
+              }, 5000);
+            }
           }
-        } catch (error) {
-          console.error("Error restoring session:", error);
+        } catch (err) {
+          console.error("Error in transaction check:", err);
         }
-      }
-    };
-
-    handleAuthTokenFromUrl();
-  }, [token, user]);
+      };
+      
+      checkTransaction();
+    }
+  }, [sessionId, success, canceled]);
   
   useEffect(() => {
     if (success === 'true') {
@@ -101,9 +125,19 @@ const Transactions = () => {
               <CardTitle className="text-lg">Transaction History</CardTitle>
               <CardDescription>Your payment and token purchase history</CardDescription>
             </div>
-            <Button asChild variant="outline">
-              <Link to="/dashboard/payments">Make a Purchase</Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/dashboard/payments">Make a Purchase</Link>
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>

@@ -55,15 +55,18 @@ serve(async (req) => {
     });
 
     console.log('Creating Stripe checkout session...');
-    console.log(`Amount: $${amount}, Wallet: ${walletAddress}`);
+    console.log(`Amount: $${amount}, Wallet: ${walletAddress}, User ID: ${user.id}`);
 
     // Use dynamic pricing based on user input instead of fixed price
     const unitAmount = Math.round(amount * 100); // Convert to cents for Stripe
     
     // Include the auth token in the success/cancel URLs to maintain the session
     const origin = req.headers.get('origin') || '';
-    const successUrl = `${origin}/dashboard/transactions?success=true&token=${encodeURIComponent(token)}`;
-    const cancelUrl = `${origin}/dashboard/transactions?canceled=true&token=${encodeURIComponent(token)}`;
+    
+    // Improved URL structure to maintain session - avoid using token directly in URL
+    // Instead, use session cookies that will be transferred automatically
+    const successUrl = `${origin}/dashboard/transactions?success=true&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${origin}/dashboard/transactions?canceled=true&session_id={CHECKOUT_SESSION_ID}`;
     
     // Create a checkout session with dynamic pricing
     const session = await stripe.checkout.sessions.create({
@@ -85,7 +88,8 @@ serve(async (req) => {
         user_id: user.id,
         wallet_address: walletAddress,
         product_id: 'prod_S5gefbBmLHAKG2', // Your specific product ID
-        amount: amount.toString() // Store the original amount in metadata
+        amount: amount.toString(), // Store the original amount in metadata
+        auth_token: token.substring(0, 10) + '...' // Store first few chars of token for debugging (not the full token)
       },
     });
 
@@ -110,7 +114,11 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ url: session.url }),
+      JSON.stringify({ 
+        url: session.url,
+        session_id: session.id,
+        user_id: user.id
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   } catch (error) {
