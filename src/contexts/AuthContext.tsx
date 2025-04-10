@@ -28,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Function to refresh the session
   const refreshSession = async (): Promise<void> => {
     try {
+      console.log("Attempting to refresh auth session...");
       const { data, error } = await supabase.auth.refreshSession();
       
       if (error) {
@@ -35,10 +36,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
       
+      console.log("Session refreshed successfully");
       setSession(data.session);
       setUser(data.session?.user ?? null);
-      
-      // Return void instead of returning data
     } catch (error) {
       console.error("Session refresh failed:", error);
       throw error;
@@ -47,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // First set up the auth state listener
+    console.log("Setting up auth state listener");
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log("Auth state change:", event);
@@ -68,30 +69,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Then check for existing session
     const initializeAuth = async () => {
       try {
+        console.log("Checking for session data...");
         // Check if there's session information in localStorage from Stripe redirect
         const stripeSessionData = localStorage.getItem('stripe_session_data');
         if (stripeSessionData) {
-          const parsedData = JSON.parse(stripeSessionData);
-          console.log("Found Stripe session data:", parsedData);
-          
-          // Only process if the data isn't too old (15 minutes)
-          const expiryTime = 15 * 60 * 1000; // 15 minutes in milliseconds
-          if (Date.now() - parsedData.timestamp < expiryTime) {
-            // Try to refresh the session
-            try {
-              await refreshSession();
-              console.log("Session refreshed after Stripe redirect");
-              toast.success("Welcome back! Payment completed successfully.");
-            } catch (refreshError) {
-              console.error("Failed to refresh session after Stripe redirect:", refreshError);
+          try {
+            const parsedData = JSON.parse(stripeSessionData);
+            console.log("Found Stripe session data:", parsedData);
+            
+            // Only process if the data isn't too old (30 minutes)
+            const expiryTime = 30 * 60 * 1000; // 30 minutes in milliseconds
+            if (Date.now() - parsedData.timestamp < expiryTime) {
+              console.log("Session data is recent, attempting to refresh session...");
+              
+              // Try to refresh the session
+              try {
+                await refreshSession();
+                console.log("Session refreshed after Stripe redirect");
+                
+                // If we're on the transaction page with a success parameter, show a success toast
+                if (location.pathname.includes('/transactions') && location.search.includes('success=true')) {
+                  toast.success("Payment completed successfully!");
+                }
+              } catch (refreshError) {
+                console.error("Failed to refresh session after Stripe redirect:", refreshError);
+                toast.error("Session expired", { 
+                  description: "Please sign in again to view your transaction." 
+                });
+              }
+            } else {
+              console.log("Session data expired, removing...");
             }
+            
+            // Clear the stored session data regardless of whether it was used
+            localStorage.removeItem('stripe_session_data');
+          } catch (parseError) {
+            console.error("Error parsing Stripe session data:", parseError);
+            localStorage.removeItem('stripe_session_data');
           }
-          // Clear the stored session data regardless of whether it was used
-          localStorage.removeItem('stripe_session_data');
         }
         
         // Get current session
         const { data: { session: currentSession } } = await supabase.auth.getSession();
+        console.log("Current session check:", currentSession ? "Session exists" : "No session");
+        
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
       } catch (error) {

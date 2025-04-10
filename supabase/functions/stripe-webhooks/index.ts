@@ -15,18 +15,18 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Stripe webhook received");
+    console.log("[WEBHOOK] Stripe webhook request received");
     
     // Get the stripe signature from the request header
     const signature = req.headers.get("stripe-signature");
     if (!signature) {
-      console.error("No stripe signature found");
+      console.error("[WEBHOOK] No stripe signature found");
       throw new Error("No stripe signature found");
     }
 
     // Get the raw body
     const body = await req.text();
-    console.log("Webhook body received:", body.substring(0, 200) + "...");
+    console.log("[WEBHOOK] Webhook body received (truncated):", body.substring(0, 100) + "...");
     
     // Create Stripe instance with secret key
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
@@ -36,7 +36,7 @@ serve(async (req) => {
     // Get the webhook secret from environment variables
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
     if (!webhookSecret) {
-      console.error("STRIPE_WEBHOOK_SECRET is not set in environment variables");
+      console.error("[WEBHOOK] STRIPE_WEBHOOK_SECRET is not set in environment variables");
       throw new Error("STRIPE_WEBHOOK_SECRET is not set in environment variables");
     }
 
@@ -44,16 +44,16 @@ serve(async (req) => {
     let event;
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-      console.log(`Event successfully constructed: ${event.type}`);
+      console.log(`[WEBHOOK] Event successfully constructed: ${event.type}`);
     } catch (err) {
-      console.error(`Webhook signature verification failed: ${err.message}`);
+      console.error(`[WEBHOOK] Webhook signature verification failed: ${err.message}`);
       return new Response(JSON.stringify({ error: `Webhook Error: ${err.message}` }), { 
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
     
-    console.log(`Webhook event received: ${event.type}`);
+    console.log(`[WEBHOOK] Webhook event received: ${event.type}`, JSON.stringify(event.data.object.id));
     
     // Initialize Supabase client with service role key for admin access
     const supabaseClient = createClient(
@@ -66,30 +66,94 @@ serve(async (req) => {
       case 'checkout.session.completed': {
         const session = event.data.object;
         
-        console.log('Processing completed session:', JSON.stringify(session, null, 2));
+        console.log('[WEBHOOK] Processing completed session:', JSON.stringify({
+          id: session.id,
+          mode: session.mode,
+          payment_status: session.payment_status
+        }));
         
         // Skip if not a payment or payment not successful
         if (session.mode !== 'payment' || session.payment_status !== 'paid') {
-          console.log('Not a completed payment, skipping');
+          console.log('[WEBHOOK] Not a completed payment, skipping');
           break;
         }
         
-        console.log(`Processing completed payment for session: ${session.id}`);
+        console.log(`[WEBHOOK] Processing completed payment for session: ${session.id}`);
         
         try {
+          // First, check if we already processed this session to prevent duplicates
+          const { data: existingCompletedTx, error: existingTxError } = await supabaseClient
+            .from('transactions')
+            .select('id, status')
+            .eq('transaction_id', session.id)
+            .eq('status', 'completed')
+            .maybeSingle();
+            
+          if (existingCompletedTx) {
+            console.log(`[WEBHOOK] Session ${session.id} already marked as completed, skipping`);
+            break;
+          }
+          
           // Retrieve the transaction using the session ID
-          const { data: transactions, error: fetchError } = await supabaseClient
+          const { data: pendingTx, error: fetchError } = await supabaseClient
             .from('transactions')
             .select('*')
-            .eq('transaction_id', session.id);
+            .eq('transaction_id', session.id)
+            .maybeSingle();
             
-          if (fetchError || !transactions || transactions.length === 0) {
-            console.error(`Error fetching transaction or transaction not found: ${fetchError?.message || 'No transaction found'}`);
-            console.log(`Attempting to create transaction record from webhook data...`);
+          if (fetchError) {
+            console.error(`[WEBHOOK] Error fetching transaction: ${fetchError.message}`);
+          }
+          
+          if (pendingTx) {
+            // Transaction exists, update it
+            console.log(`[WEBHOOK] Found transaction to update:`, JSON.stringify({
+              id: pendingTx.id,
+              status: pendingTx.status
+            }));
             
-            // If transaction doesn't exist, try to create it from the webhook data (fallback)
+            const { data: updatedTx, error: updateError } = await supabaseClient
+              .from('transactions')
+              .update({
+                status: 'completed',
+                updated_at: new Date().toISOString(),
+                external_transaction_id: session.payment_intent || null,
+                token_sent: false
+              })
+              .eq('transaction_id', session.id)
+              .select()
+              .single();
+              
+            if (updateError) {
+              console.error(`[WEBHOOK] Error updating transaction: ${updateError.message}`);
+              throw updateError;
+            }
+            
+            console.log(`[WEBHOOK] Successfully updated transaction status for session ${session.id}`, updatedTx);
+            
+            // Create a notification for the user
+            if (pendingTx.user_id) {
+              const { error: notificationError } = await supabaseClient
+                .from('notifications')
+                .insert({
+                  user_id: pendingTx.user_id,
+                  type: 'payment_confirmed',
+                  title: 'Payment Confirmed',
+                  message: `Your payment of $${(session.amount_total / 100).toFixed(2)} has been confirmed. Tokens will be sent to your wallet shortly.`
+                });
+                
+              if (notificationError) {
+                console.error(`[WEBHOOK] Error creating notification: ${notificationError.message}`);
+              } else {
+                console.log(`[WEBHOOK] Successfully created notification for user ${pendingTx.user_id}`);
+              }
+            }
+          } else {
+            // If transaction doesn't exist, create it from webhook data
+            console.log(`[WEBHOOK] Transaction not found, attempting to create from webhook data`);
+            
             if (session.metadata?.user_id && session.metadata?.wallet_address) {
-              const { error: createError } = await supabaseClient
+              const { data: newTx, error: createError } = await supabaseClient
                 .from('transactions')
                 .insert({
                   user_id: session.metadata.user_id,
@@ -99,61 +163,36 @@ serve(async (req) => {
                   status: 'completed',
                   transaction_id: session.id,
                   external_transaction_id: session.payment_intent || null,
-                  token_sent: false,
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString()
-                });
+                  token_sent: false
+                })
+                .select()
+                .single();
                 
               if (createError) {
-                console.error(`Error creating transaction from webhook: ${createError.message}`);
+                console.error(`[WEBHOOK] Error creating transaction from webhook: ${createError.message}`);
                 throw createError;
               }
-              console.log(`Successfully created transaction record from webhook data`);
-            } else {
-              console.error(`Cannot create transaction record: missing user_id or wallet_address in metadata`);
-            }
-          } else {
-            // Transaction exists, update it
-            console.log(`Found transaction to update:`, JSON.stringify(transactions[0]));
-            
-            const { data, error: updateError } = await supabaseClient
-              .from('transactions')
-              .update({
-                status: 'completed',
-                updated_at: new Date().toISOString(),
-                external_transaction_id: session.payment_intent || null,
-                token_sent: false
-              })
-              .eq('transaction_id', session.id)
-              .select();
+              console.log(`[WEBHOOK] Successfully created transaction record from webhook data`, newTx);
               
-            if (updateError) {
-              console.error(`Error updating transaction: ${updateError.message}`);
-              throw updateError;
-            }
-            
-            console.log(`Successfully updated transaction status for session ${session.id}`, data);
-          }
-          
-          // Create a notification for the user
-          if (session.metadata?.user_id) {
-            const { error: notificationError } = await supabaseClient
-              .from('notifications')
-              .insert({
-                user_id: session.metadata.user_id,
-                type: 'payment_confirmed',
-                title: 'Payment Confirmed',
-                message: `Your payment of $${(session.amount_total / 100).toFixed(2)} has been confirmed. Tokens will be sent to your wallet shortly.`
-              });
-              
-            if (notificationError) {
-              console.error(`Error creating notification: ${notificationError.message}`);
+              // Create a notification for the user
+              const { error: notificationError } = await supabaseClient
+                .from('notifications')
+                .insert({
+                  user_id: session.metadata.user_id,
+                  type: 'payment_confirmed',
+                  title: 'Payment Confirmed',
+                  message: `Your payment of $${(session.amount_total / 100).toFixed(2)} has been confirmed. Tokens will be sent to your wallet shortly.`
+                });
+                
+              if (notificationError) {
+                console.error(`[WEBHOOK] Error creating notification: ${notificationError.message}`);
+              }
             } else {
-              console.log(`Successfully created notification for user ${session.metadata.user_id}`);
+              console.error(`[WEBHOOK] Cannot create transaction record: missing user_id or wallet_address in metadata`);
             }
           }
         } catch (updateError) {
-          console.error(`Exception in transaction update: ${updateError.message}`);
+          console.error(`[WEBHOOK] Exception in transaction update: ${updateError.message}`);
           console.error(updateError.stack || 'No stack trace available');
         }
         
@@ -162,13 +201,42 @@ serve(async (req) => {
       
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object;
-        console.log(`PaymentIntent ${paymentIntent.id} was successful!`);
-        // Additional handling if needed
+        console.log(`[WEBHOOK] PaymentIntent ${paymentIntent.id} was successful!`);
+        
+        // Try to find transaction by payment_intent ID if we have it
+        if (paymentIntent.id) {
+          try {
+            const { data: pendingTx, error: fetchError } = await supabaseClient
+              .from('transactions')
+              .select('*')
+              .eq('external_transaction_id', paymentIntent.id)
+              .maybeSingle();
+              
+            if (!fetchError && pendingTx && pendingTx.status !== 'completed') {
+              // Update the transaction to completed
+              const { error: updateError } = await supabaseClient
+                .from('transactions')
+                .update({
+                  status: 'completed',
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', pendingTx.id);
+                
+              if (updateError) {
+                console.error(`[WEBHOOK] Error updating transaction from payment intent: ${updateError.message}`);
+              } else {
+                console.log(`[WEBHOOK] Successfully updated transaction from payment intent: ${paymentIntent.id}`);
+              }
+            }
+          } catch (err) {
+            console.error(`[WEBHOOK] Error processing payment intent: ${err.message}`);
+          }
+        }
         break;
       }
       
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        console.log(`[WEBHOOK] Unhandled event type: ${event.type}`);
     }
 
     return new Response(JSON.stringify({ received: true }), {
@@ -176,7 +244,7 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    console.error(`Error processing webhook: ${error.message}`);
+    console.error(`[WEBHOOK] Error processing webhook: ${error.message}`);
     console.error(error.stack || 'No stack trace available');
     return new Response(JSON.stringify({ error: `Webhook processing error: ${error.message}` }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

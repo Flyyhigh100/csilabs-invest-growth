@@ -19,6 +19,15 @@ export const useStripePayment = (walletAddress: string | null) => {
       
       console.log(`Creating Stripe checkout for $${amount} to wallet ${walletAddress}`);
       
+      // Get the current auth session token
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast.error("Authentication required", { 
+          description: "You must be logged in to make a payment."
+        });
+        return;
+      }
+      
       const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
         body: { amount, walletAddress }
       });
@@ -36,16 +45,23 @@ export const useStripePayment = (walletAddress: string | null) => {
         });
         
         // Store session information in localStorage before redirecting
-        // This will help us recover the session when the user returns
         if (data.session_id && data.user_id) {
-          localStorage.setItem('stripe_session_data', JSON.stringify({
+          // Save current auth session ID and timestamp to help recover auth state
+          const sessionObject = {
             session_id: data.session_id,
             user_id: data.user_id,
-            timestamp: Date.now()
-          }));
+            timestamp: Date.now(),
+            auth_refresh_token: sessionData.session?.refresh_token || null
+          };
+          
+          localStorage.setItem('stripe_session_data', JSON.stringify(sessionObject));
+          console.log("Saved session data to localStorage before redirect:", { 
+            session_id: data.session_id,
+            timestamp: Date.now() 
+          });
         }
         
-        console.log("Redirecting to Stripe checkout URL:", data.url);
+        console.log("Redirecting to Stripe checkout URL");
         
         // Redirect to Stripe checkout
         window.location.href = data.url;

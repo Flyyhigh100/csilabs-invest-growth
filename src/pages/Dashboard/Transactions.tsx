@@ -19,6 +19,7 @@ const Transactions = () => {
   const [searchParams] = useSearchParams();
   const { user, refreshSession } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
   
   const isKycApproved = kycData?.status === 'approved';
   
@@ -43,9 +44,12 @@ const Transactions = () => {
   
   // Check session and transaction status
   useEffect(() => {
-    if (sessionId && (success === 'true' || canceled === 'true')) {
+    if (sessionId && !hasCheckedStatus && user?.id) {
       const checkTransaction = async () => {
         try {
+          console.log(`Checking transaction status for session ${sessionId}...`);
+          setIsRefreshing(true);
+          
           // Check if the transaction exists and update UI accordingly
           const { data, error } = await supabase
             .from('transactions')
@@ -55,33 +59,70 @@ const Transactions = () => {
           
           if (error) {
             console.error("Error checking transaction:", error);
+            if (success === 'true') {
+              toast.error("Could not find your transaction", {
+                description: "Please refresh the page or contact support if the problem persists."
+              });
+            }
           } else if (data) {
             console.log("Transaction found:", data.status);
             
-            // If transaction exists but still pending, check again in a few seconds
-            if (data.status === 'pending' && success === 'true') {
+            if (data.status === 'completed') {
+              // Transaction is completed, show success message
+              if (success === 'true' && !hasCheckedStatus) {
+                toast.success("Payment successful!", {
+                  description: "Your tokens will be sent to your wallet shortly."
+                });
+              }
+            } else if (data.status === 'pending' && success === 'true') {
+              // Transaction is still pending but Stripe says success, wait and check again
+              toast.info("Processing your payment...", {
+                description: "This may take a moment, please wait."
+              });
+              
+              // Check again after delay
               setTimeout(() => {
-                toast.info("Checking payment status...");
                 checkTransaction();
+                return;
+              }, 3000);
+            }
+          } else {
+            console.log("No transaction found for session ID:", sessionId);
+            
+            // If success is true but no transaction found, show a message
+            if (success === 'true' && !hasCheckedStatus) {
+              toast.info("Finalizing your payment...", {
+                description: "Please wait while we confirm your payment."
+              });
+              
+              // Check again after delay 
+              setTimeout(() => {
+                checkTransaction();
+                return;
               }, 5000);
             }
           }
+          
+          setHasCheckedStatus(true);
+          setIsRefreshing(false);
         } catch (err) {
           console.error("Error in transaction check:", err);
+          setIsRefreshing(false);
         }
       };
       
       checkTransaction();
     }
-  }, [sessionId, success, canceled]);
+  }, [sessionId, success, canceled, user?.id, hasCheckedStatus]);
   
+  // Handle initial success/cancel messages from URL parameters
   useEffect(() => {
-    if (success === 'true') {
-      toast.success("Payment successful! Your tokens will be sent to your wallet shortly.");
+    if (success === 'true' && !sessionId) {
+      toast.success("Payment successful!");
     } else if (canceled === 'true') {
       toast.error("Payment was canceled. No charges were made.");
     }
-  }, [success, canceled]);
+  }, [success, canceled, sessionId]);
 
   return (
     <DashboardLayout title="Transactions">
