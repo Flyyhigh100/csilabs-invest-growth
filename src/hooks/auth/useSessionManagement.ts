@@ -23,7 +23,7 @@ export const useSessionManagement = () => {
       console.log("Session refreshed successfully");
       setSession(data.session);
       setUser(data.session?.user ?? null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Session refresh failed:", error);
       throw error;
     }
