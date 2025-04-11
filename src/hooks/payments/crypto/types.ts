@@ -1,6 +1,4 @@
 
-// Types for crypto status checking functionality
-
 export interface CryptoStatusCheckResult {
   status: string;
   updated: boolean;
@@ -8,8 +6,4 @@ export interface CryptoStatusCheckResult {
   external_status_text?: string;
   message?: string;
   error?: string;
-}
-
-export interface TransactionStatusOptions {
-  forceUpdate?: boolean;
 }
