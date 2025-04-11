@@ -1,0 +1,10 @@
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+// Create Supabase client
+export function createSupabaseClient() {
+  return createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  );
+}
