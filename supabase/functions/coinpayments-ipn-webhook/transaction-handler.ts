@@ -47,6 +47,22 @@ export async function processIpnPayload(ipnData: any, logEntryId?: string) {
     // Enhanced transaction lookup strategy
     console.log(`Looking up transaction with external_transaction_id: ${ipnData.txn_id}`);
     
+    // Add a logging statement to verify transaction ID matching
+    console.log(`Looking for transaction with external_transaction_id=${txnId}`);
+
+    // Directly query the database to check if the transaction exists
+    const { data: existingTx, error: checkError } = await supabase
+      .from('transactions')
+      .select('id, status, external_transaction_id')
+      .eq('external_transaction_id', txnId)
+      .maybeSingle();
+
+    console.log('Existing transaction found:', existingTx || 'None');
+    
+    if (checkError) {
+      console.error(`Error checking for existing transaction:`, checkError);
+    }
+    
     // First try looking up by external_transaction_id
     let { data: transaction, error } = await supabase
       .from('transactions')
