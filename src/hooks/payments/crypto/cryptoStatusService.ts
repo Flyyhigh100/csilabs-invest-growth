@@ -22,17 +22,20 @@ export async function checkCryptoPaymentStatus(
     if (error) {
       console.error('Error from edge function:', error);
       
-      // Check if this is a 404 error (function not found)
-      if (error.message && error.message.includes('404')) {
-        return {
-          error: 'The check-coinpayments-status function is not deployed or not accessible.',
-          status: 'error',
-          updated: false
-        };
+      let errorMessage = error.message || 'Edge function error. Please try again later';
+      
+      // Parse the error to check if it's a CoinPayments API issue
+      if (errorMessage.includes('API call to CoinPayments failed')) {
+        errorMessage = 'CoinPayments API error. Your API keys may be invalid or have insufficient permissions.';
+      }
+      
+      // Check if this is a 404 error (function not found or not deployed)
+      else if (error.message && error.message.includes('404')) {
+        errorMessage = 'The check-coinpayments-status function is not deployed or not accessible.';
       }
       
       return {
-        error: error.message || 'Edge function error. Please try again later',
+        error: errorMessage,
         status: 'error',
         updated: false
       };
@@ -49,6 +52,18 @@ export async function checkCryptoPaymentStatus(
     
     if (result.error) {
       console.error('Error in status check result:', result.error);
+      
+      // Check if this is an API key issue
+      if (result.error.includes('API') && 
+          (result.error.includes('key') || result.error.includes('credential'))) {
+        return {
+          error: 'CoinPayments API key error. Please verify your API keys are correctly configured.',
+          status: 'error',
+          updated: false,
+          api_key_issue: true
+        };
+      }
+      
       return {
         ...result,
         status: result.status || 'error',
@@ -66,8 +81,20 @@ export async function checkCryptoPaymentStatus(
     return result;
   } catch (error: any) {
     console.error('Exception in checkCryptoPaymentStatus:', error);
+    
+    // Check if this is a network or CORS issue
+    const errorMessage = error.message || 'Error checking payment status';
+    if (errorMessage.includes('NetworkError') || errorMessage.includes('CORS')) {
+      return {
+        error: 'Network error. Unable to connect to the API endpoint.',
+        status: 'error',
+        updated: false,
+        network_issue: true
+      };
+    }
+    
     return {
-      error: error.message || 'Error checking payment status',
+      error: errorMessage,
       status: 'error',
       updated: false
     };

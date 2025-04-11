@@ -12,6 +12,15 @@ export async function coinPaymentsRequest(command: string, params: Record<string
     throw new Error('CoinPayments API keys are not configured');
   }
 
+  // Validate key formats first
+  if (!/^[0-9a-f]{16,}$/i.test(COINPAYMENTS_PUBLIC_KEY)) {
+    throw new Error('Invalid CoinPayments public key format');
+  }
+  
+  if (!/^[0-9a-fA-F]+$/i.test(COINPAYMENTS_PRIVATE_KEY)) {
+    throw new Error('Invalid CoinPayments private key format');
+  }
+
   const requestParams = {
     cmd: command,
     key: COINPAYMENTS_PUBLIC_KEY,
@@ -20,12 +29,12 @@ export async function coinPaymentsRequest(command: string, params: Record<string
     ...params,
   };
 
-  const hmacSig = await createSignature(requestParams, COINPAYMENTS_PRIVATE_KEY);
-
-  console.log(`Making CoinPayments API request for command: ${command}`);
-  console.log(`Request params (excluding credentials): cmd=${command}, version=1, format=json, ${Object.keys(params).join(', ')}`);
-  
   try {
+    const hmacSig = await createSignature(requestParams, COINPAYMENTS_PRIVATE_KEY);
+    
+    console.log(`Making CoinPayments API request for command: ${command}`);
+    console.log(`Request params (excluding credentials): cmd=${command}, version=1, format=json, ${Object.keys(params).join(', ')}`);
+    
     const response = await fetch(COINPAYMENTS_API_URL, {
       method: 'POST',
       headers: {
@@ -73,56 +82,16 @@ export async function checkCoinPaymentsTransaction(txId: string) {
     console.log(`Checking transaction status for ${txId} with CoinPayments API`);
     
     // Make real API request to CoinPayments
-    const result = await coinPaymentsRequest('get_tx_info', { txid: txId });
-    console.log(`Transaction ${txId} status from CoinPayments:`, JSON.stringify(result));
-    
-    // Add a fallback status check if the transaction appears to be "missing"
-    // This is useful for transactions that are complete but not found via txid
-    if (!result || Object.keys(result).length === 0) {
-      console.log(`Transaction ${txId} not found, checking via withdrawal search...`);
-      try {
-        // Try to find matching withdrawal - this can help with completed transactions
-        // that may have a different ID in the CoinPayments system
-        const withdrawals = await coinPaymentsRequest('get_withdrawal_history', { limit: 25 });
-        
-        if (withdrawals && withdrawals.length > 0) {
-          console.log(`Found ${withdrawals.length} recent withdrawals to check...`);
-          
-          // Look through recent withdrawals for any reference to our external transaction ID
-          const matchingWithdrawal = Object.values(withdrawals).find((w: any) => {
-            // Try to match by withdrawal ID, transaction ID, address, or any reference in the data
-            return (w.id && w.id.includes(txId)) ||
-                  (w.txid && w.txid.includes(txId)) ||
-                  (w.address && txId.includes(w.address)) ||
-                  (w.status_text && w.status_text === 'Complete');
-          });
-          
-          if (matchingWithdrawal) {
-            console.log(`Found potential matching withdrawal:`, JSON.stringify(matchingWithdrawal));
-            
-            // Use the withdrawal data as our result
-            return {
-              status: matchingWithdrawal.status || 100, // Assume completed if found
-              status_text: matchingWithdrawal.status_text || 'Complete',
-              time_completed: matchingWithdrawal.time || new Date().toISOString()
-            };
-          }
-        }
-      } catch (withdrawalError) {
-        console.error(`Error checking withdrawals:`, withdrawalError);
-      }
+    try {
+      const result = await coinPaymentsRequest('get_tx_info', { txid: txId });
+      console.log(`Transaction ${txId} status from CoinPayments:`, JSON.stringify(result));
+      return result;
+    } catch (apiError) {
+      console.error(`API error checking transaction ${txId}:`, apiError);
       
-      // If we couldn't find anything in the withdrawal history, assume it's completed
-      // Only do this for force updates as a last resort
-      console.log(`No withdrawal found, assuming transaction is completed`);
-      return {
-        status: 100, // Assume completed
-        status_text: 'Complete (Assumed)',
-        time_completed: new Date().toISOString()
-      };
+      // Add the specific error information to help diagnose issues
+      throw new Error(`API call to CoinPayments failed: ${apiError.message}`);
     }
-    
-    return result;
   } catch (error) {
     console.error(`Error checking CoinPayments transaction ${txId}:`, error);
     // Return a error status object instead of throwing to avoid breaking the transaction flow

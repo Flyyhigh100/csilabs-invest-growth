@@ -55,3 +55,6 @@ verify_jwt = false
 [functions.check-coinpayments-status]
 verify_jwt = true
 
+# Register the API key validator function
+[functions.validate-api-keys]
+verify_jwt = true

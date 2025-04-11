@@ -10,6 +10,7 @@ import { useTransactionVerification } from '@/hooks/transactions/useTransactionV
 import { CanceledAlert, PendingVerificationAlert, SuccessAlert } from '@/components/Dashboard/Transactions/StatusAlerts';
 import TransactionHeader from '@/components/Dashboard/Transactions/TransactionHeader';
 import TransactionContent from '@/components/Dashboard/Transactions/TransactionContent';
+import APIKeyValidator from '@/components/Admin/APIKeyValidator'; // Import the validator
 
 const Transactions = () => {
   const { kycData } = useKycVerification();
@@ -37,6 +38,27 @@ const Transactions = () => {
     refreshSession
   });
 
+  // Check if user is an admin to show API key validator
+  const [isAdmin, setIsAdmin] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .rpc('is_admin');
+        
+      if (error) {
+        console.error('Error checking admin status:', error);
+        return;
+      }
+      
+      setIsAdmin(!!data);
+    };
+    
+    checkAdminStatus();
+  }, [user]);
+
   return (
     <DashboardLayout title="Transactions">
       {/* Payment Status Alerts */}
@@ -56,6 +78,9 @@ const Transactions = () => {
       )}
       
       {canceled === 'true' && <CanceledAlert />}
+      
+      {/* Admin-only API Key Validator */}
+      {isAdmin && <APIKeyValidator />}
       
       {/* KYC Status Banner */}
       <Card className="mb-6">
