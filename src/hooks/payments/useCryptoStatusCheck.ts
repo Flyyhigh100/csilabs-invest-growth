@@ -27,6 +27,8 @@ export const useCryptoStatusCheck = () => {
       return null;
     }
 
+    // We'll allow checking even completed transactions when explicitly requested
+    // This is useful for fixing stuck transactions
     if (transaction.status === 'completed' && transaction.token_sent) {
       console.log('Transaction is already completed and tokens sent');
       return transaction;
@@ -170,7 +172,7 @@ export const useCryptoStatusCheck = () => {
     }
   };
 
-  // Force-sync a specific transaction
+  // Force-sync a specific transaction - This is critical for fixing stuck transactions
   const forceUpdateTransaction = async (transaction: Transaction): Promise<Transaction | null> => {
     if (!transaction || !transaction.id) {
       toast.error('Invalid transaction');

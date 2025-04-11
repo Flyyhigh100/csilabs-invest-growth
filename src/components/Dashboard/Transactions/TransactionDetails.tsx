@@ -11,17 +11,26 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from 'sonner';
+import SyncCryptoPaymentButton from './SyncCryptoPaymentButton';
+import ManualSyncButton from './ManualSyncButton';
 
 interface TransactionDetailsProps {
   transaction: Transaction;
+  onRefresh?: () => void;
 }
 
-const TransactionDetails = ({ transaction }: TransactionDetailsProps) => {
+const TransactionDetails = ({ transaction, onRefresh }: TransactionDetailsProps) => {
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text)
       .then(() => toast.success('Copied to clipboard'))
       .catch(() => toast.error('Failed to copy'));
   };
+
+  // Determine if this is potentially a stuck transaction
+  const isPotentiallyStuck = transaction.payment_method === 'coinpayments' && 
+    (transaction.status === 'pending' || transaction.status === 'confirmed') &&
+    // If transaction is older than 30 minutes, it might be stuck
+    (Date.now() - new Date(transaction.created_at).getTime() > 30 * 60 * 1000);
 
   return (
     <Card key={`detail-${transaction.id}`} className="border-t-0 rounded-t-none bg-gray-50">
@@ -70,6 +79,21 @@ const TransactionDetails = ({ transaction }: TransactionDetailsProps) => {
                   </>
                 )}
               </div>
+              
+              {/* Manual Sync Button for stuck transactions */}
+              {isPotentiallyStuck && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-amber-600">
+                      This transaction may be stuck
+                    </div>
+                    <ManualSyncButton 
+                      transactionId={transaction.id} 
+                      onSuccess={onRefresh}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           
@@ -88,6 +112,11 @@ const TransactionDetails = ({ transaction }: TransactionDetailsProps) => {
                     <span className="text-amber-600 flex items-center">
                       <Clock className="h-4 w-4 mr-1" />
                       Payment Complete, Processing Delivery
+                    </span>
+                  ) : transaction.status === 'confirmed' ? (
+                    <span className="text-blue-600 flex items-center">
+                      <CircleDollarSign className="h-4 w-4 mr-1" />
+                      Payment Received, Awaiting Processing
                     </span>
                   ) : (
                     <span>{transaction.status}</span>
@@ -148,6 +177,19 @@ const TransactionDetails = ({ transaction }: TransactionDetailsProps) => {
                   </>
                 )}
               </div>
+              
+              {transaction.payment_method === 'coinpayments' && !transaction.token_sent && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex justify-end">
+                    <SyncCryptoPaymentButton 
+                      transaction={transaction} 
+                      onSyncComplete={onRefresh}
+                      forceUpdate={true}
+                      variant="outline"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

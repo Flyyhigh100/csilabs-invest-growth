@@ -37,7 +37,7 @@ const TransactionsList = () => {
 
   // Check if there are any pending crypto transactions
   const hasPendingCrypto = transactions?.some(
-    tx => tx.payment_method === 'coinpayments' && tx.status === 'pending'
+    tx => tx.payment_method === 'coinpayments' && (tx.status === 'pending' || tx.status === 'confirmed')
   );
   
   // Check if there are any crypto transactions regardless of status
@@ -98,7 +98,13 @@ const TransactionsList = () => {
       {/* Expanded Transaction Details */}
       {expandedItem && transactions.map(tx => {
         if (tx.id !== expandedItem) return null;
-        return <TransactionDetails key={`detail-${tx.id}`} transaction={tx} />;
+        return (
+          <TransactionDetails 
+            key={`detail-${tx.id}`} 
+            transaction={tx} 
+            onRefresh={handleRefresh}
+          />
+        );
       })}
 
       <div className="text-center text-xs text-gray-500 mt-4">
