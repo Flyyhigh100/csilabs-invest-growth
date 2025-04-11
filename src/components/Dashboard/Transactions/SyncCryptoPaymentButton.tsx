@@ -72,8 +72,10 @@ const SyncCryptoPaymentButton = ({
     return null;
   }
 
-  // Don't show for completed transactions with tokens sent
-  if (transaction.status === 'completed' && transaction.token_sent) {
+  // FIXED: Don't hide the button for completed transactions without tokens sent
+  // Show button for any status except when tokens were already sent
+  if (transaction.token_sent) {
+    console.log('Not showing button - tokens already sent');
     return null;
   }
 
@@ -260,16 +262,23 @@ const SyncCryptoPaymentButton = ({
     }
   };
 
-  const buttonLabel = isChecking 
-    ? 'Checking...' 
-    : forceUpdate 
-      ? 'Force Update' 
-      : 'Check Status';
+  // Always show both buttons - regular check and force update
+  if (forceUpdate) {
+    return (
+      <Button
+        variant={variant}
+        size={size}
+        onClick={handleSync}
+        disabled={isChecking}
+        className="bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-300"
+      >
+        <RefreshCw className={`h-3 w-3 mr-1 ${isChecking ? 'animate-spin' : ''}`} />
+        {isChecking ? 'Updating...' : 'Force Update'}
+      </Button>
+    );
+  }
 
-  const tooltipContent = forceUpdate
-    ? 'Force sync with CoinPayments API regardless of current status'
-    : 'Check payment status with CoinPayments';
-
+  // Regular check button (non-force update)
   const button = (
     <Button
       variant={variant}
@@ -278,7 +287,7 @@ const SyncCryptoPaymentButton = ({
       disabled={isChecking}
     >
       <RefreshCw className={`h-3 w-3 mr-1 ${isChecking ? 'animate-spin' : ''}`} />
-      {buttonLabel}
+      {isChecking ? 'Checking...' : 'Check Status'}
     </Button>
   );
 
@@ -289,7 +298,7 @@ const SyncCryptoPaymentButton = ({
           {button}
         </TooltipTrigger>
         <TooltipContent>
-          <p className="text-xs">{tooltipContent}</p>
+          <p className="text-xs">Check payment status with CoinPayments</p>
         </TooltipContent>
       </Tooltip>
     );

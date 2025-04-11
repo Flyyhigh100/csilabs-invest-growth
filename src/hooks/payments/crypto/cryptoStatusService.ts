@@ -69,6 +69,10 @@ export async function checkCryptoPaymentStatus(
         }
       });
       
+      // Log the complete response for debugging
+      console.log('Full edge function response:', JSON.stringify(data || {}).substring(0, 500) + '...');
+      console.log('Edge function error:', error ? JSON.stringify(error) : 'None');
+      
       // Determine status code from error response - Supabase Functions don't expose statusText directly
       let statusCode = error?.status || (error ? 500 : 200);
       
@@ -155,8 +159,10 @@ export async function checkCryptoPaymentStatus(
       }
       
       return data;
-    } catch (functionError) {
+    } catch (functionError: any) {
       console.error(`Error invoking check-coinpayments-status function: ${functionError.message}`);
+      console.error('Full error object:', JSON.stringify(functionError));
+      
       return {
         error: `Error calling status check function: ${functionError.message}`,
         status: 'error',

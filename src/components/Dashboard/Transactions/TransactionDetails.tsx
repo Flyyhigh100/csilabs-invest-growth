@@ -180,7 +180,14 @@ const TransactionDetails = ({ transaction, onRefresh }: TransactionDetailsProps)
               
               {transaction.payment_method === 'coinpayments' && !transaction.token_sent && (
                 <div className="mt-3 pt-3 border-t border-gray-100">
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-2">
+                    {/* Add both Regular Check and Force Update buttons */}
+                    <SyncCryptoPaymentButton 
+                      transaction={transaction} 
+                      onSyncComplete={onRefresh}
+                      forceUpdate={false}
+                      variant="outline"
+                    />
                     <SyncCryptoPaymentButton 
                       transaction={transaction} 
                       onSyncComplete={onRefresh}

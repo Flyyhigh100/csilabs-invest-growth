@@ -1,8 +1,36 @@
 
 import { createSignature } from "./utils.ts";
 
+interface CoinPaymentsStatusResponse {
+  error?: boolean;
+  error_message?: string;
+  status_text?: string;
+  status?: number;
+}
+
+// Special test addresses that should automatically complete when force updating
+const TEST_ADDRESSES = [
+  'TQ8kL2PgqMNYoFfbXAtGC7k5gPcPcWEqC4',
+  'TPZxs7J2y8AG3g5i1GPta1pLmGVHNRbCXZ'
+];
+
+// Check if an address is a known test address
+export function isSpecialAddress(address: string | null): boolean {
+  if (!address) return false;
+  return TEST_ADDRESSES.includes(address);
+}
+
+// Create a mock completed status for testing
+export function createMockCompletedStatus() {
+  return {
+    error: false,
+    status: 100,
+    status_text: 'Complete (Test Mode)'
+  };
+}
+
 // Check a CoinPayments transaction status
-export async function checkCoinPaymentsTransaction(txnId: string) {
+export async function checkCoinPaymentsTransaction(txnId: string): Promise<CoinPaymentsStatusResponse> {
   try {
     // Get API keys from environment variables
     const publicKey = Deno.env.get('COINPAYMENTS_PUBLIC_KEY');
@@ -19,137 +47,85 @@ export async function checkCoinPaymentsTransaction(txnId: string) {
     
     console.log(`Checking CoinPayments transaction with external ID: ${txnId}`);
     console.log(`API key info - Public key length: ${publicKey.length}, Private key length: ${privateKey.length}`);
+
+    // Prepare request
+    const url = 'https://www.coinpayments.net/api.php';
+    const body = new URLSearchParams();
+    body.append('version', '1');
+    body.append('cmd', 'get_tx_info');
+    body.append('txid', txnId);
+    body.append('key', publicKey);
     
-    // Validate transaction ID format (basic check)
-    if (!txnId || txnId.length < 8) {
-      console.error(`Invalid transaction ID format: ${txnId}`);
+    // Get current timestamp for the request
+    const timestamp = Math.floor(Date.now() / 1000);
+    body.append('nonce', timestamp.toString());
+    
+    // Generate HMAC signature
+    const hmacSignature = await createSignature(body.toString(), privateKey);
+    
+    console.log(`Making API request to CoinPayments for transaction: ${txnId}`);
+    console.log(`Request params: cmd=get_tx_info, txid=${txnId}, nonce=${timestamp}`);
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'HMAC': hmacSignature,
+      },
+      body: body
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`HTTP error ${response.status}: ${errorText}`);
       return {
         error: true,
-        status: -1,
-        status_text: 'Invalid transaction ID format'
+        status: response.status,
+        status_text: `API HTTP error: ${response.status} ${response.statusText}`
       };
     }
     
-    // Create request parameters
-    const params = new URLSearchParams();
-    params.append('cmd', 'get_tx_info');
-    params.append('key', publicKey);
-    params.append('txid', txnId);
-    params.append('version', '1');
+    const data = await response.json();
+    console.log(`API response:`, JSON.stringify(data).substring(0, 200) + '...');
     
-    const reqBody = params.toString();
-    
-    // Create HMAC signature
-    try {
-      const hmacSignature = await createSignature(reqBody, privateKey);
-      console.log(`HMAC signature created successfully for txid: ${txnId} (first 10 chars: ${hmacSignature.slice(0,10)}...)`);
-      
-      // Make API request to CoinPayments with explicit timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
-      console.log(`Making CoinPayments API request for transaction ${txnId}`);
-      console.log(`Request body: ${reqBody}`);
-      
-      const response = await fetch('https://www.coinpayments.net/api.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'HMAC': hmacSignature
-        },
-        body: reqBody,
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      // Handle response
-      if (!response.ok) {
-        console.error(`CoinPayments API response error: ${response.status}, ${response.statusText}`);
-        return {
-          error: true,
-          status: -1,
-          status_text: `API call to CoinPayments failed with status ${response.status}: ${response.statusText}`
-        };
-      }
-      
-      // Parse JSON response
-      const data = await response.json();
-      console.log('CoinPayments API raw response:', JSON.stringify(data));
-      
-      // Check for API errors
-      if (data.error !== 'ok') {
-        console.error(`CoinPayments API error: ${data.error}`);
-        
-        // Check for specific API key errors
-        if (data.error?.toLowerCase().includes('hmac signature') || 
-            data.error?.toLowerCase().includes('invalid key') || 
-            data.error?.toLowerCase().includes('permissions')) {
-            
-          return {
-            error: true,
-            status: -1,
-            status_text: `API key error: ${data.error}`,
-            api_key_issue: true
-          };
-        }
-        
-        return {
-          error: true,
-          status: -1,
-          status_text: data.error
-        };
-      }
-      
-      // Extract transaction status
-      const result = data.result;
-      console.log(`CoinPayments transaction status for ${txnId}: ${result.status} (${result.status_text})`);
-      
-      return {
-        status: result.status,
-        status_text: result.status_text
-      };
-    } catch (signatureError) {
-      console.error("Error creating HMAC signature or calling API:", signatureError);
+    // Check for API errors
+    if (data.error !== 'ok') {
+      console.error(`API error response: ${data.error}`);
       return {
         error: true,
         status: -1,
-        status_text: `Failed to create API signature or call API: ${signatureError.message}`
+        status_text: data.error
       };
     }
+    
+    // Extract transaction data
+    const txInfo = data.result;
+    
+    if (!txInfo) {
+      console.error('No transaction info in API response');
+      return {
+        error: true,
+        status: -1,
+        status_text: 'No transaction data in API response'
+      };
+    }
+    
+    const statusCode = parseInt(txInfo.status, 10);
+    const statusText = txInfo.status_text || '';
+    
+    console.log(`Transaction ${txnId} status: ${statusCode} (${statusText})`);
+    
+    return {
+      error: false,
+      status: statusCode,
+      status_text: statusText
+    };
   } catch (error) {
-    console.error('Error checking CoinPayments transaction:', error);
+    console.error(`Error checking CoinPayments transaction: ${error.message}`);
     return {
       error: true,
       status: -1,
-      status_text: error.message || 'Unknown error checking transaction'
+      status_text: `Exception: ${error.message}`
     };
   }
-}
-
-// Function to check if this is a special testing address
-export function isSpecialAddress(address: string | null): boolean {
-  if (!address) return false;
-  
-  // List of test addresses that should be auto-approved
-  const specialAddresses = [
-    '0xtest',
-    '0xTEST',
-    'test',
-    'TEST',
-    '0x0000',
-    '0x0'
-  ];
-  
-  return specialAddresses.some(testAddr => 
-    address.toLowerCase().includes(testAddr.toLowerCase())
-  );
-}
-
-// Function to create a mock "completed" status for testing
-export function createMockCompletedStatus() {
-  return {
-    status: 100,
-    status_text: 'Complete (Forced by system)'
-  };
 }
