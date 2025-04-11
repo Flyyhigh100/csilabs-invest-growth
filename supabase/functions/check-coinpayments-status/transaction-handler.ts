@@ -1,135 +1,133 @@
 
-import { corsHeaders } from "./utils.ts";
 import { createSupabaseClient, updateTransactionStatus, logStatusCheck } from "./db-client.ts";
-import { checkCoinPaymentsTransaction, isSpecialAddress, createMockCompletedStatus } from "./coinpayments-api.ts";
 import { mapCoinPaymentsStatus } from "./status-mapper.ts";
+import { getCoinPaymentsTransactionInfo } from "./coinpayments-api.ts";
 
-/**
- * Main transaction processing function
- * Handles fetching transaction details, checking status with CoinPayments
- * and updating transaction status if needed
- */
-export async function processTransaction(
-  transactionId: string,
-  forceUpdate: boolean = false
-): Promise<{
-  status: string,
-  updated: boolean,
-  external_status?: number,
-  external_status_text?: string,
-  message?: string,
-  error?: string
-}> {
+export async function processTransaction(transactionId: string, forceUpdate = false) {
+  console.log(`Processing transaction: ${transactionId}, forceUpdate: ${forceUpdate}`);
+  
   try {
-    console.log(`Processing transaction: ${transactionId}, forceUpdate: ${forceUpdate}`);
-    
     const supabaseClient = createSupabaseClient();
-
-    // Get the transaction record
-    const { data: transaction, error: transactionError } = await supabaseClient
+    
+    // Fetch transaction from database
+    const { data: transaction, error } = await supabaseClient
       .from('transactions')
-      .select('external_transaction_id, status, payment_address')
+      .select('*')
       .eq('id', transactionId)
-      .single();
+      .maybeSingle();
       
-    if (transactionError || !transaction) {
-      console.error('Error fetching transaction:', transactionError);
+    if (error) {
+      console.error("Error fetching transaction:", error);
+      return { error: error.message };
+    }
+    
+    if (!transaction) {
+      console.error("Transaction not found");
+      return { error: 'Transaction not found' };
+    }
+    
+    // Ensure it's a CoinPayments transaction
+    if (transaction.payment_method !== 'coinpayments') {
       return { 
-        status: 'error', 
-        updated: false, 
-        error: 'Transaction not found' 
+        error: 'Not a CoinPayments transaction', 
+        transaction: transaction
       };
     }
     
-    console.log(`Current transaction status: ${transaction.status}, external_transaction_id: ${transaction.external_transaction_id}`);
-    
-    // No need to check if already completed, unless force update is requested
-    if (transaction.status === 'completed' && !forceUpdate) {
-      console.log(`Transaction ${transactionId} is already completed, skipping check`);
+    // Skip check if transaction is already completed and tokens were sent, unless forcing
+    if (transaction.status === 'completed' && transaction.token_sent && !forceUpdate) {
       return { 
-        status: 'completed', 
-        updated: false,
-        message: 'Status not changed (already completed)' 
+        message: 'Transaction already completed and tokens sent', 
+        transaction: transaction,
+        payment_status: { status: 100, status_text: 'Complete' }
       };
     }
     
-    // Check with CoinPayments API
+    // Get external transaction ID
     const externalTxId = transaction.external_transaction_id;
     if (!externalTxId) {
-      console.error(`No external transaction ID found for transaction ${transactionId}`);
       return { 
-        status: 'error', 
-        updated: false, 
-        error: 'No external transaction ID found' 
+        error: 'Missing external transaction ID', 
+        transaction: transaction
       };
     }
     
-    // Try to get payment status from CoinPayments
-    let paymentStatus;
-    try {
-      paymentStatus = await checkCoinPaymentsTransaction(externalTxId);
-      console.log(`Status for ${externalTxId}:`, JSON.stringify(paymentStatus));
-    } catch (apiError) {
-      console.error(`Error checking CoinPayments API for ${externalTxId}:`, apiError);
-      
-      // Special handling for payments that might be completed but not found
-      // Check withdrawal history and other backup methods
-      if (forceUpdate && isSpecialAddress(transaction.payment_address)) {
-        console.log(`Force update requested for special address - marking as completed`);
-        
-        // Override payment status for these specific transactions
-        paymentStatus = createMockCompletedStatus();
-      } else {
-        return { 
-          status: 'error', 
-          updated: false, 
-          error: `Error checking payment status: ${apiError.message}` 
-        };
-      }
+    // Query CoinPayments API for transaction status
+    const paymentStatus = await getCoinPaymentsTransactionInfo(externalTxId);
+    
+    if (!paymentStatus) {
+      return { 
+        error: 'Failed to retrieve payment status', 
+        transaction: transaction
+      };
     }
     
-    // Map CoinPayments status to our status
+    // Map CoinPayments status to our internal status
     const { newStatus, updated } = mapCoinPaymentsStatus(transaction.status, paymentStatus);
     
-    console.log(`Mapped status: ${transaction.status} -> ${newStatus}, updated: ${updated}, original status code: ${paymentStatus.status}`);
+    // Force update if requested regardless of current status
+    const shouldUpdate = updated || forceUpdate;
     
-    // Log the status check regardless of the outcome
-    await logStatusCheck(
-      supabaseClient,
-      transactionId,
-      externalTxId,
-      paymentStatus,
-      newStatus,
-      (updated && newStatus !== transaction.status) || forceUpdate,
-      !!forceUpdate
-    );
-    
-    // Update transaction if status changed or force update requested
-    if ((updated && newStatus !== transaction.status) || forceUpdate) {
+    // Update transaction status if needed
+    if (shouldUpdate) {
+      console.log(`Updating transaction status from ${transaction.status} to ${newStatus}`);
+      
+      const completedAt = (newStatus === 'completed' || paymentStatus.status === 1 || paymentStatus.status >= 100) 
+        ? new Date().toISOString() 
+        : undefined;
+      
       await updateTransactionStatus(
-        supabaseClient, 
-        transactionId, 
-        newStatus, 
-        paymentStatus.time_completed || new Date().toISOString()
+        supabaseClient,
+        transaction.id,
+        newStatus,
+        completedAt
       );
       
-      console.log(`Updated transaction ${transactionId} status to ${newStatus}`);
+      // Log the status check
+      await logStatusCheck(
+        supabaseClient,
+        transaction.id,
+        externalTxId,
+        paymentStatus,
+        newStatus,
+        true,
+        forceUpdate
+      );
+      
+      // Fetch the updated transaction
+      const { data: updatedTransaction } = await supabaseClient
+        .from('transactions')
+        .select('*')
+        .eq('id', transactionId)
+        .single();
+        
+      return { 
+        message: `Transaction status updated to ${newStatus}`,
+        transaction: updatedTransaction,
+        payment_status: paymentStatus,
+        updated: true
+      };
+    } else {
+      // Log the status check even if no update was needed
+      await logStatusCheck(
+        supabaseClient,
+        transaction.id,
+        externalTxId,
+        paymentStatus,
+        newStatus,
+        false,
+        forceUpdate
+      );
+      
+      return { 
+        message: `No update needed. Current status: ${transaction.status}`,
+        transaction: transaction,
+        payment_status: paymentStatus,
+        updated: false
+      };
     }
-    
-    return {
-      status: newStatus,
-      updated: (updated && newStatus !== transaction.status) || forceUpdate,
-      external_status: paymentStatus.status,
-      external_status_text: paymentStatus.status_text || '',
-      message: (updated && newStatus !== transaction.status) || forceUpdate ? 
-        `Status updated to ${newStatus}` : 'Status not changed'
-    };
   } catch (error) {
-    console.error('Error processing transaction:', error);
-    return { 
-      status: 'error', 
-      updated: false, 
-      error: error.message || 'Internal server error' 
-    };
+    console.error("Error processing transaction:", error);
+    return { error: error.message };
   }
 }

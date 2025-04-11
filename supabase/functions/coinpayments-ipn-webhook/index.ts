@@ -18,17 +18,22 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   
-  // Get IPN Secret from environment variables
-  const ipnSecret = Deno.env.get('COINPAYMENTS_IPN_SECRET');
-  if (!ipnSecret) {
-    console.error('COINPAYMENTS_IPN_SECRET not configured');
-    return new Response(
-      JSON.stringify({ error: 'IPN secret not configured' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    );
-  }
+  // IMPORTANT: Send immediate 200 response first to acknowledge receipt to CoinPayments
+  // This prevents CoinPayments from retrying the webhook unnecessarily
+  const response = new Response('IPN Received', {
+    headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+    status: 200
+  });
 
   try {
+    // Get IPN Secret from environment variables
+    const ipnSecret = Deno.env.get('COINPAYMENTS_IPN_SECRET');
+    if (!ipnSecret) {
+      console.error('COINPAYMENTS_IPN_SECRET not configured');
+      // Still return 200 to prevent retries, but log the error
+      return response;
+    }
+
     // Create Supabase client
     const supabaseClient = createSupabaseClient();
     
@@ -72,10 +77,8 @@ serve(async (req) => {
         rawBody
       );
       
-      return new Response('Missing required IPN fields', {
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
-        status: 400
-      });
+      // Still return 200 to prevent retries
+      return response;
     }
     
     // Process IPN based on type - focus on payment notifications
@@ -83,10 +86,18 @@ serve(async (req) => {
       // Get status from IPN
       const ipnStatus = parseInt(ipnDataObj.status, 10);
       
-      // Map CoinPayments status to our internal status format
-      const transactionStatus = mapCoinPaymentsStatus(ipnStatus);
+      console.log(`Transaction ${ipnDataObj.txn_id} IPN Status: ${ipnStatus}`);
       
-      console.log(`Transaction ${ipnDataObj.txn_id} IPN Status: ${ipnStatus}, Mapped to: ${transactionStatus}`);
+      // Direct status code handling as requested
+      let transactionStatus = 'pending';
+      
+      // Update transaction if payment received (status 1) or fully processed (status >= 100)
+      if (ipnStatus >= 100 || ipnStatus === 1) {
+        console.log(`Updating transaction ${ipnDataObj.txn_id} to completed status`);
+        transactionStatus = 'completed';
+      } else if (ipnStatus < 0) {
+        transactionStatus = 'failed';
+      }
       
       // Update transaction status in our database with retry logic
       if (isValid && ipnDataObj.txn_id) {
@@ -112,18 +123,8 @@ serve(async (req) => {
       rawBody
     );
     
-    // Return proper response based on validation
-    if (isValid) {
-      return new Response('IPN Received', {
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
-        status: 200
-      });
-    } else {
-      return new Response('HMAC validation failed', {
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
-        status: 401
-      });
-    }
+    // Return proper response (already created at the beginning)
+    return response;
     
   } catch (error) {
     console.error('Error processing CoinPayments IPN:', error);
@@ -143,9 +144,7 @@ serve(async (req) => {
       console.error('Failed to log IPN error:', logError);
     }
     
-    return new Response(
-      JSON.stringify({ error: 'Error processing IPN' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    );
+    // Always return 200 to prevent retries from CoinPayments
+    return response;
   }
 });

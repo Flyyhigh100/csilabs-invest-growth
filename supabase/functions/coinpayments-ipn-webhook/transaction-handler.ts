@@ -44,8 +44,8 @@ export async function updateTransactionStatus(
       
       console.log(`Found transaction: ID=${transaction.id}, Current status=${transaction.status}, New status=${status}`);
       
-      // Only update if status has changed
-      if (transaction.status !== status) {
+      // Only update if status has changed or forcing an update from status 1 or 100
+      if (transaction.status !== status || (ipnStatus === 1 || ipnStatus >= 100)) {
         const { error: updateError } = await client
           .from('transactions')
           .update(updateData)
