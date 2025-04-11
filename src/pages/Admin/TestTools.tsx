@@ -1,7 +1,7 @@
 
 import React from 'react';
 import AdminLayout from '@/components/Admin/Layout';
-import TestIpnForm from '@/components/Admin/TestIpnForm';
+import TestIpnForm from '@/components/Admin/TestIPNForm';
 
 const TestToolsPage: React.FC = () => {
   return (

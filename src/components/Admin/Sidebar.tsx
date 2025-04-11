@@ -7,7 +7,7 @@ import {
   UsersIcon,
   ShieldCheckIcon,
   CreditCardIcon,
-  WrenchScrewdriverIcon,
+  WrenchIcon,
   BeakerIcon
 } from 'lucide-react';
 
@@ -38,7 +38,7 @@ const Sidebar = ({ className, ...props }: SidebarProps) => {
     {
       title: 'Transaction Tools',
       href: '/admin/transaction-tools',
-      icon: <WrenchScrewdriverIcon className="w-4 h-4 mr-3" />,
+      icon: <WrenchIcon className="w-4 h-4 mr-3" />,
     },
     {
       title: 'Test Tools',
