@@ -37,7 +37,7 @@ export async function createSignature(message: string, key: string): Promise<str
       throw new Error('Missing required parameters for HMAC signature');
     }
     
-    console.log(`Creating HMAC signature with message length: ${message.length} characters`);
+    console.log(`Creating HMAC signature with message length: ${message.length} characters and key length: ${key.length} characters`);
     
     // Convert message and key to Uint8Array
     const encoder = new TextEncoder();

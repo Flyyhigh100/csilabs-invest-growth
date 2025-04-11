@@ -1,13 +1,9 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.32.0";
 import { corsHeaders } from "./utils.ts";
 
 function createSupabaseClient() {
-  return createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-  );
+  return null; // We're not using Supabase client in this function anymore
 }
 
 async function validateCoinPaymentsKeys() {
