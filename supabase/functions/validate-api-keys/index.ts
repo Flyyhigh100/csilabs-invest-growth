@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "./utils.ts";
+import { corsHeaders, testHmacSignature } from "./utils.ts";
 
 function createSupabaseClient() {
   return null; // We're not using Supabase client in this function anymore
@@ -32,30 +32,38 @@ async function validateCoinPaymentsKeys() {
     });
     
     // Simple validation - just check if keys have proper length and format
-    const isPublicKeyValid = publicKey && publicKey.length >= 20;
-    const isPrivateKeyValid = privateKey && privateKey.length >= 20;
+    const isPublicKeyValid = publicKey && publicKey.length >= 16;
+    const isPrivateKeyValid = privateKey && privateKey.length >= 16;
     
-    if (!isPublicKeyValid || !isPrivateKeyValid) {
+    // Test the HMAC signature generation with the private key
+    let hmacTestPassed = false;
+    if (isPrivateKeyValid) {
+      hmacTestPassed = await testHmacSignature(privateKey);
+      console.log(`HMAC test result: ${hmacTestPassed ? 'PASSED' : 'FAILED'}`);
+    }
+    
+    if (!isPublicKeyValid || !isPrivateKeyValid || !hmacTestPassed) {
       return {
         isValid: false,
         details: 'API keys appear to be invalid (incorrect format or length)',
         service: 'coinpayments',
         keyCheck: {
           publicKeyValid: isPublicKeyValid,
-          privateKeyValid: isPrivateKeyValid
+          privateKeyValid: isPrivateKeyValid,
+          hmacTestPassed
         }
       };
     }
     
-    // Return validation success based on key format check
+    // Return validation success
     return {
       isValid: true,
       details: 'API keys exist and appear to be in the correct format.',
       service: 'coinpayments',
       publicKeyInfo: publicKey ? {
         length: publicKey.length,
-        prefix: publicKey.substring(0, 5),
-        suffix: publicKey.substring(publicKey.length - 5)
+        prefix: publicKey.substring(0, 3) + '...',
+        suffix: '...' + publicKey.substring(publicKey.length - 3)
       } : null,
       ipnStatus: ipnSecret ? {
         ipnSecretConfigured: true,
