@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { RefreshCw, Lock } from 'lucide-react';
+import { RefreshCw, Lock, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Transaction } from '@/types/transactions';
 import { useCryptoStatusCheck } from '@/hooks/payments/crypto';
@@ -16,6 +16,7 @@ interface SyncCryptoPaymentButtonProps {
   showTooltip?: boolean;
   forceUpdate?: boolean;
   validateApiKeysOnly?: boolean;
+  testIpnMode?: boolean;
 }
 
 const SyncCryptoPaymentButton = ({ 
@@ -25,7 +26,8 @@ const SyncCryptoPaymentButton = ({
   variant = 'ghost',
   showTooltip = true,
   forceUpdate = false,
-  validateApiKeysOnly = false
+  validateApiKeysOnly = false,
+  testIpnMode = false
 }: SyncCryptoPaymentButtonProps) => {
   const [localIsChecking, setLocalIsChecking] = useState(false);
   const { checkTransactionStatus, forceUpdateTransaction, isChecking: hookIsChecking } = useCryptoStatusCheck();
@@ -45,6 +47,22 @@ const SyncCryptoPaymentButton = ({
       >
         <Lock className={`h-3 w-3 mr-1 ${isChecking ? 'animate-spin' : ''}`} />
         {isChecking ? 'Validating...' : 'Validate API Keys'}
+      </Button>
+    );
+  }
+  
+  // For test IPN mode
+  if (testIpnMode && transaction.external_transaction_id) {
+    return (
+      <Button
+        variant="outline"
+        size={size}
+        onClick={() => handleTestIpn(transaction.external_transaction_id)}
+        disabled={isChecking}
+        className="border-purple-500 text-purple-700 hover:bg-purple-50"
+      >
+        <Send className={`h-3 w-3 mr-1 ${isChecking ? 'animate-spin' : ''}`} />
+        {isChecking ? 'Sending...' : 'Test IPN'}
       </Button>
     );
   }
@@ -100,6 +118,61 @@ const SyncCryptoPaymentButton = ({
     } catch (error) {
       console.error("Error validating API keys:", error);
       toast.error("Error validating API keys", {
+        description: (error as Error).message || "An unexpected error occurred"
+      });
+    } finally {
+      setLocalIsChecking(false);
+    }
+  }
+
+  async function handleTestIpn(transactionId: string) {
+    if (!transactionId) {
+      toast.error("No transaction ID provided");
+      return;
+    }
+    
+    try {
+      setLocalIsChecking(true);
+      
+      const toastId = 'test-ipn';
+      toast.info("Sending test IPN notification...", {
+        id: toastId,
+      });
+      
+      const { data, error } = await supabase.functions.invoke('test-ipn-notification', {
+        body: { 
+          transactionId: transactionId,
+          status: '100', // Complete status
+          amount: transaction.amount
+        }
+      });
+      
+      toast.dismiss(toastId);
+      
+      if (error) {
+        console.error("Error sending test IPN:", error);
+        toast.error("Error sending test IPN", {
+          description: error.message || "Could not send test IPN notification."
+        });
+        return;
+      }
+      
+      toast.success("Test IPN Sent", {
+        description: "A test IPN notification was sent to simulate a completed payment."
+      });
+      
+      console.log("Test IPN response:", data);
+      
+      // Refresh transaction data after a delay
+      setTimeout(() => {
+        if (transaction.id) {
+          handleSync();
+        }
+      }, 2000);
+      
+    } catch (error) {
+      console.error("Error sending test IPN:", error);
+      toast.error("Error sending test IPN", {
         description: (error as Error).message || "An unexpected error occurred"
       });
     } finally {

@@ -24,6 +24,8 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
+
+    console.log(`IPN secret found - length: ${ipnSecret.length} characters`);
     
     // Create a copy of the request for logging
     const requestCopy = req.clone();
@@ -34,6 +36,8 @@ serve(async (req) => {
     
     // Verify HMAC signature
     const isVerified = await verifyIpnHmac(req, ipnSecret);
+    console.log(`IPN HMAC verification result: ${isVerified ? 'SUCCESS' : 'FAILED'}`);
+
     if (!isVerified) {
       console.error("IPN HMAC signature verification failed");
       
@@ -42,7 +46,11 @@ serve(async (req) => {
       if (logEntry?.id) {
         await dbClient
           .from('ipn_logs')
-          .update({ verification_status: 'failed', processed_at: new Date().toISOString() })
+          .update({ 
+            verification_status: 'failed', 
+            processed_at: new Date().toISOString(),
+            notes: 'HMAC verification failed - check IPN secret configuration'
+          })
           .eq('id', logEntry.id);
       }
       
@@ -76,14 +84,29 @@ serve(async (req) => {
       payload[key] = value.toString();
     }
     
-    console.log("IPN Payload:", JSON.stringify(payload));
+    console.log("IPN Payload received:", JSON.stringify(payload));
+    
+    // Validate required IPN fields
+    if (!payload.ipn_type || !payload.txn_id) {
+      console.error("Missing required IPN fields (ipn_type, txn_id)");
+      return new Response(
+        JSON.stringify({ error: "Missing required IPN fields", missing: "ipn_type or txn_id" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
     
     // Process the IPN payload
     const result = await processIpnPayload(payload, logEntry?.id);
     
     // Return success response to the IPN server
     return new Response(
-      JSON.stringify({ status: "success", ...result }),
+      JSON.stringify({ 
+        status: "success", 
+        ipn_processed: true,
+        txn_id: payload.txn_id,
+        ipn_type: payload.ipn_type,
+        ...result 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

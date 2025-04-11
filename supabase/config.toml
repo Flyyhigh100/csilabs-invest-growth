@@ -4,72 +4,38 @@ project_id = "hrhvliqkmetcdphnetxb"
 [api]
 enabled = true
 port = 54321
-schemas = ["public", "storage", "auth"]
-extra_search_path = ["public", "extensions"]
-max_rows = 1000
+schemas = ["public", "storage"]
 
 [db]
 port = 54322
-shadow_port = 54320
-major_version = 15
 
 [studio]
+enabled = true
 port = 54323
+api_url = "http://localhost"
 
 [inbucket]
+enabled = true
 port = 54324
-smtp_port = 54325
-pop3_port = 54326
 
 [storage]
-port = 54327
+enabled = true
 
 [auth]
-port = 54328
-uri = "http://localhost:54328"
+enabled = true
+site_url = "http://localhost:5173"
 
 [analytics]
-port = 54329
-
-[realtime]
-enabled = true
-ip_address = "0.0.0.0"
-port = 54330
-
-[realtime.logtail]
-port = 54331
-
-[vector]
 enabled = false
-port = 54332
-catalog_port = 54333
 
-[functions.validate-api-keys]
+[experimental.functions.coinpayments-ipn-webhook]
 verify_jwt = false
 
-[functions.admin-operations]
-verify_jwt = true
-
-[functions.create-stripe-checkout]
-verify_jwt = true
-
-[functions.check-coinpayments-status]
-verify_jwt = true
-
-[functions.create-crypto-payment]
-verify_jwt = true
-
-[functions.create-coinpayments-payment]
-verify_jwt = true
-
-[functions.stripe-webhooks]
+[experimental.functions.test-ipn-notification]
 verify_jwt = false
 
-[functions.coinpayments-ipn-webhook]
+[experimental.functions.validate-api-keys]
 verify_jwt = false
 
-[functions.verify-stripe-payment]
-verify_jwt = true
-
-[functions.test-ipn-webhook]
+[experimental.functions.test-ipn-webhook]
 verify_jwt = false

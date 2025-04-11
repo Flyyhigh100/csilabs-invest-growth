@@ -17,6 +17,7 @@ export async function verifyIpnHmac(request: Request, ipnSecret: string): Promis
     // Get the raw body from the request to compute the HMAC
     const rawBody = await clonedRequest.text();
     console.log('Raw IPN request body length:', rawBody.length, 'bytes');
+    console.log('Raw IPN request body preview:', rawBody.substring(0, 100) + '...');
     
     // Create HMAC from the request body using the IPN secret
     const encoder = new TextEncoder();
@@ -50,6 +51,8 @@ export async function verifyIpnHmac(request: Request, ipnSecret: string): Promis
     
     if (!isValid) {
       console.error('HMAC verification failed. Computed HMAC does not match the header');
+      console.log('HMAC Header: ', hmacHeader.substring(0, 20) + '...');
+      console.log('Computed:    ', computedHmac.substring(0, 20) + '...');
     } else {
       console.log('HMAC verification successful');
     }
