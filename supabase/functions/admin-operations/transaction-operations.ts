@@ -1,4 +1,3 @@
-
 export const transactionOperations = {
   async markTokensSent({ transactionId, blockchainTxId }, adminClient) {
     console.log(`Marking transaction ${transactionId} as sent with blockchain TX: ${blockchainTxId}`);
@@ -163,6 +162,100 @@ export const transactionOperations = {
       };
     } catch (error) {
       console.error("Exception in syncStripePaymentStatus:", error);
+      throw error;
+    }
+  },
+
+  // New function to manually update transaction status to completed
+  async manuallyCompleteTransaction({ transactionId, externalTransactionId }, adminClient) {
+    console.log(`Manually completing transaction with CoinPayments ID: ${externalTransactionId}`);
+    
+    try {
+      // First try to find the transaction by external_transaction_id (CoinPayments ID)
+      let query = adminClient.from("transactions").select('*');
+      
+      // If we have transactionId (database ID), use that
+      if (transactionId) {
+        console.log(`Looking up by database transaction ID: ${transactionId}`);
+        query = query.eq('id', transactionId);
+      } 
+      // Otherwise use external transaction ID
+      else if (externalTransactionId) {
+        console.log(`Looking up by external transaction ID: ${externalTransactionId}`);
+        query = query.eq('external_transaction_id', externalTransactionId);
+      } else {
+        throw new Error("Either transaction ID or external transaction ID is required");
+      }
+      
+      // Execute the query
+      const { data: transaction, error: txError } = await query.maybeSingle();
+      
+      if (txError) {
+        console.error("Error fetching transaction:", txError);
+        throw txError;
+      }
+      
+      if (!transaction) {
+        console.error("Transaction not found");
+        return { 
+          success: false, 
+          message: "Transaction not found with the provided ID"
+        };
+      }
+      
+      // Already completed? Nothing to do
+      if (transaction.status === 'completed') {
+        return { 
+          success: false, 
+          message: "Transaction is already marked as completed",
+          transaction
+        };
+      }
+      
+      console.log(`Found transaction ${transaction.id} with current status: ${transaction.status}`);
+      
+      // Update the transaction status to completed
+      const { data: updatedTransaction, error: updateError } = await adminClient
+        .from("transactions")
+        .update({
+          status: "completed",
+          updated_at: new Date().toISOString(),
+          completed_at: new Date().toISOString()
+        })
+        .eq("id", transaction.id)
+        .select()
+        .single();
+      
+      if (updateError) {
+        console.error("Error updating transaction status:", updateError);
+        throw updateError;
+      }
+      
+      console.log(`Successfully updated transaction ${transaction.id} status to completed`);
+      
+      // Create a notification for the user
+      const { error: notifError } = await adminClient
+        .from('notifications')
+        .insert({
+          user_id: transaction.user_id,
+          type: 'payment_confirmed',
+          title: 'Payment Completed',
+          message: `Your payment of $${transaction.amount} has been marked as completed.`
+        });
+        
+      if (notifError) {
+        console.error("Error creating notification:", notifError);
+        // Continue despite notification error
+      }
+      
+      return { 
+        success: true, 
+        message: "Transaction status successfully updated to completed", 
+        transaction: updatedTransaction,
+        previousStatus: transaction.status
+      };
+    } catch (error) {
+      console.error("Exception in manuallyCompleteTransaction:", error);
       throw error;
     }
   }

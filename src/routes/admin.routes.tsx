@@ -1,7 +1,7 @@
 
 import { lazy } from 'react';
 import { AdminDashboardIcon, TransactionIcon, UsersIcon, SettingsIcon, NotificationIcon } from '@/components/Icons';
-import { WebhookIcon } from 'lucide-react';
+import { WebhookIcon, WrenchIcon } from 'lucide-react';
 
 // Lazy load admin pages for better performance
 const AdminDashboard = lazy(() => import('@/pages/Admin/Dashboard'));
@@ -11,6 +11,7 @@ const AdminSettings = lazy(() => import('@/pages/Admin/Settings'));
 const AdminNotifications = lazy(() => import('@/pages/Admin/Notifications'));
 const AdminKYC = lazy(() => import('@/components/Admin/KYC'));
 const AdminIPNLogs = lazy(() => import('@/pages/Admin/IPNLogs'));
+const AdminTransactionTools = lazy(() => import('@/pages/Admin/TransactionTools'));
 
 export const adminRoutes = [
   {
@@ -27,6 +28,15 @@ export const adminRoutes = [
     element: <AdminTransactions />,
     meta: {
       title: 'Token Distribution',
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+  },
+  {
+    path: '/admin/transaction-tools',
+    element: <AdminTransactionTools />,
+    meta: {
+      title: 'Transaction Tools',
       requiresAuth: true,
       requiresAdmin: true,
     },
@@ -88,6 +98,11 @@ export const adminSidebarLinks = [
     title: 'Token Distribution',
     path: '/admin/transactions',
     icon: <TransactionIcon className="h-5 w-5" />,
+  },
+  {
+    title: 'Transaction Tools',
+    path: '/admin/transaction-tools',
+    icon: <WrenchIcon className="h-5 w-5" />,
   },
   {
     title: 'Users',

@@ -127,6 +127,10 @@ export async function handleAdminOperations(action, data, user, adminClient) {
         const stripe = new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" });
         return await transactionOperations.syncStripePaymentStatus(data, adminClient, stripe);
 
+      // Add our new manually complete transaction action
+      case "manuallyCompleteTransaction":
+        return await transactionOperations.manuallyCompleteTransaction(data, adminClient);
+
       default:
         console.error("Unknown admin operation:", action);
         throw new Error(`Unknown action: ${action}`);
