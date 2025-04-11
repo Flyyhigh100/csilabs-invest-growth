@@ -23,7 +23,16 @@ import NotFound from './pages/NotFound';
 import TestToolsPage from './pages/Admin/TestTools';
 import Payments from './pages/Dashboard/Payments';
 import Transactions from './pages/Dashboard/Transactions';
+
+// Import Admin pages explicitly
+import AdminDashboard from './pages/Admin/Dashboard';
 import AdminTransactionsPage from './pages/Admin/Transactions';
+import AdminUsersPage from './pages/Admin/Users';
+import AdminKycPage from './pages/Admin/KYCVerifications';
+import AdminSettingsPage from './pages/Admin/Settings';
+import AdminNotificationsPage from './pages/Admin/Notifications';
+import AdminIPNLogsPage from './pages/Admin/IPNLogs'; 
+import AdminTransactionToolsPage from './pages/Admin/TransactionTools';
 
 const queryClient = new QueryClient();
 
@@ -57,12 +66,15 @@ function App() {
                   
                   {/* Admin Routes */}
                   <Route element={<AdminRoute />}>
-                    <Route path="/admin" element={<div>Admin Dashboard</div>} />
-                    <Route path="/admin/kyc" element={<div>Admin KYC Verification</div>} />
-                    <Route path="/admin/users" element={<div>Admin Users</div>} />
+                    <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/admin/kyc" element={<AdminKycPage />} />
+                    <Route path="/admin/users" element={<AdminUsersPage />} />
                     <Route path="/admin/transactions" element={<AdminTransactionsPage />} />
-                    <Route path="/admin/transaction-tools" element={<div>Transaction Tools</div>} />
+                    <Route path="/admin/transaction-tools" element={<AdminTransactionToolsPage />} />
                     <Route path="/admin/test-tools" element={<TestToolsPage />} />
+                    <Route path="/admin/settings" element={<AdminSettingsPage />} />
+                    <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
+                    <Route path="/admin/ipn-logs" element={<AdminIPNLogsPage />} />
                   </Route>
                   
                   {/* Fallback */}

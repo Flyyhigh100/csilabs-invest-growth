@@ -2,18 +2,20 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
-  ChevronRight, 
-  Home, 
-  Users, 
-  CheckCircle, 
-  FileText,
-  CreditCard,
-  BookOpen,
-  WrenchIcon
+  HomeIcon, 
+  UsersIcon, 
+  CheckCircleIcon,
+  BookOpenIcon,
+  CreditCardIcon,
+  BellIcon,
+  SettingsIcon,
+  WrenchIcon,
+  WebhookIcon,
+  BeakerIcon
 } from 'lucide-react';
 
 interface NavItem {
-  label: string;
+  title: string;
   path: string;
   icon: React.ReactNode;
 }
@@ -21,34 +23,49 @@ interface NavItem {
 export const getAdminNavItems = (): NavItem[] => {
   return [
     {
-      label: 'Dashboard',
+      title: 'Dashboard',
       path: '/admin',
-      icon: <Home size={20} />,
+      icon: <HomeIcon className="h-5 w-5" />,
     },
     {
-      label: 'KYC Verifications',
+      title: 'KYC Verifications',
       path: '/admin/kyc',
-      icon: <CheckCircle size={20} />,
+      icon: <CheckCircleIcon className="h-5 w-5" />,
     },
     {
-      label: 'Transactions',
+      title: 'Token Distribution',
       path: '/admin/transactions',
-      icon: <CreditCard size={20} />,
+      icon: <CreditCardIcon className="h-5 w-5" />,
     },
     {
-      label: 'Transaction Tools',
+      title: 'Transaction Tools',
       path: '/admin/transaction-tools',
-      icon: <WrenchIcon size={20} />,
+      icon: <WrenchIcon className="h-5 w-5" />,
     },
     {
-      label: 'Users',
+      title: 'Users',
       path: '/admin/users',
-      icon: <Users size={20} />,
+      icon: <UsersIcon className="h-5 w-5" />,
     },
     {
-      label: 'Research Documents',
-      path: '/admin/research-documents',
-      icon: <BookOpen size={20} />,
+      title: 'IPN Webhook Logs',
+      path: '/admin/ipn-logs',
+      icon: <WebhookIcon className="h-5 w-5" />,
+    },
+    {
+      title: 'Test Tools',
+      path: '/admin/test-tools',
+      icon: <BeakerIcon className="h-5 w-5" />,
+    },
+    {
+      title: 'Notifications',
+      path: '/admin/notifications',
+      icon: <BellIcon className="h-5 w-5" />,
+    },
+    {
+      title: 'Settings',
+      path: '/admin/settings',
+      icon: <SettingsIcon className="h-5 w-5" />,
     },
   ];
 };
@@ -62,24 +79,23 @@ const AdminNav: React.FC<AdminNavProps> = ({ items }) => {
 
   return (
     <nav className="space-y-1">
-      {items.map((item, index) => {
+      {items.map((item) => {
         const isActive = location.pathname === item.path;
         return (
           <Link
-            key={index}
+            key={item.path}
             to={item.path}
             className={`
               group flex items-center px-4 py-2 text-base font-medium rounded-md
               ${isActive
-                ? 'bg-purple-50 text-purple-700'
+                ? 'bg-primary-50 text-primary'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}
             `}
           >
-            <div className={`mr-3 ${isActive ? 'text-purple-700' : 'text-gray-400 group-hover:text-gray-500'}`}>
+            <div className={`mr-3 ${isActive ? 'text-primary' : 'text-gray-400 group-hover:text-gray-500'}`}>
               {item.icon}
             </div>
-            {item.label}
-            {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
+            {item.title}
           </Link>
         );
       })}

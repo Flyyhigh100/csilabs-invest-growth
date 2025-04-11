@@ -33,3 +33,4 @@ verify_jwt = true
 
 [functions.force-update-transaction-status]
 verify_jwt = true
+
