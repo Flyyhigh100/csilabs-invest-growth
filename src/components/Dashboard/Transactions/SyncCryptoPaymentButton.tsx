@@ -51,24 +51,32 @@ const SyncCryptoPaymentButton = ({
       
       let updatedTransaction;
       
-      if (forceUpdate) {
-        // Use force update function when explicitly requested
-        updatedTransaction = await forceUpdateTransaction(transaction);
-      } else {
-        // Use regular check function by default
-        updatedTransaction = await checkTransactionStatus(transaction);
-      }
-      
-      toast.dismiss(toastId);
-      
-      if (!updatedTransaction && !forceUpdate) {
-        // If regular check failed, try force update as fallback
-        console.log("Regular check failed, trying force update as fallback");
-        toast.info("Trying force update as fallback...", {
-          id: `${toastId}-fallback`
+      try {
+        if (forceUpdate) {
+          // Use force update function when explicitly requested
+          updatedTransaction = await forceUpdateTransaction(transaction);
+        } else {
+          // Use regular check function by default
+          updatedTransaction = await checkTransactionStatus(transaction);
+        }
+        
+        toast.dismiss(toastId);
+        
+        // Handle null result but still show proper notification
+        if (!updatedTransaction && !forceUpdate) {
+          // If regular check failed, try force update as fallback
+          console.log("Regular check failed, trying force update as fallback");
+          toast.info("Trying force update as fallback...", {
+            id: `${toastId}-fallback`
+          });
+          updatedTransaction = await forceUpdateTransaction(transaction);
+          toast.dismiss(`${toastId}-fallback`);
+        }
+      } catch (innerError) {
+        console.error("Error during transaction check:", innerError);
+        toast.error('Error checking transaction status', {
+          description: innerError.message || 'An unexpected error occurred'
         });
-        updatedTransaction = await forceUpdateTransaction(transaction);
-        toast.dismiss(`${toastId}-fallback`);
       }
       
       if (onSyncComplete) {

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
 import { CryptoStatusCheckResult } from './types';
@@ -17,7 +16,7 @@ export async function checkCryptoPaymentStatus(
         transactionId,
         forceUpdate
       }
-    }) as { data: CryptoStatusCheckResult, error: any, status: number };
+    });
     
     console.log(`Edge function response:`, {
       data: data || 'none',
@@ -25,10 +24,12 @@ export async function checkCryptoPaymentStatus(
       status
     });
     
-    // Check for error or non-successful status
-    if (error || status >= 400 || data?.error) {
-      const errorMessage = error?.message || data?.error || `Edge function error (${status})`;
-      console.error('Error from edge function:', errorMessage, 'status:', status);
+    // Parse error response formats - handle both direct 'error' property and Supabase FunctionsHttpError
+    const errorMessage = error?.message || (data && data.error) || null;
+    
+    // Check for errors
+    if (error || status >= 400 || errorMessage) {
+      console.error('Error from edge function:', errorMessage || 'Unknown error', 'status:', status);
       
       // Handle 404 errors (transaction not found)
       if (status === 404 || (errorMessage && errorMessage.includes('not found'))) {
@@ -41,8 +42,7 @@ export async function checkCryptoPaymentStatus(
       }
       
       // Handle general API errors
-      // Parse the error to check if it's a CoinPayments API issue
-      if (typeof errorMessage === 'string') {
+      if (errorMessage) {
         if (errorMessage.includes('API call to CoinPayments failed')) {
           return {
             error: 'CoinPayments API error. Your API keys may be invalid or have insufficient permissions.',
@@ -62,8 +62,9 @@ export async function checkCryptoPaymentStatus(
         }
       }
       
+      // Generic error response
       return {
-        error: errorMessage || 'Unknown error. Please try again later.',
+        error: errorMessage || `Error from edge function (${status || 'unknown status'})`,
         status: 'error',
         updated: false
       };
@@ -74,38 +75,6 @@ export async function checkCryptoPaymentStatus(
       return {
         error: 'No response from status check function',
         status: 'error',
-        updated: false
-      };
-    }
-    
-    // Check if the result already contains an error property
-    if (data.error) {
-      console.error('Error in status check result:', data.error);
-      
-      // Check if transaction not found
-      if (data.error === 'Transaction not found') {
-        return {
-          error: 'Transaction not found in the database. Please refresh the page.',
-          status: 'error',
-          updated: false,
-          transaction_not_found: true
-        };
-      }
-      
-      // Check if this is an API key issue
-      if (data.error.includes('API') && 
-          (data.error.includes('key') || data.error.includes('credential'))) {
-        return {
-          error: 'CoinPayments API key error. Please verify your API keys are correctly configured.',
-          status: 'error',
-          updated: false,
-          api_key_issue: true
-        };
-      }
-      
-      return {
-        ...data,
-        status: data.status || 'error',
         updated: false
       };
     }

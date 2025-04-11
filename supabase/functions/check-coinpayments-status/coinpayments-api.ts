@@ -19,6 +19,16 @@ export async function checkCoinPaymentsTransaction(txnId: string) {
     
     console.log(`Checking CoinPayments transaction: ${txnId}`);
     
+    // Validate transaction ID format (basic check)
+    if (!txnId || txnId.length < 8) {
+      console.error(`Invalid transaction ID format: ${txnId}`);
+      return {
+        error: true,
+        status: -1,
+        status_text: 'Invalid transaction ID format'
+      };
+    }
+    
     // Create request parameters
     const params = new URLSearchParams();
     params.append('cmd', 'get_tx_info');
@@ -43,6 +53,15 @@ export async function checkCoinPaymentsTransaction(txnId: string) {
     
     if (!response.ok) {
       console.error(`CoinPayments API response error: ${response.status}, ${response.statusText}`);
+      
+      // Try to parse error response if possible
+      try {
+        const errorBody = await response.text();
+        console.error('Error response body:', errorBody);
+      } catch (e) {
+        console.error('Could not parse error response body');
+      }
+      
       return {
         error: true,
         status: -1,

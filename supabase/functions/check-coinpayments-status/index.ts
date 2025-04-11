@@ -48,7 +48,7 @@ serve(async (req) => {
     const privateKey = Deno.env.get('COINPAYMENTS_PRIVATE_KEY');
     
     if (!publicKey || !privateKey) {
-      console.error('CoinPayments API keys not configured');
+      console.error('CoinPayments API keys not configured in environment');
       return new Response(
         JSON.stringify(createErrorResponse('CoinPayments API credentials not configured')),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -68,12 +68,17 @@ serve(async (req) => {
         statusCode = 404;
       } else if (result.error.includes('Invalid') || result.error.includes('Missing')) {
         statusCode = 400;
-      } else if (result.error.includes('API credentials')) {
+      } else if (result.error.includes('API credentials') || result.error.includes('API key')) {
         statusCode = 401;
       }
       
       return new Response(
-        JSON.stringify(result),
+        JSON.stringify({ 
+          error: result.error, 
+          message: result.error,
+          status: 'error',
+          timestamp: new Date().toISOString()
+        }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
           status: statusCode
@@ -89,7 +94,12 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error checking transaction status:', error);
     return new Response(
-      JSON.stringify(createErrorResponse(error.message || 'Internal server error')),
+      JSON.stringify({ 
+        error: error.message || 'Internal server error',
+        message: error.message || 'Internal server error',
+        status: 'error',
+        timestamp: new Date().toISOString()
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

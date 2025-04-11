@@ -33,14 +33,25 @@ const RefreshCryptoTransactionsButton: React.FC<RefreshCryptoTransactionsButtonP
         id: toastId,
       });
       
-      const success = await refreshAllPendingTransactions(forceUpdateAll);
-      
-      toast.dismiss(toastId);
-      
-      if (success && onRefreshComplete) {
-        onRefreshComplete();
-      } else if (!success) {
-        console.error('Failed to refresh all transactions');
+      // Add additional error handling
+      try {
+        const success = await refreshAllPendingTransactions(forceUpdateAll);
+        
+        toast.dismiss(toastId);
+        
+        if (success && onRefreshComplete) {
+          onRefreshComplete();
+        } else if (!success) {
+          console.error('Failed to refresh all transactions');
+          toast.error('Some transactions could not be refreshed', {
+            description: 'Please check the console logs for more details or try again later.'
+          });
+        }
+      } catch (innerError) {
+        console.error('Error during transaction refresh:', innerError);
+        toast.error('Failed to complete transaction refresh', {
+          description: innerError.message || 'Unknown error during refresh operation'
+        });
       }
     } catch (error) {
       console.error('Error in refreshing crypto transactions:', error);

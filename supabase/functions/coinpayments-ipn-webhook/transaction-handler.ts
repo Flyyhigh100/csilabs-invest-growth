@@ -145,10 +145,9 @@ export async function processIpnPayload(payload: Record<string, string>, logEntr
     const statusCode = parseInt(payload.status, 10);
     
     // Map CoinPayments status to our internal status
-    const currentStatus = 'pending'; // Default assumption for mapping
-    const { newStatus: status, updated } = mapCoinPaymentsStatus(currentStatus, { status: statusCode });
+    const mappedStatus = mapCoinPaymentsStatus(statusCode);
     
-    console.log(`Mapped CoinPayments status ${statusCode} to internal status: ${status}`);
+    console.log(`Mapped CoinPayments status ${statusCode} to internal status: ${mappedStatus}`);
     
     // Update database record
     const dbClient = createDbClient();
@@ -160,7 +159,7 @@ export async function processIpnPayload(payload: Record<string, string>, logEntr
     const updated = await updateTransactionStatus(
       dbClient,
       payload.txn_id,
-      status,
+      mappedStatus,
       statusCode,
       completedAt
     );
@@ -172,7 +171,7 @@ export async function processIpnPayload(payload: Record<string, string>, logEntr
           .from('ipn_logs')
           .update({
             txn_id: payload.txn_id,
-            status: status,
+            status: mappedStatus,
             raw_data: payload,
             is_valid: true,
             response_status: updated ? 'Updated' : 'No update needed',
@@ -187,10 +186,10 @@ export async function processIpnPayload(payload: Record<string, string>, logEntr
     return {
       success: true,
       message: updated 
-        ? `Successfully updated transaction ${payload.txn_id} to status ${status}`
-        : `Transaction ${payload.txn_id} already has status ${status}, no update needed`,
+        ? `Successfully updated transaction ${payload.txn_id} to status ${mappedStatus}`
+        : `Transaction ${payload.txn_id} already has status ${mappedStatus}, no update needed`,
       updated,
-      status
+      status: mappedStatus
     };
   } catch (error) {
     console.error('Error processing IPN payload:', error);

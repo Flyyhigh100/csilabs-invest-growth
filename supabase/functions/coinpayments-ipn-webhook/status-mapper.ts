@@ -17,7 +17,7 @@ export function mapCoinPaymentsStatus(statusCode: number): string {
     case 0:
       return 'pending';
     case 1:
-      // UPDATED: Payment received should be marked as completed, not just confirmed
+      // CRITICAL: Status 1 means payment received - this should be marked as completed!
       return 'completed';
     case 2:
     case 3:

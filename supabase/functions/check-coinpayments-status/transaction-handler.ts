@@ -23,14 +23,22 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
     }
     
     if (!transaction) {
-      console.error("Transaction not found");
-      return createErrorResponse('Transaction not found', 404);
+      console.error(`Transaction not found with ID: ${transactionId}`);
+      return createErrorResponse('Transaction not found');
     }
+    
+    // Log the transaction data to help with debugging
+    console.log(`Transaction data found: ${JSON.stringify({
+      id: transaction.id,
+      payment_method: transaction.payment_method,
+      status: transaction.status,
+      external_id: transaction.external_transaction_id || 'none'
+    })}`);
     
     // Ensure it's a CoinPayments transaction
     if (transaction.payment_method !== 'coinpayments') {
       return createSuccessResponse({ 
-        error: 'Not a CoinPayments transaction', 
+        message: 'Not a CoinPayments transaction',
         transaction: transaction
       });
     }
@@ -68,7 +76,7 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
       if (paymentStatus.error) {
         console.error(`API error checking payment status: ${paymentStatus.status_text}`);
         // Still return data for logging but mark as error
-        return createErrorResponse(paymentStatus.status_text || 'API error checking payment status', 400);
+        return createErrorResponse(paymentStatus.status_text || 'API error checking payment status');
       }
     }
     
@@ -133,7 +141,8 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
           payment_status: paymentStatus,
           updated: true,
           external_status: paymentStatus.status,
-          external_status_text: paymentStatus.status_text
+          external_status_text: paymentStatus.status_text,
+          status: newStatus
         });
       }
         
@@ -154,7 +163,7 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
           transaction.id,
           externalTxId,
           paymentStatus,
-          newStatus,
+          transaction.status,
           false,
           forceUpdate
         );
