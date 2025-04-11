@@ -46,15 +46,19 @@ const Transactions = () => {
     const checkAdminStatus = async () => {
       if (!user) return;
       
-      const { data, error } = await supabase
-        .rpc('is_admin');
+      try {
+        const { data, error } = await supabase
+          .rpc('is_admin');
+          
+        if (error) {
+          console.error('Error checking admin status:', error);
+          return;
+        }
         
-      if (error) {
-        console.error('Error checking admin status:', error);
-        return;
+        setIsAdmin(!!data);
+      } catch (err) {
+        console.error('Exception checking admin status:', err);
       }
-      
-      setIsAdmin(!!data);
     };
     
     checkAdminStatus();
@@ -86,10 +90,8 @@ const Transactions = () => {
       {/* KYC Status Banner */}
       <Card className="mb-6">
         <CardHeader className="pb-2">
-          <CardHeader className="pb-2">
-            <CardHeader className="text-lg">Verification Status</CardHeader>
-            <CardContent>Your identity verification status</CardContent>
-          </CardHeader>
+          <h3 className="text-lg">Verification Status</h3>
+          <p className="text-sm text-muted-foreground">Your identity verification status</p>
         </CardHeader>
         <CardContent>
           <KycStatusBanner />

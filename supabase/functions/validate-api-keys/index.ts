@@ -1,13 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { corsHeaders } from "./utils.ts";
-
-// Create a Uint8Array from a hex string (helper function for verification)
-function hexToUint8Array(hexString: string): Uint8Array {
-  const matches = hexString.match(/.{1,2}/g);
-  if (!matches) return new Uint8Array();
-  return new Uint8Array(matches.map(byte => parseInt(byte, 16)));
-}
+import { corsHeaders, createSignature, hexToUint8Array } from "./utils.ts";
 
 // Validate CoinPayments API keys
 async function validateCoinPaymentsKeys(): Promise<{
@@ -57,88 +50,9 @@ async function validateCoinPaymentsKeys(): Promise<{
     
     console.log('Request params:', JSON.stringify(params));
     
-    // Create signature - this is where the issue likely is
-    const paramString = new URLSearchParams(params).toString();
-    console.log('Param string:', paramString);
-    
-    // Try both approaches for HMAC signature
-    let hmacSig;
-    let rawError;
-    
-    try {
-      // Approach 1: Use the private key directly as UTF-8
-      const encoder = new TextEncoder();
-      const paramData = encoder.encode(paramString);
-      
-      console.log('Creating HMAC using private key');
-      
-      // Create HMAC signature using SubtleCrypto
-      const key = await crypto.subtle.importKey(
-        "raw",
-        encoder.encode(privateKey),
-        { name: "HMAC", hash: "SHA-512" },
-        false,
-        ["sign"]
-      );
-      
-      const signature = await crypto.subtle.sign(
-        "HMAC",
-        key,
-        paramData
-      );
-      
-      // Convert to hex string
-      hmacSig = Array.from(new Uint8Array(signature))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-      
-      console.log('HMAC generated successfully, length:', hmacSig.length);
-    } catch (keyError) {
-      rawError = keyError;
-      console.error('Error creating HMAC signature:', keyError);
-      
-      // Fallback to second approach
-      try {
-        // Approach 2: Convert the hex private key to bytes first
-        const keyBytes = hexToUint8Array(privateKey);
-        const encoder = new TextEncoder();
-        const paramData = encoder.encode(paramString);
-        
-        console.log('Fallback: Creating HMAC using hex-decoded private key');
-        
-        const key = await crypto.subtle.importKey(
-          'raw',
-          keyBytes,
-          { name: 'HMAC', hash: 'SHA-512' },
-          false,
-          ['sign']
-        );
-        
-        const signature = await crypto.subtle.sign('HMAC', key, paramData);
-        
-        // Convert to hex string
-        hmacSig = Array.from(new Uint8Array(signature))
-          .map(b => b.toString(16).padStart(2, '0'))
-          .join('');
-          
-        console.log('Fallback HMAC generated successfully, length:', hmacSig.length);
-      } catch (fallbackError) {
-        console.error('Both HMAC approaches failed:', fallbackError);
-        return {
-          isValid: false,
-          details: `HMAC generation failed: ${keyError.message}, fallback also failed: ${fallbackError.message}`,
-          service: 'coinpayments'
-        };
-      }
-    }
-    
-    if (!hmacSig) {
-      return {
-        isValid: false,
-        details: `Failed to generate HMAC signature: ${rawError?.message || 'Unknown error'}`,
-        service: 'coinpayments'
-      };
-    }
+    // Create signature
+    const hmacSig = await createSignature(params, privateKey);
+    console.log('Generated HMAC signature length:', hmacSig.length);
     
     // Make the API request
     console.log('Making API request to CoinPayments');
@@ -150,6 +64,8 @@ async function validateCoinPaymentsKeys(): Promise<{
       },
       body: new URLSearchParams(params),
     });
+    
+    console.log('API response status:', response.status);
     
     if (!response.ok) {
       const statusText = response.statusText;
@@ -175,6 +91,16 @@ async function validateCoinPaymentsKeys(): Promise<{
     
     // Check if the API returned an error
     if (data.error !== 'ok') {
+      if (data.error === "HMAC signature does not match") {
+        // Give more detailed info for this specific error
+        return {
+          isValid: false,
+          details: "HMAC signature validation failed. This usually means your private key is incorrect or the way we're generating the signature doesn't match CoinPayments' expectations.",
+          rawResponse: data,
+          service: 'coinpayments'
+        };
+      }
+      
       return {
         isValid: false,
         details: `API error: ${data.error}`,
