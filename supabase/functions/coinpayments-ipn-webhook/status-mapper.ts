@@ -5,7 +5,7 @@ export function mapCoinPaymentsStatus(statusCode: number): string {
   // -2 = Refunded/Cancelled
   // -1 = Cancelled or Timed Out
   // 0 = Pending
-  // 1 = Waiting for confirmation (~10 minutes)
+  // 1 = Waiting for confirmation (~10 minutes) - IMPORTANT: This should be COMPLETED!
   // 2+ = Confirmed (# is the number of confirmations)
   // 100+ = Completed (fully confirmed per coin requirements)
   
@@ -19,8 +19,9 @@ export function mapCoinPaymentsStatus(statusCode: number): string {
     // Status 100+ means fully confirmed and complete
     return 'completed';
   } else if (statusCode >= 1) {
-    // Status 1+ means it's confirmed but waiting for more confirmations
-    return 'confirmed';
+    // CRITICAL FIX: Status 1+ means payment received and should be completed
+    // This was previously set to 'confirmed' which was causing stuck transactions
+    return 'completed';
   } else {
     // Fallback for unexpected status codes
     console.warn(`Unknown CoinPayments status code: ${statusCode}, falling back to 'pending'`);

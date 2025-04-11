@@ -10,8 +10,8 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
   try {
     const supabaseClient = createSupabaseClient();
     
-    // Try to fetch the transaction with more flexible query options
-    console.log(`Fetching transaction from database with ID: ${transactionId}`);
+    // Implement a more flexible transaction lookup strategy
+    console.log(`Fetching transaction from database using multiple strategies for ID: ${transactionId}`);
     
     // First try with the direct ID
     let { data: transaction, error } = await supabaseClient
@@ -21,20 +21,36 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
       .maybeSingle();
       
     if (!transaction && !error) {
-      // If transaction is not found by id, try transaction_id field as fallback
+      // Try transaction_id field as fallback
       console.log(`Transaction not found by primary ID, trying transaction_id field: ${transactionId}`);
-      const { data: fallbackTransaction, error: fallbackError } = await supabaseClient
+      const { data: txIdLookup, error: txIdError } = await supabaseClient
         .from('transactions')
         .select('*')
         .eq('transaction_id', transactionId)
         .maybeSingle();
         
-      if (fallbackTransaction) {
-        console.log(`Found transaction using transaction_id field instead of primary key`);
-        transaction = fallbackTransaction;
+      if (txIdLookup) {
+        console.log(`Found transaction using transaction_id field`);
+        transaction = txIdLookup;
         error = null;
-      } else if (fallbackError) {
-        error = fallbackError;
+      } else if (!txIdError) {
+        // Try external_transaction_id as another fallback
+        console.log(`Transaction not found by transaction_id, trying external_transaction_id: ${transactionId}`);
+        const { data: externalTxLookup, error: externalTxError } = await supabaseClient
+          .from('transactions')
+          .select('*')
+          .eq('external_transaction_id', transactionId)
+          .maybeSingle();
+          
+        if (externalTxLookup) {
+          console.log(`Found transaction using external_transaction_id field`);
+          transaction = externalTxLookup;
+          error = null;
+        } else if (externalTxError) {
+          error = externalTxError;
+        }
+      } else {
+        error = txIdError;
       }
     }
     
@@ -44,34 +60,41 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
     }
     
     if (!transaction) {
-      console.error(`Transaction not found in database with ID: ${transactionId}`);
+      console.error(`Transaction not found in database with any ID: ${transactionId}`);
       
-      // Provide more detailed diagnostic information
-      const { data: diagnosticData } = await supabaseClient
-        .from('transactions')
-        .select('id, transaction_id, external_transaction_id')
-        .limit(5);
-      
-      if (diagnosticData && diagnosticData.length > 0) {
-        console.log(`For diagnostic purposes, here are some existing transaction IDs:`);
-        diagnosticData.forEach(tx => {
-          console.log(`- ID: ${tx.id}, transaction_id: ${tx.transaction_id}, external_id: ${tx.external_transaction_id}`);
-        });
+      // Provide more detailed diagnostic information for debugging
+      console.log(`Running diagnostic query to find similar transactions...`);
+      try {
+        const { data: diagnosticData } = await supabaseClient
+          .from('transactions')
+          .select('id, transaction_id, external_transaction_id, payment_method, status')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        if (diagnosticData && diagnosticData.length > 0) {
+          console.log(`Found ${diagnosticData.length} recent transactions. Listing for diagnostic purposes:`);
+          diagnosticData.forEach(tx => {
+            console.log(`- ID: ${tx.id}, transaction_id: ${tx.transaction_id}, external_id: ${tx.external_transaction_id}, method: ${tx.payment_method}, status: ${tx.status}`);
+          });
+        } else {
+          console.log(`No recent transactions found in database for diagnostic purposes.`);
+        }
+      } catch (diagError) {
+        console.error(`Error running diagnostic query:`, diagError);
       }
       
       return createErrorResponse(`Transaction not found in database. ID tried: ${transactionId}`, 404);
     }
     
-    // Log the transaction data to help with debugging
-    console.log(`Transaction data found: ${JSON.stringify({
+    // Log transaction data for debugging
+    console.log(`Transaction found:`, {
       id: transaction.id,
       payment_method: transaction.payment_method,
       status: transaction.status,
       external_id: transaction.external_transaction_id || 'none',
       transaction_id: transaction.transaction_id || 'none',
-      payment_address: transaction.payment_address || 'none',
-      created_at: transaction.created_at
-    })}`);
+      payment_address: transaction.payment_address || 'none'
+    });
     
     // Ensure it's a CoinPayments transaction
     if (transaction.payment_method !== 'coinpayments') {
@@ -90,8 +113,8 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
       });
     }
     
-    // Get external transaction ID
-    const externalTxId = transaction.external_transaction_id;
+    // Get external transaction ID, with fallback to transaction_id if needed
+    const externalTxId = transaction.external_transaction_id || transaction.transaction_id;
     if (!externalTxId) {
       console.error(`Missing external transaction ID for transaction ${transactionId}`);
       return createErrorResponse(`Missing external transaction ID for transaction ${transactionId}`, 400);
@@ -120,13 +143,13 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
         
         // Check if the API returned an error
         if (paymentStatus.error) {
-          console.error(`API error checking payment status for ${externalTxId}: ${paymentStatus.status_text || 'No error text'}`);
+          console.error(`API error checking payment status: ${paymentStatus.status_text || 'No error text'}`);
           // Identify if this is an API key permission issue
           if (paymentStatus.status_text?.toLowerCase().includes('hmac signature') || 
               paymentStatus.status_text?.toLowerCase().includes('invalid key') || 
               paymentStatus.status_text?.toLowerCase().includes('permissions')) {
             
-            console.error('This appears to be an API key permission issue. Please check your CoinPayments API key settings.');
+            console.error('This appears to be an API key permission issue. Check CoinPayments API key settings.');
             return createErrorResponse(
               `CoinPayments API key permission issue: ${paymentStatus.status_text}`,
               401,
@@ -134,7 +157,6 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
             );
           }
           
-          // Return the error with details
           return createErrorResponse(
             paymentStatus.status_text || 'API error checking payment status', 
             paymentStatus.status_text?.includes('Invalid API key') ? 401 : 502,
@@ -154,7 +176,9 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
     console.log(`Payment status received for ${externalTxId}:`, JSON.stringify(paymentStatus));
     
     // Map CoinPayments status to our internal status
-    const { newStatus, updated } = mapCoinPaymentsStatus(transaction.status, paymentStatus);
+    const newStatus = mapCoinPaymentsStatus(paymentStatus.status);
+    const updated = newStatus !== transaction.status;
+    
     console.log(`Status mapping: CoinPayments=${paymentStatus.status}, Internal=${transaction.status} -> ${newStatus}, Updated=${updated}`);
     
     // Force update if requested regardless of current status
