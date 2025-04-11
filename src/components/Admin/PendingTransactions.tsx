@@ -19,6 +19,7 @@ import DownloadCSVButton from './PendingTransactions/DownloadCSVButton';
 import DistributionGuide from './PendingTransactions/DistributionGuide';
 import DistributionStats from './PendingTransactions/DistributionStats';
 import BulkActionsBar from './PendingTransactions/BulkActionsBar';
+import SyncAllTransactionsBar from './PendingTransactions/SyncAllTransactionsBar';
 
 const PendingTransactions = () => {
   const [selectedTx, setSelectedTx] = useState<PendingTransactionWithProfile | null>(null);
@@ -112,6 +113,9 @@ const PendingTransactions = () => {
     <div className="space-y-6">
       {/* Distribution Guide - Collapsible help section */}
       <DistributionGuide />
+      
+      {/* Sync All Transactions Bar */}
+      <SyncAllTransactionsBar onSyncComplete={refetch} />
       
       {/* Main Card */}
       <Card>

@@ -1,48 +1,56 @@
 
-// Common utilities for the check-coinpayments-status edge function
-
-// CORS headers for API responses
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-// Create a standardized error response
-export function createErrorResponse(message: string, statusCode = 500, additionalData = {}) {
-  console.error(`Error [${statusCode}]: ${message}`);
-  return {
-    error: message,
-    status: 'error',
-    timestamp: new Date().toISOString(),
-    statusCode,
-    ...additionalData
-  };
+// Helper function to create HMAC signature for CoinPayments API
+export async function createSignature(data: string, secretKey: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secretKey);
+  const messageData = encoder.encode(data);
+  
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-512' },
+    false,
+    ['sign']
+  );
+  
+  const signature = await crypto.subtle.sign(
+    'HMAC',
+    cryptoKey,
+    messageData
+  );
+  
+  return Array.from(new Uint8Array(signature))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
-// Create a standardized success response
+// Create standardized error responses
+export function createErrorResponse(message: string, statusCode = 400, additionalData = {}) {
+  console.error(`Error response (${statusCode}): ${message}`);
+  
+  return new Response(
+    JSON.stringify({
+      error: message,
+      ...additionalData
+    }),
+    {
+      status: statusCode,
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    }
+  );
+}
+
+// Create standardized success responses
 export function createSuccessResponse(data: any) {
-  return {
-    ...data,
-    status: 'success',
-    timestamp: new Date().toISOString()
-  };
-}
-
-// Log structured request details
-export function logRequestDetails(req: Request, functionName: string) {
-  const methodColor = req.method === 'GET' ? '\x1b[32m' : req.method === 'POST' ? '\x1b[33m' : '\x1b[36m';
-  console.log(`${methodColor}${functionName}: Received ${req.method} request\x1b[0m`);
-  
-  // Log request headers
-  console.log("Headers:", JSON.stringify(Object.fromEntries(req.headers)));
-  
-  // Log source IP if available
-  const sourceIp = req.headers.get('x-forwarded-for') || 'unknown';
-  console.log(`Source IP: ${sourceIp}`);
-  
-  return {
-    method: req.method,
-    headers: Object.fromEntries(req.headers),
-    sourceIp
-  };
+  return new Response(
+    JSON.stringify(data),
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    }
+  );
 }
