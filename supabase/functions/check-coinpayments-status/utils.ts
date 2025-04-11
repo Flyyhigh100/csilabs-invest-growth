@@ -54,3 +54,26 @@ export function createSuccessResponse(data: any) {
     }
   );
 }
+
+// Store external transaction ID when receiving it from CoinPayments
+export async function ensureExternalTransactionIdStored(supabase: any, transaction: any, externalId: string): Promise<boolean> {
+  // Only update if the transaction doesn't already have an external ID
+  if (!transaction.external_transaction_id && externalId) {
+    console.log(`Updating transaction ${transaction.id} to set external_transaction_id = ${externalId}`);
+    
+    const { error } = await supabase
+      .from('transactions')
+      .update({ external_transaction_id: externalId })
+      .eq('id', transaction.id);
+      
+    if (error) {
+      console.error(`Error setting external_transaction_id for transaction ${transaction.id}:`, error);
+      return false;
+    }
+    
+    console.log(`Successfully set external_transaction_id for transaction ${transaction.id}`);
+    return true;
+  }
+  
+  return false;
+}

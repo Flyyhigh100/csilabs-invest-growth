@@ -1,135 +1,127 @@
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { corsHeaders, createErrorResponse, logRequestDetails } from "./utils.ts";
-import { processTransaction } from "./transaction-handler.ts";
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
+import { checkCoinPaymentsStatus } from "./coinpayments-api.ts";
+import { processTransactionStatus } from "./transaction-handler.ts";
+import { createErrorResponse, createSuccessResponse } from "./utils.ts";
+
+// CORS headers for preflight requests
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+function createSupabaseClient() {
+  return createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  );
+}
 
 serve(async (req) => {
-  // Log request details for debugging
-  logRequestDetails(req, 'check-coinpayments-status');
-
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-
+  
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify(createErrorResponse('No authorization header')),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
-      );
-    }
-
-    // Parse request data with detailed error handling
-    let requestData;
+    // Parse request body
+    let requestBody;
     try {
-      requestData = await req.json();
-      console.log("Request data received:", JSON.stringify(requestData));
+      requestBody = await req.json();
     } catch (parseError) {
-      console.error("Error parsing request JSON:", parseError);
-      return new Response(
-        JSON.stringify(createErrorResponse('Invalid JSON in request body')),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      console.error('Error parsing request body:', parseError);
+      return createErrorResponse('Invalid JSON in request body');
+    }
+    
+    console.log('Processing check-coinpayments-status request:', JSON.stringify(requestBody));
+    
+    // Extract params
+    const { transactionId, forceUpdate = false, storeExternalIds = true } = requestBody;
+    
+    // Validate required fields
+    if (!transactionId) {
+      return createErrorResponse('Missing required field: transactionId');
+    }
+    
+    // Setup Supabase client
+    const supabase = createSupabaseClient();
+    
+    // Fetch the transaction details
+    const { data: transaction, error: txError } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('id', transactionId)
+      .maybeSingle();
+    
+    if (txError || !transaction) {
+      console.error('Error fetching transaction:', txError);
+      return createErrorResponse(
+        txError ? `Database error: ${txError.message}` : `Transaction not found: ${transactionId}`,
+        404
       );
     }
     
-    const { transactionId, transaction_id, external_transaction_id, forceUpdate } = requestData;
-    
-    // Either transactionId or transaction_id or external_transaction_id must be provided
-    if (!transactionId && !transaction_id && !external_transaction_id) {
-      console.error("Missing transaction identifiers in request");
-      return new Response(
-        JSON.stringify(createErrorResponse('Transaction ID is required (transactionId, transaction_id, or external_transaction_id)')),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-
-    // Use the primary ID if provided, fallback to transaction_id or external_transaction_id
-    const idToUse = transactionId || transaction_id || external_transaction_id;
-    console.log(`Checking status for transaction: ${idToUse}, forceUpdate: ${forceUpdate}`);
-    
-    // Verify CoinPayments API keys are set
-    const publicKey = Deno.env.get('COINPAYMENTS_PUBLIC_KEY');
-    const privateKey = Deno.env.get('COINPAYMENTS_PRIVATE_KEY');
-    
-    if (!publicKey || !privateKey) {
-      console.error('CoinPayments API keys not configured in environment');
-      return new Response(
-        JSON.stringify({
-          error: 'CoinPayments API credentials not configured', 
-          status: 'error',
-          api_key_issue: true,
-          details: 'API keys are not set in the environment variables'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+    // Validate that it's a CoinPayments transaction
+    if (transaction.payment_method !== 'coinpayments') {
+      return createErrorResponse(`Transaction ${transactionId} is not a CoinPayments transaction`, 400);
     }
     
-    // Log the API key lengths (without exposing the actual keys)
-    console.log(`API key lengths - public: ${publicKey.length}, private: ${privateKey.length}`);
+    // Fetch status from CoinPayments API based on the transaction info
+    const { data: statusData, error: statusError } = await checkCoinPaymentsStatus(transaction, forceUpdate);
     
-    try {
-      // Process the transaction
-      const result = await processTransaction(idToUse, forceUpdate);
-      console.log("Process result:", JSON.stringify(result));
+    if (statusError) {
+      console.error('Error checking transaction status:', statusError);
+      return createErrorResponse(`API error: ${statusError.message}`, 500);
+    }
+    
+    // If no data was returned, something went wrong
+    if (!statusData) {
+      return createErrorResponse('No status data returned from CoinPayments', 500);
+    }
+    
+    // Store external transaction ID if present in the response
+    if (storeExternalIds && statusData.result && statusData.result.txn_id) {
+      console.log(`External txn_id found: ${statusData.result.txn_id}, updating transaction ${transaction.id}`);
       
-      // Check if there's an error property in the result
-      if (result.error) {
-        // Set appropriate status code based on error type
-        let statusCode = 500; // Default to server error
-        
-        if (result.error === 'Transaction not found' || result.error.includes('Transaction not found')) {
-          statusCode = 404;
-        } else if (result.error.includes('Invalid') || result.error.includes('Missing')) {
-          statusCode = 400;
-        } else if (result.error.includes('API credentials') || result.error.includes('API key')) {
-          statusCode = 401;
+      if (!transaction.external_transaction_id) {
+        const { error: updateError } = await supabase
+          .from('transactions')
+          .update({ external_transaction_id: statusData.result.txn_id })
+          .eq('id', transaction.id);
+          
+        if (updateError) {
+          console.error('Error updating external_transaction_id:', updateError);
+        } else {
+          console.log(`Successfully updated external_transaction_id for transaction ${transaction.id}`);
+          // Update the transaction object for further processing
+          transaction.external_transaction_id = statusData.result.txn_id;
         }
-        
-        return new Response(
-          JSON.stringify({ 
-            error: result.error, 
-            message: result.error,
-            status: 'error',
-            timestamp: new Date().toISOString(),
-            details: result.details || result.error
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-            status: statusCode
-          }
-        );
+      } else if (transaction.external_transaction_id !== statusData.result.txn_id) {
+        console.warn(`Transaction ${transaction.id} has different external_transaction_id: 
+          stored=${transaction.external_transaction_id}, 
+          coinpayments=${statusData.result.txn_id}`);
       }
-      
-      // Return successful response
-      return new Response(
-        JSON.stringify(result),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
-    } catch (processingError) {
-      console.error('Error in transaction processing:', processingError);
-      return new Response(
-        JSON.stringify({
-          error: processingError.message || 'Error processing transaction',
-          details: processingError.stack || 'No stack trace available',
-          status: 'error',
-          timestamp: new Date().toISOString()
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
     }
+    
+    // Process the transaction status
+    const result = await processTransactionStatus(supabase, transaction, statusData, storeExternalIds);
+    
+    return createSuccessResponse({
+      message: `Transaction status checked: ${result.message}`,
+      transaction: result.transaction,
+      statusData: statusData,
+      updated: result.updated,
+      newStatus: result.newStatus,
+      previousStatus: result.previousStatus
+    });
+    
   } catch (error) {
-    console.error('Error checking transaction status:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: error.message || 'Internal server error',
-        message: error.message || 'Internal server error',
-        status: 'error',
-        timestamp: new Date().toISOString(),
-        details: error.stack ? error.stack.split('\n').slice(0, 3).join('\n') : 'No stack trace'
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    console.error('Unhandled exception:', error);
+    return createErrorResponse(
+      `Internal server error: ${error.message}`,
+      500,
+      { stack: error.stack }
     );
   }
 });

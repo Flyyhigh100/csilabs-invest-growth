@@ -32,7 +32,7 @@ const SyncAllTransactionsButton: React.FC<SyncAllTransactionsButtonProps> = ({
       
       // Call the edge function
       const { data, error } = await supabase.functions.invoke('admin-sync-all-transactions', {
-        body: { forceUpdate }
+        body: { forceUpdate, storeExternalIds: true }
       });
       
       // Clear the loading toast

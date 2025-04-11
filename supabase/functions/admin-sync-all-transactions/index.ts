@@ -1,171 +1,159 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
-// Initialize Supabase client
-function createSupabaseClient() {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-  return createClient(supabaseUrl, supabaseKey);
-}
-
-// CORS headers for cross-origin requests
+// CORS headers for preflight requests
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
-  // Handle CORS preflight request
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+function createSupabaseClient() {
+  return createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  );
+}
 
+async function fetchPendingTransactions(supabase: any) {
   try {
-    // Authenticate request
-    const authorization = req.headers.get('Authorization');
-    if (!authorization) {
-      return new Response(
-        JSON.stringify({ error: 'Authorization header is required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('payment_method', 'coinpayments')
+      .in('status', ['pending', 'confirmed']);
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching pending transactions:', error);
+    throw error;
+  }
+}
 
+async function checkTransactionStatus(transaction: any, forceUpdate: boolean = false, storeExternalIds: boolean = true) {
+  try {
+    const url = new URL(Deno.env.get('SUPABASE_URL') + '/functions/v1/check-coinpayments-status');
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify({
+        transactionId: transaction.id,
+        forceUpdate,
+        storeExternalIds
+      }),
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(`Status check failed: ${JSON.stringify(result)}`);
+    }
+    
+    return {
+      transaction,
+      status: response.status,
+      result
+    };
+  } catch (error) {
+    console.error(`Error checking transaction ${transaction.id}:`, error);
+    return {
+      transaction,
+      status: 500,
+      result: { error: error.message }
+    };
+  }
+}
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+  
+  try {
+    // Parse request body
+    const { forceUpdate = false, storeExternalIds = true } = await req.json();
+    
+    // Get Supabase client
     const supabase = createSupabaseClient();
-
-    // Verify the user is an admin
-    const { data: { user }, error: userError } = await supabase.auth.getUser(authorization.replace('Bearer ', ''));
     
-    if (userError || !user) {
+    // Get current user from authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Missing authorization header' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Check if user is an admin
-    const { data: isAdmin, error: adminCheckError } = await supabase
-      .rpc('is_admin');
-      
-    if (adminCheckError || !isAdmin) {
+    // Check if user is admin
+    const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
+    
+    if (adminError || !isAdmin) {
       return new Response(
-        JSON.stringify({ error: 'Admin access required' }),
+        JSON.stringify({ error: 'Unauthorized. Admin access required.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Parse request body for any options
-    const { forceUpdate = false } = await req.json().catch(() => ({}));
+    // Fetch pending transactions
+    const pendingTransactions = await fetchPendingTransactions(supabase);
     
-    // Get all pending crypto transactions
-    const { data: pendingTransactions, error: fetchError } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('payment_method', 'coinpayments')
-      .in('status', ['pending', 'confirmed'])
-      .order('created_at', { ascending: false });
-    
-    if (fetchError) {
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch transactions', details: fetchError }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    console.log(`Found ${pendingTransactions.length} pending transactions to sync`);
-    
+    // No pending transactions to process
     if (!pendingTransactions || pendingTransactions.length === 0) {
       return new Response(
-        JSON.stringify({ message: 'No pending transactions found to sync', count: 0 }),
+        JSON.stringify({
+          message: 'No pending transactions found',
+          totalProcessed: 0,
+          successCount: 0,
+          failureCount: 0
+        }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Process each transaction
-    const results = [];
-    let successCount = 0;
-    let failureCount = 0;
+    console.log(`Processing ${pendingTransactions.length} pending transactions`);
     
-    for (const transaction of pendingTransactions) {
-      try {
-        console.log(`Syncing transaction ${transaction.id}...`);
-        
-        // Call the check-coinpayments-status function for each transaction
-        const response = await fetch(
-          `${Deno.env.get('SUPABASE_FUNCTIONS_URL')}/check-coinpayments-status`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': authorization
-            },
-            body: JSON.stringify({
-              transactionId: transaction.id,
-              forceUpdate
-            })
-          }
-        );
-        
-        const result = await response.json();
-        
-        // Determine if the sync was successful
-        const success = response.ok && result && !result.error;
-        if (success) {
-          successCount++;
-        } else {
-          failureCount++;
-        }
-        
-        // Store the result for this transaction
-        results.push({
-          transactionId: transaction.id,
-          success,
-          statusCode: response.status,
-          updated: result.updated || false,
-          oldStatus: transaction.status,
-          newStatus: result.status || transaction.status,
-          error: result.error || null
-        });
-        
-        console.log(`Transaction ${transaction.id} sync ${success ? 'succeeded' : 'failed'}`);
-      } catch (txError) {
-        console.error(`Error syncing transaction ${transaction.id}:`, txError);
-        
-        // Store the error result
-        results.push({
-          transactionId: transaction.id,
-          success: false,
-          statusCode: 500,
-          updated: false,
-          oldStatus: transaction.status,
-          newStatus: transaction.status,
-          error: txError.message || 'Unknown error'
-        });
-        
-        failureCount++;
-      }
-    }
+    // Process each transaction in parallel
+    const results = await Promise.all(
+      pendingTransactions.map(tx => checkTransactionStatus(tx, forceUpdate, storeExternalIds))
+    );
     
-    // Return summary of results
+    // Count successes and failures
+    const successResults = results.filter(res => res.status === 200);
+    const failureResults = results.filter(res => res.status !== 200);
+    
+    // Generate detailed report
+    const report = {
+      message: `Processed ${pendingTransactions.length} transactions: ${successResults.length} succeeded, ${failureResults.length} failed`,
+      totalProcessed: pendingTransactions.length,
+      successCount: successResults.length,
+      failureCount: failureResults.length,
+      successDetails: successResults.map(res => ({
+        transactionId: res.transaction.id,
+        externalId: res.transaction.external_transaction_id,
+        result: res.result
+      })),
+      failureDetails: failureResults.map(res => ({
+        transactionId: res.transaction.id,
+        error: res.result.error || 'Unknown error'
+      }))
+    };
+    
     return new Response(
-      JSON.stringify({
-        message: `Sync completed: ${successCount} succeeded, ${failureCount} failed`,
-        totalProcessed: pendingTransactions.length,
-        successCount,
-        failureCount,
-        results
-      }),
+      JSON.stringify(report),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+    
   } catch (error) {
     console.error('Error in admin-sync-all-transactions:', error);
-    
     return new Response(
-      JSON.stringify({ 
-        error: 'Internal server error', 
-        details: error.message || 'Unknown error' 
-      }),
+      JSON.stringify({ error: error.message || 'An unexpected error occurred' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

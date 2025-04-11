@@ -82,6 +82,20 @@ export async function processIpnPayload(ipnData: any, logEntryId?: string) {
       if (altTransaction) {
         console.log("Transaction found using transaction_id field");
         transaction = altTransaction;
+        
+        // Update the transaction to set the external_transaction_id if we found it by transaction_id
+        // This ensures that future lookups will find it by external_transaction_id
+        console.log(`Updating transaction ${altTransaction.id} to set external_transaction_id = ${ipnData.txn_id}`);
+        const { error: updateError } = await supabase
+          .from('transactions')
+          .update({ external_transaction_id: ipnData.txn_id })
+          .eq('id', altTransaction.id);
+          
+        if (updateError) {
+          console.error("Error updating external_transaction_id:", updateError);
+        } else {
+          console.log(`Successfully set external_transaction_id for transaction ${altTransaction.id}`);
+        }
       } else if (altError) {
         console.error("Error looking up transaction by transaction_id:", altError);
         error = altError;
@@ -100,6 +114,19 @@ export async function processIpnPayload(ipnData: any, logEntryId?: string) {
       if (addressTransaction) {
         console.log("Transaction found using payment_address field");
         transaction = addressTransaction;
+        
+        // Update the transaction to set the external_transaction_id if we found it by payment_address
+        console.log(`Updating transaction ${addressTransaction.id} to set external_transaction_id = ${ipnData.txn_id}`);
+        const { error: updateError } = await supabase
+          .from('transactions')
+          .update({ external_transaction_id: ipnData.txn_id })
+          .eq('id', addressTransaction.id);
+          
+        if (updateError) {
+          console.error("Error updating external_transaction_id:", updateError);
+        } else {
+          console.log(`Successfully set external_transaction_id for transaction ${addressTransaction.id}`);
+        }
       } else if (addressError) {
         console.error("Error looking up transaction by payment_address:", addressError);
         error = addressError;
