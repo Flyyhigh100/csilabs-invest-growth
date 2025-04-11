@@ -179,10 +179,10 @@ const RefreshCryptoTransactionsButton = ({
                   <div className="bg-gray-50 p-3 rounded border text-sm">
                     <p className="font-medium mb-1">Account Information:</p>
                     <ul className="space-y-1">
-                      {Object.entries(apiDiagnostics.details).map(([key, value]) => (
+                      {apiDiagnostics.details && Object.entries(apiDiagnostics.details).map(([key, value]: [string, any]) => (
                         <li key={key} className="flex items-center gap-2">
                           <span className="font-medium">{key.replace(/_/g, ' ')}:</span>
-                          <span>{value}</span>
+                          <span>{String(value)}</span>
                         </li>
                       ))}
                     </ul>

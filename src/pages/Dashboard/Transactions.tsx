@@ -10,7 +10,8 @@ import { useTransactionVerification } from '@/hooks/transactions/useTransactionV
 import { CanceledAlert, PendingVerificationAlert, SuccessAlert } from '@/components/Dashboard/Transactions/StatusAlerts';
 import TransactionHeader from '@/components/Dashboard/Transactions/TransactionHeader';
 import TransactionContent from '@/components/Dashboard/Transactions/TransactionContent';
-import APIKeyValidator from '@/components/Admin/APIKeyValidator'; // Import the validator
+import APIKeyValidator from '@/components/Admin/APIKeyValidator';
+import { supabase } from '@/integrations/supabase/client'; // Import supabase client
 
 const Transactions = () => {
   const { kycData } = useKycVerification();

@@ -18,4 +18,6 @@ export interface CryptoStatusCheckResult {
   external_status?: number;
   external_status_text?: string;
   transaction?: any;
+  api_key_issue?: boolean;
+  network_issue?: boolean;
 }

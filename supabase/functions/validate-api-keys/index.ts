@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { corsHeaders } from "../check-coinpayments-status/utils.ts";
+import { corsHeaders } from "./utils.ts";
 
 // Create a Uint8Array from a hex string (helper function for verification)
 function hexToUint8Array(hexString: string): Uint8Array {
