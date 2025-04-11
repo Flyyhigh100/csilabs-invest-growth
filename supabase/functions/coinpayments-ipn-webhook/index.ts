@@ -13,11 +13,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle OPTIONS request for CORS
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-  
   // IMPORTANT: Send immediate 200 response first to acknowledge receipt to CoinPayments
   // This prevents CoinPayments from retrying the webhook unnecessarily
   const response = new Response('IPN Received', {

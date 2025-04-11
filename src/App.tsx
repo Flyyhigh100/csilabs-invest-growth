@@ -27,6 +27,7 @@ import AdminKycPage from './pages/Admin/KYCVerifications';
 import AdminTransactionsPage from './pages/Admin/Transactions';
 import AdminUsersPage from './pages/Admin/Users';
 import AdminResearchDocuments from './pages/Admin/ResearchDocuments';
+import AdminTransactionTools from './pages/Admin/TransactionTools';
 
 const ResearchDocuments = lazy(() => import('./pages/ResearchDocuments'));
 
@@ -74,6 +75,7 @@ const App = () => {
                 <Route path="/admin/transactions" element={<ProtectedRoute adminOnly={true}><AdminTransactionsPage /></ProtectedRoute>} />
                 <Route path="/admin/users" element={<ProtectedRoute adminOnly={true}><AdminUsersPage /></ProtectedRoute>} />
                 <Route path="/admin/research-documents" element={<ProtectedRoute adminOnly={true}><AdminResearchDocuments /></ProtectedRoute>} />
+                <Route path="/admin/transaction-tools" element={<ProtectedRoute adminOnly={true}><AdminTransactionTools /></ProtectedRoute>} />
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>
