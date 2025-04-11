@@ -36,8 +36,8 @@ async function validateCoinPaymentsKeys() {
     });
     
     // Simple validation - just check if keys have proper length and format
-    const isPublicKeyValid = publicKey && publicKey.length > 10;
-    const isPrivateKeyValid = privateKey && privateKey.length > 10;
+    const isPublicKeyValid = publicKey && publicKey.length >= 20;
+    const isPrivateKeyValid = privateKey && privateKey.length >= 20;
     
     if (!isPublicKeyValid || !isPrivateKeyValid) {
       return {

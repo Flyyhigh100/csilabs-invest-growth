@@ -112,7 +112,7 @@ const APIKeyValidator = () => {
                       <XCircle className="h-5 w-5 text-red-600" />
                     }
                     <span className="font-medium">
-                      {serviceName.charAt(0).toUpperCase() + serviceName.slice(1)}
+                      {serviceName ? serviceName.charAt(0).toUpperCase() + serviceName.slice(1) : 'Unknown Service'}
                     </span>
                   </div>
                   <Button 

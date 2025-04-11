@@ -33,6 +33,10 @@ export function createSuccessResponse(data: Record<string, any>) {
 // Create HMAC signature for CoinPayments API requests using native crypto
 export async function createSignature(message: string, key: string): Promise<string> {
   try {
+    if (!message || !key) {
+      throw new Error('Missing required parameters for HMAC signature');
+    }
+    
     console.log(`Creating HMAC signature with message length: ${message.length} characters`);
     
     // Convert message and key to Uint8Array
