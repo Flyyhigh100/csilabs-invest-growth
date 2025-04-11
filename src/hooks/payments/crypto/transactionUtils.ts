@@ -31,18 +31,25 @@ export function showStatusMessage(status: string, externalStatusText?: string): 
 
 // Get all pending crypto transactions
 export async function getPendingTransactions(): Promise<Transaction[] | null> {
-  const { data: pendingTransactions, error: fetchError } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('payment_method', 'coinpayments')
-    .in('status', ['pending', 'confirmed']);
+  try {
+    console.log('Fetching pending crypto transactions...');
+    const { data: pendingTransactions, error: fetchError } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('payment_method', 'coinpayments')
+      .in('status', ['pending', 'confirmed']);
     
-  if (fetchError) {
-    console.error('Error fetching pending transactions:', fetchError);
-    throw fetchError;
+    if (fetchError) {
+      console.error('Error fetching pending transactions:', fetchError);
+      throw fetchError;
+    }
+    
+    console.log(`Found ${pendingTransactions?.length || 0} pending transactions`);
+    return pendingTransactions;
+  } catch (error) {
+    console.error('Error in getPendingTransactions:', error);
+    throw error;
   }
-  
-  return pendingTransactions;
 }
 
 // Process a transaction update and show appropriate messages
@@ -52,7 +59,9 @@ export function handleTransactionUpdate(
   externalStatusText?: string, 
   wasUpdated: boolean = true
 ): void {
-  if (wasUpdated) {
+  console.log(`handleTransactionUpdate: ${transaction.status} -> ${updatedStatus}, wasUpdated: ${wasUpdated}`);
+  
+  if (wasUpdated && transaction.status !== updatedStatus) {
     showStatusMessage(updatedStatus, externalStatusText);
   } else if (transaction.status === 'pending') {
     showStatusMessage('pending', externalStatusText);

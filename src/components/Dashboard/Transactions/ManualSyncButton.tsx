@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { useCryptoStatusCheck } from '@/hooks/payments/useCryptoStatusCheck';
+import { useCryptoStatusCheck } from '@/hooks/payments/crypto';
 
 interface ManualSyncButtonProps {
   transactionId: string;

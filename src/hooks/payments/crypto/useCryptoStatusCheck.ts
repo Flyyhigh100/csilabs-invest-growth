@@ -83,8 +83,10 @@ export const useCryptoStatusCheck = () => {
       // Process each transaction
       let updatedCount = 0;
       for (const tx of pendingTransactions) {
+        console.log(`Checking status for transaction: ${tx.id}`);
         const updated = await checkTransactionStatus(tx);
         if (updated && updated.status !== tx.status) {
+          console.log(`Transaction ${tx.id} status updated: ${tx.status} -> ${updated.status}`);
           updatedCount++;
         }
       }

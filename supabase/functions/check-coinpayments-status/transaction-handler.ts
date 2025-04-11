@@ -89,6 +89,8 @@ export async function processTransaction(
     // Map CoinPayments status to our status
     const { newStatus, updated } = mapCoinPaymentsStatus(transaction.status, paymentStatus);
     
+    console.log(`Mapped status: ${transaction.status} -> ${newStatus}, updated: ${updated}`);
+    
     // Log the status check regardless of the outcome
     await logStatusCheck(
       supabaseClient,
