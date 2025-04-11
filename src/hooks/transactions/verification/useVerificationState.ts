@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { Transaction } from '@/types/transactions';
 import { VerificationState } from './types';
 
 /**
