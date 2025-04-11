@@ -30,7 +30,7 @@ export async function updateTransactionStatus(
       // First, find the transaction by external_transaction_id
       const { data: transaction, error: findError } = await client
         .from('transactions')
-        .select('id, status')
+        .select('id, status, user_id, amount')
         .eq('external_transaction_id', externalTxId)
         .single();
         
@@ -60,15 +60,13 @@ export async function updateTransactionStatus(
         // If transaction is completed, create a notification for the user
         if (status === 'completed' && transaction.status !== 'completed') {
           try {
-            // Get transaction details to find user_id and amount
-            const { data: txDetails, error: txError } = await client
-              .from('transactions')
-              .select('user_id, amount')
-              .eq('id', transaction.id)
-              .single();
-              
-            if (!txError && txDetails) {
-              await createPaymentConfirmationNotification(client, txDetails.user_id, txDetails.amount);
+            // We already have user_id and amount from the initial query
+            if (transaction.user_id && transaction.amount) {
+              await createPaymentConfirmationNotification(
+                client, 
+                transaction.user_id, 
+                transaction.amount
+              );
             }
           } catch (notifError) {
             console.error('Error creating notification:', notifError);

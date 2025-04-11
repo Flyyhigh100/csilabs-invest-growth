@@ -7,3 +7,7 @@ export interface CryptoStatusCheckResult {
   message?: string;
   error?: string;
 }
+
+export interface TransactionStatusOptions {
+  forceUpdate?: boolean;
+}
