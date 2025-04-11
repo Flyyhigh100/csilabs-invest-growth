@@ -229,7 +229,8 @@ export const transactionOperations = {
         console.log("Note: 'completed_at' column may not exist yet, continuing without it");
       }
       
-      const { data: updatedTransaction, error: updateError } = await adminClient
+      // Use let instead of const for the updatedTransaction variable since we might reassign it
+      let { data: updatedTransaction, error: updateError } = await adminClient
         .from("transactions")
         .update(updateData)
         .eq("id", transaction.id)
