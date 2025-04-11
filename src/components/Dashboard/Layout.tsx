@@ -7,6 +7,7 @@ import TopNavigation from './Layouts/TopNavigation';
 import SidebarNavigation from './Layouts/SidebarNavigation';
 import { getDashboardNavItems, getAdminNavItem } from './Layouts/DashboardNav';
 import { toast } from 'sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -68,36 +69,38 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   console.log("Dashboard Layout state:", { isAdmin, isChecking, userId: user?.id });
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <TopNavigation 
-        email={user?.email}
-        isAdmin={isAdmin}
-        isChecking={isChecking}
-        navItems={navItems}
-        adminNavItem={adminNavItem}
-        handleLogout={handleLogout}
-      />
-
-      <div className="flex flex-1">
-        <SidebarNavigation 
-          navItems={navItems}
+    <TooltipProvider>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <TopNavigation 
+          email={user?.email}
           isAdmin={isAdmin}
           isChecking={isChecking}
+          navItems={navItems}
           adminNavItem={adminNavItem}
           handleLogout={handleLogout}
         />
 
-        {/* Main content */}
-        <div className="flex-1 overflow-auto">
-          <main className="py-6 px-4 sm:px-6 lg:px-8">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-            </div>
-            {children}
-          </main>
+        <div className="flex flex-1">
+          <SidebarNavigation 
+            navItems={navItems}
+            isAdmin={isAdmin}
+            isChecking={isChecking}
+            adminNavItem={adminNavItem}
+            handleLogout={handleLogout}
+          />
+
+          {/* Main content */}
+          <div className="flex-1 overflow-auto">
+            <main className="py-6 px-4 sm:px-6 lg:px-8">
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+              </div>
+              {children}
+            </main>
+          </div>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 };
 

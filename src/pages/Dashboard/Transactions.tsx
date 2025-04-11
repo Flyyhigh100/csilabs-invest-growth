@@ -12,6 +12,7 @@ import TransactionHeader from '@/components/Dashboard/Transactions/TransactionHe
 import TransactionContent from '@/components/Dashboard/Transactions/TransactionContent';
 import APIKeyValidator from '@/components/Admin/APIKeyValidator';
 import { supabase } from '@/integrations/supabase/client'; // Import supabase client
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 const Transactions = () => {
   const { kycData } = useKycVerification();
@@ -65,55 +66,57 @@ const Transactions = () => {
   }, [user]);
 
   return (
-    <DashboardLayout title="Transactions">
-      {/* Payment Status Alerts */}
-      {success === 'true' && transaction && (
-        <SuccessAlert 
-          transaction={transaction} 
-          isRefreshing={isRefreshing} 
-          onRefresh={handleRefresh} 
-        />
-      )}
-      
-      {success === 'true' && !transaction && !isRefreshing && hasCheckedStatus && (
-        <PendingVerificationAlert 
-          isRefreshing={isRefreshing} 
-          onRefresh={handleRefresh} 
-        />
-      )}
-      
-      {canceled === 'true' && <CanceledAlert />}
-      
-      {/* Admin-only API Key Validator */}
-      {isAdmin && <APIKeyValidator />}
-      
-      {/* KYC Status Banner */}
-      <Card className="mb-6">
-        <CardHeader className="pb-2">
-          <h3 className="text-lg">Verification Status</h3>
-          <p className="text-sm text-muted-foreground">Your identity verification status</p>
-        </CardHeader>
-        <CardContent>
-          <KycStatusBanner />
-        </CardContent>
-      </Card>
-
-      {/* Transactions List */}
-      <Card>
-        <CardHeader className="pb-2">
-          <TransactionHeader 
+    <TooltipProvider>
+      <DashboardLayout title="Transactions">
+        {/* Payment Status Alerts */}
+        {success === 'true' && transaction && (
+          <SuccessAlert 
+            transaction={transaction} 
             isRefreshing={isRefreshing} 
             onRefresh={handleRefresh} 
           />
-        </CardHeader>
-        <CardContent>
-          <TransactionContent 
-            isKycApproved={isKycApproved} 
-            allowTransactionsWithoutKYC={allowTransactionsWithoutKYC} 
+        )}
+        
+        {success === 'true' && !transaction && !isRefreshing && hasCheckedStatus && (
+          <PendingVerificationAlert 
+            isRefreshing={isRefreshing} 
+            onRefresh={handleRefresh} 
           />
-        </CardContent>
-      </Card>
-    </DashboardLayout>
+        )}
+        
+        {canceled === 'true' && <CanceledAlert />}
+        
+        {/* Admin-only API Key Validator */}
+        {isAdmin && <APIKeyValidator />}
+        
+        {/* KYC Status Banner */}
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <h3 className="text-lg">Verification Status</h3>
+            <p className="text-sm text-muted-foreground">Your identity verification status</p>
+          </CardHeader>
+          <CardContent>
+            <KycStatusBanner />
+          </CardContent>
+        </Card>
+
+        {/* Transactions List */}
+        <Card>
+          <CardHeader className="pb-2">
+            <TransactionHeader 
+              isRefreshing={isRefreshing} 
+              onRefresh={handleRefresh} 
+            />
+          </CardHeader>
+          <CardContent>
+            <TransactionContent 
+              isKycApproved={isKycApproved} 
+              allowTransactionsWithoutKYC={allowTransactionsWithoutKYC} 
+            />
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    </TooltipProvider>
   );
 };
 
