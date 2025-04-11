@@ -10,24 +10,24 @@ export const useCryptoStatusCheck = () => {
   const [isChecking, setIsChecking] = useState(false);
 
   // Show detailed error message
-  const handleStatusCheckError = (error: string) => {
-    console.error('Status check error:', error);
+  const handleStatusCheckError = (error: string, details?: string) => {
+    console.error('Status check error:', error, details ? `Details: ${details}` : '');
     
     if (error.includes('Transaction not found')) {
       toast.error("Transaction not found", {
-        description: "This transaction was not found in our database. Please refresh the page."
+        description: "This transaction ID could not be found in our database. This could be due to cache issues or the transaction being deleted."
       });
     } else if (error.includes('API key') || error.includes('credentials')) {
       toast.error("API Configuration Issue", {
-        description: "There's a problem with the CoinPayments API configuration. Please contact support."
+        description: "There's a problem with the CoinPayments API configuration. Please contact support with this error code: CP_API_CONFIG."
       });
     } else if (error.includes('Network error')) {
       toast.error("Network Error", {
-        description: "Unable to connect to the API. Please check your internet connection and try again."
+        description: "Unable to connect to the CoinPayments API. Please check your internet connection and try again."
       });
     } else {
       toast.error(`Error checking payment status`, {
-        description: "Please try again later or contact support if the issue persists."
+        description: `${error}. ${details ? `Additional info: ${details.substring(0, 100)}` : 'Please try again or contact support.'}`
       });
     }
   };
@@ -68,7 +68,7 @@ export const useCryptoStatusCheck = () => {
       toast.dismiss(toastId);
       
       if (result.error) {
-        handleStatusCheckError(result.error);
+        handleStatusCheckError(result.error, result.details);
         return null;
       }
       
@@ -108,7 +108,9 @@ export const useCryptoStatusCheck = () => {
     } catch (err) {
       console.error('Exception in checkTransactionStatus:', err);
       toast.dismiss(`check-crypto-${transaction.id}`);
-      toast.error('Error checking payment status');
+      toast.error('Error checking payment status', {
+        description: (err as Error).message || 'An unexpected error occurred during the status check'
+      });
       return null;
     } finally {
       setIsChecking(false);
@@ -139,6 +141,7 @@ export const useCryptoStatusCheck = () => {
       // Process each transaction
       let updatedCount = 0;
       let errorCount = 0;
+      let errorDetails = [];
       
       for (const tx of pendingTransactions) {
         console.log(`Checking status for transaction: ${tx.id}`);
@@ -149,6 +152,7 @@ export const useCryptoStatusCheck = () => {
           
           if (result.error) {
             errorCount++;
+            errorDetails.push(`TX ${tx.id}: ${result.error}`);
             console.error(`Error checking transaction ${tx.id}: ${result.error}`);
             continue;
           }
@@ -159,6 +163,7 @@ export const useCryptoStatusCheck = () => {
           }
         } catch (txError) {
           errorCount++;
+          errorDetails.push(`TX ${tx.id}: ${(txError as Error).message}`);
           console.error(`Exception checking transaction ${tx.id}:`, txError);
           // Continue with other transactions even if one fails
         }
@@ -173,7 +178,7 @@ export const useCryptoStatusCheck = () => {
         return true;
       } else if (errorCount > 0) {
         toast.warning(`No updates, but ${errorCount} error(s) occurred`, {
-          description: 'Some transactions could not be checked. Try again later or contact support.'
+          description: `Issues: ${errorDetails.slice(0, 2).join('; ')}${errorDetails.length > 2 ? '...' : ''}`
         });
         return false;
       } else {
@@ -186,7 +191,9 @@ export const useCryptoStatusCheck = () => {
       }
     } catch (err) {
       console.error('Error refreshing transactions:', err);
-      toast.error('Failed to refresh transactions');
+      toast.error('Failed to refresh transactions', {
+        description: `Error: ${(err as Error).message || 'Unknown error'}`
+      });
       return false;
     } finally {
       setIsChecking(false);
@@ -222,7 +229,7 @@ export const useCryptoStatusCheck = () => {
       toast.dismiss(toastId);
       
       if (result.error) {
-        handleStatusCheckError(result.error);
+        handleStatusCheckError(result.error, result.details);
         return null;
       }
       
@@ -263,7 +270,9 @@ export const useCryptoStatusCheck = () => {
     } catch (err) {
       console.error('Exception in forceUpdateTransaction:', err);
       toast.dismiss(`force-update-crypto-${transaction.id}`);
-      toast.error('Error updating payment status');
+      toast.error('Error updating payment status', {
+        description: `Error: ${(err as Error).message || 'Unknown error'}`
+      });
       return null;
     } finally {
       setIsChecking(false);

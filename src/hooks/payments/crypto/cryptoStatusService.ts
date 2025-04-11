@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
 import { CryptoStatusCheckResult } from './types';
@@ -11,33 +12,54 @@ export async function checkCryptoPaymentStatus(
   
   try {
     // Attempt to invoke the edge function
-    const { data, error, status } = await supabase.functions.invoke('check-coinpayments-status', {
+    const response = await supabase.functions.invoke('check-coinpayments-status', {
       body: {
         transactionId,
         forceUpdate
       }
     });
     
+    // Extract status code, data and error from response
+    const data = response.data;
+    const error = response.error;
+    const statusCode = typeof response?.statusText === 'string' ? 
+                      (response.statusText.includes('404') ? 404 : 
+                       response.statusText.includes('401') ? 401 : 
+                       response.statusText.includes('400') ? 400 : 500) : 500;
+    
+    // Log detailed response for debugging
     console.log(`Edge function response:`, {
       data: data || 'none',
-      error: error || 'none', 
-      status
+      error: error ? {
+        message: error.message,
+        details: error.details,
+        statusCode: statusCode
+      } : 'none'
     });
     
     // Parse error response formats - handle both direct 'error' property and Supabase FunctionsHttpError
     const errorMessage = error?.message || (data && data.error) || null;
     
     // Check for errors
-    if (error || status >= 400 || errorMessage) {
-      console.error('Error from edge function:', errorMessage || 'Unknown error', 'status:', status);
+    if (error || statusCode >= 400 || errorMessage) {
+      console.error('Error from edge function:', errorMessage || 'Unknown error', 'status:', statusCode);
+      
+      // Enhanced error details for debugging
+      console.error('Full error context:', {
+        errorObject: error,
+        dataError: data?.error,
+        statusCode: statusCode,
+        transactionId: transactionId
+      });
       
       // Handle 404 errors (transaction not found)
-      if (status === 404 || (errorMessage && errorMessage.includes('not found'))) {
+      if (statusCode === 404 || (errorMessage && errorMessage.includes('not found'))) {
         return {
-          error: 'Transaction not found in the database. Please refresh the page.',
+          error: 'Transaction not found in the database. Please refresh the page and try again.',
           status: 'error',
           updated: false,
-          transaction_not_found: true
+          transaction_not_found: true,
+          details: `Transaction ID: ${transactionId} was not found. Status code: ${statusCode}`
         };
       }
       
@@ -48,7 +70,8 @@ export async function checkCryptoPaymentStatus(
             error: 'CoinPayments API error. Your API keys may be invalid or have insufficient permissions.',
             status: 'error', 
             updated: false,
-            api_key_issue: true
+            api_key_issue: true,
+            details: `Error with CoinPayments API: ${errorMessage}`
           };
         }
         
@@ -57,16 +80,18 @@ export async function checkCryptoPaymentStatus(
             error: 'CoinPayments API credentials issue. Please verify your API keys configuration.',
             status: 'error',
             updated: false,
-            api_key_issue: true
+            api_key_issue: true,
+            details: `API credentials issue: ${errorMessage}`
           };
         }
       }
       
-      // Generic error response
+      // Generic error response with enhanced details
       return {
-        error: errorMessage || `Error from edge function (${status || 'unknown status'})`,
+        error: errorMessage || `Error from edge function (${statusCode || 'unknown status'})`,
         status: 'error',
-        updated: false
+        updated: false,
+        details: `Transaction ID: ${transactionId}, Status code: ${statusCode}, Error: ${errorMessage || 'Unknown error'}`
       };
     }
     
@@ -75,7 +100,8 @@ export async function checkCryptoPaymentStatus(
       return {
         error: 'No response from status check function',
         status: 'error',
-        updated: false
+        updated: false,
+        details: `Transaction ID: ${transactionId} received empty response from edge function`
       };
     }
     
@@ -90,6 +116,15 @@ export async function checkCryptoPaymentStatus(
   } catch (error: any) {
     console.error('Exception in checkCryptoPaymentStatus:', error);
     
+    // Enhanced error logging for network issues
+    const errorDetails = {
+      message: error.message,
+      stack: error.stack,
+      transactionId: transactionId,
+      forceUpdate: forceUpdate
+    };
+    console.error('Error details:', errorDetails);
+    
     // Check if this is a network or CORS issue
     const errorMessage = error.message || 'Error checking payment status';
     if (errorMessage.includes('NetworkError') || errorMessage.includes('CORS')) {
@@ -97,14 +132,16 @@ export async function checkCryptoPaymentStatus(
         error: 'Network error. Unable to connect to the API endpoint.',
         status: 'error',
         updated: false,
-        network_issue: true
+        network_issue: true,
+        details: `Network error: ${errorMessage}`
       };
     }
     
     return {
       error: errorMessage,
       status: 'error',
-      updated: false
+      updated: false,
+      details: `Exception: ${errorMessage}, Transaction ID: ${transactionId}`
     };
   }
 }

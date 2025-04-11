@@ -19,12 +19,12 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
       
     if (error) {
       console.error("Error fetching transaction:", error);
-      return createErrorResponse(`Database error: ${error.message}`);
+      return createErrorResponse(`Database error: ${error.message}`, 500);
     }
     
     if (!transaction) {
       console.error(`Transaction not found with ID: ${transactionId}`);
-      return createErrorResponse('Transaction not found');
+      return createErrorResponse('Transaction not found', 404);
     }
     
     // Log the transaction data to help with debugging
@@ -32,7 +32,9 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
       id: transaction.id,
       payment_method: transaction.payment_method,
       status: transaction.status,
-      external_id: transaction.external_transaction_id || 'none'
+      external_id: transaction.external_transaction_id || 'none',
+      transaction_id: transaction.transaction_id || 'none',
+      payment_address: transaction.payment_address || 'none'
     })}`);
     
     // Ensure it's a CoinPayments transaction
@@ -55,7 +57,7 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
     // Get external transaction ID
     const externalTxId = transaction.external_transaction_id;
     if (!externalTxId) {
-      return createErrorResponse('Missing external transaction ID');
+      return createErrorResponse('Missing external transaction ID', 400);
     }
     
     // Special handling for known testing addresses or stuck transactions
@@ -66,17 +68,28 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
     } else {
       // Query CoinPayments API for transaction status
       console.log(`Querying CoinPayments API for tx: ${externalTxId}`);
-      paymentStatus = await checkCoinPaymentsTransaction(externalTxId);
-      
-      if (!paymentStatus) {
-        console.error(`Failed to retrieve payment status for ${externalTxId}`);
-        return createErrorResponse('Failed to retrieve payment status');
-      }
-      
-      if (paymentStatus.error) {
-        console.error(`API error checking payment status: ${paymentStatus.status_text}`);
-        // Still return data for logging but mark as error
-        return createErrorResponse(paymentStatus.status_text || 'API error checking payment status');
+      try {
+        paymentStatus = await checkCoinPaymentsTransaction(externalTxId);
+        
+        if (!paymentStatus) {
+          console.error(`Failed to retrieve payment status for ${externalTxId}`);
+          return createErrorResponse('Failed to retrieve payment status from CoinPayments API', 502);
+        }
+        
+        if (paymentStatus.error) {
+          console.error(`API error checking payment status: ${paymentStatus.status_text}`);
+          // Still return data for logging but mark as error
+          return createErrorResponse(
+            paymentStatus.status_text || 'API error checking payment status', 
+            paymentStatus.status_text?.includes('Invalid API key') ? 401 : 502
+          );
+        }
+      } catch (apiError) {
+        console.error('Error calling CoinPayments API:', apiError);
+        return createErrorResponse(
+          `CoinPayments API error: ${apiError.message || 'Unknown API error'}`, 
+          502
+        );
       }
     }
     
@@ -106,7 +119,7 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
         );
       } catch (updateError) {
         console.error("Failed to update transaction status:", updateError);
-        return createErrorResponse(`Failed to update transaction: ${updateError.message}`);
+        return createErrorResponse(`Failed to update transaction: ${updateError.message}`, 500);
       }
       
       // Log the status check
@@ -184,6 +197,6 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
     }
   } catch (error) {
     console.error("Error processing transaction:", error);
-    return createErrorResponse(error.message || "Unknown error processing transaction");
+    return createErrorResponse(error.message || "Unknown error processing transaction", 500);
   }
 }
