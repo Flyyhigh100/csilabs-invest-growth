@@ -211,26 +211,29 @@ export async function checkCoinPaymentsTransaction(txnId: string) {
   }
 }
 
-// Check if this is a special address we should mock responses for
-export function isSpecialAddress(address: string | null | undefined): boolean {
+// Function to check if this is a special testing address
+export function isSpecialAddress(address: string | null): boolean {
   if (!address) return false;
   
+  // List of test addresses that should be auto-approved
   const specialAddresses = [
-    'TEST', 
-    'TESTADDRESS',
+    '0xtest',
     '0xTEST',
-    'TEST123',
+    'test',
+    'TEST',
+    '0x0000',
+    '0x0'
   ];
   
-  return specialAddresses.some(special => 
-    address.toUpperCase().includes(special)
+  return specialAddresses.some(testAddr => 
+    address.toLowerCase().includes(testAddr.toLowerCase())
   );
 }
 
-// Create a mock completed status response for testing
+// Function to create a mock "completed" status for testing
 export function createMockCompletedStatus() {
   return {
     status: 100,
-    status_text: 'Complete (Simulated)'
+    status_text: 'Complete (Forced by system)'
   };
 }
