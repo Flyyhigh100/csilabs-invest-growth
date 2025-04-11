@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -70,6 +69,13 @@ export default {
 					silver: '#CBD5E0',
 					light: '#EDF2F7',
 					dark: '#1A202C'
+				},
+				// Green colors are already included in Tailwind's default palette
+				// But we're making sure they're explicitly available
+				green: {
+					300: '#86efac',
+					500: '#22c55e',
+					700: '#15803d',
 				}
 			},
 			borderRadius: {
