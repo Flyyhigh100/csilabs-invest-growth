@@ -42,16 +42,32 @@ const APIKeyValidator = () => {
         return;
       }
       
-      setResults([data]);
-      
-      if (data.isValid) {
-        toast.success(`${data.service} API keys valid`, {
-          description: data.details
-        });
+      // Ensure we have valid data with required properties before setting results
+      if (data) {
+        setResults([{
+          isValid: !!data.isValid,
+          details: data.details || "No details provided",
+          rawResponse: data.rawResponse,
+          service: 'coinpayments'
+        }]);
+        
+        if (data.isValid) {
+          toast.success(`${data.service || 'CoinPayments'} API keys valid`, {
+            description: data.details
+          });
+        } else {
+          toast.error(`${data.service || 'CoinPayments'} API keys invalid`, {
+            description: data.details
+          });
+        }
       } else {
-        toast.error(`${data.service} API keys invalid`, {
-          description: data.details
-        });
+        // Handle case when no data is returned
+        setResults([{
+          isValid: false,
+          details: "No validation result returned",
+          service: 'coinpayments'
+        }]);
+        toast.error("API key validation failed - no data returned");
       }
     } catch (err: any) {
       console.error("Exception during validation:", err);
@@ -92,7 +108,9 @@ const APIKeyValidator = () => {
                     <XCircle className="h-5 w-5 text-red-600" />
                   }
                   <span className="font-medium">
-                    {result.service.charAt(0).toUpperCase() + result.service.slice(1)}
+                    {result.service ? 
+                      result.service.charAt(0).toUpperCase() + result.service.slice(1) : 
+                      'Unknown Service'}
                   </span>
                 </div>
                 <Button 
