@@ -20,8 +20,8 @@ export const useCryptoStatusCheck = () => {
         description: "There's a problem with the CoinPayments API keys. Please contact support."
       });
     } else {
-      toast.error(`Error: ${error}`, {
-        description: "Failed to check payment status. Please try again later."
+      toast.error(`Error checking payment status`, {
+        description: "Please try again later or contact support if the issue persists."
       });
     }
   };
@@ -157,19 +157,20 @@ export const useCryptoStatusCheck = () => {
         toast.success(`Updated ${updatedCount} transaction(s)`, {
           description: 'Transaction statuses have been synchronized with the payment provider.'
         });
+        return true;
       } else if (errorCount > 0) {
         toast.warning(`No updates, but ${errorCount} error(s) occurred`, {
-          description: 'Some transactions could not be checked. Try again later or check logs.'
+          description: 'Some transactions could not be checked. Try again later or contact support.'
         });
+        return false;
       } else {
         toast.info(forceUpdate ? 'No transactions updated' : 'No changes needed', {
           description: forceUpdate 
             ? 'No transactions needed updating.'
             : 'All transaction statuses are up-to-date.'
         });
+        return true;
       }
-      
-      return errorCount === 0;
     } catch (err) {
       console.error('Error refreshing transactions:', err);
       toast.error('Failed to refresh transactions');

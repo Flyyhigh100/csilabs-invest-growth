@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
 import { CryptoStatusCheckResult } from './types';
@@ -50,6 +49,7 @@ export async function checkCryptoPaymentStatus(
       };
     }
     
+    // Check if the result already contains an error property
     if (result.error) {
       console.error('Error in status check result:', result.error);
       

@@ -2,6 +2,7 @@
 import { createSupabaseClient, updateTransactionStatus, logStatusCheck } from "./db-client.ts";
 import { mapCoinPaymentsStatus } from "./status-mapper.ts";
 import { checkCoinPaymentsTransaction, isSpecialAddress, createMockCompletedStatus } from "./coinpayments-api.ts";
+import { createErrorResponse, createSuccessResponse } from "./utils.ts";
 
 export async function processTransaction(transactionId: string, forceUpdate = false) {
   console.log(`Processing transaction: ${transactionId}, forceUpdate: ${forceUpdate}`);
@@ -18,38 +19,35 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
       
     if (error) {
       console.error("Error fetching transaction:", error);
-      return { error: error.message };
+      return createErrorResponse(`Database error: ${error.message}`);
     }
     
     if (!transaction) {
       console.error("Transaction not found");
-      return { error: 'Transaction not found' };
+      return createErrorResponse('Transaction not found', 404);
     }
     
     // Ensure it's a CoinPayments transaction
     if (transaction.payment_method !== 'coinpayments') {
-      return { 
+      return createSuccessResponse({ 
         error: 'Not a CoinPayments transaction', 
         transaction: transaction
-      };
+      });
     }
     
     // Skip check if transaction is already completed and tokens were sent, unless forcing
     if (transaction.status === 'completed' && transaction.token_sent && !forceUpdate) {
-      return { 
+      return createSuccessResponse({ 
         message: 'Transaction already completed and tokens sent', 
         transaction: transaction,
         payment_status: { status: 100, status_text: 'Complete' }
-      };
+      });
     }
     
     // Get external transaction ID
     const externalTxId = transaction.external_transaction_id;
     if (!externalTxId) {
-      return { 
-        error: 'Missing external transaction ID', 
-        transaction: transaction
-      };
+      return createErrorResponse('Missing external transaction ID');
     }
     
     // Special handling for known testing addresses or stuck transactions
@@ -64,20 +62,13 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
       
       if (!paymentStatus) {
         console.error(`Failed to retrieve payment status for ${externalTxId}`);
-        return { 
-          error: 'Failed to retrieve payment status', 
-          transaction: transaction
-        };
+        return createErrorResponse('Failed to retrieve payment status');
       }
       
       if (paymentStatus.error) {
         console.error(`API error checking payment status: ${paymentStatus.status_text}`);
         // Still return data for logging but mark as error
-        return {
-          error: paymentStatus.status_text,
-          transaction: transaction,
-          payment_status: paymentStatus
-        };
+        return createErrorResponse(paymentStatus.status_text || 'API error checking payment status', 400);
       }
     }
     
@@ -98,62 +89,92 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
         ? new Date().toISOString() 
         : undefined;
       
-      await updateTransactionStatus(
-        supabaseClient,
-        transaction.id,
-        newStatus,
-        completedAt
-      );
+      try {
+        await updateTransactionStatus(
+          supabaseClient,
+          transaction.id,
+          newStatus,
+          completedAt
+        );
+      } catch (updateError) {
+        console.error("Failed to update transaction status:", updateError);
+        return createErrorResponse(`Failed to update transaction: ${updateError.message}`);
+      }
       
       // Log the status check
-      await logStatusCheck(
-        supabaseClient,
-        transaction.id,
-        externalTxId,
-        paymentStatus,
-        newStatus,
-        true,
-        forceUpdate
-      );
+      try {
+        await logStatusCheck(
+          supabaseClient,
+          transaction.id,
+          externalTxId,
+          paymentStatus,
+          newStatus,
+          true,
+          forceUpdate
+        );
+      } catch (logError) {
+        console.error("Failed to log status check:", logError);
+        // Don't fail the whole operation just because logging failed
+      }
       
       // Fetch the updated transaction
-      const { data: updatedTransaction } = await supabaseClient
+      const { data: updatedTransaction, error: fetchError } = await supabaseClient
         .from('transactions')
         .select('*')
         .eq('id', transactionId)
         .single();
         
-      return { 
+      if (fetchError) {
+        console.error("Error fetching updated transaction:", fetchError);
+        // Even if we couldn't fetch the updated transaction, we did update it
+        return createSuccessResponse({ 
+          message: `Transaction status updated to ${newStatus}`,
+          transaction: transaction, // Return original transaction since we couldn't fetch updated one
+          payment_status: paymentStatus,
+          updated: true,
+          external_status: paymentStatus.status,
+          external_status_text: paymentStatus.status_text
+        });
+      }
+        
+      return createSuccessResponse({ 
         message: `Transaction status updated to ${newStatus}`,
         transaction: updatedTransaction,
         payment_status: paymentStatus,
         updated: true,
         external_status: paymentStatus.status,
-        external_status_text: paymentStatus.status_text
-      };
+        external_status_text: paymentStatus.status_text,
+        status: newStatus
+      });
     } else {
       // Log the status check even if no update was needed
-      await logStatusCheck(
-        supabaseClient,
-        transaction.id,
-        externalTxId,
-        paymentStatus,
-        newStatus,
-        false,
-        forceUpdate
-      );
+      try {
+        await logStatusCheck(
+          supabaseClient,
+          transaction.id,
+          externalTxId,
+          paymentStatus,
+          newStatus,
+          false,
+          forceUpdate
+        );
+      } catch (logError) {
+        console.error("Failed to log status check:", logError);
+        // Continue despite log error
+      }
       
-      return { 
+      return createSuccessResponse({ 
         message: `No update needed. Current status: ${transaction.status}`,
         transaction: transaction,
         payment_status: paymentStatus,
         updated: false,
         external_status: paymentStatus.status,
-        external_status_text: paymentStatus.status_text
-      };
+        external_status_text: paymentStatus.status_text,
+        status: transaction.status
+      });
     }
   } catch (error) {
     console.error("Error processing transaction:", error);
-    return { error: error.message || "Unknown error processing transaction" };
+    return createErrorResponse(error.message || "Unknown error processing transaction");
   }
 }

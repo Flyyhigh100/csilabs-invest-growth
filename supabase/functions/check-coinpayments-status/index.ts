@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { corsHeaders } from "./utils.ts";
+import { corsHeaders, createErrorResponse } from "./utils.ts";
 import { processTransaction } from "./transaction-handler.ts";
 
 serve(async (req) => {
@@ -13,7 +13,7 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
+        JSON.stringify(createErrorResponse('No authorization header')),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
       );
     }
@@ -26,7 +26,7 @@ serve(async (req) => {
     } catch (parseError) {
       console.error("Error parsing request JSON:", parseError);
       return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        JSON.stringify(createErrorResponse('Invalid JSON in request body')),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
@@ -36,7 +36,7 @@ serve(async (req) => {
     if (!transactionId) {
       console.error("Missing transaction ID in request");
       return new Response(
-        JSON.stringify({ error: 'Transaction ID is required' }),
+        JSON.stringify(createErrorResponse('Transaction ID is required')),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
@@ -47,17 +47,20 @@ serve(async (req) => {
     const result = await processTransaction(transactionId, forceUpdate);
     console.log("Process result:", JSON.stringify(result));
     
-    // Return a standardized response
+    // Check if there's an error property in the result
     if (result.error) {
+      const statusCode = result.error === 'Transaction not found' ? 404 : 500;
+      
       return new Response(
-        JSON.stringify({ error: result.error, ...result }),
+        JSON.stringify(result),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: result.error === 'Transaction not found' ? 404 : 500 
+          status: statusCode
         }
       );
     }
     
+    // Return successful response
     return new Response(
       JSON.stringify(result),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
@@ -65,7 +68,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error checking transaction status:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify(createErrorResponse(error.message || 'Internal server error')),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
