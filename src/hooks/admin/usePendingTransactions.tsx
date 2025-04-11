@@ -45,18 +45,20 @@ export const usePendingTransactions = () => {
       
       // Safely cast the data to ensure type compatibility
       const safeTransactions = transactions?.map(tx => {
-        // Check if profiles exists and is a valid object without error flag
+        // First convert to unknown, then to our desired type
+        const transaction = { ...tx } as unknown as PendingTransactionWithProfile;
+        
+        // Handle potential error in profiles property
         if (tx.profiles && 
             typeof tx.profiles === 'object' && 
             !('error' in tx.profiles)) {
           return tx as PendingTransactionWithProfile;
         } else {
-          // If profiles is an error, null, or invalid, set it to null
-          return {
-            ...tx,
-            profiles: null
-          } as unknown as PendingTransactionWithProfile;
+          // If profiles is an error, null, or invalid, set it to null explicitly
+          transaction.profiles = null;
         }
+        
+        return transaction;
       }) || [];
       
       return safeTransactions;
