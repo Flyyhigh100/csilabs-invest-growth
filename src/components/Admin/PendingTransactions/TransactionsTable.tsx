@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Clock, ExternalLink } from 'lucide-react';
+import { Clock, ExternalLink, CreditCard, Bitcoin } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { PendingTransactionWithProfile } from '@/hooks/admin/usePendingTransactions';
 import SyncWithStripeButton from './SyncWithStripeButton';
 import { groupTransactionsByWallet } from '@/utils/admin/exportUtils';
+import { formatCurrency, formatCryptoAmount } from '@/utils/format';
 
 interface TransactionsTableProps {
   transactions: PendingTransactionWithProfile[];
@@ -79,6 +80,25 @@ const TransactionsTable = ({
     return `https://polygonscan.com/tx/${txId}`;
   };
   
+  // Get payment method icon and display name
+  const getPaymentMethodDisplay = (tx: PendingTransactionWithProfile) => {
+    if (tx.payment_method === 'stripe') {
+      return {
+        icon: <CreditCard className="h-3 w-3 mr-1" />,
+        label: 'Stripe',
+      };
+    } else if (tx.payment_method === 'coinpayments' || tx.payment_method === 'crypto') {
+      return {
+        icon: <Bitcoin className="h-3 w-3 mr-1" />,
+        label: tx.crypto_currency ? `Crypto (${tx.crypto_currency})` : 'Crypto',
+      };
+    }
+    return {
+      icon: null,
+      label: tx.payment_method || 'Unknown',
+    };
+  };
+  
   return (
     <>
       <Table>
@@ -94,6 +114,7 @@ const TransactionsTable = ({
             <TableHead>Date</TableHead>
             <TableHead>User</TableHead>
             <TableHead>Amount</TableHead>
+            <TableHead>Payment</TableHead>
             <TableHead>Wallet Address</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Action</TableHead>
@@ -102,77 +123,93 @@ const TransactionsTable = ({
         <TableBody>
           {transactions.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                 No pending token distributions found
               </TableCell>
             </TableRow>
           ) : (
             walletGroupsArray.map(([walletAddress, txs]) => (
               <React.Fragment key={walletAddress}>
-                {txs.map((tx, index) => (
-                  <TableRow 
-                    key={tx.id}
-                    className={index > 0 ? "border-t-0 border-dashed" : ""}
-                  >
-                    <TableCell>
-                      <Checkbox 
-                        checked={isSelected(tx)} 
-                        onCheckedChange={(checked) => onSelectTransaction(tx, !!checked)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {new Date(tx.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">
-                        {getUserName(tx)}
-                      </div>
-                      <div className="text-xs text-gray-500">{getUserEmail(tx)}</div>
-                    </TableCell>
-                    <TableCell>${tx.amount.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <div className="font-mono text-xs max-w-[150px] truncate">
-                        {txs.length > 1 && index === 0 ? (
-                          <Badge variant="outline" className="mr-1">x{txs.length}</Badge>
-                        ) : txs.length > 1 ? (
-                          <Badge variant="outline" className="mr-1 opacity-50">↑</Badge>
-                        ) : null}
-                        {tx.wallet_address}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className="bg-amber-500">
-                        <Clock className="h-3 w-3 mr-1" />
-                        Pending Distribution
-                      </Badge>
-                      {tx.status === 'pending' && tx.payment_method === 'stripe' && (
-                        <div className="mt-1">
-                          <SyncWithStripeButton 
-                            transaction={tx} 
-                            onSyncComplete={handleSyncComplete}
-                            size="sm" 
-                          />
+                {txs.map((tx, index) => {
+                  const paymentMethod = getPaymentMethodDisplay(tx);
+                  return (
+                    <TableRow 
+                      key={tx.id}
+                      className={index > 0 ? "border-t-0 border-dashed" : ""}
+                    >
+                      <TableCell>
+                        <Checkbox 
+                          checked={isSelected(tx)} 
+                          onCheckedChange={(checked) => onSelectTransaction(tx, !!checked)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {new Date(tx.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">
+                          {getUserName(tx)}
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        size="sm"
-                        onClick={() => onMarkAsSent(tx)}
-                      >
-                        Mark as Sent
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        <div className="text-xs text-gray-500">{getUserEmail(tx)}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{formatCurrency(tx.amount)}</div>
+                        {tx.crypto_amount && tx.crypto_currency && (
+                          <div className="text-xs text-gray-500">
+                            {formatCryptoAmount(tx.crypto_amount, tx.crypto_currency)}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="flex items-center font-normal">
+                          {paymentMethod.icon}
+                          <span>{paymentMethod.label}</span>
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-mono text-xs max-w-[150px] truncate">
+                          {txs.length > 1 && index === 0 ? (
+                            <Badge variant="outline" className="mr-1">x{txs.length}</Badge>
+                          ) : txs.length > 1 ? (
+                            <Badge variant="outline" className="mr-1 opacity-50">↑</Badge>
+                          ) : null}
+                          {tx.wallet_address}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className="bg-amber-500">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Pending Distribution
+                        </Badge>
+                        {tx.status === 'pending' && tx.payment_method === 'stripe' && (
+                          <div className="mt-1">
+                            <SyncWithStripeButton 
+                              transaction={tx} 
+                              onSyncComplete={handleSyncComplete}
+                              size="sm" 
+                            />
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          size="sm"
+                          onClick={() => onMarkAsSent(tx)}
+                        >
+                          Mark as Sent
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
                 {/* Add wallet total row */}
                 {txs.length > 1 && (
                   <TableRow className="bg-muted/30">
                     <TableCell colSpan={3} className="font-medium text-right">
                       Wallet Total
                     </TableCell>
-                    <TableCell colSpan={4} className="font-medium">
-                      ${getWalletTotal(txs).toFixed(2)}
+                    <TableCell colSpan={5} className="font-medium">
+                      {formatCurrency(getWalletTotal(txs))}
                     </TableCell>
                   </TableRow>
                 )}
@@ -185,8 +222,8 @@ const TransactionsTable = ({
               <TableCell colSpan={3} className="text-right">
                 Grand Total
               </TableCell>
-              <TableCell colSpan={4}>
-                ${grandTotal.toFixed(2)}
+              <TableCell colSpan={5}>
+                {formatCurrency(grandTotal)}
               </TableCell>
             </TableRow>
           )}

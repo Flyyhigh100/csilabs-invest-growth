@@ -1,5 +1,6 @@
 
 import { PendingTransactionWithProfile } from "@/hooks/admin/usePendingTransactions";
+import { formatCurrency, formatCryptoAmount } from "@/utils/format";
 
 /**
  * Creates and downloads a CSV file with pending token distribution data (detailed version)
@@ -8,7 +9,7 @@ export const downloadPendingDistributionsCSV = (transactions: PendingTransaction
   // Define CSV headers based on format type
   const headers = simplified 
     ? ['Wallet Address', 'Amount'] 
-    : ['Date', 'User Name', 'Email', 'Amount', 'Wallet Address'];
+    : ['Date', 'User Name', 'Email', 'Amount', 'Payment Method', 'Crypto Currency', 'Crypto Amount', 'Wallet Address'];
   
   // Format transaction data for CSV
   const rows = transactions.map(tx => {
@@ -24,8 +25,11 @@ export const downloadPendingDistributionsCSV = (transactions: PendingTransaction
       const email = tx.profiles?.email || '';
       const date = new Date(tx.created_at).toLocaleDateString();
       const amount = tx.amount.toFixed(2);
+      const paymentMethod = tx.payment_method || 'Unknown';
+      const cryptoCurrency = tx.crypto_currency || '';
+      const cryptoAmount = tx.crypto_amount ? tx.crypto_amount.toString() : '';
       
-      return [date, userName, email, amount, tx.wallet_address];
+      return [date, userName, email, amount, paymentMethod, cryptoCurrency, cryptoAmount, tx.wallet_address];
     }
   });
   
