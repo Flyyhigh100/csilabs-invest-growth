@@ -3,73 +3,67 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
 
-// Extended transaction type with profile information
-export interface PendingTransactionWithProfile extends Transaction {
-  profiles?: {
+interface PendingTransactionWithProfile extends Transaction {
+  profiles: {
+    email: string | null;
     first_name: string | null;
     last_name: string | null;
-    email: string | null;
   } | null;
-  crypto_currency?: string;
-  crypto_amount?: number;
 }
 
 export const usePendingTransactions = () => {
   return useQuery({
-    queryKey: ['admin', 'pending-transactions'],
-    queryFn: async (): Promise<PendingTransactionWithProfile[]> => {
-      console.info('Fetching pending transactions with profiles...');
+    queryKey: ['admin-pending-transactions'],
+    queryFn: async () => {
+      console.log('Fetching pending transactions with profiles...');
       
-      // Fetch transactions that are completed but tokens not sent yet
-      const { data: transactions, error } = await supabase
-        .from('transactions')
-        .select(`
-          *,
-          profiles:user_id(
-            first_name,
-            last_name,
-            email
-          )
-        `)
-        .eq('status', 'completed')
-        .is('token_sent', false)
-        .order('created_at', { ascending: false });
+      try {
+        // First, let's query the transactions
+        const { data: transactions, error: txError } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('token_sent', false)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: false });
+
+        if (txError) {
+          console.error('Error fetching pending transactions:', txError);
+          throw txError;
+        }
         
-      if (error) {
-        console.error('Error fetching pending transactions:', error);
-        throw error;
-      }
-      
-      console.info('Found', transactions?.length, 'pending transactions');
-      console.info('Processed transaction data:', transactions);
-      
-      // Safely cast the data to ensure type compatibility
-      const safeTransactions = transactions?.map(tx => {
-        // Create a clean transaction object without type errors
-        const transaction: PendingTransactionWithProfile = {
-          ...tx,
-          profiles: null // Default to null, will override if valid
-        };
+        // If we have transactions, fetch profiles separately to avoid join issues
+        const processedTransactions: PendingTransactionWithProfile[] = [];
         
-        // Only assign valid profile data - with proper null checking
-        // Using type guard to ensure tx.profiles is valid before checking for 'error' property
-        if (tx.profiles && 
-            typeof tx.profiles === 'object') {
-          // Explicitly check for error property using a type assertion to avoid null check issues
-          const profilesObj = tx.profiles as object;
-          if (!('error' in profilesObj)) {
-            transaction.profiles = tx.profiles as {
-              first_name: string | null;
-              last_name: string | null;
-              email: string | null;
-            };
+        if (transactions && transactions.length > 0) {
+          console.log(`Found ${transactions.length} pending transactions`);
+          
+          // For each transaction, get the associated profile
+          for (const tx of transactions) {
+            // Fetch the profile for this transaction's user_id
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('email, first_name, last_name')
+              .eq('id', tx.user_id)
+              .single();
+              
+            // Add to our processed array with properly typed profile data
+            processedTransactions.push({
+              ...tx,
+              profiles: profileData || null
+            });
           }
         }
         
-        return transaction;
-      }) || [];
-      
-      return safeTransactions;
+        console.log('Processed transaction data:', processedTransactions);
+        return processedTransactions;
+      } catch (err) {
+        console.error('Exception in pendingTransactions query:', err);
+        throw err;
+      }
     },
+    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchOnWindowFocus: true,
   });
 };
+
+export type { PendingTransactionWithProfile };

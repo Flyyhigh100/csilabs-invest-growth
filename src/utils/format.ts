@@ -21,11 +21,3 @@ export const formatDate = (date: string) => {
     day: 'numeric'
   });
 };
-
-/**
- * Format crypto amount with cryptocurrency symbol
- */
-export const formatCryptoAmount = (amount: number | string, currency: string = 'BTC') => {
-  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-  return `${numAmount.toFixed(8)} ${currency}`;
-};

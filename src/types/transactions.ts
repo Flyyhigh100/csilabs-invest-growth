@@ -17,6 +17,4 @@ export interface Transaction {
   payment_address?: string;
   kyc_verification_id?: string;
   high_value_approval_required?: boolean;
-  crypto_currency?: string;
-  crypto_amount?: number;
 }
