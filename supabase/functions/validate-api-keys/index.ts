@@ -45,26 +45,9 @@ async function validateCoinPaymentsKeys(): Promise<{
   }
   
   try {
-    // Test if we can create a valid HMAC with the private key
-    // Try to import the key first to validate it
-    try {
-      const keyBytes = hexToUint8Array(privateKey);
-      await crypto.subtle.importKey(
-        'raw',
-        keyBytes,
-        { name: 'HMAC', hash: 'SHA-512' },
-        false,
-        ['sign']
-      );
-    } catch (keyError) {
-      return {
-        isValid: false,
-        details: `Invalid private key: ${keyError.message}. The key could not be used for HMAC-SHA512 signing.`,
-        service: 'coinpayments'
-      };
-    }
+    console.log('Testing CoinPayments API with public key: ' + publicKey.substring(0, 5) + '...');
     
-    // Try to make a simple API call to validate the keys work
+    // Create request parameters
     const params = {
       cmd: 'get_basic_info',
       key: publicKey,
@@ -72,26 +55,93 @@ async function validateCoinPaymentsKeys(): Promise<{
       format: 'json'
     };
     
-    // Create signature
+    console.log('Request params:', JSON.stringify(params));
+    
+    // Create signature - this is where the issue likely is
     const paramString = new URLSearchParams(params).toString();
-    const keyBytes = hexToUint8Array(privateKey);
-    const encoder = new TextEncoder();
-    const paramData = encoder.encode(paramString);
+    console.log('Param string:', paramString);
     
-    const key = await crypto.subtle.importKey(
-      'raw',
-      keyBytes,
-      { name: 'HMAC', hash: 'SHA-512' },
-      false,
-      ['sign']
-    );
+    // Try both approaches for HMAC signature
+    let hmacSig;
+    let rawError;
     
-    const signature = await crypto.subtle.sign('HMAC', key, paramData);
-    const hmacSig = Array.from(new Uint8Array(signature))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+    try {
+      // Approach 1: Use the private key directly as UTF-8
+      const encoder = new TextEncoder();
+      const paramData = encoder.encode(paramString);
+      
+      console.log('Creating HMAC using private key');
+      
+      // Create HMAC signature using SubtleCrypto
+      const key = await crypto.subtle.importKey(
+        "raw",
+        encoder.encode(privateKey),
+        { name: "HMAC", hash: "SHA-512" },
+        false,
+        ["sign"]
+      );
+      
+      const signature = await crypto.subtle.sign(
+        "HMAC",
+        key,
+        paramData
+      );
+      
+      // Convert to hex string
+      hmacSig = Array.from(new Uint8Array(signature))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+      
+      console.log('HMAC generated successfully, length:', hmacSig.length);
+    } catch (keyError) {
+      rawError = keyError;
+      console.error('Error creating HMAC signature:', keyError);
+      
+      // Fallback to second approach
+      try {
+        // Approach 2: Convert the hex private key to bytes first
+        const keyBytes = hexToUint8Array(privateKey);
+        const encoder = new TextEncoder();
+        const paramData = encoder.encode(paramString);
+        
+        console.log('Fallback: Creating HMAC using hex-decoded private key');
+        
+        const key = await crypto.subtle.importKey(
+          'raw',
+          keyBytes,
+          { name: 'HMAC', hash: 'SHA-512' },
+          false,
+          ['sign']
+        );
+        
+        const signature = await crypto.subtle.sign('HMAC', key, paramData);
+        
+        // Convert to hex string
+        hmacSig = Array.from(new Uint8Array(signature))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('');
+          
+        console.log('Fallback HMAC generated successfully, length:', hmacSig.length);
+      } catch (fallbackError) {
+        console.error('Both HMAC approaches failed:', fallbackError);
+        return {
+          isValid: false,
+          details: `HMAC generation failed: ${keyError.message}, fallback also failed: ${fallbackError.message}`,
+          service: 'coinpayments'
+        };
+      }
+    }
+    
+    if (!hmacSig) {
+      return {
+        isValid: false,
+        details: `Failed to generate HMAC signature: ${rawError?.message || 'Unknown error'}`,
+        service: 'coinpayments'
+      };
+    }
     
     // Make the API request
+    console.log('Making API request to CoinPayments');
     const response = await fetch('https://www.coinpayments.net/api.php', {
       method: 'POST',
       headers: {
@@ -102,14 +152,26 @@ async function validateCoinPaymentsKeys(): Promise<{
     });
     
     if (!response.ok) {
+      const statusText = response.statusText;
+      console.error('HTTP error:', response.status, statusText);
+      
+      let responseText;
+      try {
+        responseText = await response.text();
+        console.error('Response text:', responseText);
+      } catch (err) {
+        responseText = 'Could not read response body';
+      }
+      
       return {
         isValid: false,
-        details: `HTTP error: ${response.status} ${response.statusText}`,
+        details: `HTTP error: ${response.status} ${statusText}. Response: ${responseText}`,
         service: 'coinpayments'
       };
     }
     
     const data = await response.json();
+    console.log('API response:', JSON.stringify(data));
     
     // Check if the API returned an error
     if (data.error !== 'ok') {
@@ -134,6 +196,7 @@ async function validateCoinPaymentsKeys(): Promise<{
       service: 'coinpayments'
     };
   } catch (error) {
+    console.error('Exception in validateCoinPaymentsKeys:', error);
     return {
       isValid: false,
       details: `Exception: ${error.message || "Unknown error"}`,

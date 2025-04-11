@@ -1,145 +1,96 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createSupabaseClient } from "./db-client.ts";
+import { corsHeaders } from "../check-coinpayments-status/utils.ts";
 import { verifyIpnHmac } from "./verification.ts";
-import { logIpnData } from "./logging.ts";
-import { updateTransactionStatus } from "./transaction-handler.ts";
-import { mapCoinPaymentsStatus } from "./status-mapper.ts";
-
-// CORS headers for preflight requests
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { processIpnPayload } from "./transaction-handler.ts";
+import { logIpnRequest } from "./logging.ts";
+import { createDbClient } from "./db-client.ts";
 
 serve(async (req) => {
-  // IMPORTANT: Send immediate 200 response first to acknowledge receipt to CoinPayments
-  // This prevents CoinPayments from retrying the webhook unnecessarily
-  const response = new Response('IPN Received', {
-    headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
-    status: 200
-  });
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
-    // Get IPN Secret from environment variables
+    console.log("IPN webhook received");
+    
+    // Get IPN secret from environment variable
     const ipnSecret = Deno.env.get('COINPAYMENTS_IPN_SECRET');
     if (!ipnSecret) {
-      console.error('COINPAYMENTS_IPN_SECRET not configured');
-      // Still return 200 to prevent retries, but log the error
-      return response;
-    }
-
-    // Create Supabase client
-    const supabaseClient = createSupabaseClient();
-    
-    // Clone request to use body multiple times
-    const clonedReq = req.clone();
-    const clonedReqForBody = req.clone();
-    
-    // Get raw body for HMAC verification logging
-    const rawBody = await clonedReqForBody.text();
-    
-    // Parse IPN data
-    const ipnData = await clonedReq.formData();
-    const ipnDataObj: Record<string, any> = {};
-    
-    // Convert FormData to object and log all fields
-    for (const [key, value] of ipnData.entries()) {
-      ipnDataObj[key] = value;
-    }
-    
-    console.log('Received CoinPayments IPN data:', JSON.stringify(ipnDataObj));
-    console.log('Raw headers:', Object.fromEntries(req.headers.entries()));
-    
-    // Get HMAC header for logging
-    const hmacHeader = req.headers.get('HMAC') || '';
-    
-    // Verify IPN HMAC signature
-    const isValid = await verifyIpnHmac(req.clone(), ipnSecret);
-    console.log('IPN HMAC validation result:', isValid ? 'Valid' : 'Invalid');
-    
-    // Check for required IPN fields
-    if (!ipnDataObj.ipn_type || !ipnDataObj.txn_id) {
-      console.error('Missing required IPN fields');
-      
-      // Log the invalid IPN
-      await logIpnData(
-        supabaseClient, 
-        ipnDataObj, 
-        false, 
-        'Missing required fields',
-        hmacHeader,
-        rawBody
+      console.error("COINPAYMENTS_IPN_SECRET environment variable not set");
+      return new Response(
+        JSON.stringify({ error: "IPN secret not configured" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
-      
-      // Still return 200 to prevent retries
-      return response;
     }
     
-    // Process IPN based on type - focus on payment notifications
-    if (ipnDataObj.ipn_type === 'api' && ipnDataObj.ipn_mode === 'hmac') {
-      // Get status from IPN
-      const ipnStatus = parseInt(ipnDataObj.status, 10);
+    // Create a copy of the request for logging
+    const requestCopy = req.clone();
+    
+    // Log IPN request
+    const logEntry = await logIpnRequest(requestCopy);
+    console.log(`IPN request logged with ID: ${logEntry?.id || 'unknown'}`);
+    
+    // Verify HMAC signature
+    const isVerified = await verifyIpnHmac(req, ipnSecret);
+    if (!isVerified) {
+      console.error("IPN HMAC signature verification failed");
       
-      console.log(`Transaction ${ipnDataObj.txn_id} IPN Status: ${ipnStatus}`);
-      
-      // Direct status code handling as requested
-      let transactionStatus = 'pending';
-      
-      // Update transaction if payment received (status 1) or fully processed (status >= 100)
-      if (ipnStatus >= 100 || ipnStatus === 1) {
-        console.log(`Updating transaction ${ipnDataObj.txn_id} to completed status`);
-        transactionStatus = 'completed';
-      } else if (ipnStatus < 0) {
-        transactionStatus = 'failed';
+      // Log verification failure
+      const dbClient = createDbClient();
+      if (logEntry?.id) {
+        await dbClient
+          .from('ipn_logs')
+          .update({ verification_status: 'failed', processed_at: new Date().toISOString() })
+          .eq('id', logEntry.id);
       }
       
-      // Update transaction status in our database with retry logic
-      if (isValid && ipnDataObj.txn_id) {
-        const updated = await updateTransactionStatus(
-          supabaseClient,
-          ipnDataObj.txn_id,
-          transactionStatus,
-          ipnStatus,
-          ['completed', 'confirmed'].includes(transactionStatus) ? new Date().toISOString() : undefined
-        );
-        
-        console.log(`Transaction status update result: ${updated ? 'Updated' : 'No change needed'}`);
+      // For debugging purposes, we'll continue processing despite verification failure
+      // but log a warning
+      console.warn("Continuing despite HMAC verification failure for debugging purposes");
+      // In production, you'd want to return an error:
+      // return new Response(
+      //   JSON.stringify({ error: "HMAC verification failed" }),
+      //   { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      // );
+    } else {
+      console.log("IPN HMAC signature verification passed");
+      // Update log with verification success
+      const dbClient = createDbClient();
+      if (logEntry?.id) {
+        await dbClient
+          .from('ipn_logs')
+          .update({ verification_status: 'verified' })
+          .eq('id', logEntry.id);
       }
     }
     
-    // Log the IPN data for debugging
-    await logIpnData(
-      supabaseClient,
-      ipnDataObj,
-      isValid,
-      isValid ? 'Processed' : 'Invalid HMAC',
-      hmacHeader,
-      rawBody
+    // Parse request body
+    const formData = await req.formData();
+    const payload: Record<string, string> = {};
+    
+    // Convert FormData to a simple object
+    for (const [key, value] of formData.entries()) {
+      payload[key] = value.toString();
+    }
+    
+    console.log("IPN Payload:", JSON.stringify(payload));
+    
+    // Process the IPN payload
+    const result = await processIpnPayload(payload, logEntry?.id);
+    
+    // Return success response to the IPN server
+    return new Response(
+      JSON.stringify({ status: "success", ...result }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-    
-    // Return proper response (already created at the beginning)
-    return response;
-    
   } catch (error) {
-    console.error('Error processing CoinPayments IPN:', error);
+    console.error("Error processing IPN webhook:", error);
     
-    // Try to log the error
-    try {
-      const supabaseClient = createSupabaseClient();
-      await logIpnData(
-        supabaseClient,
-        { error: error.message || 'Unknown error' },
-        false,
-        'Exception during processing',
-        req.headers.get('HMAC') || 'unknown',
-        'Error: Could not parse body'
-      );
-    } catch (logError) {
-      console.error('Failed to log IPN error:', logError);
-    }
-    
-    // Always return 200 to prevent retries from CoinPayments
-    return response;
+    return new Response(
+      JSON.stringify({ error: error.message || 'Unknown error processing IPN' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
   }
 });

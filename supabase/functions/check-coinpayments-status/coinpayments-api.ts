@@ -30,10 +30,22 @@ export async function coinPaymentsRequest(command: string, params: Record<string
   };
 
   try {
-    const hmacSig = await createSignature(requestParams, COINPAYMENTS_PRIVATE_KEY);
-    
     console.log(`Making CoinPayments API request for command: ${command}`);
-    console.log(`Request params (excluding credentials): cmd=${command}, version=1, format=json, ${Object.keys(params).join(', ')}`);
+    console.log(`Request params (excluding credentials): ${Object.keys(params).join(', ')}`);
+    
+    // Try multiple signature approaches
+    let hmacSig;
+    let lastError;
+    
+    try {
+      hmacSig = await createSignature(requestParams, COINPAYMENTS_PRIVATE_KEY);
+      console.log('HMAC signature created successfully');
+    } catch (sigError) {
+      console.error('Error creating signature:', sigError);
+      throw sigError;
+    }
+    
+    console.log('Making API request with headers:', { 'Content-Type': 'application/x-www-form-urlencoded', 'HMAC': hmacSig.substring(0, 10) + '...' });
     
     const response = await fetch(COINPAYMENTS_API_URL, {
       method: 'POST',
@@ -46,12 +58,20 @@ export async function coinPaymentsRequest(command: string, params: Record<string
 
     if (!response.ok) {
       console.error(`CoinPayments API HTTP error: ${response.status} ${response.statusText}`);
-      throw new Error(`CoinPayments API HTTP error: ${response.status}`);
+      
+      let responseText;
+      try {
+        responseText = await response.text();
+        console.error('Response body:', responseText);
+      } catch (e) {
+        responseText = 'Could not read response body';
+      }
+      
+      throw new Error(`CoinPayments API HTTP error: ${response.status} (${responseText})`);
     }
 
     const data = await response.json();
-    
-    console.log(`CoinPayments API response for ${command}: ${JSON.stringify(data)}`);
+    console.log(`CoinPayments API response for ${command}:`, JSON.stringify(data));
     
     if (data.error !== 'ok') {
       console.error('CoinPayments API error:', data.error);

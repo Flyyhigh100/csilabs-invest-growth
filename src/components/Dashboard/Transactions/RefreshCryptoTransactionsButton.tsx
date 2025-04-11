@@ -31,6 +31,14 @@ interface RefreshCryptoTransactionsButtonProps {
   forceUpdateAll?: boolean;
 }
 
+// Type definition for API diagnostics state
+interface ApiDiagnostics {
+  isChecking: boolean;
+  isValid?: boolean;
+  message: string;
+  details: Record<string, string> | null;
+}
+
 const RefreshCryptoTransactionsButton = ({ 
   onRefreshComplete,
   size = 'default',
@@ -40,7 +48,11 @@ const RefreshCryptoTransactionsButton = ({
   const [isChecking, setIsChecking] = useState(false);
   const [showDiagnosticDialog, setShowDiagnosticDialog] = useState(false);
   const [showAPIIssueDialog, setShowAPIIssueDialog] = useState(false);
-  const [apiDiagnostics, setApiDiagnostics] = useState<any>(null);
+  const [apiDiagnostics, setApiDiagnostics] = useState<ApiDiagnostics>({
+    isChecking: false,
+    message: '',
+    details: null
+  });
   
   const { refreshAllPendingTransactions } = useCryptoStatusCheck();
   
@@ -77,7 +89,8 @@ const RefreshCryptoTransactionsButton = ({
     try {
       setApiDiagnostics({
         isChecking: true,
-        message: 'Checking CoinPayments API keys...'
+        message: 'Checking CoinPayments API keys...',
+        details: null
       });
       
       const { data, error } = await supabase.functions.invoke('validate-api-keys', {
@@ -98,7 +111,7 @@ const RefreshCryptoTransactionsButton = ({
         isChecking: false,
         isValid: data.isValid,
         message: data.details,
-        details: data.rawResponse
+        details: data.rawResponse || null
       });
     } catch (err: any) {
       setApiDiagnostics({
