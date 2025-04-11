@@ -8,27 +8,32 @@ export async function checkCryptoPaymentStatus(
   transactionId: string,
   forceUpdate: boolean = false
 ): Promise<CryptoStatusCheckResult> {
-  console.log(`Checking status for CoinPayments transaction: ${transactionId}`);
+  console.log(`Checking status for CoinPayments transaction: ${transactionId}, forceUpdate: ${forceUpdate}`);
   
-  const { data: result, error } = await supabase.functions.invoke('check-coinpayments-status', {
-    body: {
-      transactionId,
-      forceUpdate
+  try {
+    const { data: result, error } = await supabase.functions.invoke('check-coinpayments-status', {
+      body: {
+        transactionId,
+        forceUpdate
+      }
+    }) as { data: CryptoStatusCheckResult, error: any };
+    
+    if (error) {
+      console.error('Error checking crypto payment status:', error);
+      throw new Error(error.message || 'Please try again later');
     }
-  }) as { data: CryptoStatusCheckResult, error: any };
-  
-  if (error) {
-    console.error('Error checking crypto payment status:', error);
-    throw new Error(error.message || 'Please try again later');
+    
+    if (result.error) {
+      console.error('Error in status check result:', result.error);
+      throw new Error(result.error);
+    }
+    
+    console.log('Status check result:', result);
+    return result;
+  } catch (error: any) {
+    console.error('Exception in checkCryptoPaymentStatus:', error);
+    throw new Error(error.message || 'Error checking payment status');
   }
-  
-  if (result.error) {
-    console.error('Error in status check result:', result.error);
-    throw new Error(result.error);
-  }
-  
-  console.log('Status check result:', result);
-  return result;
 }
 
 export function mapTransactionStatus(

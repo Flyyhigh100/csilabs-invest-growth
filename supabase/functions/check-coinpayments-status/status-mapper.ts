@@ -32,6 +32,6 @@ export function mapCoinPaymentsStatus(
     updated = newStatus !== currentStatus;
   }
   
-  console.log(`mapCoinPaymentsStatus: ${currentStatus} -> ${newStatus}, updated: ${updated}`);
+  console.log(`mapCoinPaymentsStatus: ${currentStatus} -> ${newStatus}, updated: ${updated}, status code: ${paymentStatus.status}, status_text: ${paymentStatus.status_text || 'none'}`);
   return { newStatus, updated };
 }

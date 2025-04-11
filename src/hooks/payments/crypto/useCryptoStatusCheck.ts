@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Transaction } from '@/types/transactions';
 import { checkCryptoPaymentStatus, mapTransactionStatus } from './cryptoStatusService';
 import { getPendingTransactions, handleTransactionUpdate } from './transactionUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useCryptoStatusCheck = () => {
   const [isChecking, setIsChecking] = useState(false);
@@ -19,10 +20,9 @@ export const useCryptoStatusCheck = () => {
       return null;
     }
 
-    // We'll allow checking even completed transactions when explicitly requested
-    // This is useful for fixing stuck transactions
-    if (transaction.status === 'completed' && transaction.token_sent) {
-      console.log('Transaction is already completed and tokens sent');
+    // Allow checking for all statuses now - we want to be able to fix stuck transactions
+    if (transaction.token_sent) {
+      console.log('Transaction tokens are already sent - no need to check status');
       return transaction;
     }
 
@@ -49,6 +49,23 @@ export const useCryptoStatusCheck = () => {
         result.updated
       );
       
+      // Refresh the transaction from Supabase to make sure we have the latest data
+      if (result.updated) {
+        try {
+          const { data: refreshedTransaction } = await supabase
+            .from('transactions')
+            .select('*')
+            .eq('id', transaction.id)
+            .single();
+            
+          if (refreshedTransaction) {
+            return refreshedTransaction as Transaction;
+          }
+        } catch (refreshError) {
+          console.error('Error refreshing transaction data:', refreshError);
+        }
+      }
+      
       return updatedTransaction;
     } catch (err) {
       console.error('Exception in checkTransactionStatus:', err);
@@ -61,11 +78,11 @@ export const useCryptoStatusCheck = () => {
   };
 
   // Function to manually trigger a refresh for all pending transactions
-  const refreshAllPendingTransactions = async (): Promise<boolean> => {
+  const refreshAllPendingTransactions = async (forceUpdate = false): Promise<boolean> => {
     try {
       setIsChecking(true);
       
-      toast.info('Refreshing all pending transactions...', {
+      toast.info(forceUpdate ? 'Force updating all transactions...' : 'Refreshing all pending transactions...', {
         id: 'refresh-all-crypto',
       });
       
@@ -78,16 +95,24 @@ export const useCryptoStatusCheck = () => {
         return true;
       }
       
-      console.log(`Found ${pendingTransactions.length} pending transactions to refresh`);
+      console.log(`Found ${pendingTransactions.length} transactions to refresh`);
       
       // Process each transaction
       let updatedCount = 0;
       for (const tx of pendingTransactions) {
         console.log(`Checking status for transaction: ${tx.id}`);
-        const updated = await checkTransactionStatus(tx);
-        if (updated && updated.status !== tx.status) {
-          console.log(`Transaction ${tx.id} status updated: ${tx.status} -> ${updated.status}`);
-          updatedCount++;
+        
+        try {
+          // Use force update if requested
+          const result = await checkCryptoPaymentStatus(tx.id, forceUpdate);
+          
+          if (result.updated) {
+            console.log(`Transaction ${tx.id} status updated: ${tx.status} -> ${result.status}`);
+            updatedCount++;
+          }
+        } catch (txError) {
+          console.error(`Error checking transaction ${tx.id}:`, txError);
+          // Continue with other transactions even if one fails
         }
       }
       
@@ -98,8 +123,10 @@ export const useCryptoStatusCheck = () => {
           description: 'Transaction statuses have been synchronized with the payment provider.'
         });
       } else {
-        toast.info('No changes needed', {
-          description: 'All transaction statuses are up-to-date.'
+        toast.info(forceUpdate ? 'No transactions updated' : 'No changes needed', {
+          description: forceUpdate 
+            ? 'No transactions needed updating.'
+            : 'All transaction statuses are up-to-date.'
         });
       }
       
@@ -146,6 +173,21 @@ export const useCryptoStatusCheck = () => {
         toast.success('Payment status updated', {
           description: `Status changed to: ${result.status}`
         });
+        
+        // Refresh the transaction from Supabase to make sure we have the latest data
+        try {
+          const { data: refreshedTransaction } = await supabase
+            .from('transactions')
+            .select('*')
+            .eq('id', transaction.id)
+            .single();
+            
+          if (refreshedTransaction) {
+            return refreshedTransaction as Transaction;
+          }
+        } catch (refreshError) {
+          console.error('Error refreshing transaction data:', refreshError);
+        }
       } else {
         toast.info('No status change needed', {
           description: `Current status: ${result.external_status_text || result.status}`

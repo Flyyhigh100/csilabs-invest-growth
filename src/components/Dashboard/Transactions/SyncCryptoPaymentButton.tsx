@@ -38,7 +38,7 @@ const SyncCryptoPaymentButton = ({
 
   const handleSync = async () => {
     try {
-      toast.info("Checking payment status...");
+      toast.info(forceUpdate ? "Force updating status..." : "Checking payment status...");
       let updatedTransaction;
       
       if (forceUpdate) {
@@ -49,7 +49,7 @@ const SyncCryptoPaymentButton = ({
         updatedTransaction = await checkTransactionStatus(transaction);
       }
       
-      if (onSyncComplete && updatedTransaction) {
+      if (onSyncComplete) {
         onSyncComplete(updatedTransaction);
       }
     } catch (error) {
