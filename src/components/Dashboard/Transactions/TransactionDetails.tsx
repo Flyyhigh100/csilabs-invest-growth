@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Copy, ExternalLink, CheckCircle2, Clock, Link, CircleDollarSign } from 'lucide-react';
+import { Copy, ExternalLink, CheckCircle2, Clock, Link, CircleDollarSign, RefreshCw } from 'lucide-react';
 import { Transaction } from '@/types/transactions';
 import {
   Tooltip,
@@ -31,6 +31,9 @@ const TransactionDetails = ({ transaction, onRefresh }: TransactionDetailsProps)
     (transaction.status === 'pending' || transaction.status === 'confirmed') &&
     // If transaction is older than 30 minutes, it might be stuck
     (Date.now() - new Date(transaction.created_at).getTime() > 30 * 60 * 1000);
+
+  // Check if this is a CoinPayments transaction where we should show sync buttons
+  const showCryptoSyncButtons = transaction.payment_method === 'coinpayments' && !transaction.token_sent;
 
   return (
     <Card key={`detail-${transaction.id}`} className="border-t-0 rounded-t-none bg-gray-50">
@@ -178,22 +181,33 @@ const TransactionDetails = ({ transaction, onRefresh }: TransactionDetailsProps)
                 )}
               </div>
               
-              {transaction.payment_method === 'coinpayments' && !transaction.token_sent && (
+              {showCryptoSyncButtons && (
                 <div className="mt-3 pt-3 border-t border-gray-100">
-                  <div className="flex justify-end gap-2">
-                    {/* Add both Regular Check and Force Update buttons */}
-                    <SyncCryptoPaymentButton 
-                      transaction={transaction} 
-                      onSyncComplete={onRefresh}
-                      forceUpdate={false}
-                      variant="outline"
-                    />
-                    <SyncCryptoPaymentButton 
-                      transaction={transaction} 
-                      onSyncComplete={onRefresh}
-                      forceUpdate={true}
-                      variant="outline"
-                    />
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="text-xs text-gray-500 mb-2 sm:mb-0 flex items-center">
+                      <RefreshCw className="h-3 w-3 mr-1 text-gray-400" />
+                      Payment status actions:
+                    </div>
+                    <div className="flex ml-auto gap-2">
+                      {/* Check Status Button */}
+                      <SyncCryptoPaymentButton 
+                        transaction={transaction} 
+                        onSyncComplete={onRefresh}
+                        forceUpdate={false}
+                        variant="outline"
+                        size="sm"
+                      />
+                      
+                      {/* Force Update Button */}
+                      <SyncCryptoPaymentButton 
+                        transaction={transaction} 
+                        onSyncComplete={onRefresh}
+                        forceUpdate={true}
+                        variant="outline"
+                        size="sm"
+                        className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                      />
+                    </div>
                   </div>
                 </div>
               )}

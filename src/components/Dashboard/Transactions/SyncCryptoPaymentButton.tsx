@@ -17,6 +17,7 @@ interface SyncCryptoPaymentButtonProps {
   forceUpdate?: boolean;
   validateApiKeysOnly?: boolean;
   testIpnMode?: boolean;
+  className?: string;
 }
 
 const SyncCryptoPaymentButton = ({ 
@@ -27,7 +28,8 @@ const SyncCryptoPaymentButton = ({
   showTooltip = true,
   forceUpdate = false,
   validateApiKeysOnly = false,
-  testIpnMode = false
+  testIpnMode = false,
+  className = ''
 }: SyncCryptoPaymentButtonProps) => {
   const [localIsChecking, setLocalIsChecking] = useState(false);
   const { checkTransactionStatus, forceUpdateTransaction, isChecking: hookIsChecking } = useCryptoStatusCheck();
@@ -43,7 +45,7 @@ const SyncCryptoPaymentButton = ({
         size={size}
         onClick={handleApiKeyValidation}
         disabled={isChecking}
-        className="border-amber-500 text-amber-700 hover:bg-amber-50"
+        className={`border-amber-500 text-amber-700 hover:bg-amber-50 ${className}`}
       >
         <Lock className={`h-3 w-3 mr-1 ${isChecking ? 'animate-spin' : ''}`} />
         {isChecking ? 'Validating...' : 'Validate API Keys'}
@@ -59,7 +61,7 @@ const SyncCryptoPaymentButton = ({
         size={size}
         onClick={() => handleTestIpn(transaction.external_transaction_id)}
         disabled={isChecking}
-        className="border-purple-500 text-purple-700 hover:bg-purple-50"
+        className={`border-purple-500 text-purple-700 hover:bg-purple-50 ${className}`}
       >
         <Send className={`h-3 w-3 mr-1 ${isChecking ? 'animate-spin' : ''}`} />
         {isChecking ? 'Sending...' : 'Test IPN'}
@@ -72,7 +74,6 @@ const SyncCryptoPaymentButton = ({
     return null;
   }
 
-  // FIXED: Don't hide the button for completed transactions without tokens sent
   // Show button for any status except when tokens were already sent
   if (transaction.token_sent) {
     console.log('Not showing button - tokens already sent');
@@ -204,9 +205,11 @@ const SyncCryptoPaymentButton = ({
       try {
         if (forceUpdate) {
           // Use force update function when explicitly requested
+          console.log("Using force update for transaction", transaction.id);
           updatedTransaction = await forceUpdateTransaction(transaction);
         } else {
           // Use regular check function by default
+          console.log("Using regular check for transaction", transaction.id);
           updatedTransaction = await checkTransactionStatus(transaction);
         }
         
@@ -262,7 +265,7 @@ const SyncCryptoPaymentButton = ({
     }
   };
 
-  // Always show both buttons - regular check and force update
+  // Force update button
   if (forceUpdate) {
     return (
       <Button
@@ -270,7 +273,7 @@ const SyncCryptoPaymentButton = ({
         size={size}
         onClick={handleSync}
         disabled={isChecking}
-        className="bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-300"
+        className={`${className || "bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-300"}`}
       >
         <RefreshCw className={`h-3 w-3 mr-1 ${isChecking ? 'animate-spin' : ''}`} />
         {isChecking ? 'Updating...' : 'Force Update'}
@@ -285,6 +288,7 @@ const SyncCryptoPaymentButton = ({
       size={size}
       onClick={handleSync}
       disabled={isChecking}
+      className={className}
     >
       <RefreshCw className={`h-3 w-3 mr-1 ${isChecking ? 'animate-spin' : ''}`} />
       {isChecking ? 'Checking...' : 'Check Status'}

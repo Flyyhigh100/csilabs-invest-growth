@@ -32,9 +32,18 @@ async function processIPNLog(client, ipnLogId, forceProcess = false) {
       console.error(`[PROCESS-IPN] Error fetching IPN log ${ipnLogId}:`, logError);
       return { 
         success: false, 
-        message: `IPN log ${ipnLogId} not found` 
+        message: `IPN log ${ipnLogId} not found: ${logError?.message || 'Unknown error'}` 
       };
     }
+    
+    // Display IPN log data for debugging
+    console.log(`[PROCESS-IPN] IPN Log data:`, JSON.stringify({
+      id: ipnLog.id,
+      provider: ipnLog.provider,
+      txn_id: ipnLog.txn_id,
+      status: ipnLog.status,
+      created_at: ipnLog.created_at
+    }));
     
     // Extract transaction ID from the IPN data
     const txnId = ipnLog.txn_id;
@@ -65,15 +74,64 @@ async function processIPNLog(client, ipnLogId, forceProcess = false) {
     
     if (!transaction) {
       console.error(`[PROCESS-IPN] Transaction not found for external_transaction_id: ${txnId}`);
-      return { 
-        success: false, 
-        message: `Transaction not found for external ID: ${txnId}` 
-      };
+      
+      // Try with transaction_id as fallback
+      const { data: fallbackTx, error: fallbackError } = await client
+        .from('transactions')
+        .select('*')
+        .eq('transaction_id', txnId)
+        .maybeSingle();
+        
+      if (fallbackError || !fallbackTx) {
+        // Get a few sample transactions for debugging
+        const { data: sampleTxs } = await client
+          .from('transactions')
+          .select('id, external_transaction_id, transaction_id, status')
+          .limit(5);
+          
+        console.log(`[PROCESS-IPN] Sample transactions in DB:`, JSON.stringify(sampleTxs || []));
+        
+        return { 
+          success: false, 
+          message: `Transaction not found for external ID: ${txnId}. Please verify the transaction exists.`,
+          details: `Searched for external_transaction_id and transaction_id matching '${txnId}'`
+        };
+      }
+      
+      console.log(`[PROCESS-IPN] Found transaction using transaction_id field instead: ${fallbackTx.id}`);
+      
+      // Continue with the fallback transaction
+      return updateTransactionStatus(client, fallbackTx, ipnLog, forceProcess);
     }
+    
+    // Found transaction with external_transaction_id
+    console.log(`[PROCESS-IPN] Found transaction: ${transaction.id} with status ${transaction.status}`);
+    return updateTransactionStatus(client, transaction, ipnLog, forceProcess);
+    
+  } catch (error) {
+    console.error('Exception in processIPNLog:', error);
+    return { 
+      success: false, 
+      message: `Exception: ${error.message}`,
+      details: error.stack
+    };
+  }
+}
+
+async function updateTransactionStatus(
+  client, 
+  transaction, 
+  ipnLog, 
+  forceProcess = false
+) {
+  try {
+    console.log(`[PROCESS-IPN] Updating transaction ${transaction.id} with status from IPN`);
     
     // Extract status from IPN data
     const rawData = ipnLog.raw_data || {};
     const ipnStatus = parseInt(rawData.status || ipnLog.status || '0', 10);
+    
+    console.log(`[PROCESS-IPN] Raw IPN status: ${ipnStatus} (${typeof ipnStatus})`);
     
     // Map the IPN status code to our internal status
     let newStatus = 'pending';
@@ -91,6 +149,7 @@ async function processIPNLog(client, ipnLogId, forceProcess = false) {
     
     // Check if the status needs updating
     if (transaction.status === newStatus && !forceProcess) {
+      console.log(`[PROCESS-IPN] Transaction already has status ${newStatus}, no update needed`);
       return { 
         success: true, 
         message: `Transaction ${transaction.id} already has status ${newStatus}, no update needed`,
@@ -137,6 +196,7 @@ async function processIPNLog(client, ipnLogId, forceProcess = false) {
           title: `Payment ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`,
           message: `Your cryptocurrency payment of $${transaction.amount} has been ${newStatus}.`
         });
+      console.log(`[PROCESS-IPN] Notification created for user ${transaction.user_id}`);
     } catch (notifError) {
       console.warn(`[PROCESS-IPN] Error creating notification:`, notifError);
       // Continue despite notification error
@@ -146,7 +206,7 @@ async function processIPNLog(client, ipnLogId, forceProcess = false) {
     await client
       .from('ipn_logs')
       .update({
-        processing_status: 'processed_manually',
+        processing_status: forceProcess ? 'processed_manually' : 'processed',
         processed_at: new Date().toISOString(),
         details: JSON.stringify({
           transaction_id: transaction.id,
@@ -155,7 +215,7 @@ async function processIPNLog(client, ipnLogId, forceProcess = false) {
           force_processed: forceProcess
         })
       })
-      .eq('id', ipnLogId);
+      .eq('id', ipnLog.id);
     
     return { 
       success: true, 
@@ -168,76 +228,8 @@ async function processIPNLog(client, ipnLogId, forceProcess = false) {
     console.error(`[PROCESS-IPN] Unexpected error:`, error);
     return { 
       success: false, 
-      message: `Unexpected error: ${error.message}` 
-    };
-  }
-}
-
-// Force update a transaction status
-async function forceUpdateTransactionStatus(client, txId, externalId, newStatus) {
-  try {
-    console.log(`[FORCE-UPDATE] Updating transaction status - ID: ${txId}, External ID: ${externalId}, Status: ${newStatus}`);
-    
-    // Build query based on available IDs
-    let query = client.from('transactions').update({
-      status: newStatus,
-      updated_at: new Date().toISOString()
-    });
-    
-    if (txId) {
-      query = query.eq('id', txId);
-    } else if (externalId) {
-      query = query.eq('external_transaction_id', externalId);
-    } else {
-      return {
-        success: false,
-        message: 'No transaction identifiers provided'
-      };
-    }
-    
-    // Execute update
-    const { data, error } = await query.select().maybeSingle();
-    
-    if (error) {
-      console.error(`[FORCE-UPDATE] Database error:`, error);
-      return {
-        success: false,
-        message: `Database error: ${error.message}`
-      };
-    }
-    
-    if (!data) {
-      return {
-        success: false,
-        message: 'Transaction not found'
-      };
-    }
-    
-    console.log(`[FORCE-UPDATE] Transaction ${data.id} status updated to ${newStatus}`);
-    
-    // Create user notification
-    try {
-      await client.from('notifications').insert({
-        user_id: data.user_id,
-        type: `payment_${newStatus}`,
-        title: `Payment Status Updated`,
-        message: `Your payment has been manually updated to: ${newStatus}`
-      });
-    } catch (notifError) {
-      console.warn(`[FORCE-UPDATE] Failed to create notification:`, notifError);
-      // Continue despite error
-    }
-    
-    return {
-      success: true,
-      message: `Transaction ${data.id} status updated to ${newStatus}`,
-      transaction: data
-    };
-  } catch (error) {
-    console.error(`[FORCE-UPDATE] Unexpected error:`, error);
-    return {
-      success: false,
-      message: `Unexpected error: ${error.message}`
+      message: `Unexpected error: ${error.message}`,
+      details: error.stack
     };
   }
 }
@@ -250,40 +242,51 @@ serve(async (req) => {
   
   try {
     const client = createSupabaseClient();
-    const body = await req.json();
     
-    // Extract parameters based on endpoint functionality
-    const { 
-      ipn_log_id, 
-      force_process,
-      transaction_id,
-      external_transaction_id,
-      force_status
-    } = body;
-    
-    let result;
-    
-    // Either process an IPN log or force update a transaction status
-    if (ipn_log_id) {
-      result = await processIPNLog(client, ipn_log_id, force_process);
-    } else if (force_status) {
-      result = await forceUpdateTransactionStatus(
-        client, 
-        transaction_id, 
-        external_transaction_id, 
-        force_status
+    // Parse request body
+    let body;
+    try {
+      body = await req.json();
+      console.log("Request body:", JSON.stringify(body));
+    } catch (parseError) {
+      console.error("Error parsing request JSON:", parseError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'Invalid JSON in request body'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
       );
-    } else {
-      result = {
-        success: false,
-        message: 'Missing required parameters'
-      };
     }
     
+    // Extract parameters
+    const { ipn_log_id, force_process } = body;
+    
+    if (!ipn_log_id) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'Missing required parameter: ipn_log_id'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+    
+    // Process the IPN log
+    const result = await processIPNLog(client, ipn_log_id, force_process);
+    
+    // Return response
     return new Response(
       JSON.stringify(result),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: result.success ? 200 : 400
       }
     );
   } catch (error) {
@@ -292,7 +295,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        message: `Error processing request: ${error.message}`
+        message: `Error processing request: ${error.message}`,
+        details: error.stack
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
