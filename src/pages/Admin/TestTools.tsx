@@ -1,7 +1,8 @@
 
 import React from 'react';
 import AdminLayout from '@/components/Admin/Layout';
-import TestIpnForm from '@/components/Admin/TestIPNForm';
+// Fix casing to match actual file
+import TestIpnForm from '@/components/Admin/TestIpnForm';
 
 const TestToolsPage: React.FC = () => {
   return (

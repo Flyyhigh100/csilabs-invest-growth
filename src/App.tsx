@@ -22,10 +22,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AuthProvider>
-          <NavbarContextProvider>
-            <GlobalLoading />
-            <Router>
+        {/* Move Router component before AuthProvider */}
+        <Router>
+          <AuthProvider>
+            <NavbarContextProvider>
+              <GlobalLoading />
               <Routes>
                 {/* Public Routes - Using dummy placeholders for now */}
                 <Route path="/" element={<div>Home Page</div>} />
@@ -56,10 +57,10 @@ function App() {
                 {/* Fallback */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </Router>
-            <Toaster position="top-right" richColors />
-          </NavbarContextProvider>
-        </AuthProvider>
+              <Toaster position="top-right" richColors />
+            </NavbarContextProvider>
+          </AuthProvider>
+        </Router>
       </ThemeProvider>
     </QueryClientProvider>
   );
