@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
 import { CryptoStatusCheckResult } from './types';
@@ -29,6 +28,12 @@ export async function checkCryptoPaymentStatus(
     }
     
     console.log('Status check result:', result);
+    
+    // Log external status information if available
+    if (result.external_status !== undefined) {
+      console.log(`External status code: ${result.external_status}, text: ${result.external_status_text}`);
+    }
+    
     return result;
   } catch (error: any) {
     console.error('Exception in checkCryptoPaymentStatus:', error);
@@ -55,6 +60,8 @@ export function mapTransactionStatus(
           description: 'Your payment has been completed. Your tokens will be sent soon.'
         });
       }
+    } else {
+      console.log(`Transaction status unchanged (${result.status}) but marked as updated`);
     }
     
     return {
@@ -64,5 +71,6 @@ export function mapTransactionStatus(
   } 
   
   // Otherwise return the original transaction
+  console.log(`No status change needed for transaction ${transaction.id} (${transaction.status})`);
   return transaction;
 }

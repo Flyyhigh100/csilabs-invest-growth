@@ -41,6 +41,8 @@ export async function processTransaction(
       };
     }
     
+    console.log(`Current transaction status: ${transaction.status}, external_transaction_id: ${transaction.external_transaction_id}`);
+    
     // No need to check if already completed, unless force update is requested
     if (transaction.status === 'completed' && !forceUpdate) {
       console.log(`Transaction ${transactionId} is already completed, skipping check`);
@@ -66,7 +68,7 @@ export async function processTransaction(
     let paymentStatus;
     try {
       paymentStatus = await checkCoinPaymentsTransaction(externalTxId);
-      console.log(`Status for ${externalTxId}:`, paymentStatus);
+      console.log(`Status for ${externalTxId}:`, JSON.stringify(paymentStatus));
     } catch (apiError) {
       console.error(`Error checking CoinPayments API for ${externalTxId}:`, apiError);
       
@@ -89,7 +91,7 @@ export async function processTransaction(
     // Map CoinPayments status to our status
     const { newStatus, updated } = mapCoinPaymentsStatus(transaction.status, paymentStatus);
     
-    console.log(`Mapped status: ${transaction.status} -> ${newStatus}, updated: ${updated}`);
+    console.log(`Mapped status: ${transaction.status} -> ${newStatus}, updated: ${updated}, original status code: ${paymentStatus.status}`);
     
     // Log the status check regardless of the outcome
     await logStatusCheck(

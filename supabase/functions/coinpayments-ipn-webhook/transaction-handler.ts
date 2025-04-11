@@ -16,6 +16,7 @@ export async function updateTransactionStatus(
   while (retries < maxRetries && !success) {
     try {
       console.log(`Updating transaction with external ID ${externalTxId} to status: ${status} (attempt ${retries + 1})`);
+      console.log(`Original IPN status code: ${ipnStatus}`);
       
       const updateData: Record<string, any> = {
         status: status,
@@ -30,7 +31,7 @@ export async function updateTransactionStatus(
       // First, find the transaction by external_transaction_id
       const { data: transaction, error: findError } = await client
         .from('transactions')
-        .select('id, status, user_id, amount')
+        .select('id, status, user_id, amount, payment_address')
         .eq('external_transaction_id', externalTxId)
         .single();
         
@@ -40,6 +41,8 @@ export async function updateTransactionStatus(
         if (retries < maxRetries) await new Promise(r => setTimeout(r, 1000 * retries)); // Exponential backoff
         continue;
       }
+      
+      console.log(`Found transaction: ID=${transaction.id}, Current status=${transaction.status}, New status=${status}`);
       
       // Only update if status has changed
       if (transaction.status !== status) {
@@ -57,8 +60,9 @@ export async function updateTransactionStatus(
         
         console.log(`Successfully updated transaction ${transaction.id} status from ${transaction.status} to ${status}`);
         
-        // If transaction is completed, create a notification for the user
-        if (status === 'completed' && transaction.status !== 'completed') {
+        // If transaction is confirmed or completed, create a notification for the user
+        if ((status === 'completed' || status === 'confirmed') && 
+            (transaction.status !== 'completed' && transaction.status !== 'confirmed')) {
           try {
             // We already have user_id and amount from the initial query
             if (transaction.user_id && transaction.amount) {
@@ -67,6 +71,7 @@ export async function updateTransactionStatus(
                 transaction.user_id, 
                 transaction.amount
               );
+              console.log(`Created notification for user ${transaction.user_id}`);
             }
           } catch (notifError) {
             console.error('Error creating notification:', notifError);

@@ -35,7 +35,7 @@ export async function coinPaymentsRequest(command: string, params: Record<string
 
     const data = await response.json();
     
-    console.log("CoinPayments API response:", data);
+    console.log("CoinPayments API response:", JSON.stringify(data));
     
     if (data.error !== 'ok') {
       console.error('CoinPayments API error:', data.error);
@@ -55,6 +55,7 @@ export async function checkCoinPaymentsTransaction(txId: string) {
     // For demo/test mode, simulate status updates
     if (txId.startsWith('MOCK') || !COINPAYMENTS_PUBLIC_KEY) {
       // Simulate a completed transaction for testing
+      console.log(`Using mock transaction status for ${txId}`);
       return {
         status: 100,
         status_text: 'Complete',
@@ -62,9 +63,11 @@ export async function checkCoinPaymentsTransaction(txId: string) {
       };
     }
     
+    console.log(`Checking transaction status for ${txId} with CoinPayments API`);
+    
     // Make real API request to CoinPayments
     const result = await coinPaymentsRequest('get_tx_info', { txid: txId });
-    console.log(`Transaction ${txId} status from CoinPayments:`, result);
+    console.log(`Transaction ${txId} status from CoinPayments:`, JSON.stringify(result));
     
     // Add a fallback status check if the transaction appears to be "missing"
     // This is useful for transactions that are complete but not found via txid
@@ -88,7 +91,7 @@ export async function checkCoinPaymentsTransaction(txId: string) {
           });
           
           if (matchingWithdrawal) {
-            console.log(`Found potential matching withdrawal:`, matchingWithdrawal);
+            console.log(`Found potential matching withdrawal:`, JSON.stringify(matchingWithdrawal));
             
             // Use the withdrawal data as our result
             return {

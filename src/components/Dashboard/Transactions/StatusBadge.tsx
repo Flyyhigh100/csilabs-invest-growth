@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Transaction } from '@/types/transactions';
-import { CheckCircle2, Clock, ExternalLink, CircleDollarSign } from 'lucide-react';
+import { CheckCircle2, Clock, ExternalLink, CircleDollarSign, AlertCircle } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 interface StatusBadgeProps {
@@ -73,11 +73,26 @@ const StatusBadge: React.FC<ExtendedStatusBadgeProps> = ({
           </span>
         );
       case 'pending':
-        return 'Pending';
+        return (
+          <span className="flex items-center">
+            <Clock className="h-3 w-3 mr-1" />
+            Pending
+          </span>
+        );
       case 'failed':
-        return 'Failed';
+        return (
+          <span className="flex items-center">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            Failed
+          </span>
+        );
       case 'canceled':
-        return 'Canceled';
+        return (
+          <span className="flex items-center">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            Canceled
+          </span>
+        );
       default:
         return status.charAt(0).toUpperCase() + status.slice(1);
     }
@@ -121,6 +136,6 @@ const StatusBadge: React.FC<ExtendedStatusBadgeProps> = ({
       {getStatusLabel()}
     </span>
   );
-};
+}
 
 export default StatusBadge;

@@ -48,7 +48,7 @@ serve(async (req) => {
       ipnDataObj[key] = value;
     }
     
-    console.log('Received CoinPayments IPN data:', ipnDataObj);
+    console.log('Received CoinPayments IPN data:', JSON.stringify(ipnDataObj));
     console.log('Raw headers:', Object.fromEntries(req.headers.entries()));
     
     // Get HMAC header for logging
@@ -90,13 +90,15 @@ serve(async (req) => {
       
       // Update transaction status in our database with retry logic
       if (isValid && ipnDataObj.txn_id) {
-        await updateTransactionStatus(
+        const updated = await updateTransactionStatus(
           supabaseClient,
           ipnDataObj.txn_id,
           transactionStatus,
           ipnStatus,
           ['completed', 'confirmed'].includes(transactionStatus) ? new Date().toISOString() : undefined
         );
+        
+        console.log(`Transaction status update result: ${updated ? 'Updated' : 'No change needed'}`);
       }
     }
     

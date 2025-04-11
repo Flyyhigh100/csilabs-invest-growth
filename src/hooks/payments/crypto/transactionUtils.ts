@@ -6,8 +6,10 @@ import { checkCryptoPaymentStatus } from './cryptoStatusService';
 
 // Show appropriate status messages based on transaction status
 export function showStatusMessage(status: string, externalStatusText?: string): void {
+  console.log(`Showing status message for: ${status}, external text: ${externalStatusText || 'none'}`);
+  
   if (status === 'completed') {
-    toast.success('Payment confirmed!', {
+    toast.success('Payment completed!', {
       description: 'Your crypto payment has been confirmed. Your tokens will be sent to your wallet shortly.'
     });
   } else if (status === 'confirmed') {
@@ -65,5 +67,7 @@ export function handleTransactionUpdate(
     showStatusMessage(updatedStatus, externalStatusText);
   } else if (transaction.status === 'pending') {
     showStatusMessage('pending', externalStatusText);
+  } else if (transaction.status === 'confirmed' && externalStatusText) {
+    showStatusMessage('confirmed', externalStatusText);
   }
 }
