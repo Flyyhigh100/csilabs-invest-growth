@@ -5,6 +5,7 @@ import ManualStatusUpdate from '@/components/Admin/ManualStatusUpdate';
 import TransactionToolbox from '@/components/Admin/TransactionToolbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const TransactionToolsPage: React.FC = () => {
   const { user } = useAuth();
