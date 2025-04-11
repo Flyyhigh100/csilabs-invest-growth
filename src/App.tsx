@@ -22,6 +22,7 @@ import NotFound from './pages/NotFound';
 import TestToolsPage from './pages/Admin/TestTools';
 import Payments from './pages/Dashboard/Payments';
 import Transactions from './pages/Dashboard/Transactions';
+import AdminTransactionsPage from './pages/Admin/Transactions';
 
 const queryClient = new QueryClient();
 
