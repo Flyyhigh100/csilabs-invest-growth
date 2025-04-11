@@ -42,13 +42,13 @@ const APIKeyValidator = () => {
         return;
       }
       
-      // Ensure we have valid data with required properties before setting results
+      // Ensure we have valid data before setting results
       if (data) {
         setResults([{
           isValid: !!data.isValid,
           details: data.details || "No details provided",
-          rawResponse: data.rawResponse,
-          service: 'coinpayments'
+          rawResponse: data,
+          service: data.service || 'coinpayments'
         }]);
         
         if (data.isValid) {
@@ -99,41 +99,44 @@ const APIKeyValidator = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {results.map((result, index) => (
-            <div key={index} className={`p-4 rounded-md ${result.isValid ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  {result.isValid ? 
-                    <CheckCircle className="h-5 w-5 text-green-600" /> : 
-                    <XCircle className="h-5 w-5 text-red-600" />
-                  }
-                  <span className="font-medium">
-                    {result.service ? 
-                      result.service.charAt(0).toUpperCase() + result.service.slice(1) : 
-                      'Unknown Service'}
-                  </span>
+          {results.map((result, index) => {
+            // Make sure we have a valid service string before using it
+            const serviceName = result.service || 'unknown';
+            
+            return (
+              <div key={index} className={`p-4 rounded-md ${result.isValid ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    {result.isValid ? 
+                      <CheckCircle className="h-5 w-5 text-green-600" /> : 
+                      <XCircle className="h-5 w-5 text-red-600" />
+                    }
+                    <span className="font-medium">
+                      {serviceName.charAt(0).toUpperCase() + serviceName.slice(1)}
+                    </span>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => toggleDetails(serviceName)}
+                  >
+                    {showDetails[serviceName] ? 'Hide Details' : 'Show Details'}
+                  </Button>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => toggleDetails(result.service)}
-                >
-                  {showDetails[result.service] ? 'Hide Details' : 'Show Details'}
-                </Button>
+                
+                {showDetails[serviceName] && (
+                  <div className="mt-3 text-sm bg-white p-3 rounded border">
+                    <p className="mb-2">{result.details}</p>
+                    {result.rawResponse && (
+                      <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto max-h-40">
+                        {JSON.stringify(result.rawResponse, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                )}
               </div>
-              
-              {showDetails[result.service] && (
-                <div className="mt-3 text-sm bg-white p-3 rounded border">
-                  <p className="mb-2">{result.details}</p>
-                  {result.rawResponse && (
-                    <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto max-h-40">
-                      {JSON.stringify(result.rawResponse, null, 2)}
-                    </pre>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
           
           {results.length === 0 && !isValidating && (
             <div className="flex items-center gap-2 text-gray-500 text-sm">

@@ -1,40 +1,48 @@
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Transaction } from '@/types/transactions';
-import { VerificationState } from './types';
 
-/**
- * Hook to manage the state for transaction verification
- */
-export const useVerificationState = (): VerificationState => {
-  const [transaction, setTransaction] = useState<Transaction | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
-  const [pollingCount, setPollingCount] = useState(0);
+// State interface for the transaction verification process
+interface VerificationState {
+  transaction: Transaction | null;
+  isRefreshing: boolean;
+  hasCheckedStatus: boolean;
+  pollingCount: number;
+}
 
+// Initial state for transaction verification
+const initialState: VerificationState = {
+  transaction: null,
+  isRefreshing: false,
+  hasCheckedStatus: false,
+  pollingCount: 0
+};
+
+// Custom hook to manage transaction verification state
+export function useVerificationState() {
+  const [transaction, setTransaction] = useState<Transaction | null>(initialState.transaction);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(initialState.isRefreshing);
+  const [hasCheckedStatus, setHasCheckedStatus] = useState<boolean>(initialState.hasCheckedStatus);
+  const [pollingCount, setPollingCount] = useState<number>(initialState.pollingCount);
+  
   return {
     transaction,
     isRefreshing,
     hasCheckedStatus,
     pollingCount,
+    setTransaction,
+    setIsRefreshing,
+    setHasCheckedStatus,
+    setPollingCount
   };
-};
+}
 
-export const useVerificationActions = (
-  state: VerificationState
-) => {
-  const { 
-    transaction: currentTransaction,
-    hasCheckedStatus: currentHasCheckedStatus,
-    pollingCount: currentPollingCount
-  } = state;
-  
-  const setState = {
-    setTransaction: useState<Transaction | null>(currentTransaction)[1],
-    setIsRefreshing: useState<boolean>(false)[1],
-    setHasCheckedStatus: useState<boolean>(currentHasCheckedStatus)[1],
-    setPollingCount: useState<number>(currentPollingCount)[1],
+// Custom hook to get verification actions based on state
+export function useVerificationActions(state: ReturnType<typeof useVerificationState>) {
+  return {
+    setTransaction: state.setTransaction,
+    setIsRefreshing: state.setIsRefreshing,
+    setHasCheckedStatus: state.setHasCheckedStatus,
+    setPollingCount: state.setPollingCount
   };
-
-  return setState;
-};
+}

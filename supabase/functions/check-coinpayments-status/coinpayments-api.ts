@@ -39,187 +39,84 @@ export async function checkCoinPaymentsTransaction(txnId: string) {
     
     const reqBody = params.toString();
     
-    // Add more extensive error handling for signature creation
-    let hmacSignature;
+    // Create HMAC signature
     try {
-      hmacSignature = await createSignature(reqBody, privateKey);
+      const hmacSignature = await createSignature(reqBody, privateKey);
       console.log(`HMAC signature created successfully for txid: ${txnId} (first 10 chars: ${hmacSignature.slice(0,10)}...)`);
-    } catch (signatureError) {
-      console.error("Error creating HMAC signature:", signatureError);
-      return {
-        error: true,
-        status: -1,
-        status_text: `Failed to create API signature: ${signatureError.message}`
-      };
-    }
-    
-    console.log(`Making API request to CoinPayments with txid: ${txnId}`);
-    
-    // Make API request to CoinPayments with timeout and retries
-    let response;
-    let retries = 0;
-    const MAX_RETRIES = 2;
-    
-    while (retries <= MAX_RETRIES) {
-      try {
-        // Add timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-        
-        // Log exact request details for debugging
-        console.log(`CoinPayments API Request:
-          URL: https://www.coinpayments.net/api.php
-          Method: POST
-          Headers: Content-Type: application/x-www-form-urlencoded, HMAC: ${hmacSignature.slice(0,10)}...
-          Body: ${reqBody}
-          Attempt: ${retries + 1} of ${MAX_RETRIES + 1}
-        `);
-        
-        response = await fetch('https://www.coinpayments.net/api.php', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'HMAC': hmacSignature
-          },
-          body: reqBody,
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        // Log response status for debugging
-        console.log(`CoinPayments API response status: ${response.status} ${response.statusText}`);
-        
-        // Break the loop if successful
-        break;
-      } catch (fetchError) {
-        retries++;
-        
-        if (fetchError.name === 'AbortError') {
-          console.error(`CoinPayments API request timeout (attempt ${retries})`);
-          
-          if (retries > MAX_RETRIES) {
-            return {
-              error: true,
-              status: -1,
-              status_text: 'API request timed out after multiple attempts'
-            };
-          }
-          
-          // Wait before retrying (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, 1000 * retries));
-          continue;
-        }
-        
-        console.error(`CoinPayments API fetch error (attempt ${retries}):`, fetchError);
-        
-        if (retries > MAX_RETRIES) {
-          return {
-            error: true,
-            status: -1,
-            status_text: `API fetch error: ${fetchError.message}`
-          };
-        }
-        
-        // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, 1000 * retries));
-      }
-    }
-    
-    // Check API response
-    if (!response || !response.ok) {
-      const status = response ? response.status : 'no response';
-      const statusText = response ? response.statusText : 'connection failed';
       
-      console.error(`CoinPayments API response error: ${status}, ${statusText}`);
+      // Make API request to CoinPayments with explicit timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
-      // Try to parse error response if possible
-      let errorBody = 'Could not read response body';
-      try {
-        if (response) {
-          errorBody = await response.text();
-          console.error('Error response body:', errorBody);
-        }
-      } catch (e) {
-        console.error('Could not parse error response body');
-      }
+      console.log(`Making CoinPayments API request for transaction ${txnId}`);
+      console.log(`Request body: ${reqBody}`);
       
-      return {
-        error: true,
-        status: -1,
-        status_text: `API call to CoinPayments failed with status ${status}: ${statusText}. Response: ${errorBody}`
-      };
-    }
-    
-    // Parse JSON response with extra error handling
-    let data;
-    try {
-      data = await response.json();
-    } catch (jsonError) {
-      console.error('Failed to parse JSON from CoinPayments API:', jsonError);
+      const response = await fetch('https://www.coinpayments.net/api.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'HMAC': hmacSignature
+        },
+        body: reqBody,
+        signal: controller.signal
+      });
       
-      // Try to get the raw text
-      const responseText = await response.text();
-      return {
-        error: true,
-        status: -1,
-        status_text: `Failed to parse API response: ${jsonError.message}. Raw response: ${responseText.substring(0, 100)}`
-      };
-    }
-    
-    console.log('CoinPayments API raw response:', JSON.stringify(data));
-    
-    // Validate response format
-    if (!data || typeof data !== 'object') {
-      return {
-        error: true,
-        status: -1,
-        status_text: 'Invalid response format from CoinPayments API'
-      };
-    }
-    
-    if (data.error !== 'ok') {
-      console.error(`CoinPayments API error: ${data.error}`);
+      clearTimeout(timeoutId);
       
-      // Check for specific API key errors
-      if (data.error?.toLowerCase().includes('api key') || 
-          data.error?.toLowerCase().includes('invalid key') || 
-          data.error?.toLowerCase().includes('permissions')) {
-        console.error('This appears to be an API key permission issue');
+      // Handle response
+      if (!response.ok) {
+        console.error(`CoinPayments API response error: ${response.status}, ${response.statusText}`);
         return {
           error: true,
           status: -1,
-          status_text: `API key error: ${data.error}`,
-          api_key_issue: true
+          status_text: `API call to CoinPayments failed with status ${response.status}: ${response.statusText}`
         };
       }
       
+      // Parse JSON response
+      const data = await response.json();
+      console.log('CoinPayments API raw response:', JSON.stringify(data));
+      
+      // Check for API errors
+      if (data.error !== 'ok') {
+        console.error(`CoinPayments API error: ${data.error}`);
+        
+        // Check for specific API key errors
+        if (data.error?.toLowerCase().includes('hmac signature') || 
+            data.error?.toLowerCase().includes('invalid key') || 
+            data.error?.toLowerCase().includes('permissions')) {
+            
+          return {
+            error: true,
+            status: -1,
+            status_text: `API key error: ${data.error}`,
+            api_key_issue: true
+          };
+        }
+        
+        return {
+          error: true,
+          status: -1,
+          status_text: data.error
+        };
+      }
+      
+      // Extract transaction status
+      const result = data.result;
+      console.log(`CoinPayments transaction status for ${txnId}: ${result.status} (${result.status_text})`);
+      
+      return {
+        status: result.status,
+        status_text: result.status_text
+      };
+    } catch (signatureError) {
+      console.error("Error creating HMAC signature or calling API:", signatureError);
       return {
         error: true,
         status: -1,
-        status_text: data.error
+        status_text: `Failed to create API signature or call API: ${signatureError.message}`
       };
     }
-    
-    // Make sure result exists and contains status
-    if (!data.result || typeof data.result !== 'object' || 
-        data.result.status === undefined || data.result.status_text === undefined) {
-      console.error('Missing expected fields in CoinPayments API response');
-      return {
-        error: true,
-        status: -1,
-        status_text: 'Invalid response structure from CoinPayments API'
-      };
-    }
-    
-    // Extract transaction status
-    const result = data.result;
-    console.log(`CoinPayments transaction status for ${txnId}: ${result.status} (${result.status_text})`);
-    
-    return {
-      status: result.status,
-      status_text: result.status_text
-    };
   } catch (error) {
     console.error('Error checking CoinPayments transaction:', error);
     return {

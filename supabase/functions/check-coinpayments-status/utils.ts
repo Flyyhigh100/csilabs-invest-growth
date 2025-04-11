@@ -1,80 +1,69 @@
 
-// CORS headers for cross-origin requests
+// CORS headers for preflight requests
 export const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Create an HMAC signature for CoinPayments API
-export async function createSignature(reqBody: string, privateKey: string): Promise<string> {
-  try {
-    const encoder = new TextEncoder();
-    const keyData = encoder.encode(privateKey);
-    const msgData = encoder.encode(reqBody);
-    
-    const key = await crypto.subtle.importKey(
-      "raw", 
-      keyData, 
-      { name: "HMAC", hash: "SHA-512" }, 
-      false, 
-      ["sign"]
-    );
-    
-    const signature = await crypto.subtle.sign("HMAC", key, msgData);
-    return Array.from(new Uint8Array(signature))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-  } catch (error) {
-    console.error('Error creating signature:', error);
-    throw new Error(`Failed to create API signature: ${error.message}`);
-  }
+// Log request details
+export function logRequestDetails(req: Request, functionName: string) {
+  console.log(`${functionName}: Received ${req.method} request`);
+  console.log(`Headers: ${JSON.stringify(Object.fromEntries(req.headers.entries()))}`);
 }
 
-// Create standardized error response
-export function createErrorResponse(message: string, code = 500, additionalProps = {}) {
+// Create error response
+export function createErrorResponse(message: string, status = 500, additionalDetails = {}) {
   return {
     error: message,
     status: 'error',
     timestamp: new Date().toISOString(),
-    code,
-    ...additionalProps
+    ...additionalDetails
   };
 }
 
-// Create standardized success response
-export function createSuccessResponse(data: any) {
+// Create success response
+export function createSuccessResponse(data: Record<string, any>) {
   return {
-    ...data,
     status: 'success',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    ...data
   };
 }
 
-// Helper to safely parse JSON with fallback
-export function safeJsonParse(text: string, fallback: any = {}) {
+// Create HMAC signature for CoinPayments API requests using native crypto
+export async function createSignature(message: string, key: string): Promise<string> {
   try {
-    return JSON.parse(text);
+    console.log(`Creating HMAC signature with message length: ${message.length} characters`);
+    
+    // Convert message and key to Uint8Array
+    const encoder = new TextEncoder();
+    const messageBuffer = encoder.encode(message);
+    const keyBuffer = encoder.encode(key);
+    
+    // Import the key
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      keyBuffer,
+      { name: 'HMAC', hash: 'SHA-512' },
+      false,
+      ['sign']
+    );
+    
+    // Sign the message
+    const signature = await crypto.subtle.sign(
+      'HMAC',
+      cryptoKey,
+      messageBuffer
+    );
+    
+    // Convert to hex string
+    const hashArray = Array.from(new Uint8Array(signature));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    console.log(`Generated signature (first 10 chars): ${hashHex.substring(0, 10)}...`);
+    return hashHex;
   } catch (error) {
-    console.error('JSON parse error:', error);
-    return fallback;
+    console.error('Error generating HMAC signature:', error);
+    throw new Error(`Failed to create signature: ${error.message}`);
   }
-}
-
-// Debug helper function to log important request info
-export function logRequestDetails(req: Request, functionName: string) {
-  const headers = {};
-  req.headers.forEach((value, key) => {
-    // Don't log sensitive headers
-    if (!['authorization', 'apikey'].includes(key.toLowerCase())) {
-      headers[key] = value.substring(0, 50) + (value.length > 50 ? '...' : '');
-    } else {
-      headers[key] = 'REDACTED';
-    }
-  });
-  
-  console.log(`[${functionName}] Request details:`, {
-    method: req.method,
-    url: req.url,
-    headers: headers
-  });
 }
