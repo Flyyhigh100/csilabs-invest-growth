@@ -52,11 +52,14 @@ export const usePendingTransactions = () => {
         };
         
         // Only assign valid profile data - with proper null checking
+        // Using type guard to ensure tx.profiles is valid before checking for 'error' property
         if (tx.profiles && 
-            typeof tx.profiles === 'object' && 
-            tx.profiles !== null &&
-            !('error' in tx.profiles)) {
-          transaction.profiles = tx.profiles;
+            typeof tx.profiles === 'object') {
+          // Additional null check is redundant with the prior condition
+          // but TypeScript needs this to be confident
+          if (tx.profiles !== null && !('error' in tx.profiles)) {
+            transaction.profiles = tx.profiles;
+          }
         }
         
         return transaction;
