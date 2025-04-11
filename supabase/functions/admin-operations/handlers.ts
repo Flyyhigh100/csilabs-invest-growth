@@ -1,6 +1,6 @@
 
 import { kycOperations } from "./kyc-operations.ts";
-import { transactionOperations } from "./transaction-operations.ts";
+import { transactionOperations } from "./transactions/index.ts";
 import { userOperations } from "./user-operations.ts";
 
 export async function handleAdminOperations(action, data, user, adminClient) {
