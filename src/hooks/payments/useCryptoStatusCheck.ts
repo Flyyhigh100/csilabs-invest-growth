@@ -9,6 +9,7 @@ interface CryptoStatusCheckResult {
   updated: boolean;
   external_status?: number;
   external_status_text?: string;
+  message?: string;
   error?: string;
 }
 
@@ -38,6 +39,7 @@ export const useCryptoStatusCheck = () => {
         id: 'check-crypto-status',
       });
       
+      console.log(`Checking status for CoinPayments transaction: ${transaction.id}`);
       const { data: result, error } = await supabase.functions.invoke('check-coinpayments-status', {
         body: {
           transactionId: transaction.id
@@ -62,6 +64,8 @@ export const useCryptoStatusCheck = () => {
         return null;
       }
       
+      console.log('Status check result:', result);
+      
       // If the transaction was updated, show appropriate message
       if (result.updated) {
         if (result.status === 'completed') {
@@ -81,9 +85,16 @@ export const useCryptoStatusCheck = () => {
         };
       } else {
         if (transaction.status === 'pending') {
-          toast.info('Payment still pending', {
-            description: 'Your payment is still being processed. Please check back later.'
-          });
+          // Check the external status to provide more accurate messages
+          if (result.external_status_text) {
+            toast.info(`Payment status: ${result.external_status_text}`, {
+              description: 'Status from payment provider. The system will update automatically when completed.'
+            });
+          } else {
+            toast.info('Payment still pending', {
+              description: 'Your payment is still being processed. Please check back later.'
+            });
+          }
         }
         return transaction;
       }
@@ -95,9 +106,69 @@ export const useCryptoStatusCheck = () => {
       setIsChecking(false);
     }
   };
+
+  // New function to manually trigger a refresh for all pending transactions
+  const refreshAllPendingTransactions = async (): Promise<boolean> => {
+    try {
+      setIsChecking(true);
+      
+      toast.info('Refreshing all pending transactions...', {
+        id: 'refresh-all-crypto',
+      });
+      
+      // Get all pending coinpayments transactions for the current user
+      const { data: pendingTransactions, error: fetchError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('payment_method', 'coinpayments')
+        .eq('status', 'pending');
+        
+      if (fetchError) {
+        throw fetchError;
+      }
+      
+      if (!pendingTransactions || pendingTransactions.length === 0) {
+        toast.dismiss('refresh-all-crypto');
+        toast.info('No pending crypto transactions found');
+        return true;
+      }
+      
+      console.log(`Found ${pendingTransactions.length} pending transactions to refresh`);
+      
+      // Process each transaction
+      let updatedCount = 0;
+      for (const tx of pendingTransactions) {
+        const updated = await checkTransactionStatus(tx);
+        if (updated && updated.status !== tx.status) {
+          updatedCount++;
+        }
+      }
+      
+      toast.dismiss('refresh-all-crypto');
+      
+      if (updatedCount > 0) {
+        toast.success(`Updated ${updatedCount} transaction(s)`, {
+          description: 'Transaction statuses have been synchronized with the payment provider.'
+        });
+      } else {
+        toast.info('No changes needed', {
+          description: 'All transaction statuses are up-to-date.'
+        });
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Error refreshing transactions:', err);
+      toast.error('Failed to refresh transactions');
+      return false;
+    } finally {
+      setIsChecking(false);
+    }
+  };
   
   return {
     checkTransactionStatus,
+    refreshAllPendingTransactions,
     isChecking
   };
 };

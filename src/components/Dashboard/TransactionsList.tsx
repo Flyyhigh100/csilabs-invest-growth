@@ -10,6 +10,7 @@ import EmptyState from './Transactions/EmptyState';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Transaction } from '@/types/transactions';
+import RefreshCryptoTransactionsButton from './Transactions/RefreshCryptoTransactionsButton';
 
 const TransactionsList = () => {
   const { user } = useAuth();
@@ -33,6 +34,11 @@ const TransactionsList = () => {
       refetch();
     }
   };
+
+  // Check if there are any pending crypto transactions
+  const hasPendingCrypto = transactions?.some(
+    tx => tx.payment_method === 'coinpayments' && tx.status === 'pending'
+  );
   
   if (isLoading) {
     return <LoadingState />;
@@ -48,7 +54,15 @@ const TransactionsList = () => {
   
   return (
     <div className="space-y-4">
-      <div className="flex justify-end mb-2">
+      <div className="flex justify-between items-center mb-2">
+        <div>
+          {hasPendingCrypto && (
+            <RefreshCryptoTransactionsButton
+              onRefreshComplete={refetch}
+              size="sm"
+            />
+          )}
+        </div>
         <Button 
           variant="ghost" 
           size="sm" 

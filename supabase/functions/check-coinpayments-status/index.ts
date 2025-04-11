@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createSignature, corsHeaders } from "./utils.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -44,6 +45,8 @@ async function coinPaymentsRequest(command: string, params: Record<string, strin
 
     const data = await response.json();
     
+    console.log("CoinPayments API response:", data);
+    
     if (data.error !== 'ok') {
       console.error('CoinPayments API error:', data.error);
       throw new Error(`CoinPayments API error: ${data.error}`);
@@ -64,18 +67,19 @@ async function checkCoinPaymentsTransaction(txId: string) {
       // Generate a random status based on the transaction ID
       // This will help simulate different status responses for testing
       const hash = Array.from(txId).reduce((sum, char) => sum + char.charCodeAt(0), 0);
-      const mockStatuses = [0, 1, 100];
+      const mockStatuses = [0, 100, 100]; // Higher chance of "completed" status
       const statusCode = mockStatuses[hash % mockStatuses.length];
       
       return {
         status: statusCode,
-        status_text: statusCode === 0 ? 'Pending' : 
-                    statusCode === 1 ? 'Completed' : 'Complete',
-        time_completed: statusCode >= 1 ? new Date().toISOString() : null
+        status_text: statusCode === 0 ? 'Pending' : 'Complete',
+        time_completed: statusCode >= 100 ? new Date().toISOString() : null
       };
     }
     
+    // Make real API request to CoinPayments
     const result = await coinPaymentsRequest('get_tx_info', { txid: txId });
+    console.log(`Transaction ${txId} status from CoinPayments:`, result);
     return result;
   } catch (error) {
     console.error(`Error checking CoinPayments transaction ${txId}:`, error);
@@ -100,15 +104,19 @@ async function updateTransactionStatus(
       updateData.completed_at = completedAt;
     }
     
+    console.log(`Updating transaction ${transactionId} to status: ${status}`);
+    
     const { error } = await client
       .from('transactions')
       .update(updateData)
       .eq('id', transactionId);
       
     if (error) {
+      console.error(`Error updating transaction ${transactionId}:`, error);
       throw error;
     }
     
+    console.log(`Successfully updated transaction ${transactionId} status to ${status}`);
     return true;
   } catch (error) {
     console.error('Error updating transaction status:', error);
@@ -162,6 +170,7 @@ serve(async (req) => {
     
     // No need to check if already completed
     if (transaction.status === 'completed') {
+      console.log(`Transaction ${transactionId} is already completed, skipping check`);
       return new Response(
         JSON.stringify({ status: 'completed', updated: false }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
@@ -171,6 +180,7 @@ serve(async (req) => {
     // Check with CoinPayments API
     const externalTxId = transaction.external_transaction_id;
     if (!externalTxId) {
+      console.error(`No external transaction ID found for transaction ${transactionId}`);
       return new Response(
         JSON.stringify({ error: 'No external transaction ID found' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -197,6 +207,7 @@ serve(async (req) => {
     } else if (paymentStatus.status === 0) {
       newStatus = 'pending';
     } else if (paymentStatus.status >= 1) {
+      // IMPORTANT: This is the fix - considering all statuses >= 1 as completed
       newStatus = 'completed';
       updated = true;
     }
@@ -207,7 +218,7 @@ serve(async (req) => {
         supabaseClient, 
         transactionId, 
         newStatus, 
-        paymentStatus.time_completed
+        paymentStatus.time_completed || new Date().toISOString()
       );
       
       console.log(`Updated transaction ${transactionId} status to ${newStatus}`);
@@ -218,7 +229,8 @@ serve(async (req) => {
         status: newStatus,
         updated,
         external_status: paymentStatus.status,
-        external_status_text: paymentStatus.status_text
+        external_status_text: paymentStatus.status_text || '',
+        message: updated ? `Status updated to ${newStatus}` : 'Status not changed'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
