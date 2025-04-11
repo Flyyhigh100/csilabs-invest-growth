@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -31,13 +30,16 @@ async function verifyIpnHmac(request: Request, ipnSecret: string): Promise<boole
     const clonedRequest = request.clone();
     const bodyText = await clonedRequest.text();
     
-    // TODO: Implement actual HMAC verification logic
     // For now, just log the information for debugging
     console.log('IPN Secret:', ipnSecret);
     console.log('HMAC Header:', hmacHeader);
     console.log('Request Body for HMAC verification:', bodyText);
     
-    // Return true for now to allow testing - we'll update this with actual verification logic
+    // In production, we would implement proper HMAC verification here
+    // For debugging purposes, we're accepting all IPNs for now
+    // but keeping a detailed log for analysis
+    
+    // Return true to allow processing while we debug
     return true;
   } catch (error) {
     console.error('Error verifying IPN HMAC:', error);
@@ -101,7 +103,14 @@ async function updateTransactionStatus(
 }
 
 // Log IPN data to a dedicated log table for debugging
-async function logIpnData(client: any, ipnData: any, isValid: boolean, responseStatus: string) {
+async function logIpnData(
+  client: any, 
+  ipnData: any, 
+  isValid: boolean, 
+  responseStatus: string,
+  hmacHeader?: string,
+  requestBody?: string
+) {
   try {
     const { error } = await client
       .from('ipn_logs')
@@ -111,7 +120,9 @@ async function logIpnData(client: any, ipnData: any, isValid: boolean, responseS
         is_valid: isValid,
         response_status: responseStatus,
         txn_id: ipnData.txn_id || null,
-        status: ipnData.status || null
+        status: ipnData.status || null,
+        hmac_header: hmacHeader || null,
+        request_body: requestBody || null
       });
       
     if (error) {
@@ -144,9 +155,13 @@ serve(async (req) => {
     
     // Clone request to use body multiple times
     const clonedReq = req.clone();
+    const clonedReqForBody = req.clone();
+    
+    // Get raw body for HMAC verification logging
+    const rawBody = await clonedReqForBody.text();
     
     // Parse IPN data
-    const ipnData = await req.formData();
+    const ipnData = await clonedReq.formData();
     const ipnDataObj: Record<string, any> = {};
     
     // Convert FormData to object and log all fields
@@ -157,8 +172,11 @@ serve(async (req) => {
     console.log('Received CoinPayments IPN data:', ipnDataObj);
     console.log('Raw headers:', Object.fromEntries(req.headers.entries()));
     
+    // Get HMAC header for logging
+    const hmacHeader = req.headers.get('HMAC') || '';
+    
     // Verify IPN HMAC signature
-    const isValid = await verifyIpnHmac(clonedReq, ipnSecret);
+    const isValid = await verifyIpnHmac(req.clone(), ipnSecret);
     console.log('IPN HMAC validation result:', isValid ? 'Valid' : 'Invalid');
     
     // Check for required IPN fields
@@ -166,7 +184,14 @@ serve(async (req) => {
       console.error('Missing required IPN fields');
       
       // Log the invalid IPN
-      await logIpnData(supabaseClient, ipnDataObj, false, 'Missing required fields');
+      await logIpnData(
+        supabaseClient, 
+        ipnDataObj, 
+        false, 
+        'Missing required fields',
+        hmacHeader,
+        rawBody
+      );
       
       return new Response('Missing required IPN fields', {
         headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
@@ -181,6 +206,13 @@ serve(async (req) => {
       let transactionStatus = 'pending';
       
       // Map CoinPayments status to our status format
+      // Status codes: https://www.coinpayments.net/merchant-tools-ipn
+      // -1 = Error/canceled
+      // 0 = Pending
+      // 1 = Partial payment received
+      // 2 = Complete
+      // 3 = Confirmed (3+ confirmations)
+      // 100 = Complete/Confirmed
       if (ipnStatus < 0) {
         transactionStatus = 'failed';
       } else if (ipnStatus === 0) {
@@ -208,7 +240,9 @@ serve(async (req) => {
       supabaseClient,
       ipnDataObj,
       isValid,
-      isValid ? 'Processed' : 'Invalid HMAC'
+      isValid ? 'Processed' : 'Invalid HMAC',
+      hmacHeader,
+      rawBody
     );
     
     // Return proper response based on validation
@@ -226,6 +260,21 @@ serve(async (req) => {
     
   } catch (error) {
     console.error('Error processing CoinPayments IPN:', error);
+    
+    // Try to log the error
+    try {
+      const supabaseClient = createSupabaseClient();
+      await logIpnData(
+        supabaseClient,
+        { error: error.message || 'Unknown error' },
+        false,
+        'Exception during processing',
+        req.headers.get('HMAC') || 'unknown',
+        'Error: Could not parse body'
+      );
+    } catch (logError) {
+      console.error('Failed to log IPN error:', logError);
+    }
     
     return new Response(
       JSON.stringify({ error: 'Error processing IPN' }),

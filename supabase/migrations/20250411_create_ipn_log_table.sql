@@ -8,6 +8,8 @@ CREATE TABLE public.ipn_logs (
   raw_data JSONB NOT NULL,
   is_valid BOOLEAN NOT NULL,
   response_status TEXT,
+  hmac_header TEXT, -- Store HMAC header for verification debugging
+  request_body TEXT, -- Store raw request body for verification debugging
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
@@ -20,6 +22,10 @@ CREATE POLICY "Only admins can view IPN logs"
   FOR SELECT 
   USING (public.is_admin());
 
--- Update our check-coinpayments-status function to also check IPN status
--- For existing check-coinpayments-status we can improve the status handling:
--- ALTER TABLE public.ipn_logs REPLICA IDENTITY FULL;
+-- Enable replica identity to support realtime
+ALTER TABLE public.ipn_logs REPLICA IDENTITY FULL;
+
+-- Add the ipn_logs table to the realtime publication
+INSERT INTO supabase_realtime.subscription (publication, name)
+VALUES ('supabase_realtime', 'ipn_logs') 
+ON CONFLICT DO NOTHING;

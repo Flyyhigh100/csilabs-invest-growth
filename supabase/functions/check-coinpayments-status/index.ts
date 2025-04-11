@@ -124,6 +124,40 @@ async function updateTransactionStatus(
   }
 }
 
+// Log status check to the ipn_logs table
+async function logStatusCheck(
+  client: any,
+  transactionId: string,
+  externalTxId: string,
+  paymentStatus: any,
+  newStatus: string,
+  updated: boolean,
+  forceUpdate: boolean
+) {
+  try {
+    await client
+      .from('ipn_logs')
+      .insert({
+        provider: 'coinpayments_status_check',
+        txn_id: externalTxId,
+        status: newStatus,
+        raw_data: {
+          transaction_id: transactionId,
+          external_transaction_id: externalTxId,
+          payment_status: paymentStatus,
+          new_status: newStatus,
+          updated: updated,
+          force_update: forceUpdate
+        },
+        is_valid: true,
+        response_status: updated ? 'Updated' : 'No change needed'
+      });
+  } catch (error) {
+    console.error('Error logging status check:', error);
+    // Don't throw, just log the error
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -211,6 +245,17 @@ serve(async (req) => {
       newStatus = 'completed';
       updated = true;
     }
+    
+    // Log the status check regardless of the outcome
+    await logStatusCheck(
+      supabaseClient,
+      transactionId,
+      externalTxId,
+      paymentStatus,
+      newStatus,
+      (updated && newStatus !== transaction.status) || forceUpdate,
+      !!forceUpdate
+    );
     
     // Update transaction if status changed or force update requested
     if ((updated && newStatus !== transaction.status) || forceUpdate) {
