@@ -62,7 +62,12 @@ export async function logIpnRequest(request: Request): Promise<any> {
         request_body: rawBody,
         verification_status: 'pending',
         request_headers: JSON.stringify(Object.fromEntries(request.headers)),
-        source_ip: request.headers.get('x-forwarded-for') || 'unknown'
+        source_ip: request.headers.get('x-forwarded-for') || 'unknown',
+        processing_status: 'received',
+        timestamp: new Date().toISOString(),
+        error_category: null,
+        error_message: null,
+        received_at: new Date().toISOString()
       })
       .select()
       .single();

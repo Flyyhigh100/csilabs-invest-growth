@@ -1,30 +1,44 @@
 
-// Map CoinPayments status codes to our internal status
+// Map CoinPayments numeric status codes to our internal status strings
 export function mapCoinPaymentsStatus(statusCode: number): string {
-  // Status codes: https://www.coinpayments.net/merchant-tools-ipn
-  // -1 = Error/canceled
+  // CoinPayments Status Codes:
+  // -2 = Refunded/Cancelled
+  // -1 = Cancelled or Timed Out
   // 0 = Pending
-  // 1 = Payment received (partial or complete payment) - Important: This should be mapped to 'completed'
-  // 2 = Complete (Pay exact confirmed, usually standard) 
-  // 3 = Confirmed (3+ confirmations)
-  // 100 = Complete/Confirmed
+  // 1 = Waiting for confirmation (~10 minutes)
+  // 2+ = Confirmed (# is the number of confirmations)
+  // 100+ = Completed (fully confirmed per coin requirements)
   
-  console.log(`IPN webhook mapping status code: ${statusCode}`);
-  
-  switch (statusCode) {
-    case -1:
-      return 'failed';
-    case 0:
-      return 'pending';
-    case 1:
-      // CRITICAL: Status 1 means payment received - this should be marked as completed!
-      return 'completed';
-    case 2:
-    case 3:
-    case 100:
-      return 'completed';
-    default:
-      console.warn(`Unknown CoinPayments status code: ${statusCode}, defaulting to pending`);
-      return 'pending';
+  if (statusCode < 0) {
+    // Any negative status indicates a failed transaction
+    return 'failed';
+  } else if (statusCode === 0) {
+    // Status 0 means pending (not yet detected on blockchain)
+    return 'pending';
+  } else if (statusCode >= 100) {
+    // Status 100+ means fully confirmed and complete
+    return 'completed';
+  } else if (statusCode >= 1) {
+    // Status 1+ means it's confirmed but waiting for more confirmations
+    return 'confirmed';
+  } else {
+    // Fallback for unexpected status codes
+    console.warn(`Unknown CoinPayments status code: ${statusCode}, falling back to 'pending'`);
+    return 'pending';
+  }
+}
+
+// Get a human-readable description for the status
+export function getStatusDescription(statusCode: number): string {
+  if (statusCode < 0) {
+    return statusCode === -1 ? 'Transaction cancelled' : 'Transaction refunded';
+  } else if (statusCode === 0) {
+    return 'Waiting for payment';
+  } else if (statusCode >= 100) {
+    return 'Payment complete';
+  } else if (statusCode >= 1) {
+    return `Confirming payment (${statusCode} confirmations)`;
+  } else {
+    return 'Unknown status';
   }
 }
