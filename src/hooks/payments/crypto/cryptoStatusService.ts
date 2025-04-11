@@ -25,7 +25,7 @@ export async function checkCryptoPaymentStatus(
       let errorMessage = error.message || 'Edge function error. Please try again later';
       
       // Parse the error to check if it's a CoinPayments API issue
-      if (errorMessage.includes('API call to CoinPayments failed')) {
+      if (typeof error.message === 'string' && error.message.includes('API call to CoinPayments failed')) {
         errorMessage = 'CoinPayments API error. Your API keys may be invalid or have insufficient permissions.';
       }
       
@@ -52,6 +52,16 @@ export async function checkCryptoPaymentStatus(
     
     if (result.error) {
       console.error('Error in status check result:', result.error);
+      
+      // Check if transaction not found
+      if (result.error === 'Transaction not found') {
+        return {
+          error: 'Transaction not found in the database. Please refresh the page.',
+          status: 'error',
+          updated: false,
+          transaction_not_found: true
+        };
+      }
       
       // Check if this is an API key issue
       if (result.error.includes('API') && 

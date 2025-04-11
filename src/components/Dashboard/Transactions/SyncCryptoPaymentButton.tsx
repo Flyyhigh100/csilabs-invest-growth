@@ -72,11 +72,15 @@ const SyncCryptoPaymentButton = ({
       }
       
       if (!updatedTransaction) {
-        toast.error("Failed to update transaction status");
+        toast.error("Failed to update transaction status", {
+          description: "Please try again or contact support if the issue persists."
+        });
       }
     } catch (error) {
       console.error("Error checking payment status:", error);
-      toast.error("Failed to check payment status");
+      toast.error("Failed to check payment status", {
+        description: "There was an error communicating with the payment provider."
+      });
     } finally {
       setLocalIsChecking(false);
     }

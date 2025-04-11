@@ -9,6 +9,23 @@ import { supabase } from '@/integrations/supabase/client';
 export const useCryptoStatusCheck = () => {
   const [isChecking, setIsChecking] = useState(false);
 
+  // Show detailed error message
+  const handleStatusCheckError = (error: string) => {
+    if (error.includes('Transaction not found')) {
+      toast.error("Transaction not found", {
+        description: "This transaction was not found in our database. Please refresh the page."
+      });
+    } else if (error.includes('API key')) {
+      toast.error("API Key Issue", {
+        description: "There's a problem with the CoinPayments API keys. Please contact support."
+      });
+    } else {
+      toast.error(`Error: ${error}`, {
+        description: "Failed to check payment status. Please try again later."
+      });
+    }
+  };
+
   const checkTransactionStatus = async (transaction: Transaction): Promise<Transaction | null> => {
     if (!transaction || !transaction.id) {
       toast.error('Invalid transaction');
@@ -43,7 +60,7 @@ export const useCryptoStatusCheck = () => {
       toast.dismiss('check-crypto-status');
       
       if (result.error) {
-        toast.error(`Status check error: ${result.error}`);
+        handleStatusCheckError(result.error);
         return null;
       }
       
@@ -190,7 +207,7 @@ export const useCryptoStatusCheck = () => {
       toast.dismiss('force-update-crypto');
       
       if (result.error) {
-        toast.error(`Update error: ${result.error}`);
+        handleStatusCheckError(result.error);
         return null;
       }
       
