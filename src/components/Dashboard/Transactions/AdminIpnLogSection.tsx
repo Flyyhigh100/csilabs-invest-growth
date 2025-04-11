@@ -1,6 +1,6 @@
 
 import React from 'react';
-import IPNLogViewer from './IPNLogViewer';
+import IPNLogViewer from './IPNLogs/IPNLogViewer';
 
 const AdminIpnLogSection = () => {
   return (
