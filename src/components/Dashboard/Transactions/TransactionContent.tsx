@@ -1,16 +1,19 @@
+
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
 import TransactionList from './TransactionList';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, ShieldAlert, Info } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import EmptyState from '../EmptyState';
 import { useCryptoStatusCheck } from '@/hooks/payments/crypto';
-import IPNLogViewer from './IPNLogViewer';
+import { Info } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import TransactionLoadingState from './TransactionLoadingState';
+import TransactionErrorState from './TransactionErrorState';
+import KycRequiredAlert from './KycRequiredAlert';
+import AdminControls from './AdminControls';
+import AdminIpnLogSection from './AdminIpnLogSection';
 
 interface TransactionContentProps {
   isKycApproved: boolean;
@@ -25,6 +28,7 @@ const TransactionContent = ({
   const [isAdminView, setIsAdminView] = useState(false);
   const { refreshAllPendingTransactions } = useCryptoStatusCheck();
 
+  // Check if the user is an admin
   const { data: isAdmin, isLoading: isAdminChecking } = useQuery({
     queryKey: ['is-admin', user?.id],
     queryFn: async () => {
@@ -43,13 +47,14 @@ const TransactionContent = ({
     enabled: !!user
   });
 
+  // Fetch transactions
   const {
     data: transactions,
     isLoading,
     error,
     refetch
   } = useQuery({
-    queryKey: ['transactions', user?.id],
+    queryKey: ['transactions', user?.id, isAdminView],
     queryFn: async () => {
       if (!user) return [];
       
@@ -75,6 +80,7 @@ const TransactionContent = ({
     enabled: !!user
   });
 
+  // Set up real-time updates
   useEffect(() => {
     if (!user) return;
     
@@ -98,6 +104,7 @@ const TransactionContent = ({
     };
   }, [user, refetch, isAdminView, isAdmin]);
 
+  // Event handlers
   const handleRefreshAll = async () => {
     await refreshAllPendingTransactions(true);
     refetch();
@@ -111,40 +118,22 @@ const TransactionContent = ({
     setIsAdminView(prev => !prev);
   };
 
+  // Loading state
   if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="w-full h-[60px]" />
-        <Skeleton className="w-full h-[60px]" />
-        <Skeleton className="w-full h-[60px]" />
-      </div>
-    );
+    return <TransactionLoadingState />;
   }
 
+  // Error state
   if (error) {
-    return (
-      <Alert variant="destructive" className="mb-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-          Failed to load transactions. Please try again later.
-        </AlertDescription>
-      </Alert>
-    );
+    return <TransactionErrorState />;
   }
 
+  // KYC check
   if (!isKycApproved && !allowTransactionsWithoutKYC) {
-    return (
-      <Alert className="mb-4 border-amber-200 bg-amber-50">
-        <ShieldAlert className="h-4 w-4 text-amber-600" />
-        <AlertTitle className="text-amber-800">KYC Required</AlertTitle>
-        <AlertDescription className="text-amber-700">
-          You need to complete KYC verification before making transactions.
-        </AlertDescription>
-      </Alert>
-    );
+    return <KycRequiredAlert />;
   }
   
+  // Empty state
   if (!transactions || transactions.length === 0) {
     return (
       <EmptyState 
@@ -163,26 +152,15 @@ const TransactionContent = ({
     );
   }
 
+  // Main content
   return (
     <div className="space-y-6">
       {isAdmin && (
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleAdminView}
-          >
-            {isAdminView ? 'Show My Transactions' : 'Show All Transactions (Admin)'}
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefreshAll}
-          >
-            Refresh All Pending Transactions
-          </Button>
-        </div>
+        <AdminControls 
+          isAdminView={isAdminView}
+          toggleAdminView={toggleAdminView}
+          handleRefreshAll={handleRefreshAll}
+        />
       )}
 
       <TransactionList 
@@ -191,12 +169,7 @@ const TransactionContent = ({
         onTransactionUpdated={handleTransactionUpdated}
       />
       
-      {isAdmin && (
-        <div className="mt-8 border-t pt-6">
-          <h3 className="text-lg font-semibold mb-4">IPN Log Viewer (Admin)</h3>
-          <IPNLogViewer />
-        </div>
-      )}
+      {isAdmin && <AdminIpnLogSection />}
     </div>
   );
 };
