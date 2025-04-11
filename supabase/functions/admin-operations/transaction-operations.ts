@@ -1,3 +1,4 @@
+
 export const transactionOperations = {
   async markTokensSent({ transactionId, blockchainTxId }, adminClient) {
     console.log(`Marking transaction ${transactionId} as sent with blockchain TX: ${blockchainTxId}`);
@@ -166,7 +167,7 @@ export const transactionOperations = {
     }
   },
 
-  // New function to manually update transaction status to completed
+  // Update this function to handle cases where completed_at column might not exist
   async manuallyCompleteTransaction({ transactionId, externalTransactionId }, adminClient) {
     console.log(`Manually completing transaction with CoinPayments ID: ${externalTransactionId}`);
     
@@ -215,20 +216,52 @@ export const transactionOperations = {
       console.log(`Found transaction ${transaction.id} with current status: ${transaction.status}`);
       
       // Update the transaction status to completed
+      // Create update object with required fields
+      const updateData = {
+        status: "completed",
+        updated_at: new Date().toISOString()
+      };
+      
+      // Add completed_at if possible (in a try/catch to handle missing column case)
+      try {
+        updateData.completed_at = new Date().toISOString();
+      } catch (e) {
+        console.log("Note: 'completed_at' column may not exist yet, continuing without it");
+      }
+      
       const { data: updatedTransaction, error: updateError } = await adminClient
         .from("transactions")
-        .update({
-          status: "completed",
-          updated_at: new Date().toISOString(),
-          completed_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq("id", transaction.id)
         .select()
         .single();
       
       if (updateError) {
         console.error("Error updating transaction status:", updateError);
-        throw updateError;
+        
+        // If the error is specifically about the completed_at column, try again without it
+        if (updateError.message && updateError.message.includes('completed_at')) {
+          console.log("Retrying update without completed_at field");
+          
+          const { data: retryTransaction, error: retryError } = await adminClient
+            .from("transactions")
+            .update({
+              status: "completed",
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", transaction.id)
+            .select()
+            .single();
+            
+          if (retryError) {
+            console.error("Error in retry update:", retryError);
+            throw retryError;
+          }
+          
+          updatedTransaction = retryTransaction;
+        } else {
+          throw updateError;
+        }
       }
       
       console.log(`Successfully updated transaction ${transaction.id} status to completed`);

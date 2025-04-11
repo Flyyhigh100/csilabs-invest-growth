@@ -24,8 +24,13 @@ export async function updateTransactionStatus(
         updated_at: new Date().toISOString()
       };
       
+      // Only try to set completed_at if it was provided
       if (completedAt) {
-        updateData.completed_at = completedAt;
+        try {
+          updateData.completed_at = completedAt;
+        } catch (e) {
+          console.log("Note: completed_at column may not exist yet, continuing without it");
+        }
       }
       
       // First, find the transaction by external_transaction_id
@@ -46,13 +51,28 @@ export async function updateTransactionStatus(
       
       // Only update if status has changed or forcing an update from status 1 or 100
       if (transaction.status !== status || (ipnStatus === 1 || ipnStatus >= 100)) {
-        const { error: updateError } = await client
+        // Try update with the current data
+        let updateResult = await client
           .from('transactions')
           .update(updateData)
           .eq('id', transaction.id);
           
-        if (updateError) {
-          console.error(`Error updating transaction ${transaction.id}:`, updateError);
+        // If there was an error and it mentions completed_at, retry without that field
+        if (updateResult.error && updateResult.error.message && 
+            updateResult.error.message.includes('completed_at')) {
+          
+          console.log("Error with completed_at field, retrying without it");
+          delete updateData.completed_at;
+          
+          updateResult = await client
+            .from('transactions')
+            .update(updateData)
+            .eq('id', transaction.id);
+        }
+        
+        // Check final result
+        if (updateResult.error) {
+          console.error(`Error updating transaction ${transaction.id}:`, updateResult.error);
           retries++;
           if (retries < maxRetries) await new Promise(r => setTimeout(r, 1000 * retries)); // Exponential backoff
           continue;
