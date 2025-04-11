@@ -31,13 +31,17 @@ interface IPNLog {
   is_valid: boolean;
   response_status: string | null;
   created_at: string;
+  hmac_header?: string | null;
+  request_body?: string | null;
 }
 
 const IPNLogs = () => {
   const { data: logs, isLoading, error } = useQuery({
     queryKey: ['ipn-logs'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Use type casting to work around the TypeScript limitation
+      // since ipn_logs table exists in the database but isn't in the TypeScript types yet
+      const { data, error } = await (supabase as any)
         .from('ipn_logs')
         .select('*')
         .order('created_at', { ascending: false })

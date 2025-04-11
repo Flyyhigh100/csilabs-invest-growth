@@ -9,7 +9,7 @@ const AdminTransactions = lazy(() => import('@/pages/Admin/Transactions'));
 const AdminUsers = lazy(() => import('@/pages/Admin/Users'));
 const AdminSettings = lazy(() => import('@/pages/Admin/Settings'));
 const AdminNotifications = lazy(() => import('@/pages/Admin/Notifications'));
-const AdminKYC = lazy(() => import('@/pages/Admin/KYC'));
+const AdminKYC = lazy(() => import('@/components/Admin/KYC'));
 const AdminIPNLogs = lazy(() => import('@/pages/Admin/IPNLogs'));
 
 export const adminRoutes = [
