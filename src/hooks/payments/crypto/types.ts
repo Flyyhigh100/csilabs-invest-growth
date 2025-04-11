@@ -1,13 +1,21 @@
 
+export interface CryptoPaymentDetails {
+  paymentAddress?: string;
+  transactionId?: string;
+  instructions?: string;
+  qrCodeUrl?: string;
+  statusUrl?: string;
+  expiresAt?: string;
+  externalTransactionId?: string;
+  currency?: string;
+  checkStatusUrl?: string;
+}
+
 export interface CryptoStatusCheckResult {
+  error?: string;
   status: string;
   updated: boolean;
   external_status?: number;
   external_status_text?: string;
-  message?: string;
-  error?: string;
-}
-
-export interface TransactionStatusOptions {
-  forceUpdate?: boolean;
+  transaction?: any;
 }

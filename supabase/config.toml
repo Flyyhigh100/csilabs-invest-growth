@@ -50,6 +50,8 @@ verify_jwt = false
 [functions.coinpayments-ipn-webhook]
 verify_jwt = false
 
-# Explicitly add check-coinpayments-status function configuration
+# Register the check-coinpayments-status function to fix deployment issues
+# This function requires authentication since it accesses sensitive payment data
 [functions.check-coinpayments-status]
 verify_jwt = true
+
