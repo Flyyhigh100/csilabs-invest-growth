@@ -51,9 +51,10 @@ export const usePendingTransactions = () => {
           profiles: null // Default to null, will override if valid
         };
         
-        // Only assign valid profile data
+        // Only assign valid profile data - with proper null checking
         if (tx.profiles && 
             typeof tx.profiles === 'object' && 
+            tx.profiles !== null &&
             !('error' in tx.profiles)) {
           transaction.profiles = tx.profiles;
         }
