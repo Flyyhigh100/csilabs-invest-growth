@@ -7,9 +7,25 @@ import { AuthContextType } from '@/hooks/auth/types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Mock navigate function for when we're outside of Router context (like in tests)
+const mockNavigate = () => {
+  console.warn('Navigation attempted outside Router context');
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const navigate = useNavigate();
-  const location = useLocation();
+  // Safe access to router hooks with fallbacks for testing environments
+  let navigate;
+  let location;
+  
+  try {
+    navigate = useNavigate();
+    location = useLocation();
+  } catch (error) {
+    // Provide fallbacks when outside Router context
+    console.warn('AuthProvider rendered outside Router context, navigation will be disabled');
+    navigate = mockNavigate;
+    location = { pathname: '/', search: '', hash: '', state: null, key: 'default' };
+  }
   
   const { session, user, loading, refreshSession } = useSessionManagement();
   const { signIn, signUp, signOut, resetPassword } = useAuthOperations();

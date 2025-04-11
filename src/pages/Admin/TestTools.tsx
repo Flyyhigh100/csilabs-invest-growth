@@ -1,8 +1,8 @@
 
 import React from 'react';
 import AdminLayout from '@/components/Admin/Layout';
-// Fix casing to match actual file
-import TestIpnForm from '@/components/Admin/TestIpnForm';
+// Fix the casing to match the actual file name
+import TestIPNForm from '@/components/Admin/TestIPNForm';
 
 const TestToolsPage: React.FC = () => {
   return (
@@ -12,7 +12,7 @@ const TestToolsPage: React.FC = () => {
           Tools for testing and troubleshooting payment integrations.
         </p>
 
-        <TestIpnForm />
+        <TestIPNForm />
       </div>
     </AdminLayout>
   );

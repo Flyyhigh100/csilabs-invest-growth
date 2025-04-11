@@ -2,7 +2,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider } from './components/theme-provider';
+import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from 'sonner';
 import { NavbarContextProvider } from './contexts/NavbarContext';
@@ -13,6 +13,11 @@ import AdminRoute from './components/AdminRoute';
 import GlobalLoading from './components/GlobalLoading';
 
 // Import pages
+import Index from './pages/Index';
+import Login from './pages/Auth/Login';
+import Register from './pages/Auth/Register';
+import ForgotPassword from './pages/Auth/ForgotPassword';
+import ResetPassword from './pages/Auth/ResetPassword';
 import NotFound from './pages/NotFound';
 import TestToolsPage from './pages/Admin/TestTools';
 
@@ -21,18 +26,18 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        {/* Move Router component before AuthProvider */}
-        <Router>
+      <Router>
+        <ThemeProvider>
           <AuthProvider>
             <NavbarContextProvider>
               <GlobalLoading />
               <Routes>
-                {/* Public Routes - Using dummy placeholders for now */}
-                <Route path="/" element={<div>Home Page</div>} />
-                <Route path="/login" element={<div>Login Page</div>} />
-                <Route path="/register" element={<div>Register Page</div>} />
-                <Route path="/reset-password" element={<div>Reset Password Page</div>} />
+                {/* Public Routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 
                 {/* Protected Routes */}
                 <Route element={<ProtectedRoute />}>
@@ -60,8 +65,8 @@ function App() {
               <Toaster position="top-right" richColors />
             </NavbarContextProvider>
           </AuthProvider>
-        </Router>
-      </ThemeProvider>
+        </ThemeProvider>
+      </Router>
     </QueryClientProvider>
   );
 }
