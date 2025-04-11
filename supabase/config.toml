@@ -1,5 +1,4 @@
 
-# project_id should remain as the first line in the file so tools can easily identify it
 project_id = "hrhvliqkmetcdphnetxb"
 
 [api]
@@ -9,18 +8,6 @@ schemas = ["public", "storage", "graphql_public"]
 
 [db]
 port = 54322
-shadow_port = 54320
-major_version = 15
-
-[db.pooler]
-enabled = false
-port = 54329
-pool_mode = "transaction"
-default_pool_size = 20
-max_client_conn = 100
-
-[realtime]
-enabled = true
 
 [studio]
 enabled = true
@@ -36,38 +23,21 @@ enabled = true
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
+site_url = "http://localhost:5173"
 
-[auth.email]
+[realtime]
 enabled = true
-double_confirm_changes = true
-double_confirm_changes_email_token_null = false
 
 [analytics]
 enabled = false
-port = 54327
 
-[functions]
-[functions.admin-operations]
-verify_jwt = true
+# [functions.admin-operations]
+# verify_jwt = true
 
-[functions.check-coinpayments-status]
-verify_jwt = true
+# [functions.create-stripe-checkout]
+# verify_jwt = true
 
-[functions.create-coinpayments-payment]
-verify_jwt = true
-
-[functions.create-crypto-payment]
-verify_jwt = true
-
-[functions.create-stripe-checkout]
-verify_jwt = true
-
-[functions.stripe-webhooks]
-verify_jwt = false
-
-[functions.verify-stripe-payment]
-verify_jwt = true
-
-[functions.coinpayments-ipn-webhook]
+# Edge function config for simulating IPN webhooks in test environment
+# This makes the endpoint public (no auth required) for testing purposes
+[functions.test-ipn-webhook]
 verify_jwt = false
