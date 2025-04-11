@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Copy, ExternalLink, CheckCircle2, Clock, Link } from 'lucide-react';
+import { Copy, ExternalLink, CheckCircle2, Clock, Link, CircleDollarSign } from 'lucide-react';
 import { Transaction } from '@/types/transactions';
 import {
   Tooltip,
