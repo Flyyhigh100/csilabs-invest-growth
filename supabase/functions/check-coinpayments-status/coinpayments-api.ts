@@ -8,6 +8,7 @@ const COINPAYMENTS_PRIVATE_KEY = Deno.env.get('COINPAYMENTS_PRIVATE_KEY');
 // Helper function to make CoinPayments API request
 export async function coinPaymentsRequest(command: string, params: Record<string, string>) {
   if (!COINPAYMENTS_PUBLIC_KEY || !COINPAYMENTS_PRIVATE_KEY) {
+    console.error('CoinPayments API keys are not configured');
     throw new Error('CoinPayments API keys are not configured');
   }
 
@@ -22,6 +23,7 @@ export async function coinPaymentsRequest(command: string, params: Record<string
   const hmacSig = await createSignature(requestParams, COINPAYMENTS_PRIVATE_KEY);
 
   console.log(`Making CoinPayments API request for command: ${command}`);
+  console.log(`Request params (excluding credentials): cmd=${command}, version=1, format=json, ${Object.keys(params).join(', ')}`);
   
   try {
     const response = await fetch(COINPAYMENTS_API_URL, {
@@ -33,9 +35,14 @@ export async function coinPaymentsRequest(command: string, params: Record<string
       body: new URLSearchParams(requestParams),
     });
 
+    if (!response.ok) {
+      console.error(`CoinPayments API HTTP error: ${response.status} ${response.statusText}`);
+      throw new Error(`CoinPayments API HTTP error: ${response.status}`);
+    }
+
     const data = await response.json();
     
-    console.log("CoinPayments API response:", JSON.stringify(data));
+    console.log(`CoinPayments API response for ${command}: ${JSON.stringify(data)}`);
     
     if (data.error !== 'ok') {
       console.error('CoinPayments API error:', data.error);
@@ -44,7 +51,7 @@ export async function coinPaymentsRequest(command: string, params: Record<string
 
     return data.result;
   } catch (error) {
-    console.error('Error in API request:', error);
+    console.error('Error in CoinPayments API request:', error);
     throw error;
   }
 }
@@ -118,7 +125,12 @@ export async function checkCoinPaymentsTransaction(txId: string) {
     return result;
   } catch (error) {
     console.error(`Error checking CoinPayments transaction ${txId}:`, error);
-    throw error;
+    // Return a error status object instead of throwing to avoid breaking the transaction flow
+    return {
+      status: -1,
+      status_text: `Error: ${error.message || 'Failed to check status'}`,
+      error: true
+    };
   }
 }
 

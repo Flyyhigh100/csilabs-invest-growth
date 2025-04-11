@@ -33,10 +33,19 @@ export const useCryptoStatusCheck = () => {
         id: "check-crypto-status",
       });
       
+      console.log(`Initiating status check for transaction ${transaction.id}`);
+      
       // Get status from API
       const result = await checkCryptoPaymentStatus(transaction.id);
       
+      console.log(`Status check result for ${transaction.id}:`, result);
+      
       toast.dismiss('check-crypto-status');
+      
+      if (result.error) {
+        toast.error(`Status check error: ${result.error}`);
+        return null;
+      }
       
       // Update and return transaction with new status info
       const updatedTransaction = mapTransactionStatus(transaction, result);
@@ -99,6 +108,8 @@ export const useCryptoStatusCheck = () => {
       
       // Process each transaction
       let updatedCount = 0;
+      let errorCount = 0;
+      
       for (const tx of pendingTransactions) {
         console.log(`Checking status for transaction: ${tx.id}`);
         
@@ -106,12 +117,19 @@ export const useCryptoStatusCheck = () => {
           // Use force update if requested
           const result = await checkCryptoPaymentStatus(tx.id, forceUpdate);
           
+          if (result.error) {
+            errorCount++;
+            console.error(`Error checking transaction ${tx.id}: ${result.error}`);
+            continue;
+          }
+          
           if (result.updated) {
             console.log(`Transaction ${tx.id} status updated: ${tx.status} -> ${result.status}`);
             updatedCount++;
           }
         } catch (txError) {
-          console.error(`Error checking transaction ${tx.id}:`, txError);
+          errorCount++;
+          console.error(`Exception checking transaction ${tx.id}:`, txError);
           // Continue with other transactions even if one fails
         }
       }
@@ -122,6 +140,10 @@ export const useCryptoStatusCheck = () => {
         toast.success(`Updated ${updatedCount} transaction(s)`, {
           description: 'Transaction statuses have been synchronized with the payment provider.'
         });
+      } else if (errorCount > 0) {
+        toast.warning(`No updates, but ${errorCount} error(s) occurred`, {
+          description: 'Some transactions could not be checked. Try again later or check logs.'
+        });
       } else {
         toast.info(forceUpdate ? 'No transactions updated' : 'No changes needed', {
           description: forceUpdate 
@@ -130,7 +152,7 @@ export const useCryptoStatusCheck = () => {
         });
       }
       
-      return true;
+      return errorCount === 0;
     } catch (err) {
       console.error('Error refreshing transactions:', err);
       toast.error('Failed to refresh transactions');
@@ -160,10 +182,17 @@ export const useCryptoStatusCheck = () => {
         id: "force-update-crypto",
       });
       
+      console.log(`Force updating transaction ${transaction.id}`);
+      
       // Call API with force update flag
       const result = await checkCryptoPaymentStatus(transaction.id, true);
       
       toast.dismiss('force-update-crypto');
+      
+      if (result.error) {
+        toast.error(`Update error: ${result.error}`);
+        return null;
+      }
       
       // Update transaction with new status
       const updatedTransaction = mapTransactionStatus(transaction, result);

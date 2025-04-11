@@ -19,9 +19,22 @@ serve(async (req) => {
     }
 
     // Parse request data
-    const { transactionId, forceUpdate } = await req.json();
+    let requestData;
+    try {
+      requestData = await req.json();
+      console.log("Request data received:", JSON.stringify(requestData));
+    } catch (parseError) {
+      console.error("Error parsing request JSON:", parseError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    const { transactionId, forceUpdate } = requestData;
     
     if (!transactionId) {
+      console.error("Missing transaction ID in request");
       return new Response(
         JSON.stringify({ error: 'Transaction ID is required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -32,11 +45,12 @@ serve(async (req) => {
     
     // Process the transaction
     const result = await processTransaction(transactionId, forceUpdate);
+    console.log("Process result:", JSON.stringify(result));
     
     // Return a standardized response
     if (result.error) {
       return new Response(
-        JSON.stringify({ error: result.error }),
+        JSON.stringify({ error: result.error, ...result }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
           status: result.error === 'Transaction not found' ? 404 : 500 

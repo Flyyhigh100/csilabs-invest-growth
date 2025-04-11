@@ -49,3 +49,7 @@ verify_jwt = false
 # CoinPayments IPN webhook needs to be public to receive incoming webhooks from CoinPayments
 [functions.coinpayments-ipn-webhook]
 verify_jwt = false
+
+# Explicitly add check-coinpayments-status function configuration
+[functions.check-coinpayments-status]
+verify_jwt = true

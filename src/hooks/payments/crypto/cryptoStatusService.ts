@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
 import { CryptoStatusCheckResult } from './types';
@@ -10,6 +11,7 @@ export async function checkCryptoPaymentStatus(
   console.log(`Checking status for CoinPayments transaction: ${transactionId}, forceUpdate: ${forceUpdate}`);
   
   try {
+    // Attempt to invoke the edge function
     const { data: result, error } = await supabase.functions.invoke('check-coinpayments-status', {
       body: {
         transactionId,
@@ -18,13 +20,40 @@ export async function checkCryptoPaymentStatus(
     }) as { data: CryptoStatusCheckResult, error: any };
     
     if (error) {
-      console.error('Error checking crypto payment status:', error);
-      throw new Error(error.message || 'Please try again later');
+      console.error('Error from edge function:', error);
+      
+      // Check if this is a 404 error (function not found)
+      if (error.message && error.message.includes('404')) {
+        return {
+          error: 'The check-coinpayments-status function is not deployed or not accessible.',
+          status: 'error',
+          updated: false
+        };
+      }
+      
+      return {
+        error: error.message || 'Edge function error. Please try again later',
+        status: 'error',
+        updated: false
+      };
+    }
+    
+    if (!result) {
+      console.error('Empty result from edge function');
+      return {
+        error: 'No response from status check function',
+        status: 'error',
+        updated: false
+      };
     }
     
     if (result.error) {
       console.error('Error in status check result:', result.error);
-      throw new Error(result.error);
+      return {
+        ...result,
+        status: result.status || 'error',
+        updated: false
+      };
     }
     
     console.log('Status check result:', result);
@@ -37,7 +66,11 @@ export async function checkCryptoPaymentStatus(
     return result;
   } catch (error: any) {
     console.error('Exception in checkCryptoPaymentStatus:', error);
-    throw new Error(error.message || 'Error checking payment status');
+    return {
+      error: error.message || 'Error checking payment status',
+      status: 'error',
+      updated: false
+    };
   }
 }
 

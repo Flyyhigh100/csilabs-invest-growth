@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Transaction } from '@/types/transactions';
@@ -24,7 +24,11 @@ const SyncCryptoPaymentButton = ({
   showTooltip = true,
   forceUpdate = false
 }: SyncCryptoPaymentButtonProps) => {
-  const { checkTransactionStatus, forceUpdateTransaction, isChecking } = useCryptoStatusCheck();
+  const [localIsChecking, setLocalIsChecking] = useState(false);
+  const { checkTransactionStatus, forceUpdateTransaction, isChecking: hookIsChecking } = useCryptoStatusCheck();
+  
+  // Combined checking state from both sources
+  const isChecking = hookIsChecking || localIsChecking;
   
   // Only show for coinpayments transactions
   if (transaction.payment_method !== 'coinpayments') {
@@ -38,7 +42,12 @@ const SyncCryptoPaymentButton = ({
 
   const handleSync = async () => {
     try {
-      toast.info(forceUpdate ? "Force updating status..." : "Checking payment status...");
+      setLocalIsChecking(true);
+      
+      toast.info(forceUpdate ? "Force updating status..." : "Checking payment status...", {
+        id: `sync-crypto-${transaction.id}`,
+      });
+      
       let updatedTransaction;
       
       if (forceUpdate) {
@@ -49,12 +58,27 @@ const SyncCryptoPaymentButton = ({
         updatedTransaction = await checkTransactionStatus(transaction);
       }
       
+      toast.dismiss(`sync-crypto-${transaction.id}`);
+      
+      if (!updatedTransaction && !forceUpdate) {
+        // If regular check failed, try force update as fallback
+        console.log("Regular check failed, trying force update as fallback");
+        toast.info("Trying force update as fallback...");
+        updatedTransaction = await forceUpdateTransaction(transaction);
+      }
+      
       if (onSyncComplete) {
         onSyncComplete(updatedTransaction);
+      }
+      
+      if (!updatedTransaction) {
+        toast.error("Failed to update transaction status");
       }
     } catch (error) {
       console.error("Error checking payment status:", error);
       toast.error("Failed to check payment status");
+    } finally {
+      setLocalIsChecking(false);
     }
   };
 
