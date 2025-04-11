@@ -22,6 +22,25 @@ export async function processIpnPayload(ipnData: any, logEntryId?: string) {
       console.error("Missing txn_id in IPN data");
       return { success: false, message: "Missing txn_id field" };
     }
+
+    // Extract status code from IPN data
+    const status = parseInt(ipnData.status || '0');
+    const txnId = ipnData.txn_id;
+
+    // Log the transaction and status for debugging
+    console.log(`Processing IPN for transaction ${txnId} with status ${status}`);
+
+    // Update database based on status code
+    let newStatus;
+    if (status === 100 || status === 1) {
+      newStatus = 'completed';  // Both status 1 and 100 should be considered complete
+    } else if (status < 0) {
+      newStatus = 'failed';    // Negative status indicates failure
+    } else if (status === 0) {
+      newStatus = 'pending';   // Status 0 is pending
+    } else {
+      newStatus = 'unknown';   // Any other status
+    }
     
     const supabase = createDbClient();
     
@@ -113,12 +132,27 @@ export async function processIpnPayload(ipnData: any, logEntryId?: string) {
     
     console.log(`Found transaction ${transaction.id}, current status: ${transaction.status}`);
     
-    // Parse status and map to our internal status format
-    const statusCode = parseInt(ipnData.status, 10);
-    const newStatus = mapCoinPaymentsStatus(statusCode);
-    const statusDescription = getStatusDescription(statusCode);
+    // Update the database with the new status
+    const { error: updateError } = await supabase
+      .from('transactions')
+      .update({ 
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', transaction.id);
     
-    console.log(`CoinPayments status: ${statusCode} (${statusDescription}), mapped to: ${newStatus}`);
+    // Log the result
+    if (updateError) {
+      console.error(`Error updating transaction ${transaction.id} to ${newStatus}:`, updateError);
+      return { 
+        success: false, 
+        message: `Failed to update transaction: ${updateError.message}`,
+        transaction,
+        logEntryId
+      };
+    } else {
+      console.log(`Successfully updated transaction ${transaction.id} to ${newStatus}`);
+    }
     
     // If status is already completed and tokens sent, ignore this notification
     if (transaction.status === 'completed' && transaction.token_sent) {
@@ -131,49 +165,6 @@ export async function processIpnPayload(ipnData: any, logEntryId?: string) {
         logEntryId
       };
     }
-    
-    // Only update if status is different
-    if (transaction.status === newStatus) {
-      console.log(`Transaction ${transaction.id} already has status ${newStatus}, no update needed`);
-      return { 
-        success: true, 
-        message: `Transaction status already set to ${newStatus}`,
-        transaction,
-        statusUpdated: false,
-        logEntryId
-      };
-    }
-    
-    console.log(`Updating transaction ${transaction.id} status from ${transaction.status} to ${newStatus}`);
-    
-    // Prepare update object
-    const updateObject: Record<string, any> = {
-      status: newStatus,
-      updated_at: new Date().toISOString()
-    };
-    
-    // If the status is completed, also set the completed_at field
-    if (newStatus === 'completed') {
-      updateObject.completed_at = new Date().toISOString();
-    }
-    
-    // Update transaction in the database
-    const { error: updateError } = await supabase
-      .from('transactions')
-      .update(updateObject)
-      .eq('id', transaction.id);
-    
-    if (updateError) {
-      console.error(`Error updating transaction ${transaction.id}:`, updateError);
-      return { 
-        success: false, 
-        message: `Failed to update transaction: ${updateError.message}`,
-        transaction,
-        logEntryId
-      };
-    }
-    
-    console.log(`Successfully updated transaction ${transaction.id} to status: ${newStatus}`);
     
     // Create notification for user if status changed to completed or failed
     if (newStatus === 'completed' || newStatus === 'failed') {

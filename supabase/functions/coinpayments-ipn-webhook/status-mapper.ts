@@ -15,12 +15,9 @@ export function mapCoinPaymentsStatus(statusCode: number): string {
   } else if (statusCode === 0) {
     // Status 0 means pending (not yet detected on blockchain)
     return 'pending';
-  } else if (statusCode >= 100) {
+  } else if (statusCode >= 100 || statusCode >= 1) {
     // Status 100+ means fully confirmed and complete
-    return 'completed';
-  } else if (statusCode >= 1) {
-    // CRITICAL FIX: Status 1+ means payment received and should be completed
-    // This was previously set to 'confirmed' which was causing stuck transactions
+    // Status 1+ also means payment received and should be completed
     return 'completed';
   } else {
     // Fallback for unexpected status codes
