@@ -45,3 +45,7 @@ verify_jwt = false
 # Stripe webhooks need to be public to receive incoming webhooks from Stripe
 [functions.stripe-webhooks]
 verify_jwt = false
+
+# CoinPayments IPN webhook needs to be public to receive incoming webhooks from CoinPayments
+[functions.coinpayments-ipn-webhook]
+verify_jwt = false

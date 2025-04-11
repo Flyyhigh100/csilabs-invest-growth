@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Transaction } from '@/types/transactions';
-import { CheckCircle2, Clock, ExternalLink } from 'lucide-react';
+import { CheckCircle2, Clock, ExternalLink, CircleDollarSign } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 interface StatusBadgeProps {
@@ -34,6 +34,8 @@ const StatusBadge: React.FC<ExtendedStatusBadgeProps> = ({
     switch (status) {
       case 'completed':
         return 'bg-green-100 text-green-800 border-green-300';
+      case 'confirmed':
+        return 'bg-blue-100 text-blue-800 border-blue-300';
       case 'pending':
         return 'bg-amber-100 text-amber-800 border-amber-300';
       case 'failed':
@@ -61,6 +63,13 @@ const StatusBadge: React.FC<ExtendedStatusBadgeProps> = ({
           <span className="flex items-center">
             <Clock className="h-3 w-3 mr-1" />
             Processing Delivery
+          </span>
+        );
+      case 'confirmed':
+        return (
+          <span className="flex items-center">
+            <CircleDollarSign className="h-3 w-3 mr-1" />
+            Payment Received
           </span>
         );
       case 'pending':

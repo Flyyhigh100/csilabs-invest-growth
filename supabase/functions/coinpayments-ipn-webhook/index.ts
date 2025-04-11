@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -47,57 +48,122 @@ async function verifyIpnHmac(request: Request, ipnSecret: string): Promise<boole
   }
 }
 
-// Update transaction status in Supabase
+// Update transaction status in Supabase with retry logic
 async function updateTransactionStatus(
   client: any,
   externalTxId: string,
   status: string,
-  completedAt?: string
+  ipnStatus: number,
+  completedAt?: string,
+  maxRetries = 3
 ) {
-  try {
-    console.log(`Updating transaction with external ID ${externalTxId} to status: ${status}`);
-    
-    const updateData: Record<string, any> = {
-      status: status,
-      updated_at: new Date().toISOString()
-    };
-    
-    if (completedAt) {
-      updateData.completed_at = completedAt;
-    }
-    
-    // First, find the transaction by external_transaction_id
-    const { data: transaction, error: findError } = await client
-      .from('transactions')
-      .select('id, status')
-      .eq('external_transaction_id', externalTxId)
-      .single();
+  let retries = 0;
+  let success = false;
+
+  while (retries < maxRetries && !success) {
+    try {
+      console.log(`Updating transaction with external ID ${externalTxId} to status: ${status} (attempt ${retries + 1})`);
       
-    if (findError || !transaction) {
-      console.error(`Error finding transaction with external ID ${externalTxId}:`, findError);
-      return false;
-    }
-    
-    // Only update if status has changed
-    if (transaction.status !== status) {
-      const { error: updateError } = await client
-        .from('transactions')
-        .update(updateData)
-        .eq('id', transaction.id);
-        
-      if (updateError) {
-        console.error(`Error updating transaction ${transaction.id}:`, updateError);
-        return false;
+      const updateData: Record<string, any> = {
+        status: status,
+        external_status: ipnStatus, // Store the original status code from CoinPayments
+        updated_at: new Date().toISOString()
+      };
+      
+      if (completedAt) {
+        updateData.completed_at = completedAt;
       }
       
-      console.log(`Successfully updated transaction ${transaction.id} status from ${transaction.status} to ${status}`);
-      return true;
-    } else {
-      console.log(`Transaction ${transaction.id} already has status ${status}, no update needed`);
+      // First, find the transaction by external_transaction_id
+      const { data: transaction, error: findError } = await client
+        .from('transactions')
+        .select('id, status')
+        .eq('external_transaction_id', externalTxId)
+        .single();
+        
+      if (findError || !transaction) {
+        console.error(`Error finding transaction with external ID ${externalTxId}:`, findError);
+        retries++;
+        if (retries < maxRetries) await new Promise(r => setTimeout(r, 1000 * retries)); // Exponential backoff
+        continue;
+      }
+      
+      // Only update if status has changed
+      if (transaction.status !== status) {
+        const { error: updateError } = await client
+          .from('transactions')
+          .update(updateData)
+          .eq('id', transaction.id);
+          
+        if (updateError) {
+          console.error(`Error updating transaction ${transaction.id}:`, updateError);
+          retries++;
+          if (retries < maxRetries) await new Promise(r => setTimeout(r, 1000 * retries)); // Exponential backoff
+          continue;
+        }
+        
+        console.log(`Successfully updated transaction ${transaction.id} status from ${transaction.status} to ${status}`);
+        
+        // If transaction is completed, create a notification for the user
+        if (status === 'completed' && transaction.status !== 'completed') {
+          try {
+            // Get transaction details to find user_id and amount
+            const { data: txDetails, error: txError } = await client
+              .from('transactions')
+              .select('user_id, amount')
+              .eq('id', transaction.id)
+              .single();
+              
+            if (!txError && txDetails) {
+              await createPaymentConfirmationNotification(client, txDetails.user_id, txDetails.amount);
+            }
+          } catch (notifError) {
+            console.error('Error creating notification:', notifError);
+            // Don't retry for notification errors - the transaction update is more important
+          }
+        }
+        
+        success = true;
+        return true;
+      } else {
+        console.log(`Transaction ${transaction.id} already has status ${status}, no update needed`);
+        success = true;
+        return false; // No changes made
+      }
+    } catch (error) {
+      console.error('Error in updateTransactionStatus:', error);
+      retries++;
+      if (retries < maxRetries) await new Promise(r => setTimeout(r, 1000 * retries)); // Exponential backoff
+    }
+  }
+  
+  return success;
+}
+
+// Create notification for user when payment is confirmed
+async function createPaymentConfirmationNotification(supabase: any, userId: string, amount: number | string) {
+  try {
+    console.log(`[WEBHOOK] Creating notification for user ${userId} about payment of $${amount}`);
+    
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        type: 'payment_confirmed',
+        title: 'Payment Confirmed',
+        message: `Your payment of $${typeof amount === 'number' ? amount.toFixed(2) : amount} has been confirmed. Tokens will be sent to your wallet shortly.`
+      })
+      .select();
+      
+    if (error) {
+      console.error(`[WEBHOOK] Error creating notification: ${error.message}`);
       return false;
     }
-  } catch (error) {
-    console.error('Error in updateTransactionStatus:', error);
+    
+    console.log(`[WEBHOOK] Successfully created notification ${data[0].id} for user ${userId}`);
+    return true;
+  } catch (err) {
+    console.error(`[WEBHOOK] Error in notification creation: ${err.message}`);
     return false;
   }
 }
@@ -130,6 +196,33 @@ async function logIpnData(
     }
   } catch (error) {
     console.error('Error in logIpnData:', error);
+  }
+}
+
+// Map CoinPayments status codes to our internal status
+function mapCoinPaymentsStatus(statusCode: number): string {
+  // Status codes: https://www.coinpayments.net/merchant-tools-ipn
+  // -1 = Error/canceled
+  // 0 = Pending
+  // 1 = Payment received (partial or complete payment)
+  // 2 = Complete (Pay exact confirmed, usually standard) 
+  // 3 = Confirmed (3+ confirmations)
+  // 100 = Complete/Confirmed
+  
+  switch (statusCode) {
+    case -1:
+      return 'failed';
+    case 0:
+      return 'pending';
+    case 1:
+      return 'confirmed'; // New status for when we've received payment
+    case 2:
+    case 3:
+    case 100:
+      return 'completed';
+    default:
+      console.warn(`Unknown CoinPayments status code: ${statusCode}, defaulting to pending`);
+      return 'pending';
   }
 }
 
@@ -203,34 +296,20 @@ serve(async (req) => {
     if (ipnDataObj.ipn_type === 'api' && ipnDataObj.ipn_mode === 'hmac') {
       // Get status from IPN
       const ipnStatus = parseInt(ipnDataObj.status, 10);
-      let transactionStatus = 'pending';
       
-      // Map CoinPayments status to our status format
-      // Status codes: https://www.coinpayments.net/merchant-tools-ipn
-      // -1 = Error/canceled
-      // 0 = Pending
-      // 1 = Partial payment received
-      // 2 = Complete
-      // 3 = Confirmed (3+ confirmations)
-      // 100 = Complete/Confirmed
-      if (ipnStatus < 0) {
-        transactionStatus = 'failed';
-      } else if (ipnStatus === 0) {
-        transactionStatus = 'pending';
-      } else if (ipnStatus >= 1) {
-        // All status values >= 1 should be considered completed
-        transactionStatus = 'completed';
-      }
+      // Map CoinPayments status to our internal status format
+      const transactionStatus = mapCoinPaymentsStatus(ipnStatus);
       
       console.log(`Transaction ${ipnDataObj.txn_id} IPN Status: ${ipnStatus}, Mapped to: ${transactionStatus}`);
       
-      // Update transaction status in our database
+      // Update transaction status in our database with retry logic
       if (isValid && ipnDataObj.txn_id) {
         await updateTransactionStatus(
           supabaseClient,
           ipnDataObj.txn_id,
           transactionStatus,
-          transactionStatus === 'completed' ? new Date().toISOString() : undefined
+          ipnStatus,
+          ['completed', 'confirmed'].includes(transactionStatus) ? new Date().toISOString() : undefined
         );
       }
     }

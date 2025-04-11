@@ -72,6 +72,10 @@ export const useCryptoStatusCheck = () => {
           toast.success('Payment confirmed!', {
             description: 'Your crypto payment has been confirmed. Your tokens will be sent to your wallet shortly.'
           });
+        } else if (result.status === 'confirmed') {
+          toast.success('Payment received!', {
+            description: 'Your payment has been received and is being processed. Your tokens will be sent to your wallet soon.'
+          });
         } else if (result.status === 'failed') {
           toast.error('Payment failed', {
             description: 'Your crypto payment transaction has failed or was canceled.'
@@ -121,7 +125,7 @@ export const useCryptoStatusCheck = () => {
         .from('transactions')
         .select('*')
         .eq('payment_method', 'coinpayments')
-        .eq('status', 'pending');
+        .in('status', ['pending', 'confirmed']);
         
       if (fetchError) {
         throw fetchError;
@@ -166,7 +170,7 @@ export const useCryptoStatusCheck = () => {
     }
   };
 
-  // New function to force-sync a specific transaction
+  // Force-sync a specific transaction
   const forceUpdateTransaction = async (transaction: Transaction): Promise<Transaction | null> => {
     if (!transaction || !transaction.id) {
       toast.error('Invalid transaction');
