@@ -1,31 +1,29 @@
 
-// Create notification for successful payment
-export async function createPaymentConfirmationNotification(
-  client: any,
-  userId: string,
-  amount: number
-) {
+// Helper function to create a payment confirmation notification
+export async function createPaymentConfirmationNotification(supabase: any, userId: string, amount: number): Promise<boolean> {
   try {
-    const notificationData = {
-      user_id: userId,
-      type: 'payment_confirmed',
-      title: 'Payment Confirmed',
-      message: `Your payment of $${amount} has been confirmed and is being processed.`,
-      read: false,
-      data: { amount, confirmed_at: new Date().toISOString() }
-    };
+    console.log(`Creating payment confirmation notification for user ${userId}`);
     
-    const { error } = await client
+    const { data, error } = await supabase
       .from('notifications')
-      .insert(notificationData);
+      .insert({
+        user_id: userId,
+        type: 'payment_confirmed',
+        title: 'Payment Confirmed',
+        message: `Your cryptocurrency payment of $${amount} has been confirmed and is being processed.`
+      })
+      .select()
+      .single();
       
     if (error) {
-      throw error;
+      console.error(`Error creating confirmation notification: ${error.message}`);
+      return false;
     }
     
+    console.log(`Successfully created confirmation notification ID: ${data?.id || 'unknown'}`);
     return true;
   } catch (error) {
-    console.error('Error creating notification:', error);
+    console.error(`Exception creating confirmation notification: ${error.message}`);
     return false;
   }
 }

@@ -124,6 +124,47 @@ serve(async (req) => {
     if (!transaction) {
       console.error(`No transaction found with external_transaction_id: ${ipnData.txn_id}`);
       
+      // Try looking up by payment_address if available
+      if (ipnData.address) {
+        console.log(`Trying fallback lookup by payment_address: ${ipnData.address}`);
+        const { data: addrTransaction, error: addrError } = await supabase
+          .from('transactions')
+          .select('id, user_id, amount, status')
+          .eq('payment_address', ipnData.address)
+          .single();
+          
+        if (!addrError && addrTransaction) {
+          console.log(`Successfully found transaction by payment_address: ${addrTransaction.id}`);
+          
+          // Update with external_transaction_id since we now know it
+          const { error: updateError } = await supabase
+            .from('transactions')
+            .update({
+              external_transaction_id: ipnData.txn_id,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', addrTransaction.id);
+            
+          if (updateError) {
+            console.error(`Error updating transaction with external ID: ${updateError.message}`);
+          } else {
+            console.log(`Updated transaction ${addrTransaction.id} with external_transaction_id: ${ipnData.txn_id}`);
+            
+            // Continue processing with the found transaction
+            await processTransaction(
+              supabase, 
+              addrTransaction, 
+              mappedStatus, 
+              ipnData, 
+              ipnLogEntry,
+              statusCode
+            );
+            
+            return response;
+          }
+        }
+      }
+      
       // Update the log with the information
       if (ipnLogEntry?.id) {
         await supabase
@@ -131,7 +172,7 @@ serve(async (req) => {
           .update({
             error_message: `No transaction found with external_transaction_id: ${ipnData.txn_id}`,
             processing_status: 'failed',
-            details: { error: 'Transaction not found' }
+            details: { error: 'Transaction not found', lookupValue: ipnData.txn_id }
           })
           .eq('id', ipnLogEntry.id);
       }
@@ -141,7 +182,56 @@ serve(async (req) => {
     }
     
     console.log(`Found transaction in database: ${transaction.id}, current status: ${transaction.status}`);
+    
+    // Process the transaction with the mapped status
+    await processTransaction(
+      supabase, 
+      transaction, 
+      mappedStatus, 
+      ipnData, 
+      ipnLogEntry,
+      statusCode
+    );
+    
+    console.log("IPN webhook processing completed successfully");
+  } catch (error) {
+    console.error("Unhandled exception processing IPN:", error);
+    
+    // Try to update the log with the error if possible
+    try {
+      if (ipnLogEntry?.id) {
+        const supabase = createDbClient();
+        await supabase
+          .from('ipn_logs')
+          .update({
+            error_message: `Unhandled exception: ${error.message || 'Unknown error'}`,
+            processing_status: 'error',
+            details: { 
+              stack: error.stack,
+              message: error.message
+            }
+          })
+          .eq('id', ipnLogEntry.id);
+      }
+    } catch (logError) {
+      console.error("Failed to update log with error:", logError);
+    }
+  }
 
+  console.log("Returning 200 OK response to CoinPayments");
+  return response;
+});
+
+// Helper function to process a transaction update
+async function processTransaction(
+  supabase: any, 
+  transaction: any, 
+  mappedStatus: string, 
+  ipnData: any, 
+  ipnLogEntry: any,
+  originalStatusCode: number
+) {
+  try {
     // Only update if the status is different
     if (transaction.status !== mappedStatus) {
       console.log(`Updating transaction ${transaction.id} status from ${transaction.status} to ${mappedStatus}`);
@@ -190,7 +280,8 @@ serve(async (req) => {
               details: { 
                 transaction_id: transaction.id,
                 old_status: transaction.status,
-                new_status: mappedStatus
+                new_status: mappedStatus,
+                original_status_code: originalStatusCode
               },
               is_valid: true,
               response_status: 'Transaction updated successfully'
@@ -199,41 +290,7 @@ serve(async (req) => {
         }
         
         // Create notification for the user based on new status
-        try {
-          if (mappedStatus === 'completed') {
-            console.log(`Creating completion notification for user ${transaction.user_id}`);
-            await supabase
-              .from('notifications')
-              .insert({
-                user_id: transaction.user_id,
-                type: 'payment_completed',
-                title: 'Payment Completed',
-                message: `Your cryptocurrency payment of $${transaction.amount} has been completed. Tokens will be sent to your wallet shortly.`
-              });
-            console.log("Completion notification created successfully");
-          } else if (mappedStatus === 'confirmed') {
-            console.log(`Creating confirmation notification for user ${transaction.user_id}`);
-            const notificationCreated = await createPaymentConfirmationNotification(
-              supabase,
-              transaction.user_id,
-              transaction.amount
-            );
-            console.log("Confirmation notification creation result:", notificationCreated);
-          } else if (mappedStatus === 'failed') {
-            console.log(`Creating failure notification for user ${transaction.user_id}`);
-            await supabase
-              .from('notifications')
-              .insert({
-                user_id: transaction.user_id,
-                type: 'payment_failed',
-                title: 'Payment Failed',
-                message: `Your cryptocurrency payment of $${transaction.amount} has failed or been cancelled.`
-              });
-            console.log("Failure notification created successfully");
-          }
-        } catch (notifError) {
-          console.error("Error creating notification:", notifError);
-        }
+        await createNotification(supabase, transaction, mappedStatus);
       }
     } else {
       console.log(`No status change needed for transaction ${transaction.id}, already ${transaction.status}`);
@@ -246,6 +303,7 @@ serve(async (req) => {
             details: { 
               transaction_id: transaction.id,
               status: transaction.status,
+              original_status_code: originalStatusCode,
               no_change_needed: true
             },
             is_valid: true,
@@ -254,32 +312,64 @@ serve(async (req) => {
           .eq('id', ipnLogEntry.id);
       }
     }
-    
-    console.log("IPN webhook processing completed successfully");
   } catch (error) {
-    console.error("Unhandled exception processing IPN:", error);
+    console.error(`Error processing transaction ${transaction.id}:`, error);
     
-    // Try to update the log with the error if possible
-    try {
-      if (ipnLogEntry?.id) {
-        const supabase = createDbClient();
-        await supabase
-          .from('ipn_logs')
-          .update({
-            error_message: `Unhandled exception: ${error.message || 'Unknown error'}`,
-            processing_status: 'error',
-            details: { 
-              stack: error.stack,
-              message: error.message
-            }
-          })
-          .eq('id', ipnLogEntry.id);
-      }
-    } catch (logError) {
-      console.error("Failed to update log with error:", logError);
+    // Update the log with the error
+    if (ipnLogEntry?.id) {
+      await supabase
+        .from('ipn_logs')
+        .update({
+          error_message: `Error processing transaction: ${error.message}`,
+          processing_status: 'error',
+          details: { error }
+        })
+        .eq('id', ipnLogEntry.id);
     }
   }
+}
 
-  console.log("Returning 200 OK response to CoinPayments");
-  return response;
-});
+// Helper function to create appropriate notifications
+async function createNotification(supabase: any, transaction: any, status: string) {
+  try {
+    console.log(`Creating ${status} notification for user ${transaction.user_id}`);
+    
+    let notificationData = {
+      user_id: transaction.user_id,
+      type: `payment_${status}`,
+      title: '',
+      message: ''
+    };
+    
+    if (status === 'completed') {
+      notificationData.title = 'Payment Completed';
+      notificationData.message = `Your cryptocurrency payment of $${transaction.amount} has been completed. Tokens will be sent to your wallet shortly.`;
+    } else if (status === 'confirmed') {
+      notificationData.title = 'Payment Confirmed';
+      notificationData.message = `Your cryptocurrency payment of $${transaction.amount} has been confirmed. It is being processed now.`;
+    } else if (status === 'failed') {
+      notificationData.title = 'Payment Failed';
+      notificationData.message = `Your cryptocurrency payment of $${transaction.amount} has failed or been cancelled.`;
+    } else {
+      notificationData.title = 'Payment Status Update';
+      notificationData.message = `Your cryptocurrency payment of $${transaction.amount} status has been updated to ${status}.`;
+    }
+    
+    const { data: notification, error: notifError } = await supabase
+      .from('notifications')
+      .insert(notificationData)
+      .select()
+      .single();
+      
+    if (notifError) {
+      console.error(`Error creating notification for user ${transaction.user_id}:`, notifError);
+      return false;
+    }
+    
+    console.log(`Successfully created notification ID ${notification?.id || 'unknown'} for user ${transaction.user_id}`);
+    return true;
+  } catch (error) {
+    console.error("Error creating notification:", error);
+    return false;
+  }
+}
