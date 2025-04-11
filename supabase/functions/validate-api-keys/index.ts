@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { corsHeaders, createSignature, hexToUint8Array } from "./utils.ts";
+import { corsHeaders, createSignature } from "./utils.ts";
 
 // Validate CoinPayments API keys
 async function validateCoinPaymentsKeys(): Promise<{
@@ -40,9 +40,10 @@ async function validateCoinPaymentsKeys(): Promise<{
   try {
     console.log('Testing CoinPayments API with public key: ' + publicKey.substring(0, 5) + '...');
     
-    // Create request parameters
+    // Create request parameters - using rates command instead of get_basic_info
+    // The 'rates' command typically has broader access permissions
     const params = {
-      cmd: 'get_basic_info',
+      cmd: 'rates',
       key: publicKey,
       version: '1',
       format: 'json'
@@ -109,15 +110,14 @@ async function validateCoinPaymentsKeys(): Promise<{
       };
     }
     
-    // Success!
+    // Success! Extract some useful information from the rates response
     return {
       isValid: true,
       details: "API keys are valid and working properly.",
       rawResponse: {
-        username: data.result?.username || 'Not available',
-        merchant_id: data.result?.merchant_id || 'Not available',
-        email: data.result?.email ? '[Redacted for security]' : 'Not available',
-        public_name: data.result?.public_name || 'Not available',
+        currency_count: Object.keys(data.result || {}).length,
+        sample_currencies: Object.keys(data.result || {}).slice(0, 5).join(', '),
+        timestamp: new Date().toISOString()
       },
       service: 'coinpayments'
     };
