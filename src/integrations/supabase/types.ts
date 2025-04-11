@@ -33,6 +33,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ipn_logs: {
+        Row: {
+          created_at: string
+          hmac_header: string | null
+          id: string
+          is_valid: boolean
+          provider: string
+          raw_data: Json
+          request_body: string | null
+          response_status: string | null
+          status: string | null
+          txn_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          hmac_header?: string | null
+          id?: string
+          is_valid: boolean
+          provider: string
+          raw_data: Json
+          request_body?: string | null
+          response_status?: string | null
+          status?: string | null
+          txn_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          hmac_header?: string | null
+          id?: string
+          is_valid?: boolean
+          provider?: string
+          raw_data?: Json
+          request_body?: string | null
+          response_status?: string | null
+          status?: string | null
+          txn_id?: string | null
+        }
+        Relationships: []
+      }
       kyc_verifications: {
         Row: {
           address: string | null
