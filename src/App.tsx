@@ -20,6 +20,7 @@ import ForgotPassword from './pages/Auth/ForgotPassword';
 import ResetPassword from './pages/Auth/ResetPassword';
 import NotFound from './pages/NotFound';
 import TestToolsPage from './pages/Admin/TestTools';
+import Payments from './pages/Dashboard/Payments';
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ function App() {
                   <Route path="/dashboard/profile" element={<div>Profile</div>} />
                   <Route path="/dashboard/settings" element={<div>Settings</div>} />
                   <Route path="/dashboard/wallet" element={<div>Wallet</div>} />
+                  <Route path="/dashboard/payments" element={<Payments />} />
                 </Route>
                 
                 {/* Admin Routes */}
