@@ -8,7 +8,8 @@ import {
   CheckCircle, 
   FileText,
   CreditCard,
-  BookOpen
+  BookOpen,
+  WrenchIcon
 } from 'lucide-react';
 
 interface NavItem {
@@ -33,6 +34,11 @@ export const getAdminNavItems = (): NavItem[] => {
       label: 'Transactions',
       path: '/admin/transactions',
       icon: <CreditCard size={20} />,
+    },
+    {
+      label: 'Transaction Tools',
+      path: '/admin/transaction-tools',
+      icon: <WrenchIcon size={20} />,
     },
     {
       label: 'Users',
