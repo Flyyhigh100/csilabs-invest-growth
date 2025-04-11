@@ -50,10 +50,18 @@ serve(async (req) => {
     if (!publicKey || !privateKey) {
       console.error('CoinPayments API keys not configured in environment');
       return new Response(
-        JSON.stringify(createErrorResponse('CoinPayments API credentials not configured')),
+        JSON.stringify({
+          error: 'CoinPayments API credentials not configured', 
+          status: 'error',
+          api_key_issue: true,
+          details: 'API keys are not set in the environment variables'
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
+    
+    // Log the API key lengths (without exposing the actual keys)
+    console.log(`API key lengths - public: ${publicKey.length}, private: ${privateKey.length}`);
     
     // Process the transaction
     const result = await processTransaction(transactionId, forceUpdate);
@@ -77,7 +85,8 @@ serve(async (req) => {
           error: result.error, 
           message: result.error,
           status: 'error',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          details: result.details || result.error
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -98,7 +107,8 @@ serve(async (req) => {
         error: error.message || 'Internal server error',
         message: error.message || 'Internal server error',
         status: 'error',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        details: error.stack ? error.stack.split('\n').slice(0, 3).join('\n') : 'No stack trace'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );

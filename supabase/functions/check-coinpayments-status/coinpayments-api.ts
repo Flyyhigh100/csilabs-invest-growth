@@ -65,6 +65,14 @@ export async function checkCoinPaymentsTransaction(txnId: string) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
         
+        // Log exact request details for debugging
+        console.log(`CoinPayments API Request:
+          URL: https://www.coinpayments.net/api.php
+          Method: POST
+          Headers: Content-Type: application/x-www-form-urlencoded, HMAC: ${hmacSignature.slice(0,10)}...
+          Body: ${reqBody}
+        `);
+        
         response = await fetch('https://www.coinpayments.net/api.php', {
           method: 'POST',
           headers: {

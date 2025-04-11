@@ -81,14 +81,16 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
           // Still return data for logging but mark as error
           return createErrorResponse(
             paymentStatus.status_text || 'API error checking payment status', 
-            paymentStatus.status_text?.includes('Invalid API key') ? 401 : 502
+            paymentStatus.status_text?.includes('Invalid API key') ? 401 : 502,
+            { details: `Error from CoinPayments API: ${JSON.stringify(paymentStatus)}` }
           );
         }
       } catch (apiError) {
         console.error('Error calling CoinPayments API:', apiError);
         return createErrorResponse(
           `CoinPayments API error: ${apiError.message || 'Unknown API error'}`, 
-          502
+          502,
+          { details: apiError.stack || 'No stack trace available' }
         );
       }
     }
@@ -197,6 +199,8 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
     }
   } catch (error) {
     console.error("Error processing transaction:", error);
-    return createErrorResponse(error.message || "Unknown error processing transaction", 500);
+    return createErrorResponse(error.message || "Unknown error processing transaction", 500, 
+      { details: error.stack || 'No stack trace available' }
+    );
   }
 }
