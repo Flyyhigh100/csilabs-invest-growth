@@ -50,8 +50,11 @@ const SyncCryptoPaymentButton = ({
       });
       
       let updatedTransaction;
+      let errorOccurred = false;
       
       try {
+        console.log(`Starting transaction check for ID: ${transaction.id}, forceUpdate: ${forceUpdate}`);
+        
         if (forceUpdate) {
           // Use force update function when explicitly requested
           updatedTransaction = await forceUpdateTransaction(transaction);
@@ -61,6 +64,7 @@ const SyncCryptoPaymentButton = ({
         }
         
         toast.dismiss(toastId);
+        console.log(`Transaction check completed, result:`, updatedTransaction ? 'success' : 'no result');
         
         // Handle null result but still show proper notification
         if (!updatedTransaction && !forceUpdate) {
@@ -73,6 +77,7 @@ const SyncCryptoPaymentButton = ({
           toast.dismiss(`${toastId}-fallback`);
         }
       } catch (innerError) {
+        errorOccurred = true;
         console.error("Error during transaction check:", innerError);
         toast.error('Error checking transaction status', {
           description: innerError.message || 'An unexpected error occurred'
@@ -83,15 +88,26 @@ const SyncCryptoPaymentButton = ({
         onSyncComplete(updatedTransaction);
       }
       
-      if (!updatedTransaction) {
+      if (!updatedTransaction && !errorOccurred) {
         toast.error("Failed to update transaction status", {
-          description: "Please try again later or contact support if the issue persists."
+          description: "Please try again later or contact support if the issue persists.",
+          duration: 5000
         });
+        
+        console.log("Detailed transaction information for debugging:");
+        console.log(JSON.stringify({
+          transactionId: transaction.id,
+          paymentMethod: transaction.payment_method,
+          status: transaction.status,
+          externalId: transaction.external_transaction_id,
+          createdAt: transaction.created_at
+        }));
       }
     } catch (error) {
       console.error("Error checking payment status:", error);
       toast.error("Failed to check payment status", {
-        description: "Please try again later or contact support."
+        description: "Please try again later or contact support.",
+        duration: 5000
       });
     } finally {
       setLocalIsChecking(false);

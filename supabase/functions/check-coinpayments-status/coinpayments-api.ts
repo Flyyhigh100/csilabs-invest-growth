@@ -17,7 +17,8 @@ export async function checkCoinPaymentsTransaction(txnId: string) {
       };
     }
     
-    console.log(`Checking CoinPayments transaction: ${txnId}`);
+    console.log(`Checking CoinPayments transaction with external ID: ${txnId}`);
+    console.log(`API key info - Public key length: ${publicKey.length}, Private key length: ${privateKey.length}`);
     
     // Validate transaction ID format (basic check)
     if (!txnId || txnId.length < 8) {
@@ -71,6 +72,7 @@ export async function checkCoinPaymentsTransaction(txnId: string) {
           Method: POST
           Headers: Content-Type: application/x-www-form-urlencoded, HMAC: ${hmacSignature.slice(0,10)}...
           Body: ${reqBody}
+          Attempt: ${retries + 1} of ${MAX_RETRIES + 1}
         `);
         
         response = await fetch('https://www.coinpayments.net/api.php', {
@@ -84,6 +86,9 @@ export async function checkCoinPaymentsTransaction(txnId: string) {
         });
         
         clearTimeout(timeoutId);
+        
+        // Log response status for debugging
+        console.log(`CoinPayments API response status: ${response.status} ${response.statusText}`);
         
         // Break the loop if successful
         break;
@@ -175,6 +180,20 @@ export async function checkCoinPaymentsTransaction(txnId: string) {
     
     if (data.error !== 'ok') {
       console.error(`CoinPayments API error: ${data.error}`);
+      
+      // Check for specific API key errors
+      if (data.error?.toLowerCase().includes('api key') || 
+          data.error?.toLowerCase().includes('invalid key') || 
+          data.error?.toLowerCase().includes('permissions')) {
+        console.error('This appears to be an API key permission issue');
+        return {
+          error: true,
+          status: -1,
+          status_text: `API key error: ${data.error}`,
+          api_key_issue: true
+        };
+      }
+      
       return {
         error: true,
         status: -1,

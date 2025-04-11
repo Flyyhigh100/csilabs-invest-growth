@@ -10,7 +10,8 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
   try {
     const supabaseClient = createSupabaseClient();
     
-    // Fetch transaction from database
+    // Fetch transaction from database with more detailed error handling
+    console.log(`Fetching transaction from database with ID: ${transactionId}`);
     const { data: transaction, error } = await supabaseClient
       .from('transactions')
       .select('*')
@@ -18,13 +19,13 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
       .maybeSingle();
       
     if (error) {
-      console.error("Error fetching transaction:", error);
+      console.error(`Database error fetching transaction ${transactionId}:`, error);
       return createErrorResponse(`Database error: ${error.message}`, 500);
     }
     
     if (!transaction) {
-      console.error(`Transaction not found with ID: ${transactionId}`);
-      return createErrorResponse(`Transaction not found with ID: ${transactionId}`, 404);
+      console.error(`Transaction not found in database with ID: ${transactionId}`);
+      return createErrorResponse(`Transaction not found in database with ID: ${transactionId}`, 404);
     }
     
     // Log the transaction data to help with debugging
@@ -34,7 +35,8 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
       status: transaction.status,
       external_id: transaction.external_transaction_id || 'none',
       transaction_id: transaction.transaction_id || 'none',
-      payment_address: transaction.payment_address || 'none'
+      payment_address: transaction.payment_address || 'none',
+      created_at: transaction.created_at
     })}`);
     
     // Ensure it's a CoinPayments transaction
@@ -57,28 +59,47 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
     // Get external transaction ID
     const externalTxId = transaction.external_transaction_id;
     if (!externalTxId) {
+      console.error(`Missing external transaction ID for transaction ${transactionId}`);
       return createErrorResponse(`Missing external transaction ID for transaction ${transactionId}`, 400);
     }
+    
+    console.log(`Using external transaction ID: ${externalTxId} for CoinPayments API request`);
     
     // Special handling for known testing addresses or stuck transactions
     let paymentStatus;
     if (forceUpdate && isSpecialAddress(transaction.payment_address)) {
-      console.log(`Using special handling for address: ${transaction.payment_address}`);
+      console.log(`Using special handling for test address: ${transaction.payment_address}`);
       paymentStatus = createMockCompletedStatus();
     } else {
       // Query CoinPayments API for transaction status
-      console.log(`Querying CoinPayments API for tx: ${externalTxId}`);
+      console.log(`Querying CoinPayments API for external tx: ${externalTxId}`);
       try {
         paymentStatus = await checkCoinPaymentsTransaction(externalTxId);
         
         if (!paymentStatus) {
-          console.error(`Failed to retrieve payment status for ${externalTxId}`);
-          return createErrorResponse(`Failed to retrieve payment status from CoinPayments API for transaction ${transactionId}`, 502);
+          console.error(`Failed to retrieve payment status for external ID ${externalTxId}`);
+          return createErrorResponse(
+            `Failed to retrieve payment status from CoinPayments API for transaction ${transactionId} (external ID: ${externalTxId})`, 
+            502
+          );
         }
         
+        // Check if the API returned an error
         if (paymentStatus.error) {
-          console.error(`API error checking payment status: ${paymentStatus.status_text}`);
-          // Still return data for logging but mark as error
+          console.error(`API error checking payment status for ${externalTxId}: ${paymentStatus.status_text || 'No error text'}`);
+          // Identify if this is an API key permission issue
+          if (paymentStatus.status_text?.toLowerCase().includes('api key') || 
+              paymentStatus.status_text?.toLowerCase().includes('permission') || 
+              paymentStatus.status_text?.toLowerCase().includes('access')) {
+            console.error('This appears to be an API key permission issue. Please check your CoinPayments API key settings.');
+            return createErrorResponse(
+              `CoinPayments API key permission issue: ${paymentStatus.status_text}`,
+              401,
+              { api_key_issue: true, details: `Error from CoinPayments API: ${JSON.stringify(paymentStatus)}` }
+            );
+          }
+          
+          // Return the error with details
           return createErrorResponse(
             paymentStatus.status_text || 'API error checking payment status', 
             paymentStatus.status_text?.includes('Invalid API key') ? 401 : 502,

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
 import { CryptoStatusCheckResult } from './types';
@@ -11,7 +10,24 @@ export async function checkCryptoPaymentStatus(
   console.log(`Checking status for CoinPayments transaction: ${transactionId}, forceUpdate: ${forceUpdate}`);
   
   try {
+    // First, verify if the transaction exists in the database
+    const { data: transactionCheck, error: checkError } = await supabase
+      .from('transactions')
+      .select('id, external_transaction_id')
+      .eq('id', transactionId)
+      .maybeSingle();
+      
+    if (checkError) {
+      console.error(`Database check error for transaction ${transactionId}:`, checkError);
+    } else {
+      console.log(`Database check result: ${transactionCheck ? 'Found transaction' : 'Transaction not found'}`);
+      if (transactionCheck) {
+        console.log(`External transaction ID: ${transactionCheck.external_transaction_id || 'none'}`);
+      }
+    }
+    
     // Attempt to invoke the edge function
+    console.log(`Calling edge function for transaction ${transactionId}`);
     const response = await supabase.functions.invoke('check-coinpayments-status', {
       body: {
         transactionId,
@@ -24,37 +40,21 @@ export async function checkCryptoPaymentStatus(
     const error = response.error;
     
     // Determine status code from error response - Supabase Functions don't expose statusText directly
-    let statusCode = 500; // Default to server error
-    
-    if (error) {
-      // Try to extract status code from error message or code if available
-      if (error.message) {
-        if (error.message.includes('404') || error.message.includes('not found')) {
-          statusCode = 404;
-        } else if (error.message.includes('401') || error.message.includes('unauthorized')) {
-          statusCode = 401;
-        } else if (error.message.includes('400') || error.message.includes('invalid')) {
-          statusCode = 400;
-        }
-      }
-      
-      if (error.code) {
-        // Some errors might expose a code property
-        if (error.code === '404') statusCode = 404;
-        else if (error.code === '401') statusCode = 401;
-        else if (error.code === '400') statusCode = 400;
-      }
-    }
+    let statusCode = error?.status || 500; // Default to server error
     
     // Log detailed response for debugging
-    console.log(`Edge function response:`, {
-      data: data || 'none',
+    console.log(`Edge function response for transaction ${transactionId}:`, {
+      data: data ? 'data present' : 'no data',
       error: error ? {
         message: error.message,
         details: error.details,
         statusCode: statusCode
       } : 'none'
     });
+    
+    if (data) {
+      console.log(`Response data:`, JSON.stringify(data).substring(0, 200) + '...');
+    }
     
     // Parse error response formats - handle both direct 'error' property and Supabase FunctionsHttpError
     const errorMessage = error?.message || (data && data.error) || null;
@@ -68,41 +68,34 @@ export async function checkCryptoPaymentStatus(
         errorObject: error,
         dataError: data?.error,
         statusCode: statusCode,
-        transactionId: transactionId
+        transactionId: transactionId,
+        apiKeyIssue: data?.api_key_issue || false
       });
+      
+      // Check for API key issues
+      if (data?.api_key_issue || (errorMessage && (
+          errorMessage.includes('API key') || 
+          errorMessage.includes('API credentials') || 
+          errorMessage.includes('permissions')))) {
+        console.error('CoinPayments API key issue detected:', errorMessage);
+        return {
+          error: 'CoinPayments API key issue. Your API keys may be missing or have insufficient permissions.',
+          status: 'error', 
+          updated: false,
+          api_key_issue: true,
+          details: `API key issue: ${errorMessage}`
+        };
+      }
       
       // Handle 404 errors (transaction not found)
       if (statusCode === 404 || (errorMessage && errorMessage.includes('not found'))) {
         return {
-          error: 'Transaction not found in the database. Please refresh the page and try again.',
+          error: `Transaction not found in the database (ID: ${transactionId}). Please refresh and try again.`,
           status: 'error',
           updated: false,
           transaction_not_found: true,
           details: `Transaction ID: ${transactionId} was not found. Status code: ${statusCode}`
         };
-      }
-      
-      // Handle general API errors
-      if (errorMessage) {
-        if (errorMessage.includes('API call to CoinPayments failed')) {
-          return {
-            error: 'CoinPayments API error. Your API keys may be invalid or have insufficient permissions.',
-            status: 'error', 
-            updated: false,
-            api_key_issue: true,
-            details: `Error with CoinPayments API: ${errorMessage}`
-          };
-        }
-        
-        if (errorMessage.includes('API credentials') || errorMessage.includes('API key')) {
-          return {
-            error: 'CoinPayments API credentials issue. Please verify your API keys configuration.',
-            status: 'error',
-            updated: false,
-            api_key_issue: true,
-            details: `API credentials issue: ${errorMessage}`
-          };
-        }
       }
       
       // Generic error response with enhanced details
