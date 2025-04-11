@@ -36,5 +36,3 @@ verify_jwt = true
 
 [functions.coinpayments-ipn-webhook]
 verify_jwt = false
-
-
