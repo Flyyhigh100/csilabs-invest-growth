@@ -10,14 +10,34 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
   try {
     const supabaseClient = createSupabaseClient();
     
-    // Fetch transaction from database with more detailed error handling
+    // Try to fetch the transaction with more flexible query options
     console.log(`Fetching transaction from database with ID: ${transactionId}`);
-    const { data: transaction, error } = await supabaseClient
+    
+    // First try with the direct ID
+    let { data: transaction, error } = await supabaseClient
       .from('transactions')
       .select('*')
       .eq('id', transactionId)
       .maybeSingle();
       
+    if (!transaction && !error) {
+      // If transaction is not found by id, try transaction_id field as fallback
+      console.log(`Transaction not found by primary ID, trying transaction_id field: ${transactionId}`);
+      const { data: fallbackTransaction, error: fallbackError } = await supabaseClient
+        .from('transactions')
+        .select('*')
+        .eq('transaction_id', transactionId)
+        .maybeSingle();
+        
+      if (fallbackTransaction) {
+        console.log(`Found transaction using transaction_id field instead of primary key`);
+        transaction = fallbackTransaction;
+        error = null;
+      } else if (fallbackError) {
+        error = fallbackError;
+      }
+    }
+    
     if (error) {
       console.error(`Database error fetching transaction ${transactionId}:`, error);
       return createErrorResponse(`Database error: ${error.message}`, 500);
@@ -25,7 +45,21 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
     
     if (!transaction) {
       console.error(`Transaction not found in database with ID: ${transactionId}`);
-      return createErrorResponse(`Transaction not found in database with ID: ${transactionId}`, 404);
+      
+      // Provide more detailed diagnostic information
+      const { data: diagnosticData } = await supabaseClient
+        .from('transactions')
+        .select('id, transaction_id, external_transaction_id')
+        .limit(5);
+      
+      if (diagnosticData && diagnosticData.length > 0) {
+        console.log(`For diagnostic purposes, here are some existing transaction IDs:`);
+        diagnosticData.forEach(tx => {
+          console.log(`- ID: ${tx.id}, transaction_id: ${tx.transaction_id}, external_id: ${tx.external_transaction_id}`);
+        });
+      }
+      
+      return createErrorResponse(`Transaction not found in database. ID tried: ${transactionId}`, 404);
     }
     
     // Log the transaction data to help with debugging
@@ -88,9 +122,10 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
         if (paymentStatus.error) {
           console.error(`API error checking payment status for ${externalTxId}: ${paymentStatus.status_text || 'No error text'}`);
           // Identify if this is an API key permission issue
-          if (paymentStatus.status_text?.toLowerCase().includes('api key') || 
-              paymentStatus.status_text?.toLowerCase().includes('permission') || 
-              paymentStatus.status_text?.toLowerCase().includes('access')) {
+          if (paymentStatus.status_text?.toLowerCase().includes('hmac signature') || 
+              paymentStatus.status_text?.toLowerCase().includes('invalid key') || 
+              paymentStatus.status_text?.toLowerCase().includes('permissions')) {
+            
             console.error('This appears to be an API key permission issue. Please check your CoinPayments API key settings.');
             return createErrorResponse(
               `CoinPayments API key permission issue: ${paymentStatus.status_text}`,
@@ -165,7 +200,7 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
       const { data: updatedTransaction, error: fetchError } = await supabaseClient
         .from('transactions')
         .select('*')
-        .eq('id', transactionId)
+        .eq('id', transaction.id)
         .single();
         
       if (fetchError) {

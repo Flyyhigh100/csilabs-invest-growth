@@ -189,12 +189,17 @@ const SyncCryptoPaymentButton = ({
         id: toastId,
       });
       
+      console.log(`Starting transaction check for transaction with:`, {
+        id: transaction.id, 
+        transaction_id: transaction.transaction_id,
+        external_id: transaction.external_transaction_id,
+        forceUpdate: forceUpdate
+      });
+      
       let updatedTransaction;
       let errorOccurred = false;
       
       try {
-        console.log(`Starting transaction check for ID: ${transaction.id}, forceUpdate: ${forceUpdate}`);
-        
         if (forceUpdate) {
           // Use force update function when explicitly requested
           updatedTransaction = await forceUpdateTransaction(transaction);
@@ -237,6 +242,7 @@ const SyncCryptoPaymentButton = ({
         console.log("Detailed transaction information for debugging:");
         console.log(JSON.stringify({
           transactionId: transaction.id,
+          transaction_id: transaction.transaction_id,
           paymentMethod: transaction.payment_method,
           status: transaction.status,
           externalId: transaction.external_transaction_id,

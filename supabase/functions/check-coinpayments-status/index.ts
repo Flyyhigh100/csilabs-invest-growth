@@ -34,17 +34,20 @@ serve(async (req) => {
       );
     }
     
-    const { transactionId, forceUpdate } = requestData;
+    const { transactionId, transaction_id, external_transaction_id, forceUpdate } = requestData;
     
-    if (!transactionId) {
-      console.error("Missing transaction ID in request");
+    // Either transactionId or transaction_id or external_transaction_id must be provided
+    if (!transactionId && !transaction_id && !external_transaction_id) {
+      console.error("Missing transaction identifiers in request");
       return new Response(
-        JSON.stringify(createErrorResponse('Transaction ID is required')),
+        JSON.stringify(createErrorResponse('Transaction ID is required (transactionId, transaction_id, or external_transaction_id)')),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
-    console.log(`Checking status for transaction: ${transactionId}, forceUpdate: ${forceUpdate}`);
+    // Use the primary ID if provided, fallback to transaction_id or external_transaction_id
+    const idToUse = transactionId || transaction_id || external_transaction_id;
+    console.log(`Checking status for transaction: ${idToUse}, forceUpdate: ${forceUpdate}`);
     
     // Verify CoinPayments API keys are set
     const publicKey = Deno.env.get('COINPAYMENTS_PUBLIC_KEY');
@@ -68,7 +71,7 @@ serve(async (req) => {
     
     try {
       // Process the transaction
-      const result = await processTransaction(transactionId, forceUpdate);
+      const result = await processTransaction(idToUse, forceUpdate);
       console.log("Process result:", JSON.stringify(result));
       
       // Check if there's an error property in the result

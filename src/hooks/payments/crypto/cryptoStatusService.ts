@@ -14,7 +14,7 @@ export async function checkCryptoPaymentStatus(
     // First, verify if the transaction exists in the database
     const { data: transactionCheck, error: checkError } = await supabase
       .from('transactions')
-      .select('id, external_transaction_id, payment_method')
+      .select('id, external_transaction_id, payment_method, transaction_id')
       .eq('id', transactionId)
       .maybeSingle();
       
@@ -52,15 +52,19 @@ export async function checkCryptoPaymentStatus(
     console.log(`Database check result: ${transactionCheck ? 'Found transaction' : 'Transaction not found'}`);
     if (transactionCheck) {
       console.log(`External transaction ID: ${transactionCheck.external_transaction_id || 'none'}`);
+      console.log(`Transaction ID field: ${transactionCheck.transaction_id || 'none'}`);
     }
     
     // Attempt to invoke the edge function
     console.log(`Calling edge function for transaction ${transactionId}`);
     
     try {
+      // Pass both ID and transaction_id to improve chances of finding the transaction
       const { data, error } = await supabase.functions.invoke('check-coinpayments-status', {
         body: {
           transactionId,
+          transaction_id: transactionCheck.transaction_id,
+          external_transaction_id: transactionCheck.external_transaction_id,
           forceUpdate
         }
       });
