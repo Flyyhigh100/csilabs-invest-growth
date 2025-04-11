@@ -55,10 +55,14 @@ export const usePendingTransactions = () => {
         // Using type guard to ensure tx.profiles is valid before checking for 'error' property
         if (tx.profiles && 
             typeof tx.profiles === 'object') {
-          // Additional null check is redundant with the prior condition
-          // but TypeScript needs this to be confident
-          if (tx.profiles !== null && !('error' in tx.profiles)) {
-            transaction.profiles = tx.profiles;
+          // Explicitly check for error property using a type assertion to avoid null check issues
+          const profilesObj = tx.profiles as object;
+          if (!('error' in profilesObj)) {
+            transaction.profiles = tx.profiles as {
+              first_name: string | null;
+              last_name: string | null;
+              email: string | null;
+            };
           }
         }
         
