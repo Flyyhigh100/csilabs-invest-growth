@@ -1,7 +1,7 @@
 
 import { createSupabaseClient, updateTransactionStatus, logStatusCheck } from "./db-client.ts";
 import { mapCoinPaymentsStatus } from "./status-mapper.ts";
-import { getCoinPaymentsTransactionInfo } from "./coinpayments-api.ts";
+import { checkCoinPaymentsTransaction } from "./coinpayments-api.ts";
 
 export async function processTransaction(transactionId: string, forceUpdate = false) {
   console.log(`Processing transaction: ${transactionId}, forceUpdate: ${forceUpdate}`);
@@ -53,7 +53,7 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
     }
     
     // Query CoinPayments API for transaction status
-    const paymentStatus = await getCoinPaymentsTransactionInfo(externalTxId);
+    const paymentStatus = await checkCoinPaymentsTransaction(externalTxId);
     
     if (!paymentStatus) {
       return { 
@@ -105,7 +105,9 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
         message: `Transaction status updated to ${newStatus}`,
         transaction: updatedTransaction,
         payment_status: paymentStatus,
-        updated: true
+        updated: true,
+        external_status: paymentStatus.status,
+        external_status_text: paymentStatus.status_text
       };
     } else {
       // Log the status check even if no update was needed
@@ -123,7 +125,9 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
         message: `No update needed. Current status: ${transaction.status}`,
         transaction: transaction,
         payment_status: paymentStatus,
-        updated: false
+        updated: false,
+        external_status: paymentStatus.status,
+        external_status_text: paymentStatus.status_text
       };
     }
   } catch (error) {
