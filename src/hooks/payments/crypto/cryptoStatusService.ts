@@ -22,10 +22,29 @@ export async function checkCryptoPaymentStatus(
     // Extract status code, data and error from response
     const data = response.data;
     const error = response.error;
-    const statusCode = typeof response?.statusText === 'string' ? 
-                      (response.statusText.includes('404') ? 404 : 
-                       response.statusText.includes('401') ? 401 : 
-                       response.statusText.includes('400') ? 400 : 500) : 500;
+    
+    // Determine status code from error response - Supabase Functions don't expose statusText directly
+    let statusCode = 500; // Default to server error
+    
+    if (error) {
+      // Try to extract status code from error message or code if available
+      if (error.message) {
+        if (error.message.includes('404') || error.message.includes('not found')) {
+          statusCode = 404;
+        } else if (error.message.includes('401') || error.message.includes('unauthorized')) {
+          statusCode = 401;
+        } else if (error.message.includes('400') || error.message.includes('invalid')) {
+          statusCode = 400;
+        }
+      }
+      
+      if (error.code) {
+        // Some errors might expose a code property
+        if (error.code === '404') statusCode = 404;
+        else if (error.code === '401') statusCode = 401;
+        else if (error.code === '400') statusCode = 400;
+      }
+    }
     
     // Log detailed response for debugging
     console.log(`Edge function response:`, {
