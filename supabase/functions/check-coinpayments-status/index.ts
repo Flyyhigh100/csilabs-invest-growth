@@ -194,7 +194,7 @@ serve(async (req) => {
     // Status codes: https://www.coinpayments.net/merchant-tools-ipn
     // -1 = Error/canceled
     // 0 = Pending
-    // 1 = Partial payment received, partial refund sent
+    // 1 = Partial payment received
     // 2 = Complete
     // 3 = Confirmed (3+ confirmations)
     // 100 = Complete/Confirmed
@@ -207,7 +207,7 @@ serve(async (req) => {
     } else if (paymentStatus.status === 0) {
       newStatus = 'pending';
     } else if (paymentStatus.status >= 1) {
-      // IMPORTANT: This is the fix - considering all statuses >= 1 as completed
+      // IMPORTANT: FIX! All values >= 1 should be considered completed
       newStatus = 'completed';
       updated = true;
     }

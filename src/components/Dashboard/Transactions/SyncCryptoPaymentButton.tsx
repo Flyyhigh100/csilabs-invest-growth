@@ -12,6 +12,7 @@ interface SyncCryptoPaymentButtonProps {
   size?: 'default' | 'sm' | 'lg' | 'icon';
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
   showTooltip?: boolean;
+  forceUpdate?: boolean;
 }
 
 const SyncCryptoPaymentButton = ({ 
@@ -19,26 +20,46 @@ const SyncCryptoPaymentButton = ({
   onSyncComplete,
   size = 'sm',
   variant = 'ghost',
-  showTooltip = true
+  showTooltip = true,
+  forceUpdate = false
 }: SyncCryptoPaymentButtonProps) => {
-  const { checkTransactionStatus, isChecking } = useCryptoStatusCheck();
+  const { checkTransactionStatus, forceUpdateTransaction, isChecking } = useCryptoStatusCheck();
   
   // Only show for coinpayments transactions
   if (transaction.payment_method !== 'coinpayments') {
     return null;
   }
 
-  // Don't show for completed transactions
+  // Don't show for completed transactions with tokens sent
   if (transaction.status === 'completed' && transaction.token_sent) {
     return null;
   }
 
   const handleSync = async () => {
-    const updatedTransaction = await checkTransactionStatus(transaction);
+    let updatedTransaction;
+    
+    if (forceUpdate) {
+      // Use force update function when explicitly requested
+      updatedTransaction = await forceUpdateTransaction(transaction);
+    } else {
+      // Use regular check function by default
+      updatedTransaction = await checkTransactionStatus(transaction);
+    }
+    
     if (onSyncComplete && updatedTransaction) {
       onSyncComplete(updatedTransaction);
     }
   };
+
+  const buttonLabel = isChecking 
+    ? 'Checking...' 
+    : forceUpdate 
+      ? 'Force Update' 
+      : 'Check Status';
+
+  const tooltipContent = forceUpdate
+    ? 'Force sync with CoinPayments API regardless of current status'
+    : 'Check payment status with CoinPayments';
 
   const button = (
     <Button
@@ -48,18 +69,18 @@ const SyncCryptoPaymentButton = ({
       disabled={isChecking}
     >
       <RefreshCw className={`h-3 w-3 mr-1 ${isChecking ? 'animate-spin' : ''}`} />
-      {isChecking ? 'Checking...' : 'Check Status'}
+      {buttonLabel}
     </Button>
   );
 
-  if (showTooltip && transaction.status === 'pending') {
+  if (showTooltip) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
           {button}
         </TooltipTrigger>
         <TooltipContent>
-          <p className="text-xs">Check payment status with CoinPayments</p>
+          <p className="text-xs">{tooltipContent}</p>
         </TooltipContent>
       </Tooltip>
     );

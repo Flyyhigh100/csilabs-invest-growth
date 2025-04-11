@@ -40,6 +40,11 @@ const TransactionsList = () => {
     tx => tx.payment_method === 'coinpayments' && tx.status === 'pending'
   );
   
+  // Check if there are any crypto transactions regardless of status
+  const hasCryptoTransactions = transactions?.some(
+    tx => tx.payment_method === 'coinpayments'
+  );
+  
   if (isLoading) {
     return <LoadingState />;
   }
@@ -55,11 +60,19 @@ const TransactionsList = () => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-2">
-        <div>
+        <div className="flex gap-2">
           {hasPendingCrypto && (
             <RefreshCryptoTransactionsButton
               onRefreshComplete={refetch}
               size="sm"
+            />
+          )}
+          {hasCryptoTransactions && (
+            <RefreshCryptoTransactionsButton
+              onRefreshComplete={refetch}
+              size="sm"
+              variant="secondary"
+              forceUpdateAll={true}
             />
           )}
         </div>

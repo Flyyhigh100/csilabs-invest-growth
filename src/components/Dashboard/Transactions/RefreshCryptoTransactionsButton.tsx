@@ -9,12 +9,14 @@ interface RefreshCryptoTransactionsButtonProps {
   onRefreshComplete?: () => void;
   size?: 'default' | 'sm' | 'lg' | 'icon';
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  forceUpdateAll?: boolean;
 }
 
 const RefreshCryptoTransactionsButton = ({
   onRefreshComplete,
   size = 'sm',
-  variant = 'outline'
+  variant = 'outline',
+  forceUpdateAll = false
 }: RefreshCryptoTransactionsButtonProps) => {
   const { refreshAllPendingTransactions, isChecking } = useCryptoStatusCheck();
   
@@ -24,6 +26,16 @@ const RefreshCryptoTransactionsButton = ({
       onRefreshComplete();
     }
   };
+  
+  const buttonLabel = isChecking 
+    ? 'Syncing...' 
+    : forceUpdateAll 
+      ? 'Force Sync All Crypto' 
+      : 'Sync Crypto Payments';
+
+  const tooltipContent = forceUpdateAll
+    ? 'Force synchronize all crypto transactions with CoinPayments'
+    : 'Sync all pending crypto transactions with CoinPayments';
   
   return (
     <Tooltip>
@@ -36,11 +48,11 @@ const RefreshCryptoTransactionsButton = ({
           className="text-xs"
         >
           <RefreshCw className={`h-3 w-3 mr-1 ${isChecking ? 'animate-spin' : ''}`} />
-          {isChecking ? 'Syncing...' : 'Sync Crypto Payments'}
+          {buttonLabel}
         </Button>
       </TooltipTrigger>
       <TooltipContent>
-        <p className="text-xs">Sync all pending crypto transactions with CoinPayments</p>
+        <p className="text-xs">{tooltipContent}</p>
       </TooltipContent>
     </Tooltip>
   );
