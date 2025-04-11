@@ -34,3 +34,7 @@ verify_jwt = true
 [functions.force-update-transaction-status]
 verify_jwt = true
 
+[functions.coinpayments-ipn-webhook]
+verify_jwt = false
+
+
