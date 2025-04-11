@@ -18,7 +18,7 @@ serve(async (req) => {
       );
     }
 
-    // Parse request data
+    // Parse request data with detailed error handling
     let requestData;
     try {
       requestData = await req.json();
@@ -42,6 +42,18 @@ serve(async (req) => {
     }
 
     console.log(`Checking status for transaction: ${transactionId}, forceUpdate: ${forceUpdate}`);
+    
+    // Verify CoinPayments API keys are set
+    const publicKey = Deno.env.get('COINPAYMENTS_PUBLIC_KEY');
+    const privateKey = Deno.env.get('COINPAYMENTS_PRIVATE_KEY');
+    
+    if (!publicKey || !privateKey) {
+      console.error('CoinPayments API keys not configured');
+      return new Response(
+        JSON.stringify(createErrorResponse('CoinPayments API credentials not configured')),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
     
     // Process the transaction
     const result = await processTransaction(transactionId, forceUpdate);

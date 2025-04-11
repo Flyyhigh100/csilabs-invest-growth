@@ -11,13 +11,15 @@ export const useCryptoStatusCheck = () => {
 
   // Show detailed error message
   const handleStatusCheckError = (error: string) => {
+    console.error('Status check error:', error);
+    
     if (error.includes('Transaction not found')) {
       toast.error("Transaction not found", {
         description: "This transaction was not found in our database. Please refresh the page."
       });
-    } else if (error.includes('API key')) {
-      toast.error("API Key Issue", {
-        description: "There's a problem with the CoinPayments API keys. Please contact support."
+    } else if (error.includes('API key') || error.includes('credentials')) {
+      toast.error("API Configuration Issue", {
+        description: "There's a problem with the CoinPayments API configuration. Please contact support."
       });
     } else if (error.includes('Network error')) {
       toast.error("Network Error", {

@@ -41,7 +41,6 @@ const RefreshCryptoTransactionsButton: React.FC<RefreshCryptoTransactionsButtonP
         onRefreshComplete();
       } else if (!success) {
         console.error('Failed to refresh all transactions');
-        // Toast notification will be shown by the hook itself
       }
     } catch (error) {
       console.error('Error in refreshing crypto transactions:', error);

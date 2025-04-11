@@ -145,7 +145,9 @@ export async function processIpnPayload(payload: Record<string, string>, logEntr
     const statusCode = parseInt(payload.status, 10);
     
     // Map CoinPayments status to our internal status
-    const status = mapCoinPaymentsStatus(statusCode);
+    const currentStatus = 'pending'; // Default assumption for mapping
+    const { newStatus: status, updated } = mapCoinPaymentsStatus(currentStatus, { status: statusCode });
+    
     console.log(`Mapped CoinPayments status ${statusCode} to internal status: ${status}`);
     
     // Update database record

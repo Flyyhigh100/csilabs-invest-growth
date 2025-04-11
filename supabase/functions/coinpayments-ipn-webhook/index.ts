@@ -49,7 +49,8 @@ serve(async (req) => {
       // For debugging purposes, we'll continue processing despite verification failure
       // but log a warning
       console.warn("Continuing despite HMAC verification failure for debugging purposes");
-      // In production, you'd want to return an error:
+      
+      // In production, we would return an error here, but for testing we'll continue
       // return new Response(
       //   JSON.stringify({ error: "HMAC verification failed" }),
       //   { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }

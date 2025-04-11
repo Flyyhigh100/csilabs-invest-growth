@@ -19,12 +19,19 @@ export async function checkCryptoPaymentStatus(
       }
     }) as { data: CryptoStatusCheckResult, error: any, status: number };
     
+    console.log(`Edge function response:`, {
+      data: data || 'none',
+      error: error || 'none', 
+      status
+    });
+    
     // Check for error or non-successful status
-    if (error || status >= 400) {
-      console.error('Error from edge function:', error, 'status:', status);
+    if (error || status >= 400 || data?.error) {
+      const errorMessage = error?.message || data?.error || `Edge function error (${status})`;
+      console.error('Error from edge function:', errorMessage, 'status:', status);
       
       // Handle 404 errors (transaction not found)
-      if (status === 404 || (error?.message && error.message.includes('not found'))) {
+      if (status === 404 || (errorMessage && errorMessage.includes('not found'))) {
         return {
           error: 'Transaction not found in the database. Please refresh the page.',
           status: 'error',
@@ -34,20 +41,29 @@ export async function checkCryptoPaymentStatus(
       }
       
       // Handle general API errors
-      const errorMessage = error?.message || `Edge function error (${status}). Please try again later.`;
-      
       // Parse the error to check if it's a CoinPayments API issue
-      if (typeof errorMessage === 'string' && errorMessage.includes('API call to CoinPayments failed')) {
-        return {
-          error: 'CoinPayments API error. Your API keys may be invalid or have insufficient permissions.',
-          status: 'error', 
-          updated: false,
-          api_key_issue: true
-        };
+      if (typeof errorMessage === 'string') {
+        if (errorMessage.includes('API call to CoinPayments failed')) {
+          return {
+            error: 'CoinPayments API error. Your API keys may be invalid or have insufficient permissions.',
+            status: 'error', 
+            updated: false,
+            api_key_issue: true
+          };
+        }
+        
+        if (errorMessage.includes('API credentials') || errorMessage.includes('API key')) {
+          return {
+            error: 'CoinPayments API credentials issue. Please verify your API keys configuration.',
+            status: 'error',
+            updated: false,
+            api_key_issue: true
+          };
+        }
       }
       
       return {
-        error: errorMessage,
+        error: errorMessage || 'Unknown error. Please try again later.',
         status: 'error',
         updated: false
       };

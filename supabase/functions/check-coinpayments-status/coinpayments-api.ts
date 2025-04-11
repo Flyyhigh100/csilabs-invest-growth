@@ -29,6 +29,8 @@ export async function checkCoinPaymentsTransaction(txnId: string) {
     const reqBody = params.toString();
     const hmacSignature = await createSignature(reqBody, privateKey);
     
+    console.log(`Making API request to CoinPayments with txid: ${txnId}`);
+    
     // Make API request to CoinPayments
     const response = await fetch('https://www.coinpayments.net/api.php', {
       method: 'POST',
@@ -40,16 +42,16 @@ export async function checkCoinPaymentsTransaction(txnId: string) {
     });
     
     if (!response.ok) {
-      console.error(`CoinPayments API response error: ${response.status}`);
+      console.error(`CoinPayments API response error: ${response.status}, ${response.statusText}`);
       return {
         error: true,
         status: -1,
-        status_text: `API call to CoinPayments failed with status ${response.status}`
+        status_text: `API call to CoinPayments failed with status ${response.status}: ${response.statusText}`
       };
     }
     
     const data = await response.json();
-    console.log('CoinPayments API response:', JSON.stringify(data));
+    console.log('CoinPayments API raw response:', JSON.stringify(data));
     
     if (data.error !== 'ok') {
       console.error(`CoinPayments API error: ${data.error}`);
@@ -62,6 +64,8 @@ export async function checkCoinPaymentsTransaction(txnId: string) {
     
     // Extract transaction status
     const result = data.result;
+    console.log(`CoinPayments transaction status for ${txnId}: ${result.status} (${result.status_text})`);
+    
     return {
       status: result.status,
       status_text: result.status_text
@@ -76,7 +80,7 @@ export async function checkCoinPaymentsTransaction(txnId: string) {
   }
 }
 
-// Check if this is a special test address we should mock responses for
+// Check if this is a special address we should mock responses for
 export function isSpecialAddress(address: string | null | undefined): boolean {
   if (!address) return false;
   
