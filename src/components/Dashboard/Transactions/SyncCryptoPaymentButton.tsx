@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Transaction } from '@/types/transactions';
 import { useCryptoStatusCheck } from '@/hooks/payments/crypto';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SyncCryptoPaymentButtonProps {
   transaction: Transaction;
@@ -14,6 +15,7 @@ interface SyncCryptoPaymentButtonProps {
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
   showTooltip?: boolean;
   forceUpdate?: boolean;
+  validateApiKeysOnly?: boolean;
 }
 
 const SyncCryptoPaymentButton = ({ 
@@ -22,13 +24,30 @@ const SyncCryptoPaymentButton = ({
   size = 'sm',
   variant = 'ghost',
   showTooltip = true,
-  forceUpdate = false
+  forceUpdate = false,
+  validateApiKeysOnly = false
 }: SyncCryptoPaymentButtonProps) => {
   const [localIsChecking, setLocalIsChecking] = useState(false);
   const { checkTransactionStatus, forceUpdateTransaction, isChecking: hookIsChecking } = useCryptoStatusCheck();
   
   // Combined checking state from both sources
   const isChecking = hookIsChecking || localIsChecking;
+  
+  // For API key validation only option
+  if (validateApiKeysOnly) {
+    return (
+      <Button
+        variant="outline"
+        size={size}
+        onClick={handleApiKeyValidation}
+        disabled={isChecking}
+        className="border-amber-500 text-amber-700 hover:bg-amber-50"
+      >
+        <Lock className={`h-3 w-3 mr-1 ${isChecking ? 'animate-spin' : ''}`} />
+        {isChecking ? 'Validating...' : 'Validate API Keys'}
+      </Button>
+    );
+  }
   
   // Only show for coinpayments transactions
   if (transaction.payment_method !== 'coinpayments') {
@@ -38,6 +57,54 @@ const SyncCryptoPaymentButton = ({
   // Don't show for completed transactions with tokens sent
   if (transaction.status === 'completed' && transaction.token_sent) {
     return null;
+  }
+
+  async function handleApiKeyValidation() {
+    try {
+      setLocalIsChecking(true);
+      
+      const toastId = 'validate-api-keys';
+      toast.info("Validating API keys configuration...", {
+        id: toastId,
+      });
+      
+      const { data, error } = await supabase.functions.invoke('validate-api-keys', {
+        body: { service: 'coinpayments' }
+      });
+      
+      toast.dismiss(toastId);
+      
+      if (error) {
+        console.error("API key validation error:", error);
+        toast.error("Error validating API keys", {
+          description: error.message || "Could not validate API keys configuration."
+        });
+        return;
+      }
+      
+      if (!data.isValid) {
+        toast.error("API Key Configuration Issue", {
+          description: data.details || "The CoinPayments API keys appear to be invalid or misconfigured."
+        });
+        console.error("API key validation details:", data);
+        return;
+      }
+      
+      toast.success("API Keys Validated", {
+        description: "Your CoinPayments API keys are correctly configured."
+      });
+      
+      if (data.rawResponse) {
+        console.log("API key validation response:", data.rawResponse);
+      }
+    } catch (error) {
+      console.error("Error validating API keys:", error);
+      toast.error("Error validating API keys", {
+        description: (error as Error).message || "An unexpected error occurred"
+      });
+    } finally {
+      setLocalIsChecking(false);
+    }
   }
 
   const handleSync = async () => {

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign } from 'lucide-react';
 import { usePaymentHandlers } from '@/hooks/payments';
@@ -14,6 +14,7 @@ import PaymentTabs from './TokenPurchase/PaymentTabs';
 import WalletMissingContent from './TokenPurchase/WalletMissingContent';
 import PurchaseGuide from './TokenPurchase/PurchaseGuide';
 import TestModeFooter from './TokenPurchase/TestModeFooter';
+import SyncCryptoPaymentButton from './Transactions/SyncCryptoPaymentButton';
 
 interface BuyTokensTabProps {
   walletAddress: string | null;
@@ -101,7 +102,19 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
         )}
       </CardContent>
       
-      <TestModeFooter />
+      <CardFooter className="bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
+        <TestModeFooter />
+        
+        {/* Add API Keys Validation Button */}
+        <div className="text-sm text-gray-500">
+          <SyncCryptoPaymentButton 
+            transaction={{ id: 'api-key-test', payment_method: 'coinpayments' } as any}
+            validateApiKeysOnly={true}
+            variant="outline"
+            size="sm"
+          />
+        </div>
+      </CardFooter>
       
       <CryptoPaymentDialog 
         open={showCryptoDialog} 
