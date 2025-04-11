@@ -21,6 +21,7 @@ import ResetPassword from './pages/Auth/ResetPassword';
 import NotFound from './pages/NotFound';
 import TestToolsPage from './pages/Admin/TestTools';
 import Payments from './pages/Dashboard/Payments';
+import Transactions from './pages/Dashboard/Transactions';
 
 const queryClient = new QueryClient();
 
@@ -44,7 +45,7 @@ function App() {
                 <Route element={<ProtectedRoute />}>
                   <Route path="/dashboard" element={<div>Dashboard</div>} />
                   <Route path="/dashboard/kyc" element={<div>KYC</div>} />
-                  <Route path="/dashboard/transactions" element={<div>Transactions</div>} />
+                  <Route path="/dashboard/transactions" element={<Transactions />} />
                   <Route path="/dashboard/profile" element={<div>Profile</div>} />
                   <Route path="/dashboard/settings" element={<div>Settings</div>} />
                   <Route path="/dashboard/wallet" element={<div>Wallet</div>} />
@@ -56,7 +57,7 @@ function App() {
                   <Route path="/admin" element={<div>Admin Dashboard</div>} />
                   <Route path="/admin/kyc" element={<div>Admin KYC Verification</div>} />
                   <Route path="/admin/users" element={<div>Admin Users</div>} />
-                  <Route path="/admin/transactions" element={<div>Admin Transactions</div>} />
+                  <Route path="/admin/transactions" element={<AdminTransactionsPage />} />
                   <Route path="/admin/transaction-tools" element={<div>Transaction Tools</div>} />
                   <Route path="/admin/test-tools" element={<TestToolsPage />} />
                 </Route>
