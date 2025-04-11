@@ -140,7 +140,7 @@ serve(async (req) => {
     }
 
     // Parse request data
-    const { transactionId } = await req.json();
+    const { transactionId, forceUpdate } = await req.json();
     
     if (!transactionId) {
       return new Response(
@@ -149,7 +149,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Checking status for transaction: ${transactionId}`);
+    console.log(`Checking status for transaction: ${transactionId}, forceUpdate: ${forceUpdate}`);
     
     const supabaseClient = createSupabaseClient();
 
@@ -168,8 +168,8 @@ serve(async (req) => {
       );
     }
     
-    // No need to check if already completed
-    if (transaction.status === 'completed') {
+    // No need to check if already completed, unless force update is requested
+    if (transaction.status === 'completed' && !forceUpdate) {
       console.log(`Transaction ${transactionId} is already completed, skipping check`);
       return new Response(
         JSON.stringify({ status: 'completed', updated: false }),
@@ -207,13 +207,13 @@ serve(async (req) => {
     } else if (paymentStatus.status === 0) {
       newStatus = 'pending';
     } else if (paymentStatus.status >= 1) {
-      // IMPORTANT: FIX! All values >= 1 should be considered completed
+      // IMPORTANT: All values >= 1 should be considered completed
       newStatus = 'completed';
       updated = true;
     }
     
-    // Update transaction if status changed
-    if (updated && newStatus !== transaction.status) {
+    // Update transaction if status changed or force update requested
+    if ((updated && newStatus !== transaction.status) || forceUpdate) {
       await updateTransactionStatus(
         supabaseClient, 
         transactionId, 
@@ -222,6 +222,7 @@ serve(async (req) => {
       );
       
       console.log(`Updated transaction ${transactionId} status to ${newStatus}`);
+      updated = true;
     }
     
     return new Response(
