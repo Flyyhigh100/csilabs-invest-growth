@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { ShieldAlert } from 'lucide-react';
 
-const KycRequiredAlert = () => {
+const KycRequiredAlert: React.FC = () => {
   return (
     <Alert className="mb-4 border-amber-200 bg-amber-50">
       <ShieldAlert className="h-4 w-4 text-amber-600" />
