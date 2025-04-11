@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { corsHeaders } from "../check-coinpayments-status/utils.ts";
+import { corsHeaders } from "./utils.ts";
 import { verifyIpnHmac } from "./verification.ts";
 import { processIpnPayload } from "./transaction-handler.ts";
 import { logIpnRequest } from "./logging.ts";
