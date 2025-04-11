@@ -24,7 +24,7 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
     
     if (!transaction) {
       console.error(`Transaction not found with ID: ${transactionId}`);
-      return createErrorResponse('Transaction not found', 404);
+      return createErrorResponse(`Transaction not found with ID: ${transactionId}`, 404);
     }
     
     // Log the transaction data to help with debugging
@@ -57,7 +57,7 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
     // Get external transaction ID
     const externalTxId = transaction.external_transaction_id;
     if (!externalTxId) {
-      return createErrorResponse('Missing external transaction ID', 400);
+      return createErrorResponse(`Missing external transaction ID for transaction ${transactionId}`, 400);
     }
     
     // Special handling for known testing addresses or stuck transactions
@@ -73,7 +73,7 @@ export async function processTransaction(transactionId: string, forceUpdate = fa
         
         if (!paymentStatus) {
           console.error(`Failed to retrieve payment status for ${externalTxId}`);
-          return createErrorResponse('Failed to retrieve payment status from CoinPayments API', 502);
+          return createErrorResponse(`Failed to retrieve payment status from CoinPayments API for transaction ${transactionId}`, 502);
         }
         
         if (paymentStatus.error) {

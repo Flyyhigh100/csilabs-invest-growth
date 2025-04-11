@@ -72,7 +72,7 @@ serve(async (req) => {
       // Set appropriate status code based on error type
       let statusCode = 500; // Default to server error
       
-      if (result.error === 'Transaction not found') {
+      if (result.error === 'Transaction not found' || result.error.includes('Transaction not found')) {
         statusCode = 404;
       } else if (result.error.includes('Invalid') || result.error.includes('Missing')) {
         statusCode = 400;

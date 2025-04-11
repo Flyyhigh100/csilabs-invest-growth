@@ -19,7 +19,7 @@ export async function checkCryptoPaymentStatus(
       }
     });
     
-    // Extract status code, data and error from response
+    // Extract data and error from response
     const data = response.data;
     const error = response.error;
     

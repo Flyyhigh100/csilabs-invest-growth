@@ -23,15 +23,16 @@ export function mapCoinPaymentsStatus(
     // Only mark as updated if current status isn't already pending
     updated = currentStatus !== 'pending';
   } else if (paymentStatus.status === 1) {
-    // UPDATED: Status 1 means payment received - should now be marked as completed
+    // CRITICAL: Status 1 means payment received - mark as completed
     newStatus = 'completed';
     updated = newStatus !== currentStatus;
+    console.log(`CRITICAL STATUS UPDATE: Payment received (status 1), marking as completed. Current status: ${currentStatus}`);
   } else if (paymentStatus.status >= 2) {
     // All values >= 2 should be considered fully completed
     newStatus = 'completed';
     updated = newStatus !== currentStatus;
   }
   
-  console.log(`mapCoinPaymentsStatus: Current=${currentStatus} -> New=${newStatus}, Updated=${updated}, Status code=${paymentStatus.status}, Status text=${paymentStatus.status_text || 'none'}`);
+  console.log(`CoinPayments status mapping: CP status=${paymentStatus.status}, CP text=${paymentStatus.status_text || 'none'}, Current=${currentStatus}, New=${newStatus}, Updated=${updated}`);
   return { newStatus, updated };
 }

@@ -42,7 +42,7 @@ export async function checkCoinPaymentsTransaction(txnId: string) {
     let hmacSignature;
     try {
       hmacSignature = await createSignature(reqBody, privateKey);
-      console.log(`HMAC signature created successfully for txid: ${txnId}`);
+      console.log(`HMAC signature created successfully for txid: ${txnId} (first 10 chars: ${hmacSignature.slice(0,10)}...)`);
     } catch (signatureError) {
       console.error("Error creating HMAC signature:", signatureError);
       return {
