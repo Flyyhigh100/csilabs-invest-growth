@@ -9,7 +9,7 @@ export interface PendingTransactionWithProfile extends Transaction {
     first_name: string | null;
     last_name: string | null;
     email: string | null;
-  };
+  } | null;
   crypto_currency?: string;
   crypto_amount?: number;
 }
@@ -43,7 +43,21 @@ export const usePendingTransactions = () => {
       console.info('Found', transactions?.length, 'pending transactions');
       console.info('Processed transaction data:', transactions);
       
-      return transactions as PendingTransactionWithProfile[];
+      // Safely cast the data to ensure type compatibility
+      const safeTransactions = transactions?.map(tx => {
+        // Handle potential error in profiles property
+        if (tx.profiles && typeof tx.profiles === 'object' && !('error' in tx.profiles)) {
+          return tx as PendingTransactionWithProfile;
+        } else {
+          // If profiles is an error or invalid, set it to null
+          return {
+            ...tx,
+            profiles: null
+          } as PendingTransactionWithProfile;
+        }
+      }) || [];
+      
+      return safeTransactions;
     },
   });
 };
