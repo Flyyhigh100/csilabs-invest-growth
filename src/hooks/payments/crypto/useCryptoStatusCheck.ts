@@ -19,6 +19,10 @@ export const useCryptoStatusCheck = () => {
       toast.error("API Key Issue", {
         description: "There's a problem with the CoinPayments API keys. Please contact support."
       });
+    } else if (error.includes('Network error')) {
+      toast.error("Network Error", {
+        description: "Unable to connect to the API. Please check your internet connection and try again."
+      });
     } else {
       toast.error(`Error checking payment status`, {
         description: "Please try again later or contact support if the issue persists."
@@ -46,8 +50,10 @@ export const useCryptoStatusCheck = () => {
     try {
       setIsChecking(true);
       
+      // Use a unique toast ID based on the transaction ID
+      const toastId = `check-crypto-${transaction.id}`;
       toast.info("Checking payment status...", {
-        id: "check-crypto-status",
+        id: toastId,
       });
       
       console.log(`Initiating status check for transaction ${transaction.id}`);
@@ -57,7 +63,7 @@ export const useCryptoStatusCheck = () => {
       
       console.log(`Status check result for ${transaction.id}:`, result);
       
-      toast.dismiss('check-crypto-status');
+      toast.dismiss(toastId);
       
       if (result.error) {
         handleStatusCheckError(result.error);
@@ -78,24 +84,28 @@ export const useCryptoStatusCheck = () => {
       // Refresh the transaction from Supabase to make sure we have the latest data
       if (result.updated) {
         try {
-          const { data: refreshedTransaction } = await supabase
+          const { data: refreshedTransaction, error } = await supabase
             .from('transactions')
             .select('*')
             .eq('id', transaction.id)
             .single();
             
-          if (refreshedTransaction) {
+          if (error) {
+            console.error('Error refreshing transaction data:', error);
+            // Continue with the locally updated transaction
+          } else if (refreshedTransaction) {
             return refreshedTransaction as Transaction;
           }
         } catch (refreshError) {
           console.error('Error refreshing transaction data:', refreshError);
+          // Continue with the locally updated transaction
         }
       }
       
       return updatedTransaction;
     } catch (err) {
       console.error('Exception in checkTransactionStatus:', err);
-      toast.dismiss('check-crypto-status');
+      toast.dismiss(`check-crypto-${transaction.id}`);
       toast.error('Error checking payment status');
       return null;
     } finally {
@@ -108,15 +118,16 @@ export const useCryptoStatusCheck = () => {
     try {
       setIsChecking(true);
       
+      const toastId = 'refresh-all-crypto';
       toast.info(forceUpdate ? 'Force updating all transactions...' : 'Refreshing all pending transactions...', {
-        id: 'refresh-all-crypto',
+        id: toastId,
       });
       
       // Get all pending coinpayments transactions for the current user
       const pendingTransactions = await getPendingTransactions();
       
       if (!pendingTransactions || pendingTransactions.length === 0) {
-        toast.dismiss('refresh-all-crypto');
+        toast.dismiss(toastId);
         toast.info('No pending crypto transactions found');
         return true;
       }
@@ -151,7 +162,7 @@ export const useCryptoStatusCheck = () => {
         }
       }
       
-      toast.dismiss('refresh-all-crypto');
+      toast.dismiss(toastId);
       
       if (updatedCount > 0) {
         toast.success(`Updated ${updatedCount} transaction(s)`, {
@@ -196,8 +207,9 @@ export const useCryptoStatusCheck = () => {
     try {
       setIsChecking(true);
       
+      const toastId = `force-update-crypto-${transaction.id}`;
       toast.info("Force updating payment status...", {
-        id: "force-update-crypto",
+        id: toastId,
       });
       
       console.log(`Force updating transaction ${transaction.id}`);
@@ -205,7 +217,7 @@ export const useCryptoStatusCheck = () => {
       // Call API with force update flag
       const result = await checkCryptoPaymentStatus(transaction.id, true);
       
-      toast.dismiss('force-update-crypto');
+      toast.dismiss(toastId);
       
       if (result.error) {
         handleStatusCheckError(result.error);
@@ -223,17 +235,21 @@ export const useCryptoStatusCheck = () => {
         
         // Refresh the transaction from Supabase to make sure we have the latest data
         try {
-          const { data: refreshedTransaction } = await supabase
+          const { data: refreshedTransaction, error } = await supabase
             .from('transactions')
             .select('*')
             .eq('id', transaction.id)
             .single();
             
-          if (refreshedTransaction) {
+          if (error) {
+            console.error('Error refreshing transaction data:', error);
+            // Continue with the locally updated transaction
+          } else if (refreshedTransaction) {
             return refreshedTransaction as Transaction;
           }
         } catch (refreshError) {
           console.error('Error refreshing transaction data:', refreshError);
+          // Continue with the locally updated transaction
         }
       } else {
         toast.info('No status change needed', {
@@ -244,7 +260,7 @@ export const useCryptoStatusCheck = () => {
       return updatedTransaction;
     } catch (err) {
       console.error('Exception in forceUpdateTransaction:', err);
-      toast.dismiss('force-update-crypto');
+      toast.dismiss(`force-update-crypto-${transaction.id}`);
       toast.error('Error updating payment status');
       return null;
     } finally {

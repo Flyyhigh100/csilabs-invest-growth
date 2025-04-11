@@ -44,8 +44,9 @@ const SyncCryptoPaymentButton = ({
     try {
       setLocalIsChecking(true);
       
+      const toastId = `sync-crypto-${transaction.id}`;
       toast.info(forceUpdate ? "Force updating status..." : "Checking payment status...", {
-        id: `sync-crypto-${transaction.id}`,
+        id: toastId,
       });
       
       let updatedTransaction;
@@ -58,13 +59,16 @@ const SyncCryptoPaymentButton = ({
         updatedTransaction = await checkTransactionStatus(transaction);
       }
       
-      toast.dismiss(`sync-crypto-${transaction.id}`);
+      toast.dismiss(toastId);
       
       if (!updatedTransaction && !forceUpdate) {
         // If regular check failed, try force update as fallback
         console.log("Regular check failed, trying force update as fallback");
-        toast.info("Trying force update as fallback...");
+        toast.info("Trying force update as fallback...", {
+          id: `${toastId}-fallback`
+        });
         updatedTransaction = await forceUpdateTransaction(transaction);
+        toast.dismiss(`${toastId}-fallback`);
       }
       
       if (onSyncComplete) {

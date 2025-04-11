@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
 import { CryptoStatusCheckResult } from './types';
@@ -11,26 +12,38 @@ export async function checkCryptoPaymentStatus(
   
   try {
     // Attempt to invoke the edge function
-    const { data: result, error } = await supabase.functions.invoke('check-coinpayments-status', {
+    const { data, error, status } = await supabase.functions.invoke('check-coinpayments-status', {
       body: {
         transactionId,
         forceUpdate
       }
-    }) as { data: CryptoStatusCheckResult, error: any };
+    }) as { data: CryptoStatusCheckResult, error: any, status: number };
     
-    if (error) {
-      console.error('Error from edge function:', error);
+    // Check for error or non-successful status
+    if (error || status >= 400) {
+      console.error('Error from edge function:', error, 'status:', status);
       
-      let errorMessage = error.message || 'Edge function error. Please try again later';
-      
-      // Parse the error to check if it's a CoinPayments API issue
-      if (typeof error.message === 'string' && error.message.includes('API call to CoinPayments failed')) {
-        errorMessage = 'CoinPayments API error. Your API keys may be invalid or have insufficient permissions.';
+      // Handle 404 errors (transaction not found)
+      if (status === 404 || (error?.message && error.message.includes('not found'))) {
+        return {
+          error: 'Transaction not found in the database. Please refresh the page.',
+          status: 'error',
+          updated: false,
+          transaction_not_found: true
+        };
       }
       
-      // Check if this is a 404 error (function not found or not deployed)
-      else if (error.message && error.message.includes('404')) {
-        errorMessage = 'The check-coinpayments-status function is not deployed or not accessible.';
+      // Handle general API errors
+      const errorMessage = error?.message || `Edge function error (${status}). Please try again later.`;
+      
+      // Parse the error to check if it's a CoinPayments API issue
+      if (typeof errorMessage === 'string' && errorMessage.includes('API call to CoinPayments failed')) {
+        return {
+          error: 'CoinPayments API error. Your API keys may be invalid or have insufficient permissions.',
+          status: 'error', 
+          updated: false,
+          api_key_issue: true
+        };
       }
       
       return {
@@ -40,7 +53,7 @@ export async function checkCryptoPaymentStatus(
       };
     }
     
-    if (!result) {
+    if (!data) {
       console.error('Empty result from edge function');
       return {
         error: 'No response from status check function',
@@ -50,11 +63,11 @@ export async function checkCryptoPaymentStatus(
     }
     
     // Check if the result already contains an error property
-    if (result.error) {
-      console.error('Error in status check result:', result.error);
+    if (data.error) {
+      console.error('Error in status check result:', data.error);
       
       // Check if transaction not found
-      if (result.error === 'Transaction not found') {
+      if (data.error === 'Transaction not found') {
         return {
           error: 'Transaction not found in the database. Please refresh the page.',
           status: 'error',
@@ -64,8 +77,8 @@ export async function checkCryptoPaymentStatus(
       }
       
       // Check if this is an API key issue
-      if (result.error.includes('API') && 
-          (result.error.includes('key') || result.error.includes('credential'))) {
+      if (data.error.includes('API') && 
+          (data.error.includes('key') || data.error.includes('credential'))) {
         return {
           error: 'CoinPayments API key error. Please verify your API keys are correctly configured.',
           status: 'error',
@@ -75,20 +88,20 @@ export async function checkCryptoPaymentStatus(
       }
       
       return {
-        ...result,
-        status: result.status || 'error',
+        ...data,
+        status: data.status || 'error',
         updated: false
       };
     }
     
-    console.log('Status check result:', result);
+    console.log('Status check result:', data);
     
     // Log external status information if available
-    if (result.external_status !== undefined) {
-      console.log(`External status code: ${result.external_status}, text: ${result.external_status_text}`);
+    if (data.external_status !== undefined) {
+      console.log(`External status code: ${data.external_status}, text: ${data.external_status_text}`);
     }
     
-    return result;
+    return data;
   } catch (error: any) {
     console.error('Exception in checkCryptoPaymentStatus:', error);
     

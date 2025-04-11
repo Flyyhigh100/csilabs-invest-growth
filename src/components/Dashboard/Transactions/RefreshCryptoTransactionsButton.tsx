@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useCryptoStatusCheck } from '@/hooks/payments/crypto';
@@ -18,22 +18,38 @@ const RefreshCryptoTransactionsButton: React.FC<RefreshCryptoTransactionsButtonP
   size = 'default',
   variant = 'default'
 }) => {
-  const { refreshAllPendingTransactions, isChecking } = useCryptoStatusCheck();
+  const [localIsChecking, setLocalIsChecking] = useState(false);
+  const { refreshAllPendingTransactions, isChecking: hookIsChecking } = useCryptoStatusCheck();
+  
+  // Combined checking state from both sources
+  const isChecking = hookIsChecking || localIsChecking;
 
   const handleRefresh = async () => {
     try {
+      setLocalIsChecking(true);
+      const toastId = "refresh-crypto-all";
+      
+      toast.info(forceUpdateAll ? 'Force updating all transactions...' : 'Syncing crypto payments...', {
+        id: toastId,
+      });
+      
       const success = await refreshAllPendingTransactions(forceUpdateAll);
+      
+      toast.dismiss(toastId);
       
       if (success && onRefreshComplete) {
         onRefreshComplete();
       } else if (!success) {
         console.error('Failed to refresh all transactions');
+        // Toast notification will be shown by the hook itself
       }
     } catch (error) {
       console.error('Error in refreshing crypto transactions:', error);
       toast.error('Failed to refresh transactions', {
         description: 'Please try again later or contact support if the issue persists.'
       });
+    } finally {
+      setLocalIsChecking(false);
     }
   };
 

@@ -49,7 +49,16 @@ serve(async (req) => {
     
     // Check if there's an error property in the result
     if (result.error) {
-      const statusCode = result.error === 'Transaction not found' ? 404 : 500;
+      // Set appropriate status code based on error type
+      let statusCode = 500; // Default to server error
+      
+      if (result.error === 'Transaction not found') {
+        statusCode = 404;
+      } else if (result.error.includes('Invalid') || result.error.includes('Missing')) {
+        statusCode = 400;
+      } else if (result.error.includes('API credentials')) {
+        statusCode = 401;
+      }
       
       return new Response(
         JSON.stringify(result),
