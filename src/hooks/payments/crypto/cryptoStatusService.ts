@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
 import { CryptoStatusCheckResult } from './types';
@@ -13,118 +14,152 @@ export async function checkCryptoPaymentStatus(
     // First, verify if the transaction exists in the database
     const { data: transactionCheck, error: checkError } = await supabase
       .from('transactions')
-      .select('id, external_transaction_id')
+      .select('id, external_transaction_id, payment_method')
       .eq('id', transactionId)
       .maybeSingle();
       
     if (checkError) {
       console.error(`Database check error for transaction ${transactionId}:`, checkError);
-    } else {
-      console.log(`Database check result: ${transactionCheck ? 'Found transaction' : 'Transaction not found'}`);
-      if (transactionCheck) {
-        console.log(`External transaction ID: ${transactionCheck.external_transaction_id || 'none'}`);
-      }
+      return {
+        error: `Database error: ${checkError.message}`,
+        status: 'error',
+        updated: false,
+        details: `Database error checking transaction ${transactionId}`
+      };
+    }
+    
+    if (!transactionCheck) {
+      console.error(`Transaction ${transactionId} not found in database`);
+      return {
+        error: `Transaction not found in database`,
+        status: 'error',
+        updated: false,
+        transaction_not_found: true,
+        details: `Transaction ID: ${transactionId} was not found in the database`
+      };
+    }
+    
+    if (transactionCheck.payment_method !== 'coinpayments') {
+      console.log(`Transaction ${transactionId} is not a CoinPayments transaction (${transactionCheck.payment_method})`);
+      return {
+        error: `This is not a CoinPayments transaction`,
+        status: 'error',
+        updated: false,
+        details: `Transaction ${transactionId} has payment method: ${transactionCheck.payment_method}`
+      };
+    }
+    
+    console.log(`Database check result: ${transactionCheck ? 'Found transaction' : 'Transaction not found'}`);
+    if (transactionCheck) {
+      console.log(`External transaction ID: ${transactionCheck.external_transaction_id || 'none'}`);
     }
     
     // Attempt to invoke the edge function
     console.log(`Calling edge function for transaction ${transactionId}`);
-    const response = await supabase.functions.invoke('check-coinpayments-status', {
-      body: {
-        transactionId,
-        forceUpdate
-      }
-    });
     
-    // Extract data and error from response
-    const data = response.data;
-    const error = response.error;
-    
-    // Determine status code from error response - Supabase Functions don't expose statusText directly
-    let statusCode = error?.status || 500; // Default to server error
-    
-    // Log detailed response for debugging
-    console.log(`Edge function response for transaction ${transactionId}:`, {
-      data: data ? 'data present' : 'no data',
-      error: error ? {
-        message: error.message,
-        details: error.details,
-        statusCode: statusCode
-      } : 'none'
-    });
-    
-    if (data) {
-      console.log(`Response data:`, JSON.stringify(data).substring(0, 200) + '...');
-    }
-    
-    // Parse error response formats - handle both direct 'error' property and Supabase FunctionsHttpError
-    const errorMessage = error?.message || (data && data.error) || null;
-    
-    // Check for errors
-    if (error || statusCode >= 400 || errorMessage) {
-      console.error('Error from edge function:', errorMessage || 'Unknown error', 'status:', statusCode);
-      
-      // Enhanced error details for debugging
-      console.error('Full error context:', {
-        errorObject: error,
-        dataError: data?.error,
-        statusCode: statusCode,
-        transactionId: transactionId,
-        apiKeyIssue: data?.api_key_issue || false
+    try {
+      const { data, error } = await supabase.functions.invoke('check-coinpayments-status', {
+        body: {
+          transactionId,
+          forceUpdate
+        }
       });
       
-      // Check for API key issues
-      if (data?.api_key_issue || (errorMessage && (
-          errorMessage.includes('API key') || 
-          errorMessage.includes('API credentials') || 
-          errorMessage.includes('permissions')))) {
-        console.error('CoinPayments API key issue detected:', errorMessage);
-        return {
-          error: 'CoinPayments API key issue. Your API keys may be missing or have insufficient permissions.',
-          status: 'error', 
-          updated: false,
-          api_key_issue: true,
-          details: `API key issue: ${errorMessage}`
-        };
+      // Determine status code from error response - Supabase Functions don't expose statusText directly
+      let statusCode = error?.status || (error ? 500 : 200);
+      
+      // Log detailed response for debugging
+      console.log(`Edge function response for transaction ${transactionId}:`, {
+        data: data ? 'data present' : 'no data',
+        error: error ? {
+          message: error.message,
+          details: error.details,
+          statusCode: statusCode
+        } : 'none'
+      });
+      
+      if (data) {
+        console.log(`Response data:`, JSON.stringify(data).substring(0, 200) + '...');
       }
       
-      // Handle 404 errors (transaction not found)
-      if (statusCode === 404 || (errorMessage && errorMessage.includes('not found'))) {
+      // Parse error response formats - handle both direct 'error' property and Supabase FunctionsHttpError
+      const errorMessage = error?.message || (data && data.error) || null;
+      
+      // Check for errors
+      if (error || statusCode >= 400 || errorMessage) {
+        console.error('Error from edge function:', errorMessage || 'Unknown error', 'status:', statusCode);
+        
+        // Enhanced error details for debugging
+        console.error('Full error context:', {
+          errorObject: error,
+          dataError: data?.error,
+          statusCode: statusCode,
+          transactionId: transactionId,
+          apiKeyIssue: data?.api_key_issue || false
+        });
+        
+        // Check for API key issues
+        if (data?.api_key_issue || (errorMessage && (
+            errorMessage.includes('API key') || 
+            errorMessage.includes('API credentials') || 
+            errorMessage.includes('permissions')))) {
+          console.error('CoinPayments API key issue detected:', errorMessage);
+          return {
+            error: 'CoinPayments API key issue. Your API keys may be missing or have insufficient permissions.',
+            status: 'error', 
+            updated: false,
+            api_key_issue: true,
+            details: `API key issue: ${errorMessage}`
+          };
+        }
+        
+        // Handle 404 errors (transaction not found)
+        if (statusCode === 404 || (errorMessage && errorMessage.includes('not found'))) {
+          return {
+            error: `Transaction not found in the payment provider (ID: ${transactionId}). Please refresh and try again.`,
+            status: 'error',
+            updated: false,
+            transaction_not_found: true,
+            details: `Transaction ID: ${transactionId} was not found. Status code: ${statusCode}`
+          };
+        }
+        
+        // Generic error response with enhanced details
         return {
-          error: `Transaction not found in the database (ID: ${transactionId}). Please refresh and try again.`,
+          error: errorMessage || `Error from edge function (${statusCode || 'unknown status'})`,
           status: 'error',
           updated: false,
-          transaction_not_found: true,
-          details: `Transaction ID: ${transactionId} was not found. Status code: ${statusCode}`
+          details: `Transaction ID: ${transactionId}, Status code: ${statusCode}, Error: ${errorMessage || 'Unknown error'}`
         };
       }
       
-      // Generic error response with enhanced details
+      if (!data) {
+        console.error('Empty result from edge function');
+        return {
+          error: 'No response from status check function',
+          status: 'error',
+          updated: false,
+          details: `Transaction ID: ${transactionId} received empty response from edge function`
+        };
+      }
+      
+      console.log('Status check result:', data);
+      
+      // Log external status information if available
+      if (data.external_status !== undefined) {
+        console.log(`External status code: ${data.external_status}, text: ${data.external_status_text}`);
+      }
+      
+      return data;
+    } catch (functionError) {
+      console.error(`Error invoking check-coinpayments-status function: ${functionError.message}`);
       return {
-        error: errorMessage || `Error from edge function (${statusCode || 'unknown status'})`,
+        error: `Error calling status check function: ${functionError.message}`,
         status: 'error',
         updated: false,
-        details: `Transaction ID: ${transactionId}, Status code: ${statusCode}, Error: ${errorMessage || 'Unknown error'}`
+        details: `Failed to call check-coinpayments-status function: ${functionError.message}`
       };
     }
-    
-    if (!data) {
-      console.error('Empty result from edge function');
-      return {
-        error: 'No response from status check function',
-        status: 'error',
-        updated: false,
-        details: `Transaction ID: ${transactionId} received empty response from edge function`
-      };
-    }
-    
-    console.log('Status check result:', data);
-    
-    // Log external status information if available
-    if (data.external_status !== undefined) {
-      console.log(`External status code: ${data.external_status}, text: ${data.external_status_text}`);
-    }
-    
-    return data;
   } catch (error: any) {
     console.error('Exception in checkCryptoPaymentStatus:', error);
     
