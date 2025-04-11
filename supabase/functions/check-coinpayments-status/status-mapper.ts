@@ -7,7 +7,7 @@ export function mapCoinPaymentsStatus(
   // Status codes: https://www.coinpayments.net/merchant-tools-ipn
   // -1 = Error/canceled
   // 0 = Pending
-  // 1 = Partial payment received
+  // 1 = Payment received (partial or complete payment)
   // 2 = Complete
   // 3 = Confirmed (3+ confirmations)
   // 100 = Complete/Confirmed
