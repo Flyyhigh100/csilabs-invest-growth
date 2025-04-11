@@ -14,13 +14,15 @@ interface TransactionsTableProps {
   expandedItem: string | null;
   setExpandedItem: (id: string | null) => void;
   onSyncComplete?: (updatedTransaction: Transaction | null) => void;
+  isAdminView?: boolean;
 }
 
 const TransactionsTable = ({
   transactions,
   expandedItem,
   setExpandedItem,
-  onSyncComplete
+  onSyncComplete,
+  isAdminView = false
 }: TransactionsTableProps) => {
   const handleRowClick = (txId: string) => {
     if (expandedItem === txId) {
@@ -47,6 +49,11 @@ const TransactionsTable = ({
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Status
             </th>
+            {isAdminView && (
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                User
+              </th>
+            )}
             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
               Actions
             </th>
@@ -91,6 +98,12 @@ const TransactionsTable = ({
                   )}
                 </div>
               </td>
+              {isAdminView && (
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {/* @ts-ignore - Handle the profiles relationship data */}
+                  {tx.profiles?.email || 'Unknown user'}
+                </td>
+              )}
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <Button 
                   variant="ghost" 
