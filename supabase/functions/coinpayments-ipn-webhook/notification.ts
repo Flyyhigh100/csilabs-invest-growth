@@ -1,33 +1,31 @@
 
-// Create a notification for the user when their payment is confirmed
+// Create notification for successful payment
 export async function createPaymentConfirmationNotification(
   client: any,
   userId: string,
-  amount: number | string
+  amount: number
 ) {
   try {
-    console.log(`Creating payment confirmation notification for user ${userId}`);
-    
-    // Format the amount properly
-    const formattedAmount = typeof amount === 'number' ? amount.toFixed(2) : amount;
-    
-    const { error } = await client.from('notifications').insert({
+    const notificationData = {
       user_id: userId,
       type: 'payment_confirmed',
       title: 'Payment Confirmed',
-      message: `Your payment of ${formattedAmount} USDT has been confirmed and will be processed shortly.`,
-      read: false
-    });
+      message: `Your payment of $${amount} has been confirmed and is being processed.`,
+      read: false,
+      data: { amount, confirmed_at: new Date().toISOString() }
+    };
     
+    const { error } = await client
+      .from('notifications')
+      .insert(notificationData);
+      
     if (error) {
-      console.error('Error creating payment confirmation notification:', error);
-      return false;
+      throw error;
     }
     
-    console.log(`Successfully created payment notification for user ${userId}`);
     return true;
   } catch (error) {
-    console.error('Error in createPaymentConfirmationNotification:', error);
+    console.error('Error creating notification:', error);
     return false;
   }
 }

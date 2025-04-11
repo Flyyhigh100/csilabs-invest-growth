@@ -69,3 +69,10 @@ export async function createSignature(params: Record<string, string>, privateKey
     }
   }
 }
+
+// Helper function to convert hex string to Uint8Array
+export function hexToUint8Array(hexString: string): Uint8Array {
+  const matches = hexString.match(/.{1,2}/g);
+  if (!matches) return new Uint8Array();
+  return new Uint8Array(matches.map(byte => parseInt(byte, 16)));
+}

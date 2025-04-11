@@ -1,4 +1,6 @@
 
+import { createDbClient } from "./db-client.ts";
+import { mapCoinPaymentsStatus } from "./status-mapper.ts";
 import { createPaymentConfirmationNotification } from "./notification.ts";
 
 // Update transaction status in Supabase with retry logic
@@ -114,4 +116,104 @@ export async function updateTransactionStatus(
   }
   
   return success;
+}
+
+// Process IPN payload and update transaction status
+export async function processIpnPayload(payload: Record<string, string>, logEntryId?: string) {
+  console.log(`Processing IPN payload. IPN type: ${payload.ipn_type}, TXN ID: ${payload.txn_id}`);
+  
+  try {
+    if (payload.ipn_type !== 'api') {
+      console.log(`Ignoring IPN with type ${payload.ipn_type} - we only care about api IPNs`);
+      return { 
+        success: true, 
+        message: `Ignoring IPN with type ${payload.ipn_type}`,
+        status: 'ignored'
+      };
+    }
+    
+    // Validate required fields
+    if (!payload.txn_id) {
+      throw new Error('Missing txn_id in IPN payload');
+    }
+    
+    if (payload.status === undefined) {
+      throw new Error('Missing status in IPN payload');
+    }
+    
+    // Parse the status code
+    const statusCode = parseInt(payload.status, 10);
+    
+    // Map CoinPayments status to our internal status
+    const status = mapCoinPaymentsStatus(statusCode);
+    console.log(`Mapped CoinPayments status ${statusCode} to internal status: ${status}`);
+    
+    // Update database record
+    const dbClient = createDbClient();
+    
+    // Check for completed status and set completed_at timestamp if needed
+    const completedAt = (statusCode === 1 || statusCode >= 100) ? new Date().toISOString() : undefined;
+    
+    // Update the transaction status
+    const updated = await updateTransactionStatus(
+      dbClient,
+      payload.txn_id,
+      status,
+      statusCode,
+      completedAt
+    );
+    
+    // Update IPN log with the processed status
+    if (logEntryId) {
+      try {
+        await dbClient
+          .from('ipn_logs')
+          .update({
+            txn_id: payload.txn_id,
+            status: status,
+            raw_data: payload,
+            is_valid: true,
+            response_status: updated ? 'Updated' : 'No update needed',
+            processed_at: new Date().toISOString()
+          })
+          .eq('id', logEntryId);
+      } catch (logError) {
+        console.error('Error updating IPN log:', logError);
+      }
+    }
+    
+    return {
+      success: true,
+      message: updated 
+        ? `Successfully updated transaction ${payload.txn_id} to status ${status}`
+        : `Transaction ${payload.txn_id} already has status ${status}, no update needed`,
+      updated,
+      status
+    };
+  } catch (error) {
+    console.error('Error processing IPN payload:', error);
+    
+    // Try to update the log entry with error info
+    if (logEntryId) {
+      try {
+        const dbClient = createDbClient();
+        await dbClient
+          .from('ipn_logs')
+          .update({
+            raw_data: { error: error.message, payload },
+            response_status: `Error: ${error.message}`,
+            processed_at: new Date().toISOString()
+          })
+          .eq('id', logEntryId);
+      } catch (logError) {
+        console.error('Error updating IPN log with error info:', logError);
+      }
+    }
+    
+    return {
+      success: false,
+      message: `Error processing IPN: ${error.message}`,
+      error: error.message
+    };
+  }
 }
