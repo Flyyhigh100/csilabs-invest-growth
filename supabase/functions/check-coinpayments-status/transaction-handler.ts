@@ -31,7 +31,7 @@ export async function processTransactionStatus(
     
     // Map CoinPayments status code to our internal status
     const statusCode = parseInt(cpStatus.status || '0');
-    const mappedStatus = mapCoinPaymentsStatus(statusCode);
+    const mappedStatus = mapCoinPaymentsStatus(transaction.status, { status: statusCode, status_text: cpStatus.status_text }).newStatus;
     
     console.log(`Status mapped: CP status ${statusCode} -> internal status '${mappedStatus}'`);
     

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import IPNLogViewer from '@/components/Dashboard/Transactions/IPNLogs/IPNLogViewer';
+import IPNLogs from '@/components/Admin/IPNLogs';
 import { AlertCircle } from 'lucide-react';
 
 const TransactionToolbox = () => {
@@ -260,7 +260,7 @@ const TransactionToolbox = () => {
           </TabsContent>
           
           <TabsContent value="ipn-logs">
-            <IPNLogViewer />
+            <IPNLogs />
           </TabsContent>
         </Tabs>
       </CardContent>
