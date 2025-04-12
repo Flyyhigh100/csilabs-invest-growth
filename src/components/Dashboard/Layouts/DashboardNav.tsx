@@ -1,58 +1,54 @@
 
 import React from 'react';
-import { 
-  User, 
-  CreditCard, 
-  FileText, 
-  UserCheck, 
-  DollarSign,
-  ShieldCheck
-} from 'lucide-react';
+import { Home, Wallet, FileText, User, ShieldCheck } from 'lucide-react';
 
-// Define the navigation items for the dashboard with helpful descriptions
-export const getDashboardNavItems = () => {
-  const navItems = [
-    { 
-      name: 'Contribute', 
-      href: '/dashboard/payments', 
-      icon: <DollarSign className="h-5 w-5" />,
-      description: "Purchase CSi tokens with credit card or cryptocurrency"
+export interface NavItem {
+  title: string;
+  path: string;
+  icon?: React.ReactNode;
+  description?: string;
+}
+
+export const getDashboardNavItems = (): NavItem[] => {
+  return [
+    {
+      title: 'Dashboard',
+      path: '/dashboard',
+      icon: <Home className="h-5 w-5" />,
+      description: 'Overview of your account and activities'
     },
-    { 
-      name: 'KYC Verification', 
-      href: '/dashboard/kyc', 
-      icon: <UserCheck className="h-5 w-5" />,
-      description: "Complete identity verification for large cryptocurrency purchases"
+    {
+      title: 'Buy Tokens',
+      path: '/dashboard/payments',
+      icon: <Wallet className="h-5 w-5" />,
+      description: 'Purchase CSI tokens using different payment methods'
     },
-    { 
-      name: 'Transactions', 
-      href: '/dashboard/transactions', 
-      icon: <CreditCard className="h-5 w-5" />,
-      description: "View your transaction history and payment status" 
-    },
-    { 
-      name: 'Documents', 
-      href: '/dashboard/documents', 
+    {
+      title: 'Transactions',
+      path: '/dashboard/transactions',
       icon: <FileText className="h-5 w-5" />,
-      description: "Access research documents and legal information"
+      description: 'View your transaction history'
     },
-    { 
-      name: 'Profile', 
-      href: '/dashboard/profile', 
+    {
+      title: 'Research',
+      path: '/dashboard/documents',
+      icon: <FileText className="h-5 w-5" />,
+      description: 'View research documents and analysis'
+    },
+    {
+      title: 'Profile',
+      path: '/dashboard/profile',
       icon: <User className="h-5 w-5" />,
-      description: "Manage your account settings and personal details"
+      description: 'Manage your account settings'
     },
   ];
-  
-  return navItems;
 };
 
-// Define the admin navigation item
-export const getAdminNavItem = () => {
-  return { 
-    name: 'Admin Portal', 
-    href: '/admin', 
+export const getAdminNavItem = (): NavItem => {
+  return {
+    title: 'Admin Portal',
+    path: '/admin',
     icon: <ShieldCheck className="h-5 w-5" />,
-    description: "Access administrative tools and settings"
+    description: 'Access administrative tools and settings'
   };
 };

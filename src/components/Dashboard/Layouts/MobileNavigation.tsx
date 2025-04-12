@@ -7,13 +7,14 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { Menu, X, LogOut, Loader2, ShieldCheck, Info, Home } from 'lucide-react';
 import NotificationsMenu from './NotificationsMenu';
+import { NavItem } from './DashboardNav';
 
 interface MobileNavigationProps {
   email?: string | null;
-  navItems: { title: string; path: string }[];
+  navItems: NavItem[];
   isAdmin: boolean;
   isChecking?: boolean;
-  adminNavItem: { title: string; path: string } | null;
+  adminNavItem: NavItem | null;
   handleLogout: () => void;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;

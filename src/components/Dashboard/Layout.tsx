@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { isUserAdmin } from '@/utils/admin';
 import TopNavigation from './Layouts/TopNavigation';
 import SidebarNavigation from './Layouts/SidebarNavigation';
-import { getDashboardNavItems, getAdminNavItem } from './Layouts/DashboardNav';
+import { getDashboardNavItems, getAdminNavItem, NavItem } from './Layouts/DashboardNav';
 import { toast } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -21,8 +21,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   const [isChecking, setIsChecking] = useState(true);
   
   // Get navigation items
-  const navItems = getDashboardNavItems();
-  const adminNavItem = getAdminNavItem();
+  const navItems: NavItem[] = getDashboardNavItems();
+  const adminNavItem: NavItem = getAdminNavItem();
   
   useEffect(() => {
     const checkAdmin = async () => {

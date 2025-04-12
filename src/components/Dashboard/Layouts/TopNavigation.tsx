@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button';
 import MobileNavigation from './MobileNavigation';
 import UserMenu from './UserMenu';
 import NotificationsMenu from './NotificationsMenu';
+import { NavItem } from './DashboardNav';
 
 interface TopNavigationProps {
   email: string | undefined | null;
   isAdmin: boolean;
   isChecking: boolean;
-  navItems: { title: string; path: string }[];
-  adminNavItem: { title: string; path: string } | null;
+  navItems: NavItem[];
+  adminNavItem: NavItem | null;
   handleLogout: () => void;
 }
 

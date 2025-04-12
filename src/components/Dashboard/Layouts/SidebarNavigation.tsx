@@ -1,29 +1,22 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Menu, X, LogOut, Loader2, ShieldCheck } from 'lucide-react';
+import { LogOut, Loader2 } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
-interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ReactNode;
-  description?: string;
-}
+import { NavItem } from './DashboardNav';
 
 interface SidebarNavigationProps {
   navItems: NavItem[];
   isAdmin: boolean;
   isChecking?: boolean;
-  adminNavItem: NavItem;
+  adminNavItem: NavItem | null;
   handleLogout: () => void;
 }
 
@@ -45,14 +38,14 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         <nav className="flex-1 space-y-1 px-2">
           <TooltipProvider delayDuration={300}>
             {navItems.map((item) => (
-              <Tooltip key={item.name}>
+              <Tooltip key={item.path}>
                 <TooltipTrigger asChild>
                   <Link
-                    to={item.href}
+                    to={item.path}
                     className="group flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-50 hover:text-cbis-blue transition-colors"
                   >
                     <div className="text-gray-500 group-hover:text-cbis-blue">{item.icon}</div>
-                    {item.name}
+                    {item.title}
                   </Link>
                 </TooltipTrigger>
                 {item.description && (
@@ -69,16 +62,16 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
               <Loader2 className="h-5 w-5 animate-spin" />
               Checking admin status...
             </div>
-          ) : isAdmin && (
+          ) : isAdmin && adminNavItem && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link
-                    to={adminNavItem.href}
+                    to={adminNavItem.path}
                     className="group flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md bg-blue-50 text-cbis-blue hover:bg-blue-100"
                   >
                     {adminNavItem.icon}
-                    {adminNavItem.name}
+                    {adminNavItem.title}
                   </Link>
                 </TooltipTrigger>
                 {adminNavItem.description && (
