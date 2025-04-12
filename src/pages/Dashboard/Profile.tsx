@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useProfileData } from '@/hooks/useProfileData';
 import KycStatusCard from '@/components/Dashboard/Profile/KycStatusCard';
 import ProfileForm from '@/components/Dashboard/Profile/ProfileForm';
+import TokenBalanceCard from '@/components/Dashboard/Profile/TokenBalanceCard';
+import WalletInfoCard from '@/components/Dashboard/Profile/WalletInfoCard';
 
 const Profile = () => {
   const { profileData, isLoading } = useProfileData();
@@ -13,6 +15,12 @@ const Profile = () => {
     <DashboardLayout title="Profile">
       {/* KYC Status Banner */}
       <KycStatusCard />
+
+      {/* Token Balance Card */}
+      <TokenBalanceCard />
+      
+      {/* Wallet Information */}
+      <WalletInfoCard />
 
       {/* Profile Form */}
       <Card>
