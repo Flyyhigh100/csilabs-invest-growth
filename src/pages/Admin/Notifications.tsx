@@ -59,13 +59,15 @@ const AdminNotifications: React.FC = () => {
     try {
       setIsLoading(true);
       
-      // Send notification to specific user using the correct function name
-      const { data, error } = await supabase.rpc('create_notification', {
-        _user_id: userId,
-        _title: title,
-        _message: message,
-        _type: notificationType
-      });
+      // Fix: Using from() instead of rpc() to call the function
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          title: title,
+          message: message,
+          type: notificationType
+        });
       
       if (error) throw error;
       
