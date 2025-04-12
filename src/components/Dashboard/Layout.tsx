@@ -1,10 +1,8 @@
 
 import React, { ReactNode, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { isUserAdmin } from '@/utils/admin';
 import TopNavigation from './Layouts/TopNavigation';
-import SidebarNavigation from './Layouts/SidebarNavigation';
 import { getDashboardNavItems, getAdminNavItem, NavItem } from './Layouts/DashboardNav';
 import { toast } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -15,7 +13,6 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) => {
-  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -70,7 +67,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen bg-gray-50 flex">
         <TopNavigation 
           email={user?.email}
           isAdmin={isAdmin}
@@ -80,24 +77,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
           handleLogout={handleLogout}
         />
 
-        <div className="flex flex-1">
-          <SidebarNavigation 
-            navItems={navItems}
-            isAdmin={isAdmin}
-            isChecking={isChecking}
-            adminNavItem={adminNavItem}
-            handleLogout={handleLogout}
-          />
-
-          {/* Main content */}
-          <div className="flex-1 overflow-auto">
-            <main className="py-6 px-4 sm:px-6 lg:px-8">
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-              </div>
-              {children}
-            </main>
-          </div>
+        {/* Main content */}
+        <div className="flex-1 overflow-auto pt-16">
+          <main className="py-6 px-4 sm:px-6 lg:px-8">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+            </div>
+            {children}
+          </main>
         </div>
       </div>
     </TooltipProvider>
