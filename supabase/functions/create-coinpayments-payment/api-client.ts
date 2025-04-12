@@ -1,4 +1,3 @@
-
 import { createSignature, generateMockPaymentData } from "./utils.ts";
 
 const COINPAYMENTS_API_URL = 'https://www.coinpayments.net/api.php';
@@ -11,11 +10,15 @@ export async function coinPaymentsRequest(command: string, params: Record<string
     throw new Error('CoinPayments API keys are not configured');
   }
 
+  // Add the required nonce parameter using the current timestamp
+  const nonce = Date.now().toString();
+
   const requestParams = {
     cmd: command,
     key: COINPAYMENTS_PUBLIC_KEY,
     version: '1',
     format: 'json',
+    nonce: nonce, // Add nonce here
     ...params,
   };
 

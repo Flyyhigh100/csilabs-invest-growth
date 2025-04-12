@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Transaction } from '@/types/transactions';
@@ -14,21 +13,29 @@ export const useCryptoStatusCheck = () => {
     console.error('Status check error:', error, details ? `Details: ${details}` : '');
     
     if (error.includes('Transaction not found')) {
-      toast.error("Transaction not found", {
-        description: "This transaction ID could not be found in our database. This could be due to cache issues or the transaction being deleted."
+      toast.error("Unable to verify payment", {
+        description: "We couldn't find this transaction. Please try again later or contact support if this persists."
       });
     } else if (error.includes('API key') || error.includes('credentials')) {
-      toast.error("API Configuration Issue", {
-        description: "There's a problem with the CoinPayments API configuration. Please contact support with this error code: CP_API_CONFIG."
+      toast.error("Verification system unavailable", {
+        description: "Our payment system is temporarily unavailable. Please try again later."
       });
     } else if (error.includes('Network error')) {
-      toast.error("Network Error", {
-        description: "Unable to connect to the CoinPayments API. Please check your internet connection and try again."
+      toast.error("Connection issue", {
+        description: "Unable to connect to payment verification service. Please check your connection and try again."
+      });
+    } else if (error.includes('Failed to send a request')) {
+      toast.error("Verification failed", {
+        description: "We're having trouble with our payment verification system. Please try again later or contact support."
       });
     } else {
-      toast.error(`Error checking payment status`, {
-        description: `${error}. ${details ? `Additional info: ${details.substring(0, 100)}` : 'Please try again or contact support.'}`
+      // Generic user-friendly message without technical details
+      toast.error(`Payment verification failed`, {
+        description: "We couldn't verify the payment status at this time. Please try again later."
       });
+      
+      // Still log the full details for admins/debugging
+      console.error(`Detailed error info (not shown to user):`, { error, details });
     }
   };
 

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -41,7 +40,7 @@ const SyncAllTransactionsButton: React.FC<SyncAllTransactionsButtonProps> = ({
       if (error) {
         console.error('Error syncing transactions:', error);
         toast.error('Failed to sync transactions', {
-          description: error.message || 'An unexpected error occurred'
+          description: 'Unable to synchronize transaction statuses. Please try again later.'
         });
         return;
       }

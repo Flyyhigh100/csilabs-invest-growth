@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { RefreshCw, Lock, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -230,7 +229,7 @@ const SyncCryptoPaymentButton = ({
         errorOccurred = true;
         console.error("Error during transaction check:", innerError);
         toast.error('Error checking transaction status', {
-          description: innerError.message || 'An unexpected error occurred'
+          description: 'Unable to verify payment status at this time. Please try again later.'
         });
       }
       
@@ -239,7 +238,7 @@ const SyncCryptoPaymentButton = ({
       }
       
       if (!updatedTransaction && !errorOccurred) {
-        toast.error("Failed to update transaction status", {
+        toast.error("Unable to update payment status", {
           description: "Please try again later or contact support if the issue persists.",
           duration: 5000
         });
@@ -256,7 +255,7 @@ const SyncCryptoPaymentButton = ({
       }
     } catch (error) {
       console.error("Error checking payment status:", error);
-      toast.error("Failed to check payment status", {
+      toast.error("Unable to verify payment", {
         description: "Please try again later or contact support.",
         duration: 5000
       });

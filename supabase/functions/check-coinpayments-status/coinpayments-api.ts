@@ -1,11 +1,10 @@
-
 import { createSignature } from "./utils.ts";
 
 interface CoinPaymentsStatusResponse {
-  error?: boolean;
-  error_message?: string;
-  status_text?: string;
+  error: boolean;
+  result?: any;
   status?: number;
+  status_text?: string;
 }
 
 // Special test addresses that should automatically complete when force updating
@@ -110,16 +109,17 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<CoinP
       };
     }
     
-    const statusCode = parseInt(txInfo.status, 10);
+    // Log status for clarity
+    const statusCode = parseInt(txInfo.status || '-1', 10);
     const statusText = txInfo.status_text || '';
+    console.log(`Transaction ${txnId} status info from API: code=${statusCode}, text='${statusText}'`);
     
-    console.log(`Transaction ${txnId} status: ${statusCode} (${statusText})`);
-    
+    // Return the full result object on success
     return {
       error: false,
-      status: statusCode,
-      status_text: statusText
+      result: txInfo
     };
+
   } catch (error) {
     console.error(`Error checking CoinPayments transaction: ${error.message}`);
     return {
@@ -129,3 +129,4 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<CoinP
     };
   }
 }
+

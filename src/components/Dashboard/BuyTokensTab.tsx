@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +40,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
   const isWalletMissing = !walletAddress;
 
   const handleCoinPaymentWithCurrency = () => {
+    console.log('[BuyTokensTab] Initiating CoinPayments with amount:', amount, 'and selected currency:', selectedCurrency);
     handleCoinPaymentsPayment(amount, selectedCurrency);
   };
 
