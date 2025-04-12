@@ -1,85 +1,94 @@
-
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Home, ShieldCheck } from 'lucide-react';
+import React from 'react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { MenuIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import UserMenu from './UserMenu';
 import MobileNavigation from './MobileNavigation';
+import UserMenu from './UserMenu';
 import NotificationsMenu from './NotificationsMenu';
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-
-interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ReactNode;
-}
 
 interface TopNavigationProps {
-  email?: string | null;
+  email: string | undefined | null;
   isAdmin: boolean;
-  isChecking?: boolean;
-  navItems: NavItem[];
-  adminNavItem: NavItem;
+  isChecking: boolean;
+  navItems: { title: string; path: string }[];
+  adminNavItem: { title: string; path: string } | null;
   handleLogout: () => void;
 }
 
-const TopNavigation: React.FC<TopNavigationProps> = ({
-  email,
-  isAdmin,
-  isChecking = false,
-  navItems,
+const TopNavigation = ({ 
+  email, 
+  isAdmin, 
+  isChecking,
+  navItems, 
   adminNavItem,
-  handleLogout
+  handleLogout 
 }) => {
-  console.log("TopNavigation props:", { isAdmin, isChecking, email });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-      <div className="mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center">
-              <span className="text-xl font-bold text-cbis-blue">CSi Labs</span>
-            </Link>
-          </div>
+    <header className="bg-white shadow-sm sticky top-0 z-40">
+      <div className="py-3 px-4 flex items-center justify-between">
+        {/* Logo and mobile menu trigger */}
+        <div className="flex items-center">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="md:hidden" 
+            onClick={() => setIsMobileMenuOpen(true)}
+          >
+            <MenuIcon className="h-6 w-6" />
+          </Button>
           
-          <div className="hidden md:flex items-center gap-4">
-            <Link to="/" className="text-gray-600 hover:text-cbis-blue">
-              <Home className="h-5 w-5" />
-            </Link>
-            
-            <NotificationsMenu />
-            
-            {isAdmin && (
-              <Link 
-                to="/admin" 
-                className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800"
-              >
-                <ShieldCheck className="h-4 w-4" />
-                Admin
-              </Link>
-            )}
-            <UserMenu email={email} isAdmin={isAdmin} isChecking={isChecking} handleLogout={handleLogout} />
-          </div>
+          <Link to="/dashboard" className="flex items-center">
+            <span className="text-xl font-bold text-primary">CSI Token</span>
+          </Link>
+        </div>
+        
+        {/* Desktop Navigation Links */}
+        <nav className="hidden md:flex items-center space-x-1">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) => `
+                px-3 py-2 text-sm font-medium rounded-md
+                ${isActive ? 'bg-primary/10 text-primary' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}
+              `}
+            >
+              {item.title}
+            </NavLink>
+          ))}
           
-          {/* Mobile menu button */}
-          <MobileNavigation 
-            email={email}
-            navItems={navItems}
-            isAdmin={isAdmin}
-            isChecking={isChecking}
-            adminNavItem={adminNavItem}
-            handleLogout={handleLogout}
-          />
+          {(isAdmin || email === 'chris.d.conley@gmail.com') && adminNavItem && (
+            <NavLink
+              to={adminNavItem.path}
+              className={({ isActive }) => `
+                px-3 py-2 text-sm font-medium rounded-md
+                ${isActive ? 'bg-primary/10 text-primary' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}
+              `}
+            >
+              {adminNavItem.title}
+            </NavLink>
+          )}
+        </nav>
+        
+        {/* User section - notifications and profile */}
+        <div className="flex items-center space-x-1">
+          <NotificationsMenu />
+          <UserMenu email={email} handleLogout={handleLogout} />
         </div>
       </div>
+      
+      {/* Mobile Navigation Drawer */}
+      <MobileNavigation 
+        isOpen={isMobileMenuOpen} 
+        setIsOpen={setIsMobileMenuOpen}
+        navItems={navItems}
+        isAdmin={isAdmin}
+        adminNavItem={adminNavItem}
+        email={email}
+        handleLogout={handleLogout}
+      />
     </header>
   );
 };
