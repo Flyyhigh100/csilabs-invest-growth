@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { MenuIcon } from 'lucide-react';
@@ -22,7 +23,7 @@ const TopNavigation = ({
   navItems, 
   adminNavItem,
   handleLogout 
-}) => {
+}: TopNavigationProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   
   return (
@@ -75,16 +76,17 @@ const TopNavigation = ({
         {/* User section - notifications and profile */}
         <div className="flex items-center space-x-1">
           <NotificationsMenu />
-          <UserMenu email={email} handleLogout={handleLogout} />
+          <UserMenu email={email} isAdmin={isAdmin} isChecking={isChecking} handleLogout={handleLogout} />
         </div>
       </div>
       
       {/* Mobile Navigation Drawer */}
       <MobileNavigation 
         isOpen={isMobileMenuOpen} 
-        setIsOpen={setIsMobileMenuOpen}
+        onOpenChange={setIsMobileMenuOpen}
         navItems={navItems}
         isAdmin={isAdmin}
+        isChecking={isChecking}
         adminNavItem={adminNavItem}
         email={email}
         handleLogout={handleLogout}

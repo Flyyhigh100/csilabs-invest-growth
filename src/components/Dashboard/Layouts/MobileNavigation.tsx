@@ -8,20 +8,15 @@ import { Separator } from '@/components/ui/separator';
 import { Menu, X, LogOut, Loader2, ShieldCheck, Info, Home } from 'lucide-react';
 import NotificationsMenu from './NotificationsMenu';
 
-interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ReactNode;
-  description?: string;
-}
-
 interface MobileNavigationProps {
   email?: string | null;
-  navItems: NavItem[];
+  navItems: { title: string; path: string }[];
   isAdmin: boolean;
   isChecking?: boolean;
-  adminNavItem: NavItem;
+  adminNavItem: { title: string; path: string } | null;
   handleLogout: () => void;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 const MobileNavigation: React.FC<MobileNavigationProps> = ({
@@ -30,10 +25,10 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   isAdmin,
   isChecking = false,
   adminNavItem,
-  handleLogout
+  handleLogout,
+  isOpen,
+  onOpenChange
 }) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
-  
   const getInitials = (email?: string | null) => {
     if (!email) return '??';
     return email.substring(0, 2).toUpperCase();
@@ -51,7 +46,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
         <NotificationsMenu />
       </div>
       
-      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+      <Sheet open={isOpen} onOpenChange={onOpenChange}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon">
             <Menu className="h-6 w-6" />
@@ -70,7 +65,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               <Button 
                 variant="ghost" 
                 size="icon" 
-                onClick={() => setIsMobileMenuOpen(false)}
+                onClick={() => onOpenChange(false)}
               >
                 <X className="h-5 w-5" />
               </Button>
@@ -86,14 +81,14 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
             <nav className="flex flex-col gap-1 py-2 px-2">
               {navItems.map((item) => (
                 <Link
-                  key={item.name}
-                  to={item.href}
+                  key={item.path}
+                  to={item.path}
                   className="flex flex-col px-3 py-2 rounded-md hover:bg-gray-100"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={() => onOpenChange(false)}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="text-cbis-blue">{item.icon}</div>
-                    <span className="font-medium">{item.name}</span>
+                    <div className="text-cbis-blue">{item.icon || null}</div>
+                    <span className="font-medium">{item.title}</span>
                   </div>
                   {item.description && (
                     <span className="text-xs text-gray-500 ml-8 mt-1">{item.description}</span>
@@ -105,15 +100,15 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   <Loader2 className="h-5 w-5 animate-spin" />
                   Checking admin status...
                 </div>
-              ) : isAdmin && (
+              ) : isAdmin && adminNavItem && (
                 <Link
-                  to={adminNavItem.href}
+                  to={adminNavItem.path}
                   className="flex flex-col px-3 py-2 rounded-md hover:bg-gray-100 bg-blue-50/80"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={() => onOpenChange(false)}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="text-cbis-blue">{adminNavItem.icon}</div>
-                    <span className="font-medium text-cbis-blue">{adminNavItem.name}</span>
+                    <div className="text-cbis-blue">{adminNavItem.icon || null}</div>
+                    <span className="font-medium text-cbis-blue">{adminNavItem.title}</span>
                   </div>
                   {adminNavItem.description && (
                     <span className="text-xs text-blue-600 ml-8 mt-1">{adminNavItem.description}</span>
