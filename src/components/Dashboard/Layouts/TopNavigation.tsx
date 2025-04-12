@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { MenuIcon, X } from 'lucide-react';
+import { MenuIcon, X, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import UserMenu from './UserMenu';
 import NotificationsMenu from './NotificationsMenu';
@@ -44,7 +44,8 @@ const TopNavigation = ({
               <MenuIcon className="h-6 w-6" />
             </Button>
             
-            <Link to="/dashboard" className="flex items-center">
+            <Link to="/" className="flex items-center gap-2">
+              <Home className="h-5 w-5 text-primary" />
               <span className="text-xl font-bold text-primary">CSI Token</span>
             </Link>
           </div>
@@ -104,8 +105,9 @@ const TopNavigation = ({
         <SheetContent side="left" className="p-0 w-[280px]">
           <div className="flex flex-col h-full">
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <Link to="/dashboard" className="text-lg font-bold text-primary">
-                CSI Token
+              <Link to="/" className="flex items-center gap-2">
+                <Home className="h-5 w-5 text-primary" />
+                <span className="text-lg font-bold text-primary">CSI Token</span>
               </Link>
               <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)}>
                 <X className="h-5 w-5" />

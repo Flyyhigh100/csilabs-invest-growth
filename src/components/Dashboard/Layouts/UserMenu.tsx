@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,9 +21,17 @@ interface UserMenuProps {
 }
 
 const UserMenu: React.FC<UserMenuProps> = ({ email, isAdmin, isChecking, handleLogout }) => {
+  const navigate = useNavigate();
+  
   const getInitials = (email?: string | null) => {
     if (!email) return '??';
     return email.substring(0, 2).toUpperCase();
+  };
+
+  const onLogout = async () => {
+    await handleLogout();
+    // Navigate to home page after logout
+    navigate('/');
   };
 
   return (
@@ -65,7 +73,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ email, isAdmin, isChecking, handleL
         
         <DropdownMenuSeparator />
         
-        <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-700">
+        <DropdownMenuItem onClick={onLogout} className="text-red-600 focus:text-red-700">
           <LogOut className="mr-2 h-4 w-4" />
           <span>Sign out</span>
         </DropdownMenuItem>

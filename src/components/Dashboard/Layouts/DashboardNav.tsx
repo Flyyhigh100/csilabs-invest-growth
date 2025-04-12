@@ -30,12 +30,6 @@ export const getDashboardNavItems = (): NavItem[] => {
       description: 'View your transaction history'
     },
     {
-      title: 'Research',
-      path: '/dashboard/documents',
-      icon: <FileText className="h-5 w-5" />,
-      description: 'View research documents and analysis'
-    },
-    {
       title: 'Profile',
       path: '/dashboard/profile',
       icon: <User className="h-5 w-5" />,

@@ -5,7 +5,6 @@ import {
   HomeIcon, 
   UsersIcon, 
   CheckCircleIcon,
-  BookOpenIcon,
   CreditCardIcon,
   BellIcon,
   SettingsIcon,
