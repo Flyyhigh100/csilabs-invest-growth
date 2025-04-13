@@ -1,4 +1,3 @@
-
 // Update transaction status to completed
 export const updateTransactionStatus = async (supabase: any, transaction: any, paymentIntentId = null) => {
   if (!transaction) return null;
@@ -161,10 +160,11 @@ export const createTransactionFromSession = async (supabase: any, session: any) 
       status: 'completed', // Explicitly set status to completed
       transaction_id: session.id,
       external_transaction_id: session.payment_intent || null,
-      token_sent: false
+      token_sent: false,
+      completed_at: session.payment_status === 'paid' ? new Date().toISOString() : null // Set completed_at when paid
     };
     
-    console.log(`[WEBHOOK] Creating new transaction with data: ${JSON.stringify(insertData)}`);
+    console.log(`[WEBHOOK] Creating new transaction with data:`, JSON.stringify(insertData));
     
     const { data, error } = await supabase
       .from('transactions')
@@ -180,12 +180,83 @@ export const createTransactionFromSession = async (supabase: any, session: any) 
     console.log(`[WEBHOOK] Successfully created transaction record from webhook data`, JSON.stringify({
       tx_id: data.id,
       amount: data.amount,
-      status: data.status
+      status: data.status,
+      external_transaction_id: data.external_transaction_id // Log this to verify it's stored
     }));
     
     return data;
   } catch (err) {
     console.error(`[WEBHOOK] Error in transaction creation: ${err.message}`);
+    return null;
+  }
+};
+
+// CRITICAL: Direct update method for external transaction ID
+export const forceUpdateExternalTransactionId = async (supabase: any, transactionId: string, paymentIntentId: string) => {
+  if (!transactionId || !paymentIntentId) {
+    console.error(`[CRITICAL] Cannot update external_transaction_id: Missing transaction ID or payment intent ID`);
+    return null;
+  }
+
+  console.log(`[CRITICAL] FORCE UPDATING external_transaction_id for transaction ${transactionId} to ${paymentIntentId}`);
+  
+  try {
+    // Direct update query to specifically set the external_transaction_id
+    const updateData = {
+      external_transaction_id: paymentIntentId,
+      status: 'completed',
+      updated_at: new Date().toISOString(),
+      completed_at: new Date().toISOString()
+    };
+    
+    console.log(`[CRITICAL] Executing force update with data:`, JSON.stringify(updateData));
+    
+    const { data, error } = await supabase
+      .from('transactions')
+      .update(updateData)
+      .eq('id', transactionId)
+      .select('id, external_transaction_id, status')
+      .single();
+    
+    if (error) {
+      console.error(`[CRITICAL] Failed to force update external_transaction_id: ${error.message}`);
+      
+      // Try a simplified update with just the external_transaction_id as a last resort
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('transactions')
+        .update({ external_transaction_id: paymentIntentId })
+        .eq('id', transactionId)
+        .select('id, external_transaction_id')
+        .single();
+      
+      if (fallbackError) {
+        console.error(`[CRITICAL] Even simplified update failed: ${fallbackError.message}`);
+        return null;
+      }
+      
+      console.log(`[CRITICAL] Simplified update succeeded:`, fallbackData);
+      return fallbackData;
+    }
+    
+    console.log(`[CRITICAL] Force update succeeded:`, data);
+    
+    // Verify the update actually worked
+    const { data: verifyData, error: verifyError } = await supabase
+      .from('transactions')
+      .select('id, external_transaction_id, status')
+      .eq('id', transactionId)
+      .single();
+    
+    if (verifyError) {
+      console.error(`[CRITICAL] Verification query failed: ${verifyError.message}`);
+    } else {
+      console.log(`[CRITICAL] Verification result:`, verifyData);
+    }
+    
+    return data;
+  } catch (err) {
+    console.error(`[CRITICAL] Exception in force update: ${err.message}`);
+    console.error(err.stack || 'No stack trace available');
     return null;
   }
 };
