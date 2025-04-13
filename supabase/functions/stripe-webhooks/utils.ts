@@ -1,3 +1,4 @@
+
 // CORS headers for all responses
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
