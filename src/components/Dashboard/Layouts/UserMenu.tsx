@@ -1,71 +1,84 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { LogOut, ChevronDown, Loader2, ShieldCheck } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Loader2, LogOut, Settings, ShieldCheck, User } from "lucide-react";
 
 interface UserMenuProps {
-  email?: string | null;
+  email: string | undefined | null;
   isAdmin: boolean;
-  isChecking?: boolean;
+  isChecking: boolean;
   handleLogout: () => void;
 }
 
-const UserMenu: React.FC<UserMenuProps> = ({ email, isAdmin, isChecking = false, handleLogout }) => {
+const UserMenu: React.FC<UserMenuProps> = ({ email, isAdmin, isChecking, handleLogout }) => {
+  const navigate = useNavigate();
+  
   const getInitials = (email?: string | null) => {
     if (!email) return '??';
     return email.substring(0, 2).toUpperCase();
   };
 
-  console.log("UserMenu props:", { email, isAdmin, isChecking });
+  const onLogout = async () => {
+    await handleLogout();
+    // Navigate to home page after logout
+    navigate('/');
+  };
 
   return (
-    <div className="relative group">
-      <button className="flex items-center gap-2 text-sm font-medium">
-        <Avatar className="h-8 w-8">
-          <AvatarImage src="" alt={email || "User"} />
-          <AvatarFallback>{getInitials(email)}</AvatarFallback>
-        </Avatar>
-        <span>{email}</span>
-        <ChevronDown className="h-4 w-4" />
-      </button>
-      <div className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-        <div className="py-1 divide-y divide-gray-100">
-          <div className="px-4 py-3">
-            <p className="text-sm">Signed in as</p>
-            <p className="text-sm font-medium truncate">{email}</p>
-            {isAdmin && (
-              <div className="flex items-center mt-1 text-xs text-green-600">
-                <ShieldCheck className="h-3 w-3 mr-1" />
-                Admin Access
-              </div>
-            )}
-          </div>
-          <div className="py-1">
-            <Link to="/dashboard/profile" className="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">
-              Profile settings
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+          <Avatar className="h-9 w-9">
+            <AvatarImage src="" alt={email || "User"} />
+            <AvatarFallback>{getInitials(email)}</AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuLabel className="flex flex-col">
+          <span>My Account</span>
+          <span className="text-xs font-normal text-gray-500 truncate">{email}</span>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/dashboard/profile" className="cursor-pointer">
+            <User className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+          </Link>
+        </DropdownMenuItem>
+        
+        {isChecking ? (
+          <DropdownMenuItem disabled>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <span>Checking admin status...</span>
+          </DropdownMenuItem>
+        ) : isAdmin && (
+          <DropdownMenuItem asChild>
+            <Link to="/admin" className="cursor-pointer">
+              <ShieldCheck className="mr-2 h-4 w-4" />
+              <span>Admin Portal</span>
             </Link>
-            {isChecking ? (
-              <div className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Checking admin access...
-              </div>
-            ) : isAdmin && (
-              <Link to="/admin" className="text-blue-600 font-medium flex items-center gap-2 px-4 py-2 text-sm hover:bg-blue-50">
-                <ShieldCheck className="h-4 w-4" />
-                Admin Portal
-              </Link>
-            )}
-            <button 
-              onClick={handleLogout} 
-              className="text-gray-700 flex w-full items-center px-4 py-2 text-sm hover:bg-gray-100"
-            >
-              <LogOut className="mr-2 h-4 w-4" /> Sign out
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+          </DropdownMenuItem>
+        )}
+        
+        <DropdownMenuSeparator />
+        
+        <DropdownMenuItem onClick={onLogout} className="text-red-600 focus:text-red-700">
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Sign out</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 

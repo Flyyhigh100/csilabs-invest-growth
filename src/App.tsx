@@ -23,6 +23,12 @@ import NotFound from './pages/NotFound';
 import TestToolsPage from './pages/Admin/TestTools';
 import Payments from './pages/Dashboard/Payments';
 import Transactions from './pages/Dashboard/Transactions';
+import ResearchDocuments from './pages/ResearchDocuments';
+import TokenInfo from './pages/TokenInfo';
+import KYCVerificationPage from './pages/Dashboard/KYCVerification/KYCVerificationPage';
+import Profile from './pages/Dashboard/Profile';
+import Documents from './pages/Dashboard/Documents';
+import DashboardHome from './pages/Dashboard/DashboardHome';
 
 // Import Admin pages explicitly
 import AdminDashboard from './pages/Admin/Dashboard';
@@ -33,6 +39,7 @@ import AdminSettingsPage from './pages/Admin/Settings';
 import AdminNotificationsPage from './pages/Admin/Notifications';
 import AdminIPNLogsPage from './pages/Admin/IPNLogs'; 
 import AdminTransactionToolsPage from './pages/Admin/TransactionTools';
+import AdminResearchDocuments from './pages/Admin/ResearchDocuments';
 
 const queryClient = new QueryClient();
 
@@ -52,14 +59,16 @@ function App() {
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/research-documents" element={<ResearchDocuments />} />
+                  <Route path="/token-info" element={<TokenInfo />} />
                   
                   {/* Protected Routes */}
                   <Route element={<ProtectedRoute />}>
-                    <Route path="/dashboard" element={<div>Dashboard</div>} />
-                    <Route path="/dashboard/kyc" element={<div>KYC</div>} />
+                    <Route path="/dashboard" element={<DashboardHome />} />
+                    <Route path="/dashboard/kyc" element={<KYCVerificationPage />} />
                     <Route path="/dashboard/transactions" element={<Transactions />} />
-                    <Route path="/dashboard/profile" element={<div>Profile</div>} />
-                    <Route path="/dashboard/settings" element={<div>Settings</div>} />
+                    <Route path="/dashboard/profile" element={<Profile />} />
+                    <Route path="/dashboard/documents" element={<Documents />} />
                     <Route path="/dashboard/wallet" element={<div>Wallet</div>} />
                     <Route path="/dashboard/payments" element={<Payments />} />
                   </Route>
@@ -75,6 +84,7 @@ function App() {
                     <Route path="/admin/settings" element={<AdminSettingsPage />} />
                     <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
                     <Route path="/admin/ipn-logs" element={<AdminIPNLogsPage />} />
+                    <Route path="/admin/research-documents" element={<AdminResearchDocuments />} />
                   </Route>
                   
                   {/* Fallback */}

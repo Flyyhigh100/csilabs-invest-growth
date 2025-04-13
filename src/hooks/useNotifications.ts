@@ -31,7 +31,6 @@ export const useNotifications = () => {
     try {
       setIsLoading(true);
       
-      // Use direct query instead of RPC
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -41,7 +40,6 @@ export const useNotifications = () => {
 
       if (error) throw error;
 
-      // Type assertion to handle the notifications data
       const notificationsData = data as unknown as Notification[];
       setNotifications(notificationsData);
       
@@ -58,12 +56,11 @@ export const useNotifications = () => {
   // Mark a notification as read
   const markAsRead = async (notificationId: string) => {
     try {
-      // Direct update instead of RPC
       await supabase
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId)
-        .eq('user_id', user?.id); // Ensure user can only mark their own notifications
+        .eq('user_id', user?.id);
 
       // Update the local state
       setNotifications(prevNotifications => 
@@ -89,7 +86,6 @@ export const useNotifications = () => {
     if (!user) return;
     
     try {
-      // Direct update instead of RPC
       await supabase
         .from('notifications')
         .update({ read: true })
@@ -124,7 +120,6 @@ export const useNotifications = () => {
           filter: `user_id=eq.${user.id}`
         },
         payload => {
-          // Need to cast to our Notification type
           const newNotification = payload.new as unknown as Notification;
           setNotifications(current => [newNotification, ...current]);
           setHasUnread(true);

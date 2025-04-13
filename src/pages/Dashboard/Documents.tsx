@@ -2,7 +2,7 @@
 import React from 'react';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText } from 'lucide-react';
+import { FileText, Download, Clock } from 'lucide-react';
 import KycStatusBanner from '@/components/Dashboard/KycStatusBanner';
 import { useKycVerification } from '@/hooks/useKycVerification';
 
@@ -10,8 +10,30 @@ const Documents = () => {
   const { kycData } = useKycVerification();
   const isKycApproved = kycData?.status === 'approved';
   
-  // Mock empty documents list for now
-  const documents: any[] = [];
+  // Mock documents list for demonstration
+  const documents = [
+    {
+      id: 'doc-1',
+      name: 'CSi Token Purchase Agreement',
+      type: 'PDF',
+      date: '2025-04-12',
+      url: '/sample.pdf'
+    },
+    {
+      id: 'doc-2',
+      name: 'Terms and Conditions',
+      type: 'PDF',
+      date: '2025-04-10',
+      url: '/sample.pdf'
+    },
+    {
+      id: 'doc-3',
+      name: 'Privacy Policy',
+      type: 'PDF',
+      date: '2025-04-05',
+      url: '/sample.pdf'
+    }
+  ];
 
   return (
     <DashboardLayout title="Documents">
@@ -51,7 +73,34 @@ const Documents = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {/* Document rows would go here */}
+                  {documents.map((doc) => (
+                    <tr key={doc.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 mr-2 text-gray-400" />
+                          {doc.date}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{doc.type}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <div className="flex items-center">
+                          <FileText className="h-4 w-4 mr-2 text-blue-500" />
+                          {doc.name}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <a 
+                          href={doc.url} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="inline-flex items-center text-blue-600 hover:text-blue-900"
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

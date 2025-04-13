@@ -1,86 +1,175 @@
 
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Home, ShieldCheck } from 'lucide-react';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { MenuIcon, X, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import UserMenu from './UserMenu';
-import MobileNavigation from './MobileNavigation';
 import NotificationsMenu from './NotificationsMenu';
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-
-interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ReactNode;
-}
+import { NavItem } from './DashboardNav';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 
 interface TopNavigationProps {
-  email?: string | null;
+  email: string | undefined | null;
   isAdmin: boolean;
-  isChecking?: boolean;
+  isChecking: boolean;
   navItems: NavItem[];
-  adminNavItem: NavItem;
+  adminNavItem: NavItem | null;
   handleLogout: () => void;
 }
 
-const TopNavigation: React.FC<TopNavigationProps> = ({
-  email,
-  isAdmin,
-  isChecking = false,
-  navItems,
+const TopNavigation = ({ 
+  email, 
+  isAdmin, 
+  isChecking,
+  navItems, 
   adminNavItem,
-  handleLogout
-}) => {
-  console.log("TopNavigation props:", { isAdmin, isChecking, email });
+  handleLogout 
+}: TopNavigationProps) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const location = useLocation();
   
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-      <div className="mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center">
-              <span className="text-xl font-bold text-cbis-blue">CSi Labs</span>
+    <>
+      {/* Fixed header */}
+      <header className="bg-white shadow-sm fixed top-0 left-0 right-0 z-40 h-16">
+        <div className="h-full px-4 flex items-center justify-between">
+          {/* Logo and mobile menu trigger */}
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="md:hidden" 
+              onClick={() => setIsMobileMenuOpen(true)}
+            >
+              <MenuIcon className="h-6 w-6" />
+            </Button>
+            
+            <Link to="/" className="flex items-center gap-2">
+              <Home className="h-5 w-5 text-primary" />
+              <span className="text-xl font-bold text-primary">CSI Token</span>
             </Link>
           </div>
           
-          <div className="hidden md:flex items-center gap-4">
-            <Link to="/" className="text-gray-600 hover:text-cbis-blue">
-              <Home className="h-5 w-5" />
-            </Link>
+          {/* Desktop Navigation Links */}
+          <nav className="hidden md:flex items-center space-x-1 h-full">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.path || 
+                (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+              
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`
+                    h-full flex items-center px-4 text-sm font-medium border-b-2 transition-colors
+                    ${isActive 
+                      ? 'border-primary text-primary' 
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'}
+                  `}
+                >
+                  {item.title}
+                </Link>
+              );
+            })}
             
-            <NotificationsMenu />
-            
-            {isAdmin && (
-              <Link 
-                to="/admin" 
-                className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800"
+            {(isAdmin || email === 'chris.d.conley@gmail.com') && adminNavItem && (
+              <Link
+                to={adminNavItem.path}
+                className={`
+                  h-full flex items-center px-4 text-sm font-medium border-b-2 transition-colors
+                  ${location.pathname.startsWith('/admin') 
+                    ? 'border-primary text-primary' 
+                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'}
+                `}
               >
-                <ShieldCheck className="h-4 w-4" />
-                Admin
+                {adminNavItem.title}
               </Link>
             )}
-            <UserMenu email={email} isAdmin={isAdmin} isChecking={isChecking} handleLogout={handleLogout} />
-          </div>
+          </nav>
           
-          {/* Mobile menu button */}
-          <MobileNavigation 
-            email={email}
-            navItems={navItems}
-            isAdmin={isAdmin}
-            isChecking={isChecking}
-            adminNavItem={adminNavItem}
-            handleLogout={handleLogout}
-          />
+          {/* User section - notifications and profile */}
+          <div className="flex items-center space-x-1">
+            <NotificationsMenu />
+            <UserMenu 
+              email={email} 
+              isAdmin={isAdmin} 
+              isChecking={isChecking} 
+              handleLogout={handleLogout} 
+            />
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+      
+      {/* Mobile Navigation Drawer */}
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetContent side="left" className="p-0 w-[280px]">
+          <div className="flex flex-col h-full">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <Link to="/" className="flex items-center gap-2">
+                <Home className="h-5 w-5 text-primary" />
+                <span className="text-lg font-bold text-primary">CSI Token</span>
+              </Link>
+              <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            <nav className="flex-1 p-4 space-y-1">
+              {navItems.map((item) => {
+                const isActive = location.pathname === item.path || 
+                  (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+                
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`
+                      flex items-center gap-3 p-3 rounded-md text-sm font-medium
+                      ${isActive 
+                        ? 'bg-primary/10 text-primary' 
+                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
+                    `}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {item.icon}
+                    <span>{item.title}</span>
+                  </Link>
+                );
+              })}
+              
+              {(isAdmin || email === 'chris.d.conley@gmail.com') && adminNavItem && (
+                <Link
+                  to={adminNavItem.path}
+                  className={`
+                    flex items-center gap-3 p-3 rounded-md text-sm font-medium
+                    ${location.pathname.startsWith('/admin') 
+                      ? 'bg-blue-50 text-primary' 
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
+                  `}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {adminNavItem.icon}
+                  <span>{adminNavItem.title}</span>
+                </Link>
+              )}
+            </nav>
+            
+            <div className="p-4 border-t border-gray-200">
+              <Button 
+                variant="outline" 
+                className="w-full flex items-center justify-center gap-2"
+                onClick={() => {
+                  handleLogout();
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                Sign out
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 };
 
