@@ -31,9 +31,8 @@ export const WalletSection: React.FC<{
       
       <CardContent className="space-y-6">
         <WalletAddressForm 
-          isLoading={isLoadingWallet} 
-          walletAddress={walletAddress} 
-          onSuccess={onWalletUpdated} 
+          existingWalletAddress={walletAddress || undefined} 
+          onWalletUpdated={onWalletUpdated} 
         />
       </CardContent>
     </Card>
