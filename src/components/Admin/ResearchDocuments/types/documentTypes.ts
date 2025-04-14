@@ -7,6 +7,8 @@ export interface ResearchDocument {
   pdfUrl: string;
   publishDate: string;
   authors?: string;
+  type?: 'pdf' | 'video';
+  videoUrl?: string;
 }
 
 export interface DocumentFormValues {

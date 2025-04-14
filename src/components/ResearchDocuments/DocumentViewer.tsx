@@ -20,6 +20,18 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, onOpenC
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
 
+  // Extract YouTube video ID if this is a video document
+  const getYoutubeEmbedUrl = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11)
+      ? `https://www.youtube.com/embed/${match[2]}`
+      : null;
+  };
+
+  const isVideo = document.type === 'video' && document.videoUrl;
+  const youtubeEmbedUrl = isVideo ? getYoutubeEmbedUrl(document.videoUrl!) : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] flex flex-col">
@@ -40,19 +52,38 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, onOpenC
         )}
         
         <div className="flex-grow h-[70vh]">
-          <iframe 
-            src={document.pdfUrl} 
-            className="w-full h-full border-0 rounded"
-            title={formattedTitle}
-          />
+          {isVideo && youtubeEmbedUrl ? (
+            <iframe
+              src={youtubeEmbedUrl}
+              className="w-full h-full border-0 rounded"
+              title={formattedTitle}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <iframe 
+              src={document.pdfUrl} 
+              className="w-full h-full border-0 rounded"
+              title={formattedTitle}
+            />
+          )}
         </div>
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => window.open(document.pdfUrl, '_blank')}>
-            <ExternalLink className="mr-2 h-4 w-4" /> Open in New Tab
-          </Button>
-          <Button className="bg-gradient-to-r from-cbis-blue to-cbis-teal" onClick={() => window.open(document.pdfUrl, '_blank', 'download')}>
-            <Download className="mr-2 h-4 w-4" /> Download
-          </Button>
+          {!isVideo && (
+            <>
+              <Button variant="outline" onClick={() => window.open(document.pdfUrl, '_blank')}>
+                <ExternalLink className="mr-2 h-4 w-4" /> Open in New Tab
+              </Button>
+              <Button className="bg-gradient-to-r from-cbis-blue to-cbis-teal" onClick={() => window.open(document.pdfUrl, '_blank', 'download')}>
+                <Download className="mr-2 h-4 w-4" /> Download
+              </Button>
+            </>
+          )}
+          {isVideo && (
+            <Button variant="outline" onClick={() => window.open(document.videoUrl, '_blank')}>
+              <ExternalLink className="mr-2 h-4 w-4" /> Open on YouTube
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

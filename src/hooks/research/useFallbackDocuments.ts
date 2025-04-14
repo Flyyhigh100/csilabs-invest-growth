@@ -1,9 +1,19 @@
-
 import { ResearchDocument } from '@/components/Admin/ResearchDocuments/types/documentTypes';
 
-// Default/fallback documents in case storage loading fails
-export const useFallbackDocuments = (): ResearchDocument[] => {
-  return [
+export const useFallbackDocuments = () => {
+  // This hook provides fallback documents in case the API fails or returns empty
+  const fallbackDocuments: ResearchDocument[] = [
+    {
+      id: 'youtube-video-cannabinoid-cancer',
+      title: 'Cannabinoid-Based Cancer Treatment Research',
+      description: 'Harvard Medical School Recipient of the Global Health Catalyst Industry Leader Award, Raymond Dabney and CSi Labs discuss how cannabinoids have proven to be effective against cancer. This research video shows the collaborative work between institutions to advance cannabinoid-based treatments.',
+      category: 'Video Research',
+      pdfUrl: '',
+      publishDate: '2023-12-15',
+      authors: 'Raymond Dabney, CSi Labs Research Team',
+      type: 'video',
+      videoUrl: 'https://www.youtube.com/watch?v=x3q2uQ7J7f4'
+    },
     {
       id: "doc-1",
       title: "Cannabinoids as Antioxidants and Neuroprotectants",
@@ -23,4 +33,6 @@ export const useFallbackDocuments = (): ResearchDocument[] => {
       authors: "CSi Labs Research Team"
     }
   ];
+
+  return fallbackDocuments;
 };

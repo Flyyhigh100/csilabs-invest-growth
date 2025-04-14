@@ -31,6 +31,8 @@ export const useDocumentFetching = (
     let publishDate = new Date().toLocaleDateString();
     let authors = "";
     let description = "";
+    let type = "pdf";
+    let videoUrl = "";
     
     // Parse file name for metadata with URL parameters
     const fileNameParts = fileName.split('?');
@@ -42,12 +44,14 @@ export const useDocumentFetching = (
         description = params.get('description') || description;
         publishDate = params.get('publishDate') || publishDate;
         authors = params.get('authors') || authors;
+        type = (params.get('type') === 'video') ? 'video' : 'pdf';
+        videoUrl = params.get('videoUrl') || "";
       } catch (e) {
         console.log("Could not parse metadata from filename");
       }
     }
     
-    return { title, category, description, publishDate, authors };
+    return { title, category, description, publishDate, authors, type, videoUrl };
   }, []);
 
   // Sort documents by publish date
@@ -124,15 +128,23 @@ export const useDocumentFetching = (
           category: metadata.category,
           pdfUrl: urlData.publicUrl,
           publishDate: metadata.publishDate,
-          authors: metadata.authors
+          authors: metadata.authors,
+          type: metadata.type as 'pdf' | 'video',
+          videoUrl: metadata.videoUrl
         } as ResearchDocument;
       });
 
       const documentsList = await Promise.all(filePromises);
       
+      // Add our fallback video document
+      const videoDocument = fallbackDocuments.find(doc => doc.type === 'video');
+      const combinedDocs = videoDocument 
+        ? [...documentsList, videoDocument] 
+        : documentsList;
+      
       // If we have actual documents from storage, don't use fallback documents
-      if (documentsList.length > 0) {
-        const sortedDocs = sortDocumentsByDate(documentsList);
+      if (combinedDocs.length > 0) {
+        const sortedDocs = sortDocumentsByDate(combinedDocs);
         
         // Cache the results
         saveToCache(sortedDocs);

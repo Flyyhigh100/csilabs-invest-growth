@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText } from 'lucide-react';
+import { FileText, YoutubeIcon } from 'lucide-react';
 import { ResearchDocument } from '@/components/Admin/ResearchDocuments/types/documentTypes';
 
 interface DocumentCardProps {
@@ -17,6 +17,8 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onSelect }) => {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
 
+  const isVideo = document.type === 'video';
+
   return (
     <Card className="h-full flex flex-col hover:shadow-md transition-shadow border border-gray-200">
       <CardHeader className="pb-2">
@@ -24,7 +26,11 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onSelect }) => {
           <div className="bg-blue-50 text-cbis-blue text-xs font-medium px-2.5 py-1 rounded">
             {document.category}
           </div>
-          {/* Publication date removed */}
+          {isVideo && (
+            <div className="bg-red-50 text-red-600 text-xs font-medium px-2.5 py-1 rounded flex items-center">
+              <YoutubeIcon className="h-3 w-3 mr-1" /> Video
+            </div>
+          )}
         </div>
         <CardTitle className="mt-3 text-xl leading-tight">
           {formattedTitle}
@@ -46,7 +52,15 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onSelect }) => {
           className="w-full mt-auto bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90"
           onClick={() => onSelect(document)}
         >
-          <FileText className="mr-2 h-4 w-4" /> View Document
+          {isVideo ? (
+            <>
+              <YoutubeIcon className="mr-2 h-4 w-4" /> Watch Video
+            </>
+          ) : (
+            <>
+              <FileText className="mr-2 h-4 w-4" /> View Document
+            </>
+          )}
         </Button>
       </CardContent>
     </Card>
