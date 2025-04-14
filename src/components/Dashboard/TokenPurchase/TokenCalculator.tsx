@@ -22,36 +22,43 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
   onChange,
   disabled
 }) => {
-  const tokenAmount = amount / 1; // Updated price from 0.05 to 1
+  const tokenAmount = amount / 1; // Token price is $1.00
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 bg-blue-50 p-5 rounded-lg border border-blue-100">
       <div className="flex items-center justify-between">
-        <Label className="text-base font-medium text-gray-700" htmlFor="amount-input">Investment Amount (USD)</Label>
+        <Label className="text-xl font-bold text-gray-900" htmlFor="amount-input">
+          Purchase Amount (USD)
+        </Label>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0">
-                <HelpCircle className="h-4 w-4 text-gray-400" />
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full p-0">
+                <HelpCircle className="h-5 w-5 text-gray-500" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-xs">
-              <p className="text-sm">This is the amount in USD you wish to invest. The number of tokens you'll receive depends on the current token price ($1.00).</p>
+              <p className="text-sm">Enter the amount in USD you wish to invest. At our current token price of $1.00, this is the number of tokens you'll receive.</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
       
-      <PurchaseAmountInput amount={amount} onChange={onChange} disabled={disabled} />
+      <PurchaseAmountInput 
+        amount={amount} 
+        onChange={onChange} 
+        disabled={disabled} 
+        className="text-2xl font-bold" 
+      />
       
-      <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-        <div className="flex justify-between text-sm mb-1">
-          <span className="text-gray-600">You will receive approximately:</span>
-          <span className="font-medium text-cbis-blue">{tokenAmount.toLocaleString()} CSi Tokens</span>
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <div className="flex justify-between items-center text-base mb-2">
+          <span className="text-gray-700 font-medium">You will receive:</span>
+          <span className="font-bold text-cbis-blue text-xl">{tokenAmount.toLocaleString()} CSi Tokens</span>
         </div>
-        <div className="flex justify-between text-sm">
+        <div className="flex justify-between items-center text-sm">
           <span className="text-gray-600">Current token price:</span>
-          <span className="font-medium text-cbis-blue">$1.00 USD</span>
+          <span className="font-semibold text-cbis-blue">$1.00 USD</span>
         </div>
       </div>
     </div>
