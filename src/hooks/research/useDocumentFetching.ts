@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { ResearchDocument } from '@/components/Admin/ResearchDocuments/types/documentTypes';
 import { useDocumentCache } from './useDocumentCache';
 import { useFallbackDocuments } from './useFallbackDocuments';
+import { useDocumentProcessor } from './useDocumentProcessor';
+import { useBackgroundRefresh } from './useBackgroundRefresh';
 
 export const useDocumentFetching = (
   setDocuments: (docs: ResearchDocument[]) => void,
@@ -12,65 +14,8 @@ export const useDocumentFetching = (
 ) => {
   const { saveToCache, loadFromCache } = useDocumentCache();
   const fallbackDocuments = useFallbackDocuments();
-
-  // Helper function to extract actual filename without params
-  const getBaseFilename = useCallback((fullName: string): string => {
-    return fullName.split('?')[0];
-  }, []);
-
-  // Parse metadata from file name with URL parameters
-  const parseFileMetadata = useCallback((fileName: string, baseFileName: string) => {
-    // Default values (use filename as title if nothing else available)
-    let title = baseFileName
-      .split('.')[0]
-      .replace(/_/g, ' ')
-      .replace(/-/g, ' ')
-      .replace(/^\d+\s*/, ''); // Remove any leading numbers and timestamp
-          
-    let category = "Research";
-    let publishDate = new Date().toLocaleDateString();
-    let authors = "";
-    let description = "";
-    let type = "pdf";
-    let videoUrl = "";
-    let thumbnailUrl = "";
-    
-    // Parse file name for metadata with URL parameters
-    const fileNameParts = fileName.split('?');
-    if (fileNameParts.length > 1) {
-      try {
-        const params = new URLSearchParams(fileNameParts[1]);
-        title = params.get('title') || title;
-        category = params.get('category') || category;
-        description = params.get('description') || description;
-        publishDate = params.get('publishDate') || publishDate;
-        authors = params.get('authors') || authors;
-        type = (params.get('type') === 'video') ? 'video' : 'pdf';
-        videoUrl = params.get('videoUrl') || "";
-        thumbnailUrl = params.get('thumbnailUrl') || "";
-      } catch (e) {
-        console.log("Could not parse metadata from filename");
-      }
-    }
-    
-    return { title, category, description, publishDate, authors, type, videoUrl, thumbnailUrl };
-  }, []);
-
-  // Sort documents by publish date
-  const sortDocumentsByDate = useCallback((documents: ResearchDocument[]): ResearchDocument[] => {
-    return documents.sort((a, b) => {
-      // Try to parse dates in various formats for better comparison
-      const dateA = new Date(a.publishDate);
-      const dateB = new Date(b.publishDate);
-      
-      // Check if dates are valid, if not use string comparison
-      if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
-        return a.publishDate.localeCompare(b.publishDate);
-      }
-      
-      return dateB.getTime() - dateA.getTime();
-    });
-  }, []);
+  const { processFiles } = useDocumentProcessor();
+  const { refreshInBackground } = useBackgroundRefresh(setDocuments, saveToCache);
 
   // Fetch documents from Supabase storage
   const fetchDocumentsFromStorage = useCallback(async () => {
@@ -110,53 +55,13 @@ export const useDocumentFetching = (
         return;
       }
 
-      // Get metadata for each file
-      const filePromises = files.map(async (file) => {
-        const fileName = file.name;
-        
-        // Get the public URL
-        const { data: urlData } = supabase
-          .storage
-          .from('research_documents')
-          .getPublicUrl(fileName);
-          
-        const baseFileName = getBaseFilename(fileName);
-        const metadata = parseFileMetadata(fileName, baseFileName);
-        
-        return {
-          id: `doc-${fileName}`,
-          title: metadata.title,
-          description: metadata.description,
-          category: metadata.category,
-          pdfUrl: urlData.publicUrl,
-          publishDate: metadata.publishDate,
-          authors: metadata.authors,
-          type: metadata.type as 'pdf' | 'video',
-          videoUrl: metadata.videoUrl,
-          thumbnailUrl: metadata.thumbnailUrl
-        } as ResearchDocument;
-      });
-
-      const documentsList = await Promise.all(filePromises);
+      // Process files into document objects
+      const sortedDocs = await processFiles(files);
       
-      // Make sure we always include the Harvard video document
-      const videoDocuments = fallbackDocuments.filter(doc => doc.type === 'video');
-      
-      // Combine documents from storage with video documents from fallback
-      const combinedDocs = [...documentsList, ...videoDocuments];
-      
-      // Sort all documents by date
-      if (combinedDocs.length > 0) {
-        const sortedDocs = sortDocumentsByDate(combinedDocs);
-        
-        // Cache the results
-        saveToCache(sortedDocs);
-        setDocuments(sortedDocs);
-        console.log('Documents loaded:', sortedDocs.length);
-      } else {
-        // Only use fallback documents if no actual documents exist
-        setDocuments(fallbackDocuments);
-      }
+      // Cache the results
+      saveToCache(sortedDocs);
+      setDocuments(sortedDocs);
+      console.log('Documents loaded:', sortedDocs.length);
     } catch (err: any) {
       console.error('Error loading documents:', err);
       setError(err.message);
@@ -172,68 +77,9 @@ export const useDocumentFetching = (
     setError, 
     loadFromCache, 
     saveToCache,
-    getBaseFilename,
-    parseFileMetadata,
-    sortDocumentsByDate,
-    fallbackDocuments
-  ]);
-
-  // Background refresh function that doesn't set loading state
-  const refreshInBackground = useCallback(async () => {
-    try {
-      const { data: files, error: filesError } = await supabase
-        .storage
-        .from('research_documents')
-        .list('', {
-          limit: 100 // Add a higher limit to ensure we get all files
-        });
-        
-      if (filesError || !files || files.length === 0) {
-        return; // Just return silently as this is a background refresh
-      }
-
-      // Process files as before but without loading states
-      const documentsList = await Promise.all(files.map(async (file) => {
-        const fileName = file.name;
-        const { data: urlData } = supabase.storage.from('research_documents').getPublicUrl(fileName);
-        const baseFileName = getBaseFilename(fileName);
-        const metadata = parseFileMetadata(fileName, baseFileName);
-        
-        return {
-          id: `doc-${fileName}`,
-          title: metadata.title,
-          description: metadata.description,
-          category: metadata.category,
-          pdfUrl: urlData.publicUrl,
-          publishDate: metadata.publishDate,
-          authors: metadata.authors,
-          type: metadata.type as 'pdf' | 'video',
-          videoUrl: metadata.videoUrl,
-          thumbnailUrl: metadata.thumbnailUrl
-        } as ResearchDocument;
-      }));
-      
-      // Make sure we always include the Harvard video document
-      const videoDocuments = fallbackDocuments.filter(doc => doc.type === 'video');
-      
-      // Combine and sort
-      const combinedDocs = [...documentsList, ...videoDocuments];
-      const sortedDocs = sortDocumentsByDate(combinedDocs);
-      
-      saveToCache(sortedDocs);
-      setDocuments(sortedDocs);
-      console.log('Background refresh completed with', sortedDocs.length, 'documents');
-    } catch (err) {
-      console.error('Background refresh error:', err);
-      // Don't set error state as this is a background operation
-    }
-  }, [
-    getBaseFilename,
-    parseFileMetadata,
-    saveToCache,
-    setDocuments,
-    sortDocumentsByDate,
-    fallbackDocuments
+    fallbackDocuments,
+    processFiles,
+    refreshInBackground
   ]);
 
   return { fetchDocumentsFromStorage };
