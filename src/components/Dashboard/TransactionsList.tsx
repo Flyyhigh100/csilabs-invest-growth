@@ -61,35 +61,6 @@ const TransactionsList = () => {
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        <div className="flex justify-between items-center mb-2">
-          <div className="flex gap-2">
-            {hasPendingCrypto && (
-              <RefreshCryptoTransactionsButton
-                onRefreshComplete={refetch}
-                size="sm"
-              />
-            )}
-            {hasCryptoTransactions && (
-              <RefreshCryptoTransactionsButton
-                onRefreshComplete={refetch}
-                size="sm"
-                variant="secondary"
-                forceUpdateAll={true}
-              />
-            )}
-          </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleRefresh}
-            disabled={isFetching}
-            className="text-xs"
-          >
-            <RefreshCw className={`h-3 w-3 mr-1 ${isFetching ? 'animate-spin' : ''}`} />
-            {isFetching ? 'Refreshing...' : 'Refresh'}
-          </Button>
-        </div>
-        
         <TransactionsTable 
           transactions={transactions} 
           expandedItem={expandedItem}

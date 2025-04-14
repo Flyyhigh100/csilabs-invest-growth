@@ -1,7 +1,5 @@
 
 import React from 'react';
-import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { Transaction } from "@/types/transactions";
 import StatusBadge from './StatusBadge';
 import PaymentMethodIcon from './PaymentMethodIcon';
@@ -54,9 +52,6 @@ const TransactionsTable = ({
                 User
               </th>
             )}
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
@@ -104,23 +99,6 @@ const TransactionsTable = ({
                   {tx.profiles?.email || 'Unknown user'}
                 </td>
               )}
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    handleRowClick(tx.id); 
-                  }}
-                >
-                  {expandedItem === tx.id ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                  <span className="sr-only">Expand</span>
-                </Button>
-              </td>
             </tr>
           ))}
         </tbody>

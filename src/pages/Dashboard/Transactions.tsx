@@ -3,23 +3,16 @@ import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import KycStatusBanner from '@/components/Dashboard/KycStatusBanner';
-import { useKycVerification } from '@/hooks/useKycVerification';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTransactionVerification } from '@/hooks/transactions/useTransactionVerification';
 import { CanceledAlert, PendingVerificationAlert, SuccessAlert } from '@/components/Dashboard/Transactions/StatusAlerts';
 import TransactionHeader from '@/components/Dashboard/Transactions/TransactionHeader';
 import TransactionContent from '@/components/Dashboard/Transactions/TransactionContent';
-import APIKeyValidator from '@/components/Admin/APIKeyValidator';
-import { supabase } from '@/integrations/supabase/client'; // Import supabase client
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 const Transactions = () => {
-  const { kycData } = useKycVerification();
   const [searchParams] = useSearchParams();
   const { user, refreshSession } = useAuth();
-  
-  const isKycApproved = kycData?.status === 'approved';
   
   // In test mode, we'll allow transactions without KYC
   const allowTransactionsWithoutKYC = true;
@@ -39,31 +32,6 @@ const Transactions = () => {
     userId: user?.id,
     refreshSession
   });
-
-  // Check if user is an admin to show API key validator
-  const [isAdmin, setIsAdmin] = React.useState(false);
-
-  React.useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase
-          .rpc('is_admin');
-          
-        if (error) {
-          console.error('Error checking admin status:', error);
-          return;
-        }
-        
-        setIsAdmin(!!data);
-      } catch (err) {
-        console.error('Exception checking admin status:', err);
-      }
-    };
-    
-    checkAdminStatus();
-  }, [user]);
 
   return (
     <TooltipProvider>
@@ -85,20 +53,6 @@ const Transactions = () => {
         )}
         
         {canceled === 'true' && <CanceledAlert />}
-        
-        {/* Admin-only API Key Validator */}
-        {isAdmin && <APIKeyValidator />}
-        
-        {/* KYC Status Banner */}
-        <Card className="mb-6">
-          <CardHeader className="pb-2">
-            <h3 className="text-lg">Verification Status</h3>
-            <p className="text-sm text-muted-foreground">Your identity verification status</p>
-          </CardHeader>
-          <CardContent>
-            <KycStatusBanner />
-          </CardContent>
-        </Card>
 
         {/* Transactions List */}
         <Card>
@@ -110,7 +64,7 @@ const Transactions = () => {
           </CardHeader>
           <CardContent>
             <TransactionContent 
-              isKycApproved={isKycApproved} 
+              isKycApproved={true}
               allowTransactionsWithoutKYC={allowTransactionsWithoutKYC} 
             />
           </CardContent>
