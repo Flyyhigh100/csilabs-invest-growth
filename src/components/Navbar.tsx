@@ -20,6 +20,19 @@ const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Disable scrolling when the mobile menu is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   return (
     <nav 
       className={cn(
@@ -63,8 +76,8 @@ const Navbar: React.FC = () => {
         {/* Mobile Menu Button */}
         <button 
           className={cn(
-            "md:hidden p-2 rounded-md transition-colors z-50",
-            isOpen ? "text-gray-800 bg-white" : "text-cbis-dark"
+            "md:hidden p-2 rounded-md transition-colors z-[60]",
+            isOpen ? "text-gray-800" : "text-cbis-dark"
           )}
           onClick={() => setIsOpen(!isOpen)}
           aria-label="Toggle menu"
@@ -73,11 +86,11 @@ const Navbar: React.FC = () => {
         </button>
       </div>
 
-      {/* Mobile Navigation */}
+      {/* Mobile Navigation - Full Screen Overlay */}
       <div 
         className={cn(
-          "fixed inset-0 bg-white z-40 md:hidden flex flex-col pt-20 px-6 shadow-lg transition-transform duration-300",
-          isOpen ? "translate-x-0" : "translate-x-full"
+          "fixed inset-0 bg-white z-[55] md:hidden flex flex-col pt-20 px-6 transition-opacity duration-300 ease-in-out",
+          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         )}
       >
         <div className="border-b border-gray-100 py-1">
