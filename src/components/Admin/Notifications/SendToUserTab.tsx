@@ -38,7 +38,7 @@ const SendToUserTab: React.FC<SendToUserTabProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Send Notification to User</CardTitle>
+        <CardTitle className="text-xl md:text-2xl">Send Notification to User</CardTitle>
         <CardDescription>
           Create and send a notification to a specific user
         </CardDescription>
@@ -66,6 +66,7 @@ const SendToUserTab: React.FC<SendToUserTabProps> = ({
         <Button 
           onClick={onSubmit} 
           disabled={isSubmitting || !title || !message || !userId}
+          className="w-full sm:w-auto"
         >
           <Bell className="mr-2 h-4 w-4" />
           {isSubmitting ? "Sending..." : "Send Notification"}

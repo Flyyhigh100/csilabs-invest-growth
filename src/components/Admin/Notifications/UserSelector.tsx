@@ -26,21 +26,23 @@ const UserSelector: React.FC<UserSelectorProps> = ({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 w-full">
       <Label htmlFor="user">User</Label>
       <Select 
         value={userId} 
         onValueChange={setUserId}
         disabled={isLoading}
       >
-        <SelectTrigger>
+        <SelectTrigger className="w-full">
           <SelectValue placeholder={isLoading ? "Loading users..." : "Select a user"} />
         </SelectTrigger>
-        <SelectContent>
-          <ScrollArea className="h-72">
+        <SelectContent className="max-w-[85vw] sm:max-w-md">
+          <ScrollArea className="h-60 sm:h-72">
             {users.map(user => (
               <SelectItem key={user.id} value={user.id}>
-                {getUserDisplayName(user)}
+                <div className="truncate max-w-[70vw] sm:max-w-xs">
+                  {getUserDisplayName(user)}
+                </div>
               </SelectItem>
             ))}
           </ScrollArea>

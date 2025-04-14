@@ -26,13 +26,13 @@ const NotificationsPage = () => {
 
   return (
     <AdminLayout title="Notifications Management">
-      <Tabs defaultValue="single">
-        <TabsList className="mb-4">
-          <TabsTrigger value="single">Send to User</TabsTrigger>
-          <TabsTrigger value="broadcast">Broadcast</TabsTrigger>
+      <Tabs defaultValue="single" className="w-full">
+        <TabsList className="mb-4 w-full sm:w-auto">
+          <TabsTrigger value="single" className="flex-1 sm:flex-initial">Send to User</TabsTrigger>
+          <TabsTrigger value="broadcast" className="flex-1 sm:flex-initial">Broadcast</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="single">
+        <TabsContent value="single" className="mt-0">
           <SendToUserTab 
             userId={userId}
             setUserId={setUserId}
@@ -49,7 +49,7 @@ const NotificationsPage = () => {
           />
         </TabsContent>
         
-        <TabsContent value="broadcast">
+        <TabsContent value="broadcast" className="mt-0">
           <BroadcastTab 
             title={title}
             setTitle={setTitle}

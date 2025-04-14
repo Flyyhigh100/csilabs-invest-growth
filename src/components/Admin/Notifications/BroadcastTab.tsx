@@ -29,7 +29,7 @@ const BroadcastTab: React.FC<BroadcastTabProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Broadcast to All Users</CardTitle>
+        <CardTitle className="text-xl md:text-2xl">Broadcast to All Users</CardTitle>
         <CardDescription>
           Send a notification to all platform users at once
         </CardDescription>
@@ -46,14 +46,15 @@ const BroadcastTab: React.FC<BroadcastTabProps> = ({
           />
         </form>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <div className="text-sm text-amber-600 flex items-center">
-          <Mail className="mr-1 h-4 w-4" />
-          This will be sent to all users
+      <CardFooter className="flex flex-col sm:flex-row gap-4 sm:justify-between">
+        <div className="text-sm text-amber-600 flex items-center w-full sm:w-auto">
+          <Mail className="mr-1 h-4 w-4 flex-shrink-0" />
+          <span>This will be sent to all users</span>
         </div>
         <Button 
           onClick={onSubmit}
           disabled={isSubmitting || !title || !message}
+          className="w-full sm:w-auto"
         >
           <Users className="mr-2 h-4 w-4" />
           {isSubmitting ? "Broadcasting..." : "Broadcast to All"}
