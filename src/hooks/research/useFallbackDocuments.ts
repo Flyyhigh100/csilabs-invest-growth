@@ -1,4 +1,3 @@
-
 import { ResearchDocument } from '@/components/Admin/ResearchDocuments/types/documentTypes';
 
 export const useFallbackDocuments = () => {
@@ -14,7 +13,7 @@ export const useFallbackDocuments = () => {
       authors: 'Raymond Dabney, CSi Labs Research Team',
       type: 'video',
       videoUrl: 'https://www.youtube.com/watch?v=x3q2uQ7J7f4',
-      thumbnailUrl: '/lovable-uploads/dd432488-2e8a-4427-a947-e80756e2eec2.png'
+      thumbnailUrl: '/lovable-uploads/c2afcd29-21b1-48cc-890b-a9a2b8155289.png'
     },
     {
       id: "doc-1",
