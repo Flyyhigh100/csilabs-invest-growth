@@ -9,6 +9,7 @@ export interface ResearchDocument {
   authors?: string;
   type?: 'pdf' | 'video';
   videoUrl?: string;
+  thumbnailUrl?: string; // Added to support video thumbnails
 }
 
 export interface DocumentFormValues {

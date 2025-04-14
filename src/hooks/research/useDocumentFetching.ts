@@ -33,6 +33,7 @@ export const useDocumentFetching = (
     let description = "";
     let type = "pdf";
     let videoUrl = "";
+    let thumbnailUrl = "";
     
     // Parse file name for metadata with URL parameters
     const fileNameParts = fileName.split('?');
@@ -46,12 +47,13 @@ export const useDocumentFetching = (
         authors = params.get('authors') || authors;
         type = (params.get('type') === 'video') ? 'video' : 'pdf';
         videoUrl = params.get('videoUrl') || "";
+        thumbnailUrl = params.get('thumbnailUrl') || "";
       } catch (e) {
         console.log("Could not parse metadata from filename");
       }
     }
     
-    return { title, category, description, publishDate, authors, type, videoUrl };
+    return { title, category, description, publishDate, authors, type, videoUrl, thumbnailUrl };
   }, []);
 
   // Sort documents by publish date
@@ -130,26 +132,27 @@ export const useDocumentFetching = (
           publishDate: metadata.publishDate,
           authors: metadata.authors,
           type: metadata.type as 'pdf' | 'video',
-          videoUrl: metadata.videoUrl
+          videoUrl: metadata.videoUrl,
+          thumbnailUrl: metadata.thumbnailUrl
         } as ResearchDocument;
       });
 
       const documentsList = await Promise.all(filePromises);
       
-      // Add our fallback video document
-      const videoDocument = fallbackDocuments.find(doc => doc.type === 'video');
-      const combinedDocs = videoDocument 
-        ? [...documentsList, videoDocument] 
-        : documentsList;
+      // Make sure we always include the Harvard video document
+      const videoDocuments = fallbackDocuments.filter(doc => doc.type === 'video');
       
-      // If we have actual documents from storage, don't use fallback documents
+      // Combine documents from storage with video documents from fallback
+      const combinedDocs = [...documentsList, ...videoDocuments];
+      
+      // Sort all documents by date
       if (combinedDocs.length > 0) {
         const sortedDocs = sortDocumentsByDate(combinedDocs);
         
         // Cache the results
         saveToCache(sortedDocs);
         setDocuments(sortedDocs);
-        console.log('Documents loaded from storage:', sortedDocs.length);
+        console.log('Documents loaded:', sortedDocs.length);
       } else {
         // Only use fallback documents if no actual documents exist
         setDocuments(fallbackDocuments);
@@ -203,16 +206,23 @@ export const useDocumentFetching = (
           category: metadata.category,
           pdfUrl: urlData.publicUrl,
           publishDate: metadata.publishDate,
-          authors: metadata.authors
+          authors: metadata.authors,
+          type: metadata.type as 'pdf' | 'video',
+          videoUrl: metadata.videoUrl,
+          thumbnailUrl: metadata.thumbnailUrl
         } as ResearchDocument;
       }));
       
-      if (documentsList.length > 0) {
-        const sortedDocs = sortDocumentsByDate(documentsList);
-        saveToCache(sortedDocs);
-        setDocuments(sortedDocs);
-        console.log('Background refresh completed with', sortedDocs.length, 'documents');
-      }
+      // Make sure we always include the Harvard video document
+      const videoDocuments = fallbackDocuments.filter(doc => doc.type === 'video');
+      
+      // Combine and sort
+      const combinedDocs = [...documentsList, ...videoDocuments];
+      const sortedDocs = sortDocumentsByDate(combinedDocs);
+      
+      saveToCache(sortedDocs);
+      setDocuments(sortedDocs);
+      console.log('Background refresh completed with', sortedDocs.length, 'documents');
     } catch (err) {
       console.error('Background refresh error:', err);
       // Don't set error state as this is a background operation
@@ -222,7 +232,8 @@ export const useDocumentFetching = (
     parseFileMetadata,
     saveToCache,
     setDocuments,
-    sortDocumentsByDate
+    sortDocumentsByDate,
+    fallbackDocuments
   ]);
 
   return { fetchDocumentsFromStorage };

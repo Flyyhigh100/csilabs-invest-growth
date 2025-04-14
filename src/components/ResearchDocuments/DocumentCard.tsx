@@ -32,6 +32,21 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onSelect }) => {
             </div>
           )}
         </div>
+        
+        {/* Video Thumbnail */}
+        {isVideo && document.thumbnailUrl && (
+          <div className="mt-3 mb-2 relative aspect-video bg-gray-100 rounded overflow-hidden group">
+            <img 
+              src={document.thumbnailUrl} 
+              alt={`${document.title} thumbnail`} 
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 group-hover:opacity-100 transition-opacity">
+              <YoutubeIcon className="h-12 w-12 text-white" />
+            </div>
+          </div>
+        )}
+        
         <CardTitle className="mt-3 text-xl leading-tight">
           {formattedTitle}
         </CardTitle>
