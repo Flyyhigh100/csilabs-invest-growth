@@ -24,7 +24,7 @@ const Navbar: React.FC = () => {
     <nav 
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        scrolled ? "py-2 bg-white bg-opacity-80 backdrop-blur-lg shadow-subtle" : "py-4 bg-transparent"
+        scrolled ? "py-2 bg-white bg-opacity-95 backdrop-blur-lg shadow-subtle" : "py-4 bg-transparent"
       )}
     >
       <div className="container-custom flex items-center justify-between">
@@ -67,6 +67,7 @@ const Navbar: React.FC = () => {
             isOpen ? "text-gray-800 bg-white" : "text-cbis-dark"
           )}
           onClick={() => setIsOpen(!isOpen)}
+          aria-label="Toggle menu"
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -75,7 +76,7 @@ const Navbar: React.FC = () => {
       {/* Mobile Navigation */}
       <div 
         className={cn(
-          "fixed inset-0 bg-white z-40 md:hidden flex flex-col pt-20 px-6 shadow-lg",
+          "fixed inset-0 bg-white z-40 md:hidden flex flex-col pt-20 px-6 shadow-lg transition-transform duration-300",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
       >

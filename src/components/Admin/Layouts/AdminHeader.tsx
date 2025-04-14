@@ -11,10 +11,10 @@ interface AdminHeaderProps {
 
 const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onToggleSidebar }) => {
   return (
-    <header className="bg-white border-b border-gray-200 py-3 px-4 lg:py-4 lg:px-6 flex items-center justify-between">
+    <header className="bg-white border-b border-gray-200 py-3 px-4 lg:py-4 lg:px-6 flex items-center justify-between sticky top-0 z-20">
       <div className="flex items-center gap-3">
         {onToggleSidebar && (
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={onToggleSidebar}>
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={onToggleSidebar} aria-label="Toggle menu">
             <Menu className="h-5 w-5" />
           </Button>
         )}

@@ -5,6 +5,7 @@ import AdminHeader from './Layouts/AdminHeader';
 import AdminSidebar from './Layouts/AdminSidebar';
 import { getAdminNavItems } from './Layouts/AdminNav';
 import { toast } from 'sonner';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -28,14 +29,17 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <AdminHeader title="Admin Portal" onToggleSidebar={toggleSidebar} />
 
-      <div className="flex flex-1">
-        {/* Mobile sidebar - shown/hidden with state */}
-        <div className={`lg:hidden fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
-             onClick={() => setSidebarOpen(false)}>
-        </div>
+      <div className="flex flex-1 relative">
+        {/* Mobile sidebar using Sheet component for better mobile experience */}
+        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <SheetContent side="left" className="p-0 w-[240px] bg-white border-r border-gray-200">
+            <AdminSidebar navItems={navItems} closeSidebar={() => setSidebarOpen(false)} />
+          </SheetContent>
+        </Sheet>
         
-        <div className={`lg:static fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-          <AdminSidebar navItems={navItems} closeSidebar={() => setSidebarOpen(false)} />
+        {/* Desktop sidebar */}
+        <div className="hidden lg:block w-64 bg-white shadow-lg">
+          <AdminSidebar navItems={navItems} />
         </div>
 
         {/* Content */}

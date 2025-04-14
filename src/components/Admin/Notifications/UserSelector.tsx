@@ -33,14 +33,14 @@ const UserSelector: React.FC<UserSelectorProps> = ({
         onValueChange={setUserId}
         disabled={isLoading}
       >
-        <SelectTrigger className="w-full">
+        <SelectTrigger className="w-full bg-white" id="user">
           <SelectValue placeholder={isLoading ? "Loading users..." : "Select a user"} />
         </SelectTrigger>
-        <SelectContent className="max-w-[85vw] sm:max-w-md">
+        <SelectContent className="max-w-[90vw] sm:max-w-md bg-white z-50" position="popper">
           <ScrollArea className="h-60 sm:h-72">
             {users.map(user => (
               <SelectItem key={user.id} value={user.id}>
-                <div className="truncate max-w-[70vw] sm:max-w-xs">
+                <div className="truncate max-w-[80vw] sm:max-w-sm">
                   {getUserDisplayName(user)}
                 </div>
               </SelectItem>
