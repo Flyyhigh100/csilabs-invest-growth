@@ -10,10 +10,10 @@ interface BroadcastTabProps {
   setTitle: (title: string) => void;
   message: string;
   setMessage: (message: string) => void;
-  notificationType: 'wallet' | 'payment' | 'kyc' | 'tokens' | 'other';
-  setNotificationType: (type: 'wallet' | 'payment' | 'kyc' | 'tokens' | 'other') => void;
-  isLoading: boolean;
-  handleBroadcast: () => Promise<void>;
+  type: 'wallet' | 'payment' | 'kyc' | 'tokens' | 'other';
+  setType: (type: 'wallet' | 'payment' | 'kyc' | 'tokens' | 'other') => void;
+  onSubmit: () => Promise<void>;
+  isSubmitting: boolean;
 }
 
 const BroadcastTab: React.FC<BroadcastTabProps> = ({
@@ -21,10 +21,10 @@ const BroadcastTab: React.FC<BroadcastTabProps> = ({
   setTitle,
   message,
   setMessage,
-  notificationType,
-  setNotificationType,
-  isLoading,
-  handleBroadcast,
+  type,
+  setType,
+  onSubmit,
+  isSubmitting,
 }) => {
   return (
     <Card>
@@ -41,8 +41,8 @@ const BroadcastTab: React.FC<BroadcastTabProps> = ({
             setTitle={setTitle}
             message={message}
             setMessage={setMessage}
-            notificationType={notificationType}
-            setNotificationType={setNotificationType}
+            type={type}
+            setType={setType}
           />
         </form>
       </CardContent>
@@ -52,11 +52,11 @@ const BroadcastTab: React.FC<BroadcastTabProps> = ({
           This will be sent to all users
         </div>
         <Button 
-          onClick={handleBroadcast}
-          disabled={isLoading || !title || !message}
+          onClick={onSubmit}
+          disabled={isSubmitting || !title || !message}
         >
           <Users className="mr-2 h-4 w-4" />
-          {isLoading ? "Broadcasting..." : "Broadcast to All"}
+          {isSubmitting ? "Broadcasting..." : "Broadcast to All"}
         </Button>
       </CardFooter>
     </Card>

@@ -7,25 +7,22 @@ import BroadcastTab from '@/components/Admin/Notifications/BroadcastTab';
 import { useNotificationActions } from '@/components/Admin/Notifications/useNotificationActions';
 
 const NotificationsPage = () => {
-  const [userId, setUserId] = React.useState('');
-  const [title, setTitle] = React.useState('');
-  const [message, setMessage] = React.useState('');
-  const [type, setType] = React.useState<'wallet' | 'payment' | 'kyc' | 'tokens' | 'other'>('other');
-  
   const { 
-    handleSendToUser,
-    handleBroadcast,
+    type,
+    setType,
+    title,
+    setTitle,
+    message,
+    setMessage,
+    userId,
+    setUserId,
     isSendingToUser,
     isBroadcasting,
     users,
-    isLoadingUsers
+    isLoadingUsers,
+    handleSendToUser,
+    handleBroadcast
   } = useNotificationActions();
-
-  const handleTypeChange = (value: string) => {
-    // Ensure the value is one of the allowed types
-    const allowedTypes: Array<'wallet' | 'payment' | 'kyc' | 'tokens' | 'other'> = ['wallet', 'payment', 'kyc', 'tokens', 'other'];
-    setType(allowedTypes.includes(value as any) ? (value as any) : 'other');
-  };
 
   return (
     <AdminLayout title="Notifications Management">
@@ -44,11 +41,11 @@ const NotificationsPage = () => {
             message={message}
             setMessage={setMessage}
             type={type}
-            onTypeChange={handleTypeChange}
+            setType={setType}
             onSubmit={handleSendToUser}
             isSubmitting={isSendingToUser}
             users={users}
-            isLoadingUsers={isLoadingUsers}
+            isLoading={isLoadingUsers}
           />
         </TabsContent>
         
@@ -59,7 +56,7 @@ const NotificationsPage = () => {
             message={message}
             setMessage={setMessage}
             type={type}
-            onTypeChange={handleTypeChange}
+            setType={setType}
             onSubmit={handleBroadcast}
             isSubmitting={isBroadcasting}
           />

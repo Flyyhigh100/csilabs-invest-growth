@@ -1,15 +1,13 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 
 interface UserSelectorProps {
   userId: string;
   setUserId: (userId: string) => void;
-  users: { id: string; email: string }[];
+  users: { id: string; email: string; first_name?: string; last_name?: string; }[];
   isLoading: boolean;
 }
 
@@ -19,23 +17,13 @@ const UserSelector: React.FC<UserSelectorProps> = ({
   users,
   isLoading,
 }) => {
-  // Query to fetch all users from the profiles table
-  const { data: allUsers, isLoading: isLoadingUsers } = useQuery({
-    queryKey: ['all-users'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, email, first_name, last_name')
-        .order('email');
-      
-      if (error) throw new Error(error.message);
-      return data || [];
+  // Display name formatting function
+  const getUserDisplayName = (user: { id: string; email: string | null; first_name?: string | null; last_name?: string | null }) => {
+    if (user.first_name || user.last_name) {
+      return `${user.first_name || ''} ${user.last_name || ''}`.trim();
     }
-  });
-
-  // Use the fetched users if available, otherwise fall back to the provided users
-  const displayUsers = allUsers || users;
-  const loading = isLoading || isLoadingUsers;
+    return user.email || user.id;
+  };
 
   return (
     <div className="space-y-2">
@@ -43,18 +31,16 @@ const UserSelector: React.FC<UserSelectorProps> = ({
       <Select 
         value={userId} 
         onValueChange={setUserId}
-        disabled={loading}
+        disabled={isLoading}
       >
         <SelectTrigger>
-          <SelectValue placeholder={loading ? "Loading users..." : "Select a user"} />
+          <SelectValue placeholder={isLoading ? "Loading users..." : "Select a user"} />
         </SelectTrigger>
         <SelectContent>
           <ScrollArea className="h-72">
-            {displayUsers.map(user => (
+            {users.map(user => (
               <SelectItem key={user.id} value={user.id}>
-                {user.email || (user as any).first_name && (user as any).last_name 
-                  ? `${(user as any).first_name || ''} ${(user as any).last_name || ''}`.trim() 
-                  : user.id}
+                {getUserDisplayName(user)}
               </SelectItem>
             ))}
           </ScrollArea>
