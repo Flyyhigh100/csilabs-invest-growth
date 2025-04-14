@@ -1,3 +1,4 @@
+
 // Update transaction status to completed
 export const updateTransactionStatus = async (supabase: any, transaction: any, paymentIntentId = null) => {
   if (!transaction) return null;
