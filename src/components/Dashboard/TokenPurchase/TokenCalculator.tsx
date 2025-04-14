@@ -47,8 +47,7 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
       <PurchaseAmountInput 
         amount={amount} 
         onChange={onChange} 
-        disabled={disabled} 
-        className="text-2xl font-bold" 
+        disabled={disabled}
       />
       
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">

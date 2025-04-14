@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { useKycVerification } from '@/hooks/kyc/useKycVerification';
 import KycWarning from '@/components/Dashboard/KycWarning';
@@ -11,8 +11,7 @@ import { useWalletAddress } from '@/components/Dashboard/Payments/useWalletAddre
 
 const Payments = () => {
   const { kycData } = useKycVerification();
-  const [activeTab, setActiveTab] = useState('buy');
-  const [showInfoCard, setShowInfoCard] = useState(true);
+  const [showInfoCard, setShowInfoCard] = React.useState(true);
   const { walletAddress, isLoadingWallet, handleWalletUpdated } = useWalletAddress();
   
   const isKycApproved = kycData?.status === 'approved';
@@ -49,8 +48,6 @@ const Payments = () => {
             
             {/* Token Purchase Section */}
             <TokenPurchaseSection 
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
               walletAddress={walletAddress}
             />
           </div>
