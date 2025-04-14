@@ -1,75 +1,72 @@
 
 import React from 'react';
-import AdminLayout from '@/components/Admin/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Users } from 'lucide-react';
+import AdminLayout from '@/components/Admin/Layout';
 import SendToUserTab from '@/components/Admin/Notifications/SendToUserTab';
 import BroadcastTab from '@/components/Admin/Notifications/BroadcastTab';
 import { useNotificationActions } from '@/components/Admin/Notifications/useNotificationActions';
 
-const AdminNotifications: React.FC = () => {
-  const {
-    notificationType,
-    setNotificationType,
-    title,
-    setTitle,
-    message,
-    setMessage,
-    userId,
-    setUserId,
-    isLoading,
-    users,
+const NotificationsPage = () => {
+  const [userId, setUserId] = React.useState('');
+  const [title, setTitle] = React.useState('');
+  const [message, setMessage] = React.useState('');
+  const [type, setType] = React.useState<'wallet' | 'payment' | 'kyc' | 'tokens' | 'other'>('other');
+  
+  const { 
     handleSendToUser,
-    handleBroadcast
+    handleBroadcast,
+    isSendingToUser,
+    isBroadcasting,
+    users,
+    isLoadingUsers
   } = useNotificationActions();
+
+  const handleTypeChange = (value: string) => {
+    // Ensure the value is one of the allowed types
+    const allowedTypes: Array<'wallet' | 'payment' | 'kyc' | 'tokens' | 'other'> = ['wallet', 'payment', 'kyc', 'tokens', 'other'];
+    setType(allowedTypes.includes(value as any) ? (value as any) : 'other');
+  };
 
   return (
     <AdminLayout title="Notifications Management">
-      <div className="max-w-4xl mx-auto">
-        <Tabs defaultValue="send">
-          <TabsList className="mb-4">
-            <TabsTrigger value="send">
-              <User className="mr-2 h-4 w-4" />
-              Send to User
-            </TabsTrigger>
-            <TabsTrigger value="broadcast">
-              <Users className="mr-2 h-4 w-4" />
-              Broadcast
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="send">
-            <SendToUserTab 
-              title={title}
-              setTitle={setTitle}
-              message={message}
-              setMessage={setMessage}
-              notificationType={notificationType}
-              setNotificationType={setNotificationType}
-              userId={userId}
-              setUserId={setUserId}
-              users={users}
-              isLoading={isLoading}
-              handleSendToUser={handleSendToUser}
-            />
-          </TabsContent>
-          
-          <TabsContent value="broadcast">
-            <BroadcastTab 
-              title={title}
-              setTitle={setTitle}
-              message={message}
-              setMessage={setMessage}
-              notificationType={notificationType}
-              setNotificationType={setNotificationType}
-              isLoading={isLoading}
-              handleBroadcast={handleBroadcast}
-            />
-          </TabsContent>
-        </Tabs>
-      </div>
+      <Tabs defaultValue="single">
+        <TabsList className="mb-4">
+          <TabsTrigger value="single">Send to User</TabsTrigger>
+          <TabsTrigger value="broadcast">Broadcast</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="single">
+          <SendToUserTab 
+            userId={userId}
+            setUserId={setUserId}
+            title={title}
+            setTitle={setTitle}
+            message={message}
+            setMessage={setMessage}
+            type={type}
+            onTypeChange={handleTypeChange}
+            onSubmit={handleSendToUser}
+            isSubmitting={isSendingToUser}
+            users={users}
+            isLoadingUsers={isLoadingUsers}
+          />
+        </TabsContent>
+        
+        <TabsContent value="broadcast">
+          <BroadcastTab 
+            title={title}
+            setTitle={setTitle}
+            message={message}
+            setMessage={setMessage}
+            type={type}
+            onTypeChange={handleTypeChange}
+            onSubmit={handleBroadcast}
+            isSubmitting={isBroadcasting}
+          />
+        </TabsContent>
+      </Tabs>
     </AdminLayout>
   );
 };
 
-export default AdminNotifications;
+export default NotificationsPage;

@@ -19,7 +19,10 @@ const CardPaymentTab: React.FC<CardPaymentTabProps> = ({
 }) => {
   const handlePaymentClick = async () => {
     try {
-      const toastId = toast.loading("Preparing payment session...");
+      // Use a unique toast ID to prevent duplicates
+      const toastId = toast.loading("Preparing payment session...", {
+        id: "prepare-payment"
+      });
       console.log("Payment button clicked, amount:", amount);
       await handleStripePayment(amount);
       toast.dismiss(toastId);

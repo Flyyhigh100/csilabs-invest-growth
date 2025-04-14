@@ -52,7 +52,9 @@ const UserSelector: React.FC<UserSelectorProps> = ({
           <ScrollArea className="h-72">
             {displayUsers.map(user => (
               <SelectItem key={user.id} value={user.id}>
-                {user.email || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.id}
+                {user.email || (user as any).first_name && (user as any).last_name 
+                  ? `${(user as any).first_name || ''} ${(user as any).last_name || ''}`.trim() 
+                  : user.id}
               </SelectItem>
             ))}
           </ScrollArea>

@@ -1,5 +1,5 @@
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { VerificationOptions, VerificationState } from './types';
 import { Transaction } from '@/types/transactions';
 import { useStripeFallbackCheck } from '@/hooks/payments/useStripeFallbackCheck';
@@ -30,6 +30,9 @@ export const useSessionCheck = (
     setPollingCount,
     setHasCheckedStatus
   );
+  
+  // Use a ref to track if we've shown success message to prevent duplicates
+  const successMessageShown = useRef(false);
 
   // Function to check current session transaction status
   const checkSessionTransaction = useCallback(async () => {
@@ -47,12 +50,12 @@ export const useSessionCheck = (
         console.log("Transaction found:", txData.status, txData);
         
         if (txData.status === 'completed') {
-          // Transaction is completed, show success message
-          if (success === 'true') {
+          // Transaction is completed, show success message once
+          if (success === 'true' && !successMessageShown.current) {
+            successMessageShown.current = true;
             import('sonner').then(({ toast }) => {
-              toast.success("Payment successful!", {
-                description: "Your tokens will be sent to your wallet shortly."
-              });
+              // We already show a notification in StatusChecks.tsx, so we don't need another one here
+              // This prevents duplicate notifications
             });
           }
           setHasCheckedStatus(true);
@@ -75,19 +78,16 @@ export const useSessionCheck = (
       } else {
         console.log("No transaction found for session ID:", sessionId);
         
-        // If success is true but no transaction found, show a message
+        // If success is true but no transaction found, show a message only once
         if (success === 'true' && pollingCount === 0) {
-          import('sonner').then(({ toast }) => {
-            toast.info("Checking payment status...", {
-              description: "Please wait while we verify your payment."
-            });
-          });
-          
-          // Poll with exponential backoff
-          if (pollingCount < 5) {
-            scheduleNextPoll();
-            return;
-          }
+          // Reduce duplicate notifications
+          // We already show a notification in StatusChecks.tsx, so we don't need another one here
+        }
+        
+        // Poll with exponential backoff
+        if (pollingCount < 5) {
+          scheduleNextPoll();
+          return;
         }
       }
       

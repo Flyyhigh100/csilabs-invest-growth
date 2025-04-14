@@ -1,43 +1,59 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { RefreshCcw } from 'lucide-react';
-import SyncAllTransactionsButton from '@/components/Admin/SyncAllTransactionsButton';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface SyncAllTransactionsBarProps {
   onSyncComplete: () => void;
 }
 
 const SyncAllTransactionsBar: React.FC<SyncAllTransactionsBarProps> = ({ onSyncComplete }) => {
+  const [isSyncing, setIsSyncing] = React.useState(false);
+
+  const handleRefresh = async () => {
+    try {
+      setIsSyncing(true);
+      
+      const toastId = toast.loading('Refreshing transaction data...');
+      
+      const { error } = await supabase.functions.invoke('admin-sync-all-transactions', {
+        body: { forceUpdate: false, storeExternalIds: true }
+      });
+      
+      toast.dismiss(toastId);
+      
+      if (error) {
+        console.error('Error syncing transactions:', error);
+        toast.error('Failed to refresh transactions');
+        return;
+      }
+      
+      toast.success('Transaction data refreshed');
+      onSyncComplete();
+    } catch (err) {
+      console.error('Exception syncing transactions:', err);
+      toast.error('Failed to refresh transactions');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
-    <Card className="mb-4">
-      <CardContent className="p-4">
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center">
-            <RefreshCcw className="mr-2 h-5 w-5 text-primary" />
-            <div>
-              <h3 className="text-sm font-medium">Transaction Synchronization</h3>
-              <p className="text-xs text-muted-foreground">Sync all pending transactions with CoinPayments</p>
-            </div>
-          </div>
-          
-          <div className="flex flex-wrap gap-2">
-            <SyncAllTransactionsButton 
-              onSyncComplete={onSyncComplete} 
-              variant="default"
-              size="sm"
-            />
-            
-            <SyncAllTransactionsButton 
-              onSyncComplete={onSyncComplete}
-              variant="outline"
-              size="sm"
-              forceUpdate={true}
-            />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="flex justify-end mb-4">
+      <Button 
+        variant="outline"
+        size="sm"
+        disabled={isSyncing}
+        onClick={handleRefresh}
+        className="flex items-center gap-1"
+      >
+        <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+        {isSyncing ? 'Refreshing...' : 'Refresh'}
+      </Button>
+    </div>
   );
 };
 
