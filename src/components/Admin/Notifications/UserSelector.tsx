@@ -1,8 +1,10 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UserSelectorProps {
   userId: string;
@@ -17,22 +19,40 @@ const UserSelector: React.FC<UserSelectorProps> = ({
   users,
   isLoading,
 }) => {
+  // Query to fetch all users from the profiles table
+  const { data: allUsers, isLoading: isLoadingUsers } = useQuery({
+    queryKey: ['all-users'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, first_name, last_name')
+        .order('email');
+      
+      if (error) throw new Error(error.message);
+      return data || [];
+    }
+  });
+
+  // Use the fetched users if available, otherwise fall back to the provided users
+  const displayUsers = allUsers || users;
+  const loading = isLoading || isLoadingUsers;
+
   return (
     <div className="space-y-2">
       <Label htmlFor="user">User</Label>
       <Select 
         value={userId} 
         onValueChange={setUserId}
-        disabled={isLoading}
+        disabled={loading}
       >
         <SelectTrigger>
-          <SelectValue placeholder={isLoading ? "Loading users..." : "Select a user"} />
+          <SelectValue placeholder={loading ? "Loading users..." : "Select a user"} />
         </SelectTrigger>
         <SelectContent>
           <ScrollArea className="h-72">
-            {users.map(user => (
+            {displayUsers.map(user => (
               <SelectItem key={user.id} value={user.id}>
-                {user.email || user.id}
+                {user.email || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.id}
               </SelectItem>
             ))}
           </ScrollArea>

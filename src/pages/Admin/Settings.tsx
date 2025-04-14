@@ -7,14 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, Info, Settings as SettingsIcon, Mail, Bell, Shield } from 'lucide-react';
+import { CheckCircle, Info, Settings as SettingsIcon, Mail, Bell, Shield, WrenchIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
+import { useNavigate } from 'react-router-dom';
 
 // For simplicity, we'll simulate settings state with React state
 // In a real app, this would be connected to the database
 const AdminSettings: React.FC = () => {
+  const navigate = useNavigate();
   // Notification settings
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [kycAlerts, setKycAlerts] = useState(true);
@@ -50,6 +52,10 @@ const AdminSettings: React.FC = () => {
     }
   };
 
+  const handleGoToTransactionTools = () => {
+    navigate('/admin/transaction-tools');
+  };
+
   return (
     <AdminLayout title="Settings">
       <div className="mb-6">
@@ -75,6 +81,10 @@ const AdminSettings: React.FC = () => {
           <TabsTrigger value="security">
             <Shield className="mr-2 h-4 w-4" />
             Security
+          </TabsTrigger>
+          <TabsTrigger value="tools">
+            <WrenchIcon className="mr-2 h-4 w-4" />
+            Transaction Tools
           </TabsTrigger>
         </TabsList>
         
@@ -233,6 +243,31 @@ const AdminSettings: React.FC = () => {
                 <div className="mt-6 flex justify-end">
                   <Button onClick={handleSaveSecuritySettings}>
                     Save Security Settings
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Transaction Tools */}
+        <TabsContent value="tools" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Transaction Tools</CardTitle>
+              <CardDescription>
+                Access tools for managing and troubleshooting transactions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium">Transaction Management</h3>
+                  <p className="text-sm text-muted-foreground mt-1 mb-3">
+                    Tools to help manage and troubleshoot transaction processes
+                  </p>
+                  <Button onClick={handleGoToTransactionTools}>
+                    Open Transaction Tools
                   </Button>
                 </div>
               </div>

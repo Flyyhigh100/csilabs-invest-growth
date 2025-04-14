@@ -7,8 +7,8 @@ import {
   UsersIcon,
   ShieldCheckIcon,
   CreditCardIcon,
-  WrenchIcon,
-  BeakerIcon
+  SettingsIcon,
+  BellIcon
 } from 'lucide-react';
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
@@ -36,14 +36,14 @@ const Sidebar = ({ className, ...props }: SidebarProps) => {
       icon: <CreditCardIcon className="w-4 h-4 mr-3" />,
     },
     {
-      title: 'Transaction Tools',
-      href: '/admin/transaction-tools',
-      icon: <WrenchIcon className="w-4 h-4 mr-3" />,
+      title: 'Notifications',
+      href: '/admin/notifications',
+      icon: <BellIcon className="w-4 h-4 mr-3" />,
     },
     {
-      title: 'Test Tools',
-      href: '/admin/test-tools',
-      icon: <BeakerIcon className="w-4 h-4 mr-3" />,
+      title: 'Settings',
+      href: '/admin/settings',
+      icon: <SettingsIcon className="w-4 h-4 mr-3" />,
     },
   ];
 

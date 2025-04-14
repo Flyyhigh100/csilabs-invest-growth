@@ -1,3 +1,4 @@
+
 import { lazy } from 'react';
 import { 
   AdminDashboardIcon, 
@@ -6,10 +7,8 @@ import {
   SettingsIcon, 
   NotificationIcon 
 } from '@/components/Icons';
-import { 
-  WebhookIcon, 
-  WrenchIcon, 
-  BeakerIcon 
+import {
+  WrenchIcon
 } from 'lucide-react';
 
 // Lazy load admin pages for better performance
@@ -19,8 +18,7 @@ const AdminUsers = lazy(() => import('@/pages/Admin/Users'));
 const AdminSettings = lazy(() => import('@/pages/Admin/Settings'));
 const AdminNotifications = lazy(() => import('@/pages/Admin/Notifications'));
 const AdminKYC = lazy(() => import('@/components/Admin/KYC'));
-const AdminTestTools = lazy(() => import('@/pages/Admin/TestTools'));
-const AdminIPNLogs = lazy(() => import('@/pages/Admin/IPNLogs'));
+const AdminTransactionTools = lazy(() => import('@/pages/Admin/TransactionTools'));
 
 export const adminRoutes = [
   {
@@ -43,9 +41,9 @@ export const adminRoutes = [
   },
   {
     path: '/admin/transaction-tools',
-    element: <AdminTestTools />,
+    element: <AdminTransactionTools />,
     meta: {
-      title: 'Testing Tools',
+      title: 'Transaction Tools',
       requiresAuth: true,
       requiresAdmin: true,
     },
@@ -86,15 +84,6 @@ export const adminRoutes = [
       requiresAdmin: true,
     },
   },
-  {
-    path: '/admin/ipn-logs',
-    element: <AdminIPNLogs />,
-    meta: {
-      title: 'IPN Webhook Logs',
-      requiresAuth: true,
-      requiresAdmin: true,
-    },
-  },
 ];
 
 export const adminSidebarLinks = [
@@ -109,24 +98,14 @@ export const adminSidebarLinks = [
     icon: <UsersIcon className="h-5 w-5" />,
   },
   {
-    title: 'Testing Tools',
-    path: '/admin/transaction-tools',
-    icon: <BeakerIcon className="h-5 w-5" />,
+    title: 'KYC Verifications',
+    path: '/admin/kyc',
+    icon: <WrenchIcon className="h-5 w-5" />,
   },
   {
     title: 'Token Distribution',
     path: '/admin/transactions',
     icon: <TransactionIcon className="h-5 w-5" />,
-  },
-  {
-    title: 'KYC Verifications',
-    path: '/admin/kyc',
-    icon: <WebhookIcon className="h-5 w-5" />,
-  },
-  {
-    title: 'IPN Webhook Logs',
-    path: '/admin/ipn-logs',
-    icon: <WebhookIcon className="h-5 w-5" />,
   },
   {
     title: 'Notifications',

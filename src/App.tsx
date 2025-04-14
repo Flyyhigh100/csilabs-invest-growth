@@ -20,7 +20,6 @@ import Register from './pages/Auth/Register';
 import ForgotPassword from './pages/Auth/ForgotPassword';
 import ResetPassword from './pages/Auth/ResetPassword';
 import NotFound from './pages/NotFound';
-import TestToolsPage from './pages/Admin/TestTools';
 import Payments from './pages/Dashboard/Payments';
 import Transactions from './pages/Dashboard/Transactions';
 import ResearchDocuments from './pages/ResearchDocuments';
@@ -37,7 +36,6 @@ import AdminUsersPage from './pages/Admin/Users';
 import AdminKycPage from './pages/Admin/KYCVerifications';
 import AdminSettingsPage from './pages/Admin/Settings';
 import AdminNotificationsPage from './pages/Admin/Notifications';
-import AdminIPNLogsPage from './pages/Admin/IPNLogs'; 
 import AdminTransactionToolsPage from './pages/Admin/TransactionTools';
 import AdminResearchDocuments from './pages/Admin/ResearchDocuments';
 
@@ -80,10 +78,8 @@ function App() {
                     <Route path="/admin/users" element={<AdminUsersPage />} />
                     <Route path="/admin/transactions" element={<AdminTransactionsPage />} />
                     <Route path="/admin/transaction-tools" element={<AdminTransactionToolsPage />} />
-                    <Route path="/admin/test-tools" element={<TestToolsPage />} />
                     <Route path="/admin/settings" element={<AdminSettingsPage />} />
                     <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
-                    <Route path="/admin/ipn-logs" element={<AdminIPNLogsPage />} />
                     <Route path="/admin/research-documents" element={<AdminResearchDocuments />} />
                   </Route>
                   

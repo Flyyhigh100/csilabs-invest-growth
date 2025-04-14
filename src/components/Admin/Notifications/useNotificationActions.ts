@@ -1,100 +1,105 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 export const useNotificationActions = () => {
-  const [notificationType, setNotificationType] = useState<'wallet' | 'payment' | 'kyc' | 'tokens' | 'other'>('other');
+  const [notificationType, setNotificationType] = useState('info');
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [userId, setUserId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [users, setUsers] = useState<{id: string, email: string}[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
   
-  // Load users for the select dropdown
-  const fetchUsers = async () => {
-    try {
-      setLoadingUsers(true);
-      
+  // Fetch all users
+  const { data: users = [] } = useQuery({
+    queryKey: ['notification-users'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email')
-        .limit(20);
-        
-      if (error) throw error;
+        .select('id, email, first_name, last_name')
+        .order('email');
       
-      setUsers(data as {id: string, email: string}[]);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error('Failed to load users');
-    } finally {
-      setLoadingUsers(false);
+      if (error) {
+        console.error('Error fetching users:', error);
+        throw new Error(error.message);
+      }
+      
+      return data || [];
     }
-  };
-  
-  // Handle form submission
+  });
+
   const handleSendToUser = async () => {
-    if (!title || !message || !userId) {
+    if (!userId || !title || !message) {
       toast.error('Please fill in all fields');
       return;
     }
     
+    setIsLoading(true);
+    
     try {
-      setIsLoading(true);
-      
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('notifications')
         .insert({
           user_id: userId,
-          title: title,
-          message: message,
-          type: notificationType
+          title,
+          message,
+          type: notificationType,
         });
       
       if (error) throw error;
       
-      toast.success('Notification sent to user');
+      toast.success('Notification sent successfully');
       setTitle('');
       setMessage('');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending notification:', error);
-      toast.error('Failed to send notification');
+      toast.error(`Error: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
   
-  // Handle broadcast to all users
   const handleBroadcast = async () => {
     if (!title || !message) {
-      toast.error('Please provide a title and message');
+      toast.error('Please fill in all fields');
       return;
     }
     
+    setIsLoading(true);
+    
     try {
-      setIsLoading(true);
-      toast.success('Broadcasting notification to all users');
-      // In a real implementation, you would call an edge function or backend API
-      // that iterates through all users and creates a notification for each
+      // For each user in the system, create a notification
+      const notifications = users.map(user => ({
+        user_id: user.id,
+        title,
+        message,
+        type: notificationType,
+      }));
       
-      setTimeout(() => {
-        toast.success('Notifications broadcast complete');
+      if (notifications.length === 0) {
+        toast.error('No users found to send notifications to');
         setIsLoading(false);
-        setTitle('');
-        setMessage('');
-      }, 2000);
-    } catch (error) {
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('notifications')
+        .insert(notifications);
+      
+      if (error) throw error;
+      
+      toast.success(`Broadcast sent to ${notifications.length} users`);
+      setTitle('');
+      setMessage('');
+    } catch (error: any) {
       console.error('Error broadcasting notification:', error);
-      toast.error('Failed to broadcast notification');
+      toast.error(`Error: ${error.message}`);
+    } finally {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
+  
   return {
     notificationType,
     setNotificationType,
@@ -106,8 +111,9 @@ export const useNotificationActions = () => {
     setUserId,
     isLoading,
     users,
-    loadingUsers,
     handleSendToUser,
     handleBroadcast
   };
 };
+
+export default useNotificationActions;

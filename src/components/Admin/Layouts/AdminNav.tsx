@@ -7,10 +7,7 @@ import {
   CheckCircleIcon,
   CreditCardIcon,
   BellIcon,
-  SettingsIcon,
-  WrenchIcon,
-  WebhookIcon,
-  BeakerIcon
+  SettingsIcon
 } from 'lucide-react';
 
 interface NavItem {
@@ -37,24 +34,9 @@ export const getAdminNavItems = (): NavItem[] => {
       icon: <CreditCardIcon className="h-5 w-5" />,
     },
     {
-      title: 'Transaction Tools',
-      path: '/admin/transaction-tools',
-      icon: <WrenchIcon className="h-5 w-5" />,
-    },
-    {
       title: 'Users',
       path: '/admin/users',
       icon: <UsersIcon className="h-5 w-5" />,
-    },
-    {
-      title: 'IPN Webhook Logs',
-      path: '/admin/ipn-logs',
-      icon: <WebhookIcon className="h-5 w-5" />,
-    },
-    {
-      title: 'Test Tools',
-      path: '/admin/test-tools',
-      icon: <BeakerIcon className="h-5 w-5" />,
     },
     {
       title: 'Notifications',
