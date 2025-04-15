@@ -5,11 +5,14 @@ import FadeInSection from '@/components/FadeInSection';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ExternalLink, PieChart, TrendingUp, Shield, ArrowRight, DollarSign, ShieldCheck } from 'lucide-react';
+
 const TokenInfo: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-  return <div className="page-transition min-h-screen">
+
+  return (
+    <div className="page-transition min-h-screen">
       <Navbar />
 
       <div className="pt-24 pb-16 bg-gradient-to-b from-gray-50 to-white">
@@ -19,7 +22,9 @@ const TokenInfo: React.FC = () => {
               <h1 className="text-4xl md:text-5xl font-bold mb-4 text-cbis-dark">
                 $CSi-EDP/Labs FC <span className="text-cbis-blue">(CSL)</span> Token
               </h1>
-              <p className="text-lg text-gray-600 max-w-3xl mx-auto">The CSi Labs token is designed to fund our affordable cancer treatments, making them accessible to millions who cannot afford today's high-priced drugs, while providing contributors with growth potential.</p>
+              <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+                The CSi Labs token is designed to fund our affordable cancer treatments, making them accessible to millions who cannot afford today's high-priced drugs, while providing investors with growth potential.
+              </p>
             </div>
           </FadeInSection>
 
@@ -63,7 +68,12 @@ const TokenInfo: React.FC = () => {
                     </div>
                   </div>
                   <div className="mt-6">
-                    <a href="https://polygonscan.com/token/0xcba5ca199bca0af3f6046da01169035f2c6a7ff0" target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-cbis-blue hover:underline">
+                    <a 
+                      href="https://polygonscan.com/token/0xcba5ca199bca0af3f6046da01169035f2c6a7ff0" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-cbis-blue hover:underline"
+                    >
                       View on Polygonscan
                       <ExternalLink className="ml-1 h-4 w-4" />
                     </a>
@@ -206,6 +216,8 @@ const TokenInfo: React.FC = () => {
       </div>
 
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default TokenInfo;

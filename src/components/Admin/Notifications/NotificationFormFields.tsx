@@ -10,8 +10,8 @@ interface NotificationFormFieldsProps {
   setTitle: (title: string) => void;
   message: string;
   setMessage: (message: string) => void;
-  type: 'wallet' | 'payment' | 'kyc' | 'tokens' | 'other';
-  setType: (type: 'wallet' | 'payment' | 'kyc' | 'tokens' | 'other') => void;
+  notificationType: 'wallet' | 'payment' | 'kyc' | 'tokens' | 'other';
+  setNotificationType: (type: 'wallet' | 'payment' | 'kyc' | 'tokens' | 'other') => void;
 }
 
 const NotificationFormFields: React.FC<NotificationFormFieldsProps> = ({
@@ -19,16 +19,16 @@ const NotificationFormFields: React.FC<NotificationFormFieldsProps> = ({
   setTitle,
   message,
   setMessage,
-  type,
-  setType,
+  notificationType,
+  setNotificationType,
 }) => {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="type">Notification Type</Label>
         <Select 
-          value={type} 
-          onValueChange={(val: any) => setType(val)}
+          value={notificationType} 
+          onValueChange={(val: any) => setNotificationType(val)}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select notification type" />

@@ -1,27 +1,9 @@
+
 import { ResearchDocument } from '@/components/Admin/ResearchDocuments/types/documentTypes';
 
-export const useFallbackDocuments = () => {
-  // Helper function to extract YouTube video ID
-  const getYoutubeThumbnailUrl = (videoUrl: string) => {
-    const videoId = videoUrl.split('v=')[1]?.split('&')[0];
-    return videoId 
-      ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
-      : '/lovable-uploads/2c8360d6-2c55-4e5e-9e46-1ba68abc42ed.png';
-  };
-
-  const fallbackDocuments: ResearchDocument[] = [
-    {
-      id: 'youtube-video-cannabinoid-cancer',
-      title: 'Cannabinoid-Based Cancer Treatment Research',
-      description: 'Harvard Medical School Recipient of the Global Health Catalyst Industry Leader Award, Raymond Dabney and CSi Labs discuss how cannabinoids have proven to be effective against cancer. This research video shows the collaborative work between institutions to advance cannabinoid-based treatments.',
-      category: 'Video Research',
-      pdfUrl: '',
-      publishDate: '2023-12-15',
-      authors: 'Raymond Dabney, CSi Labs Research Team',
-      type: 'video',
-      videoUrl: 'https://www.youtube.com/watch?v=x3q2uQ7J7f4',
-      thumbnailUrl: getYoutubeThumbnailUrl('https://www.youtube.com/watch?v=x3q2uQ7J7f4')
-    },
+// Default/fallback documents in case storage loading fails
+export const useFallbackDocuments = (): ResearchDocument[] => {
+  return [
     {
       id: "doc-1",
       title: "Cannabinoids as Antioxidants and Neuroprotectants",
@@ -41,6 +23,4 @@ export const useFallbackDocuments = () => {
       authors: "CSi Labs Research Team"
     }
   ];
-
-  return fallbackDocuments;
 };

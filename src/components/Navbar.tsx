@@ -20,24 +20,11 @@ const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Disable scrolling when the mobile menu is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
-
   return (
     <nav 
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        scrolled ? "py-2 bg-white bg-opacity-95 backdrop-blur-lg shadow-subtle" : "py-4 bg-transparent"
+        scrolled ? "py-2 bg-white bg-opacity-80 backdrop-blur-lg shadow-subtle" : "py-4 bg-transparent"
       )}
     >
       <div className="container-custom flex items-center justify-between">
@@ -76,21 +63,20 @@ const Navbar: React.FC = () => {
         {/* Mobile Menu Button */}
         <button 
           className={cn(
-            "md:hidden p-2 rounded-md transition-colors z-[60]",
-            isOpen ? "text-gray-800" : "text-cbis-dark"
+            "md:hidden p-2 rounded-md transition-colors z-50",
+            isOpen ? "text-gray-800 bg-white" : "text-cbis-dark"
           )}
           onClick={() => setIsOpen(!isOpen)}
-          aria-label="Toggle menu"
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
 
-      {/* Mobile Navigation - Full Screen Overlay */}
+      {/* Mobile Navigation */}
       <div 
         className={cn(
-          "fixed inset-0 bg-white z-[55] md:hidden flex flex-col pt-20 px-6 transition-opacity duration-300 ease-in-out",
-          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          "fixed inset-0 bg-white z-40 md:hidden flex flex-col pt-20 px-6 shadow-lg",
+          isOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
         <div className="border-b border-gray-100 py-1">

@@ -67,16 +67,16 @@ const AdminNav: React.FC<AdminNavProps> = ({ items }) => {
             key={item.path}
             to={item.path}
             className={`
-              group flex items-center px-4 py-2 text-base font-medium rounded-md w-full
+              group flex items-center px-4 py-2 text-base font-medium rounded-md
               ${isActive
                 ? 'bg-primary-50 text-primary'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}
             `}
           >
-            <div className={`mr-3 flex-shrink-0 ${isActive ? 'text-primary' : 'text-gray-400 group-hover:text-gray-500'}`}>
+            <div className={`mr-3 ${isActive ? 'text-primary' : 'text-gray-400 group-hover:text-gray-500'}`}>
               {item.icon}
             </div>
-            <span className="truncate">{item.title}</span>
+            {item.title}
           </Link>
         );
       })}

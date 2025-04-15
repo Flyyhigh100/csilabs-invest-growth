@@ -7,32 +7,35 @@ import BroadcastTab from '@/components/Admin/Notifications/BroadcastTab';
 import { useNotificationActions } from '@/components/Admin/Notifications/useNotificationActions';
 
 const NotificationsPage = () => {
+  const [userId, setUserId] = React.useState('');
+  const [title, setTitle] = React.useState('');
+  const [message, setMessage] = React.useState('');
+  const [type, setType] = React.useState<'wallet' | 'payment' | 'kyc' | 'tokens' | 'other'>('other');
+  
   const { 
-    type,
-    setType,
-    title,
-    setTitle,
-    message,
-    setMessage,
-    userId,
-    setUserId,
+    handleSendToUser,
+    handleBroadcast,
     isSendingToUser,
     isBroadcasting,
     users,
-    isLoadingUsers,
-    handleSendToUser,
-    handleBroadcast
+    isLoadingUsers
   } = useNotificationActions();
+
+  const handleTypeChange = (value: string) => {
+    // Ensure the value is one of the allowed types
+    const allowedTypes: Array<'wallet' | 'payment' | 'kyc' | 'tokens' | 'other'> = ['wallet', 'payment', 'kyc', 'tokens', 'other'];
+    setType(allowedTypes.includes(value as any) ? (value as any) : 'other');
+  };
 
   return (
     <AdminLayout title="Notifications Management">
-      <Tabs defaultValue="single" className="w-full">
-        <TabsList className="mb-4 w-full sm:w-auto">
-          <TabsTrigger value="single" className="flex-1 sm:flex-initial">Send to User</TabsTrigger>
-          <TabsTrigger value="broadcast" className="flex-1 sm:flex-initial">Broadcast</TabsTrigger>
+      <Tabs defaultValue="single">
+        <TabsList className="mb-4">
+          <TabsTrigger value="single">Send to User</TabsTrigger>
+          <TabsTrigger value="broadcast">Broadcast</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="single" className="mt-0">
+        <TabsContent value="single">
           <SendToUserTab 
             userId={userId}
             setUserId={setUserId}
@@ -41,22 +44,22 @@ const NotificationsPage = () => {
             message={message}
             setMessage={setMessage}
             type={type}
-            setType={setType}
+            onTypeChange={handleTypeChange}
             onSubmit={handleSendToUser}
             isSubmitting={isSendingToUser}
             users={users}
-            isLoading={isLoadingUsers}
+            isLoadingUsers={isLoadingUsers}
           />
         </TabsContent>
         
-        <TabsContent value="broadcast" className="mt-0">
+        <TabsContent value="broadcast">
           <BroadcastTab 
             title={title}
             setTitle={setTitle}
             message={message}
             setMessage={setMessage}
             type={type}
-            setType={setType}
+            onTypeChange={handleTypeChange}
             onSubmit={handleBroadcast}
             isSubmitting={isBroadcasting}
           />
