@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +10,7 @@ import { toast } from 'sonner';
 import IPNLogs from '@/components/Admin/IPNLogs';
 import { AlertCircle, Wrench, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import APIKeyValidator from '@/components/Admin/APIKeyValidator';
 
 const TransactionToolbox = () => {
   const [transactionId, setTransactionId] = useState('');
@@ -19,7 +19,6 @@ const TransactionToolbox = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('manual-update');
   
-  // Check for defined.fi API key
   const hasDefinedfiKey = !!localStorage.getItem('definedfi_api_key');
 
   const handleManualStatusUpdate = async (status: string) => {
@@ -78,7 +77,6 @@ const TransactionToolbox = () => {
       setIsProcessing(true);
       setError(null);
       
-      // First find the most recent IPN log for this transaction
       const { data: ipnLogs, error: ipnError } = await (supabase as any)
         .from('ipn_logs')
         .select('*')
@@ -98,7 +96,6 @@ const TransactionToolbox = () => {
         toast.error('No IPN logs found for this transaction ID');
         setError(`No IPN logs found for External ID: ${externalId}`);
         
-        // Show detailed diagnostic info
         const { data: sampleLogs } = await (supabase as any)
           .from('ipn_logs')
           .select('txn_id')
@@ -115,7 +112,6 @@ const TransactionToolbox = () => {
       const ipnLog = ipnLogs[0];
       console.log('Found IPN log to process:', ipnLog.id, 'for transaction:', ipnLog.txn_id);
       
-      // Now process this IPN log to update the transaction
       const { data, error } = await supabase.functions.invoke('process-ipn-log', {
         body: {
           ipn_log_id: ipnLog.id,
@@ -165,7 +161,6 @@ const TransactionToolbox = () => {
         return;
       }
       
-      // Do something with the API key, such as validating or testing
       toast.success("API keys verified", {
         description: "API keys are correctly configured and ready to use"
       });
@@ -179,7 +174,6 @@ const TransactionToolbox = () => {
     }
   };
 
-  // Query to check if IPN logs exist at all
   const { data: ipnLogsExist } = useQuery({
     queryKey: ['ipn-logs-exist-check'],
     queryFn: async () => {
@@ -190,7 +184,7 @@ const TransactionToolbox = () => {
       if (error) throw error;
       return count > 0;
     },
-    refetchInterval: 60000, // Check every minute
+    refetchInterval: 60000,
   });
 
   return (
