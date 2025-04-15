@@ -33,10 +33,8 @@ const SyncCryptoPaymentButton = ({
   const [localIsChecking, setLocalIsChecking] = useState(false);
   const { checkTransactionStatus, forceUpdateTransaction, isChecking: hookIsChecking } = useCryptoStatusCheck();
   
-  // Combined checking state from both sources
   const isChecking = hookIsChecking || localIsChecking;
   
-  // For API key validation only option
   if (validateApiKeysOnly) {
     return (
       <Button
@@ -52,7 +50,6 @@ const SyncCryptoPaymentButton = ({
     );
   }
   
-  // For test IPN mode
   if (testIpnMode && transaction.external_transaction_id) {
     return (
       <Button
@@ -68,12 +65,10 @@ const SyncCryptoPaymentButton = ({
     );
   }
   
-  // Only show for coinpayments transactions
   if (transaction.payment_method !== 'coinpayments') {
     return null;
   }
 
-  // Show button for any status except when tokens were already sent
   if (transaction.token_sent) {
     console.log('Not showing button - tokens already sent');
     return null;
@@ -165,7 +160,6 @@ const SyncCryptoPaymentButton = ({
       
       console.log("Test IPN response:", data);
       
-      // Refresh transaction data after a delay
       setTimeout(() => {
         if (transaction.id) {
           handleSync();
@@ -203,11 +197,9 @@ const SyncCryptoPaymentButton = ({
       
       try {
         if (forceUpdate) {
-          // Use force update function when explicitly requested
           console.log("Using force update for transaction", transaction.id);
           updatedTransaction = await forceUpdateTransaction(transaction);
         } else {
-          // Use regular check function by default
           console.log("Using regular check for transaction", transaction.id);
           updatedTransaction = await checkTransactionStatus(transaction);
         }
@@ -215,9 +207,7 @@ const SyncCryptoPaymentButton = ({
         toast.dismiss(toastId);
         console.log(`Transaction check completed, result:`, updatedTransaction ? 'success' : 'no result');
         
-        // Handle null result but still show proper notification
         if (!updatedTransaction && !forceUpdate) {
-          // If regular check failed, try force update as fallback
           console.log("Regular check failed, trying force update as fallback");
           toast.info("Trying force update as fallback...", {
             id: `${toastId}-fallback`
@@ -264,7 +254,6 @@ const SyncCryptoPaymentButton = ({
     }
   };
 
-  // Force update button
   if (forceUpdate) {
     return (
       <Button
@@ -280,7 +269,6 @@ const SyncCryptoPaymentButton = ({
     );
   }
 
-  // Regular check button (non-force update)
   const button = (
     <Button
       variant={variant}
