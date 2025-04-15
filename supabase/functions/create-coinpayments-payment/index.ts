@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 import { corsHeaders } from "./utils.ts";
@@ -22,7 +21,7 @@ serve(async (req) => {
     }
     
     // Get request data
-    const { amount, walletAddress, currency = 'USDT' } = await req.json();
+    const { amount, walletAddress, currency = 'USDT', cryptoAmount } = await req.json();
     
     if (!amount || amount <= 0 || !walletAddress) {
       return new Response(
@@ -31,7 +30,11 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Creating CoinPayments payment for amount: $${amount}, wallet: ${walletAddress}, currency: ${currency}`);
+    // Use the converted crypto amount if provided, otherwise use the USD amount 
+    // (this keeps backward compatibility for stablecoins where they're the same)
+    const amountToCharge = cryptoAmount !== undefined ? cryptoAmount : amount;
+
+    console.log(`Creating CoinPayments payment for USD amount: $${amount}, wallet: ${walletAddress}, currency: ${currency}, crypto amount: ${amountToCharge}`);
     
     // Create Supabase client to record the transaction
     const supabaseClient = createSupabaseClient();
@@ -50,7 +53,7 @@ serve(async (req) => {
         // Create a transaction using API keys but with anonymous email
         try {
           const paymentData = await createCoinPaymentsTransaction(
-            amount, 
+            amountToCharge, // Use the crypto amount here
             currency, 
             transactionId, 
             walletAddress, 
@@ -60,14 +63,15 @@ serve(async (req) => {
           return new Response(
             JSON.stringify({
               paymentAddress: paymentData.address,
-              amount: paymentData.amount,
+              amount: amount, // Return the original USD amount
+              cryptoAmount: amountToCharge, // Also return the crypto amount
               transactionId: transactionId,
               externalTransactionId: paymentData.txn_id,
               qrCodeUrl: paymentData.qrcode_url,
               statusUrl: paymentData.status_url,
               expiresAt: new Date(paymentData.timeout * 1000).toISOString(),
               currency: paymentData.currency || currency,
-              instructions: `Please send ${paymentData.amount} ${paymentData.currency || currency} to the address above to complete your purchase.`
+              instructions: `Please send ${amountToCharge} ${paymentData.currency || currency} to the address above to complete your purchase.`
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
           );
@@ -75,7 +79,7 @@ serve(async (req) => {
           console.error('Error creating transaction with anonymous user:', apiError);
           // Fall back to mock data if api fails
           const mockPaymentData = await createCoinPaymentsTransaction(
-            amount, 
+            amountToCharge, // Use the crypto amount here
             currency, 
             transactionId, 
             walletAddress, 
@@ -86,14 +90,15 @@ serve(async (req) => {
           return new Response(
             JSON.stringify({
               paymentAddress: mockPaymentData.address,
-              amount: mockPaymentData.amount,
+              amount: amount, // Return the original USD amount
+              cryptoAmount: amountToCharge, // Also return the crypto amount
               transactionId: transactionId,
               externalTransactionId: mockPaymentData.txn_id,
               qrCodeUrl: mockPaymentData.qrcode_url,
               statusUrl: mockPaymentData.status_url,
               expiresAt: new Date(mockPaymentData.timeout * 1000).toISOString(),
               currency: mockPaymentData.currency || currency,
-              instructions: `Please send ${mockPaymentData.amount} ${mockPaymentData.currency || currency} to the address above to complete your purchase.`
+              instructions: `Please send ${amountToCharge} ${mockPaymentData.currency || currency} to the address above to complete your purchase.`
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
           );
@@ -103,7 +108,7 @@ serve(async (req) => {
       // Create a new transaction in CoinPayments API with authenticated user
       try {
         const paymentData = await createCoinPaymentsTransaction(
-          amount, 
+          amountToCharge, // Use the crypto amount here
           currency, 
           transactionId, 
           walletAddress, 
@@ -115,7 +120,7 @@ serve(async (req) => {
           await saveTransaction(
             supabaseClient,
             user.id,
-            amount,
+            amount, // Save original USD amount
             walletAddress,
             transactionId,
             paymentData.address,
@@ -131,14 +136,15 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({
             paymentAddress: paymentData.address,
-            amount: paymentData.amount,
+            amount: amount, // Return the original USD amount
+            cryptoAmount: amountToCharge, // Also return the crypto amount
             transactionId: transactionId,
             externalTransactionId: paymentData.txn_id,
             qrCodeUrl: paymentData.qrcode_url,
             statusUrl: paymentData.status_url,
             expiresAt: new Date(paymentData.timeout * 1000).toISOString(),
             currency: paymentData.currency || currency,
-            instructions: `Please send ${paymentData.amount} ${paymentData.currency || currency} to the address above to complete your purchase.`
+            instructions: `Please send ${amountToCharge} ${paymentData.currency || currency} to the address above to complete your purchase.`
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         );
@@ -147,7 +153,7 @@ serve(async (req) => {
         
         // Fall back to mock data if api fails
         const mockPaymentData = await createCoinPaymentsTransaction(
-          amount, 
+          amountToCharge, // Use the crypto amount here
           currency, 
           transactionId, 
           walletAddress, 
@@ -160,7 +166,7 @@ serve(async (req) => {
           await saveTransaction(
             supabaseClient,
             user.id,
-            amount,
+            amount, // Save original USD amount
             walletAddress,
             transactionId,
             mockPaymentData.address,
@@ -174,14 +180,15 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({
             paymentAddress: mockPaymentData.address,
-            amount: mockPaymentData.amount,
+            amount: amount, // Return the original USD amount
+            cryptoAmount: amountToCharge, // Also return the crypto amount
             transactionId: transactionId,
             externalTransactionId: mockPaymentData.txn_id,
             qrCodeUrl: mockPaymentData.qrcode_url,
             statusUrl: mockPaymentData.status_url,
             expiresAt: new Date(mockPaymentData.timeout * 1000).toISOString(),
             currency: mockPaymentData.currency || currency,
-            instructions: `Please send ${mockPaymentData.amount} ${mockPaymentData.currency || currency} to the address above to complete your purchase.`
+            instructions: `Please send ${amountToCharge} ${mockPaymentData.currency || currency} to the address above to complete your purchase.`
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         );
@@ -191,7 +198,7 @@ serve(async (req) => {
       
       // Final fallback to mock data
       const mockPaymentData = await createCoinPaymentsTransaction(
-        amount, 
+        amountToCharge, // Use the crypto amount here
         currency, 
         transactionId, 
         walletAddress, 
@@ -202,14 +209,15 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           paymentAddress: mockPaymentData.address,
-          amount: mockPaymentData.amount,
+          amount: amount, // Return the original USD amount
+          cryptoAmount: amountToCharge, // Also return the crypto amount
           transactionId: transactionId,
           externalTransactionId: mockPaymentData.txn_id,
           qrCodeUrl: mockPaymentData.qrcode_url,
           statusUrl: mockPaymentData.status_url,
           expiresAt: new Date(mockPaymentData.timeout * 1000).toISOString(),
           currency: mockPaymentData.currency || currency,
-          instructions: `Please send ${mockPaymentData.amount} ${mockPaymentData.currency || currency} to the address above to complete your purchase.`
+          instructions: `Please send ${amountToCharge} ${mockPaymentData.currency || currency} to the address above to complete your purchase.`
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );

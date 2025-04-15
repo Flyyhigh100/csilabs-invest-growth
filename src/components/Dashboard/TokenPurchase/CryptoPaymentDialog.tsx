@@ -39,6 +39,12 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
   const [pendingTransaction, setPendingTransaction] = useState<Transaction | null>(null);
   const [statusCheckInterval, setStatusCheckInterval] = useState<number | null>(null);
 
+  // Add amount to payment details if not already provided
+  const enhancedPaymentDetails = paymentDetails ? {
+    ...paymentDetails,
+    amount: paymentDetails.amount || amount || 0
+  } : null;
+
   // Handle the close event from either prop
   const handleClose = () => {
     if (onClose) onClose();
@@ -110,17 +116,22 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
     refetch();
   };
 
+  // Dialog title based on whether we have a currency
+  const dialogTitle = selectedCurrency 
+    ? `Complete Your ${selectedCurrency} Payment` 
+    : 'Complete Your Crypto Payment';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange || (() => handleClose())}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Complete Your Crypto Payment</DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
             Follow the instructions below to complete your purchase with crypto.
           </DialogDescription>
         </DialogHeader>
 
-        <DialogContentComponent paymentDetails={paymentDetails} />
+        <DialogContentComponent paymentDetails={enhancedPaymentDetails} />
         
         <DialogFooter>
           <DialogFooterActions 

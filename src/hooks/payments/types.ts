@@ -1,7 +1,7 @@
 
-// Types for payment handlers
+import { Transaction } from '@/types/transactions';
 
-export type CryptoPaymentDetails = {
+export interface CryptoPaymentDetails {
   paymentAddress: string;
   transactionId: string;
   instructions: string;
@@ -11,14 +11,7 @@ export type CryptoPaymentDetails = {
   externalTransactionId?: string;
   currency?: string;
   checkStatusUrl?: string;
-} | null;
-
-export interface PaymentValidationOptions {
-  isCrypto?: boolean;
-}
-
-export interface UsePaymentHandlersProps {
-  walletAddress: string | null;
+  cryptoAmount?: number; // Add crypto amount field
 }
 
 export interface UsePaymentHandlersReturn {
@@ -26,8 +19,8 @@ export interface UsePaymentHandlersReturn {
   showCryptoDialog: boolean;
   setShowCryptoDialog: (show: boolean) => void;
   cryptoPaymentDetails: CryptoPaymentDetails;
-  handleStripePayment: (amount: number) => Promise<void>;
-  handleCoinPaymentsPayment: (amount: number, currency?: string) => Promise<void>;
-  handleCryptoPayment: (amount: number) => Promise<void>;
+  handleStripePayment: (amount: number) => Promise<boolean>;
+  handleCoinPaymentsPayment: (amount: number, currency?: string) => Promise<boolean>;
+  handleCryptoPayment: (amount: number) => Promise<boolean>;
   kycRequired: (amount: number) => boolean;
 }

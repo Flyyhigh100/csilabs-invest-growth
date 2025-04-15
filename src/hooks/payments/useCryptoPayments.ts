@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CryptoPaymentDetails } from './types';
 import { usePaymentValidation } from './usePaymentValidation';
 import { useCryptoStatusCheck } from './useCryptoStatusCheck';
+import { convertUsdToCrypto } from './crypto/currencyConverter';
 
 export const useCryptoPayments = (walletAddress: string | null) => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -42,10 +43,20 @@ export const useCryptoPayments = (walletAddress: string | null) => {
         description: `Preparing ${currency} payment session.`,
       });
       
-      console.log(`Creating CoinPayments payment with currency: ${currency}`);
+      // Convert USD amount to crypto amount first
+      console.log(`Converting $${amount} to ${currency}...`);
+      const cryptoAmount = await convertUsdToCrypto(amount, currency);
+      console.log(`Conversion result: ${cryptoAmount} ${currency}`);
+      
+      console.log(`Creating CoinPayments payment with currency: ${currency}, amount: ${cryptoAmount} ${currency} (${amount} USD)`);
       
       const { data, error } = await supabase.functions.invoke('create-coinpayments-payment', {
-        body: { amount, walletAddress, currency }
+        body: { 
+          amount: amount,  // We still send the USD amount 
+          walletAddress, 
+          currency,
+          cryptoAmount: cryptoAmount // Add the converted amount
+        }
       });
       
       toast.dismiss("crypto-preparing");
@@ -68,7 +79,8 @@ export const useCryptoPayments = (walletAddress: string | null) => {
         expiresAt: data.expiresAt,
         externalTransactionId: data.externalTransactionId,
         currency: data.currency || currency,
-        checkStatusUrl: data.checkStatusUrl
+        checkStatusUrl: data.checkStatusUrl,
+        cryptoAmount: data.cryptoAmount || cryptoAmount // Store the crypto amount
       });
       
       toast.success(`${currency} Payment Ready`, {

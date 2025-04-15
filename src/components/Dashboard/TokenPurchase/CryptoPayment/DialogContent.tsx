@@ -22,11 +22,33 @@ const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
     );
   }
   
+  // Display both USD amount and crypto amount if available
+  const currency = paymentDetails.currency || 'USDT';
+  
   return (
     <div className="space-y-4 my-2">
       {paymentDetails.expiresAt && (
         <TimeRemainingAlert expiresAt={paymentDetails.expiresAt} />
       )}
+      
+      {/* Payment amount section */}
+      <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+        <div className="flex flex-col gap-1">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600">USD Amount:</span>
+            <span className="font-semibold">${paymentDetails.amount}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600">Payment Amount:</span>
+            <span className="font-semibold text-blue-700">
+              {paymentDetails.cryptoAmount !== undefined 
+                ? `${paymentDetails.cryptoAmount} ${currency}`
+                : `${paymentDetails.amount} ${currency}`
+              }
+            </span>
+          </div>
+        </div>
+      </div>
       
       <div className="flex flex-col md:flex-row items-center gap-4 justify-center">
         {paymentDetails.qrCodeUrl && (
