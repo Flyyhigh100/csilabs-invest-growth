@@ -1,12 +1,11 @@
 
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign } from 'lucide-react';
 import { usePaymentHandlers } from '@/hooks/payments';
 import { useKycVerification } from '@/hooks/kyc/useKycVerification';
 import { KycRequirementAlert } from './KycStatusAlerts';
-import WalletRequiredAlert from './WalletRequiredAlert';
 import ProcessingIndicator from './ProcessingIndicator';
 import CryptoPaymentDialog from './TokenPurchase/CryptoPaymentDialog';
 import TokenCalculator from './TokenPurchase/TokenCalculator';
@@ -100,8 +99,6 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
           <WalletMissingContent />
         )}
       </CardContent>
-      
-      {/* Removed SyncCryptoPaymentButton */}
       
       <CryptoPaymentDialog 
         open={showCryptoDialog} 

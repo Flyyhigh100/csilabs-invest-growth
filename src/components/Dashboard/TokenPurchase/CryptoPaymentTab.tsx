@@ -91,6 +91,7 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
           <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
             <SelectItem value="USDT" className="hover:bg-blue-50">USDT (Tether)</SelectItem>
             <SelectItem value="BTC" className="hover:bg-blue-50">Bitcoin (BTC)</SelectItem>
+            <SelectItem value="BNB" className="hover:bg-blue-50">Binance Coin (BNB)</SelectItem>
             <SelectItem value="ETH" className="hover:bg-blue-50">Ethereum (ETH)</SelectItem>
             <SelectItem value="DOGE" className="hover:bg-blue-50">Dogecoin (DOGE)</SelectItem>
             <SelectItem value="XRP" className="hover:bg-blue-50">Ripple (XRP)</SelectItem>
