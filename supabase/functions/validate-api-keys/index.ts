@@ -2,8 +2,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, testHmacSignature } from "./utils.ts";
 
-// Removed createSupabaseClient as it's not needed
-
 async function validateCoinPaymentsKeys() {
   try {
     const publicKey = Deno.env.get('COINPAYMENTS_PUBLIC_KEY');
