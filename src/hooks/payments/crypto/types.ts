@@ -36,3 +36,15 @@ export interface CreateCryptoPaymentResult {
   transaction_id?: string;
   external_id?: string;
 }
+
+export interface CoinPaymentsCreateParams {
+  amount: number;
+  walletAddress: string;
+  currency: string;
+  cryptoAmount?: number;
+}
+
+export interface CryptoPaymentCreateParams {
+  amount: number;
+  walletAddress: string;
+}
