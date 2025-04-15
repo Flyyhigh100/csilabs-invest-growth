@@ -24,7 +24,7 @@ const TokenBalanceSummary: React.FC<TokenBalanceSummaryProps> = ({
       </div>
       
       {latestTransaction && (
-        <div className="text-sm text-gray-500 flex justify-between mt-2">
+        <div className="text-sm text-gray-500 flex justify-between">
           <span>Latest transfer:</span>
           <span>{latestTransaction.toLocaleDateString()}</span>
         </div>

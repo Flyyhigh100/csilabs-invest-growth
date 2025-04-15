@@ -1,10 +1,9 @@
 
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { useStripePayment } from './useStripePayment';
 import { useCryptoPayments } from './useCryptoPayments';
 import { usePaymentValidation } from './usePaymentValidation';
-import { CryptoPaymentDetails, UsePaymentHandlersReturn } from './types';
+import { CryptoPaymentDetails, UsePaymentHandlersProps, UsePaymentHandlersReturn } from './types';
 
 export const usePaymentHandlers = (walletAddress: string | null): UsePaymentHandlersReturn => {
   const [showCryptoDialog, setShowCryptoDialog] = useState(false);
@@ -64,3 +63,6 @@ export const usePaymentHandlers = (walletAddress: string | null): UsePaymentHand
     kycRequired
   };
 };
+
+// Re-export from index.ts to maintain the existing import paths
+import { toast } from 'sonner';

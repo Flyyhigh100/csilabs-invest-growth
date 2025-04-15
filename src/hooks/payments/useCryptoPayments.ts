@@ -37,7 +37,7 @@ export const useCryptoPayments = (walletAddress: string | null) => {
     setIsProcessing(true);
     
     try {
-      toast.info(`Creating ${currency} payment...`, {
+      toast.info("Creating crypto payment...", {
         id: "crypto-preparing",
         description: `Preparing ${currency} payment session.`,
       });
