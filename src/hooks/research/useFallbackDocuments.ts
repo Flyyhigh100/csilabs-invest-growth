@@ -1,7 +1,14 @@
 import { ResearchDocument } from '@/components/Admin/ResearchDocuments/types/documentTypes';
 
 export const useFallbackDocuments = () => {
-  // This hook provides fallback documents in case the API fails or returns empty
+  // Helper function to extract YouTube video ID
+  const getYoutubeThumbnailUrl = (videoUrl: string) => {
+    const videoId = videoUrl.split('v=')[1]?.split('&')[0];
+    return videoId 
+      ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+      : '/lovable-uploads/2c8360d6-2c55-4e5e-9e46-1ba68abc42ed.png';
+  };
+
   const fallbackDocuments: ResearchDocument[] = [
     {
       id: 'youtube-video-cannabinoid-cancer',
@@ -13,7 +20,7 @@ export const useFallbackDocuments = () => {
       authors: 'Raymond Dabney, CSi Labs Research Team',
       type: 'video',
       videoUrl: 'https://www.youtube.com/watch?v=x3q2uQ7J7f4',
-      thumbnailUrl: '/lovable-uploads/c2afcd29-21b1-48cc-890b-a9a2b8155289.png'
+      thumbnailUrl: getYoutubeThumbnailUrl('https://www.youtube.com/watch?v=x3q2uQ7J7f4')
     },
     {
       id: "doc-1",
