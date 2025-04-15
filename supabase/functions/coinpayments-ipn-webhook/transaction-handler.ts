@@ -26,21 +26,14 @@ export async function processIpnPayload(ipnData: any, logEntryId?: string) {
     // Extract status code from IPN data
     const status = parseInt(ipnData.status || '0');
     const txnId = ipnData.txn_id;
+    
+    // Enhanced logging for BNB transactions
+    const currency = ipnData.currency || 'Unknown';
+    console.log(`Processing IPN for transaction ${txnId} with status ${status} (${getStatusDescription(status)}), currency: ${currency}`);
 
-    // Log the transaction and status for debugging
-    console.log(`Processing IPN for transaction ${txnId} with status ${status}`);
-
-    // Update database based on status code
-    let newStatus;
-    if (status === 100 || status === 1) {
-      newStatus = 'completed';  // Both status 1 and 100 should be considered complete
-    } else if (status < 0) {
-      newStatus = 'failed';    // Negative status indicates failure
-    } else if (status === 0) {
-      newStatus = 'pending';   // Status 0 is pending
-    } else {
-      newStatus = 'unknown';   // Any other status
-    }
+    // Map the CoinPayments status to our internal status
+    const newStatus = mapCoinPaymentsStatus(status);
+    console.log(`Mapped CoinPayments status ${status} to our internal status: '${newStatus}'`);
     
     const supabase = createDbClient();
     
@@ -150,14 +143,14 @@ export async function processIpnPayload(ipnData: any, logEntryId?: string) {
         console.log("Running diagnostics to look for similar transactions...");
         const { data: recentTransactions } = await supabase
           .from('transactions')
-          .select('id, external_transaction_id, transaction_id, payment_method, payment_address')
+          .select('id, external_transaction_id, transaction_id, payment_method, payment_address, currency')
           .order('created_at', { ascending: false })
           .limit(5);
         
         if (recentTransactions && recentTransactions.length > 0) {
           console.log("Recent transactions for comparison:");
           recentTransactions.forEach(tx => {
-            console.log(`- ID: ${tx.id}, external_id: ${tx.external_transaction_id}, tx_id: ${tx.transaction_id}, method: ${tx.payment_method}, address: ${tx.payment_address}`);
+            console.log(`- ID: ${tx.id}, external_id: ${tx.external_transaction_id}, tx_id: ${tx.transaction_id}, method: ${tx.payment_method}, address: ${tx.payment_address}, currency: ${tx.currency}`);
           });
         } else {
           console.log("No recent transactions found for diagnostics");
@@ -173,28 +166,50 @@ export async function processIpnPayload(ipnData: any, logEntryId?: string) {
       };
     }
     
-    console.log(`Found transaction ${transaction.id}, current status: ${transaction.status}`);
+    console.log(`Found transaction ${transaction.id}, current status: ${transaction.status}, currency: ${transaction.currency || 'unknown'}`);
+    
+    // Extra logging for BNB transactions
+    if (transaction.currency === 'BNB' || ipnData.currency === 'BNB') {
+      console.log(`CRITICAL - BNB transaction detected:
+        Transaction ID: ${transaction.id}
+        CoinPayments status: ${status} (${getStatusDescription(status)})
+        Mapped status: ${newStatus}
+        Current status: ${transaction.status}
+      `);
+    }
     
     // Update the database with the new status
-    const { error: updateError } = await supabase
-      .from('transactions')
-      .update({ 
-        status: newStatus,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', transaction.id);
+    const updateData = { 
+      status: newStatus,
+      updated_at: new Date().toISOString()
+    };
     
-    // Log the result
-    if (updateError) {
-      console.error(`Error updating transaction ${transaction.id} to ${newStatus}:`, updateError);
-      return { 
-        success: false, 
-        message: `Failed to update transaction: ${updateError.message}`,
-        transaction,
-        logEntryId
-      };
+    // If status is completed, also set the completed_at timestamp
+    if (newStatus === 'completed') {
+      updateData.completed_at = new Date().toISOString();
+    }
+    
+    // Skip update if status is the same (but continue with verification)
+    if (transaction.status === newStatus) {
+      console.log(`Transaction ${transaction.id} already has status '${newStatus}', skipping update`);
     } else {
-      console.log(`Successfully updated transaction ${transaction.id} to ${newStatus}`);
+      const { error: updateError } = await supabase
+        .from('transactions')
+        .update(updateData)
+        .eq('id', transaction.id);
+      
+      // Log the result
+      if (updateError) {
+        console.error(`Error updating transaction ${transaction.id} to ${newStatus}:`, updateError);
+        return { 
+          success: false, 
+          message: `Failed to update transaction: ${updateError.message}`,
+          transaction,
+          logEntryId
+        };
+      } else {
+        console.log(`Successfully updated transaction ${transaction.id} to ${newStatus}`);
+      }
     }
     
     // If status is already completed and tokens sent, ignore this notification
