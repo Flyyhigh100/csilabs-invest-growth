@@ -1,109 +1,168 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, CheckCircle, KeyRound } from 'lucide-react';
-import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-interface ApiKeyStatus {
-  coinpayments: boolean;
-  definedfi: boolean;
+interface APIKeyValidationResult {
+  isValid: boolean;
+  details: string;
+  rawResponse?: any;
+  service: string;
 }
 
-const APIKeyValidator: React.FC = () => {
-  const [isChecking, setIsChecking] = useState(false);
-  const [apiStatus, setApiStatus] = useState<ApiKeyStatus>({
-    coinpayments: false,
-    definedfi: false
-  });
-  const [showResults, setShowResults] = useState(false);
-  
-  const checkApiKeys = async () => {
-    setIsChecking(true);
-    setShowResults(true);
+const APIKeyValidator = () => {
+  const [isValidating, setIsValidating] = useState(false);
+  const [results, setResults] = useState<APIKeyValidationResult[]>([]);
+  const [showDetails, setShowDetails] = useState<Record<string, boolean>>({});
+
+  const validateCoinPaymentsKeys = async () => {
+    setIsValidating(true);
+    setResults([]);
     
     try {
-      // Check CoinPayments API status
-      const { data: cpData, error: cpError } = await supabase.functions.invoke('validate-api-keys', {
-        body: { service: 'coinpayments' }
+      toast.info("Validating CoinPayments API keys...");
+      
+      const { data, error } = await supabase.functions.invoke('validate-api-keys', {
+        body: {
+          service: 'coinpayments'
+        }
       });
       
-      if (cpError) {
-        console.error("Error checking CoinPayments API:", cpError);
-        setApiStatus(prev => ({ ...prev, coinpayments: false }));
-      } else {
-        setApiStatus(prev => ({ ...prev, coinpayments: cpData?.isValid || false }));
+      if (error) {
+        console.error("Error validating API keys:", error);
+        setResults([{
+          isValid: false,
+          details: `Function error: ${error.message || "Unknown error"}`,
+          service: 'coinpayments'
+        }]);
+        toast.error("API key validation failed");
+        return;
       }
       
-      // Check Defined.fi API key from localStorage
-      const definedfiKey = localStorage.getItem('definedfi_api_key');
-      setApiStatus(prev => ({ ...prev, definedfi: !!definedfiKey }));
-      
-    } catch (error) {
-      console.error("Error checking API keys:", error);
-      toast.error("Error checking API keys", {
-        description: "There was a problem validating your API keys. Please try again."
-      });
+      // Ensure we have valid data before setting results
+      if (data) {
+        setResults([{
+          isValid: !!data.isValid,
+          details: data.details || "No details provided",
+          rawResponse: data,
+          service: data.service || 'coinpayments'
+        }]);
+        
+        if (data.isValid) {
+          toast.success(`${data.service || 'CoinPayments'} API keys valid`, {
+            description: data.details
+          });
+        } else {
+          toast.error(`${data.service || 'CoinPayments'} API keys invalid`, {
+            description: data.details
+          });
+        }
+      } else {
+        // Handle case when no data is returned
+        setResults([{
+          isValid: false,
+          details: "No validation result returned",
+          service: 'coinpayments'
+        }]);
+        toast.error("API key validation failed - no data returned");
+      }
+    } catch (err: any) {
+      console.error("Exception during validation:", err);
+      setResults([{
+        isValid: false,
+        details: `Exception: ${err.message || "Unknown error"}`,
+        service: 'coinpayments'
+      }]);
+      toast.error("API key validation failed");
     } finally {
-      setIsChecking(false);
+      setIsValidating(false);
     }
   };
-  
-  // Check keys on component mount
-  useEffect(() => {
-    checkApiKeys();
-  }, []);
-  
-  if (!showResults) {
-    return null;
-  }
-  
+
+  const toggleDetails = (service: string) => {
+    setShowDetails(prev => ({
+      ...prev,
+      [service]: !prev[service]
+    }));
+  };
+
   return (
-    <div className="mb-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">API Key Status</h3>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={checkApiKeys}
-          disabled={isChecking}
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle>API Key Validator</CardTitle>
+        <CardDescription>
+          Check if your API keys are properly configured and working
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {results.map((result, index) => {
+            // Make sure we have a valid service string before using it
+            const serviceName = result.service || 'unknown';
+            
+            return (
+              <div key={index} className={`p-4 rounded-md ${result.isValid ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    {result.isValid ? 
+                      <CheckCircle className="h-5 w-5 text-green-600" /> : 
+                      <XCircle className="h-5 w-5 text-red-600" />
+                    }
+                    <span className="font-medium">
+                      {serviceName ? serviceName.charAt(0).toUpperCase() + serviceName.slice(1) : 'Unknown Service'}
+                    </span>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => toggleDetails(serviceName)}
+                  >
+                    {showDetails[serviceName] ? 'Hide Details' : 'Show Details'}
+                  </Button>
+                </div>
+                
+                {showDetails[serviceName] && (
+                  <div className="mt-3 text-sm bg-white p-3 rounded border">
+                    <p className="mb-2">{result.details}</p>
+                    {result.rawResponse && (
+                      <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto max-h-40">
+                        {JSON.stringify(result.rawResponse, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          
+          {results.length === 0 && !isValidating && (
+            <div className="flex items-center gap-2 text-gray-500 text-sm">
+              <AlertCircle className="h-4 w-4" />
+              <span>No validation results yet. Click the button below to check your API keys.</span>
+            </div>
+          )}
+          
+          {isValidating && (
+            <div className="flex items-center gap-2 text-blue-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Validating API keys...</span>
+            </div>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button
+          onClick={validateCoinPaymentsKeys}
+          disabled={isValidating}
         >
-          <KeyRound className={`h-3.5 w-3.5 mr-1.5 ${isChecking ? 'animate-pulse' : ''}`} />
-          {isChecking ? 'Checking...' : 'Validate API Keys'}
+          {isValidating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Validate CoinPayments API Keys
         </Button>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Alert className={apiStatus.coinpayments ? "border-green-200 text-green-800 bg-green-50" : "border-amber-200 text-amber-800 bg-amber-50"}>
-          {apiStatus.coinpayments ? 
-            <CheckCircle className="h-4 w-4 text-green-500" /> : 
-            <AlertCircle className="h-4 w-4 text-amber-500" />
-          }
-          <AlertTitle>CoinPayments API</AlertTitle>
-          <AlertDescription>
-            {apiStatus.coinpayments ? 
-              "API key is valid and properly configured." : 
-              "API key not configured or invalid. Please check environment variables."
-            }
-          </AlertDescription>
-        </Alert>
-        
-        <Alert className={apiStatus.definedfi ? "border-green-200 text-green-800 bg-green-50" : "border-amber-200 text-amber-800 bg-amber-50"}>
-          {apiStatus.definedfi ? 
-            <CheckCircle className="h-4 w-4 text-green-500" /> : 
-            <AlertCircle className="h-4 w-4 text-amber-500" />
-          }
-          <AlertTitle>Defined.fi API</AlertTitle>
-          <AlertDescription>
-            {apiStatus.definedfi ? 
-              "API key is configured in browser storage." : 
-              "API key not found in local storage. Please configure it below."
-            }
-          </AlertDescription>
-        </Alert>
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   );
 };
 

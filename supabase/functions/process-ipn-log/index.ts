@@ -139,15 +139,10 @@ async function updateTransactionStatus(
       newStatus = 'failed';
     } else if (ipnStatus === 0) {
       newStatus = 'pending';
-    } else if (ipnStatus >= 1) { 
-      // Status 1 or greater should now be treated as completed
+    } else if (ipnStatus >= 100) {
       newStatus = 'completed';
-      
-      // Special logging for BNB transactions
-      const currency = rawData.currency || transaction.currency || 'unknown';
-      if (currency === 'BNB') {
-        console.log(`[PROCESS-IPN] BNB transaction detected with status ${ipnStatus} - marking as completed`);
-      }
+    } else if (ipnStatus >= 1) {
+      newStatus = 'confirmed';
     }
     
     console.log(`[PROCESS-IPN] Mapped IPN status ${ipnStatus} to: ${newStatus}`);
@@ -170,8 +165,8 @@ async function updateTransactionStatus(
       updated_at: new Date().toISOString()
     };
     
-    // Set completed_at if status is completed
-    if (newStatus === 'completed') {
+    // Set completed_at if status is completed or confirmed
+    if (newStatus === 'completed' || newStatus === 'confirmed') {
       updateData.completed_at = new Date().toISOString();
     }
     

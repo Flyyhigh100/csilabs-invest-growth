@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,18 +9,13 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import IPNLogs from '@/components/Admin/IPNLogs';
-import { AlertCircle, Wrench, RefreshCw } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import APIKeyValidator from '@/components/Admin/APIKeyValidator';
+import { AlertCircle } from 'lucide-react';
 
 const TransactionToolbox = () => {
   const [transactionId, setTransactionId] = useState('');
   const [externalId, setExternalId] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('manual-update');
-  
-  const hasDefinedfiKey = !!localStorage.getItem('definedfi_api_key');
 
   const handleManualStatusUpdate = async (status: string) => {
     if (!transactionId && !externalId) {
@@ -77,6 +73,7 @@ const TransactionToolbox = () => {
       setIsProcessing(true);
       setError(null);
       
+      // First find the most recent IPN log for this transaction
       const { data: ipnLogs, error: ipnError } = await (supabase as any)
         .from('ipn_logs')
         .select('*')
@@ -96,6 +93,7 @@ const TransactionToolbox = () => {
         toast.error('No IPN logs found for this transaction ID');
         setError(`No IPN logs found for External ID: ${externalId}`);
         
+        // Show detailed diagnostic info
         const { data: sampleLogs } = await (supabase as any)
           .from('ipn_logs')
           .select('txn_id')
@@ -112,6 +110,7 @@ const TransactionToolbox = () => {
       const ipnLog = ipnLogs[0];
       console.log('Found IPN log to process:', ipnLog.id, 'for transaction:', ipnLog.txn_id);
       
+      // Now process this IPN log to update the transaction
       const { data, error } = await supabase.functions.invoke('process-ipn-log', {
         body: {
           ipn_log_id: ipnLog.id,
@@ -146,34 +145,8 @@ const TransactionToolbox = () => {
       setIsProcessing(false);
     }
   };
-  
-  const handleForceSyncApiKey = async () => {
-    try {
-      setIsProcessing(true);
-      toast.info("Checking API key configuration...");
-      
-      const definedfiKey = localStorage.getItem('definedfi_api_key');
-      if (!definedfiKey) {
-        toast.error("Defined.fi API key not configured", {
-          description: "Please add your Defined.fi API key in the API Configuration tab"
-        });
-        setActiveTab('api-keys');
-        return;
-      }
-      
-      toast.success("API keys verified", {
-        description: "API keys are correctly configured and ready to use"
-      });
-    } catch (error) {
-      console.error("Error with API key:", error);
-      toast.error("Error with API configuration", {
-        description: (error as Error).message || "Please check your API key settings"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
+  // Query to check if IPN logs exist at all
   const { data: ipnLogsExist } = useQuery({
     queryKey: ['ipn-logs-exist-check'],
     queryFn: async () => {
@@ -184,7 +157,7 @@ const TransactionToolbox = () => {
       if (error) throw error;
       return count > 0;
     },
-    refetchInterval: 60000,
+    refetchInterval: 60000, // Check every minute
   });
 
   return (
@@ -196,11 +169,10 @@ const TransactionToolbox = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="manual-update" className="w-full" value={activeTab} onValueChange={setActiveTab}>
+        <Tabs defaultValue="manual-update" className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="manual-update">Manual Status Update</TabsTrigger>
             <TabsTrigger value="ipn-logs">IPN Logs</TabsTrigger>
-            <TabsTrigger value="api-keys">API Keys</TabsTrigger>
           </TabsList>
           
           <TabsContent value="manual-update" className="space-y-4">
@@ -279,38 +251,6 @@ const TransactionToolbox = () => {
               </Button>
             </div>
             
-            <div className="mt-6 border-t pt-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">API Integration Tools</h3>
-                {hasDefinedfiKey ? (
-                  <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Defined.fi API Connected</Badge>
-                ) : (
-                  <Badge variant="outline" className="border-amber-300 text-amber-700 bg-amber-50">Defined.fi API Required</Badge>
-                )}
-              </div>
-              
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant={hasDefinedfiKey ? "outline" : "default"}
-                  onClick={handleForceSyncApiKey}
-                  disabled={isProcessing}
-                  className={hasDefinedfiKey ? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100" : ""}
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`} />
-                  {isProcessing ? 'Validating...' : hasDefinedfiKey ? 'Validate API Keys' : 'Configure API Keys'}
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
-                  onClick={() => setActiveTab('api-keys')}
-                >
-                  <Wrench className="h-4 w-4 mr-2" />
-                  API Configuration
-                </Button>
-              </div>
-            </div>
-            
             {!ipnLogsExist && (
               <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-sm">
                 <p className="font-medium">No IPN logs found in database</p>
@@ -321,43 +261,6 @@ const TransactionToolbox = () => {
           
           <TabsContent value="ipn-logs">
             <IPNLogs />
-          </TabsContent>
-          
-          <TabsContent value="api-keys">
-            <div className="space-y-4">
-              <div className="pb-4 border-b">
-                <h3 className="text-lg font-medium mb-2">API Key Configuration</h3>
-                <p className="text-sm text-muted-foreground">
-                  Manage API keys for integrations with external services
-                </p>
-              </div>
-              
-              <APIKeyValidator />
-              
-              <div className="p-4 rounded-md border bg-slate-50">
-                <h4 className="font-medium mb-2">Defined.fi API Key</h4>
-                <p className="text-sm text-muted-foreground mb-4">
-                  The Defined.fi API key is used for accessing token price and market data. 
-                  It is stored securely in your browser's local storage.
-                </p>
-                
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setActiveTab('manual-update')}
-                    className="text-sm"
-                  >
-                    Back to Transaction Tools
-                  </Button>
-                  
-                  {!hasDefinedfiKey && (
-                    <Badge variant="outline" className="border-amber-300 text-amber-700 bg-amber-50">
-                      API Key Required
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </div>
           </TabsContent>
         </Tabs>
       </CardContent>

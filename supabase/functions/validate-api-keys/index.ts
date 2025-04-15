@@ -2,6 +2,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, testHmacSignature } from "./utils.ts";
 
+function createSupabaseClient() {
+  return null; // We're not using Supabase client in this function anymore
+}
+
 async function validateCoinPaymentsKeys() {
   try {
     const publicKey = Deno.env.get('COINPAYMENTS_PUBLIC_KEY');
@@ -27,59 +31,34 @@ async function validateCoinPaymentsKeys() {
       ipnSecretPresent: !!ipnSecret
     });
     
-    // Enhanced validation for key format and permissions
+    // Simple validation - just check if keys have proper length and format
     const isPublicKeyValid = publicKey && publicKey.length >= 16;
     const isPrivateKeyValid = privateKey && privateKey.length >= 16;
     
     // Test the HMAC signature generation with the private key
     let hmacTestPassed = false;
-    let apiCallTestPassed = false;
-    
     if (isPrivateKeyValid) {
       hmacTestPassed = await testHmacSignature(privateKey);
       console.log(`HMAC test result: ${hmacTestPassed ? 'PASSED' : 'FAILED'}`);
-      
-      // Additional test: Try a simple API call to verify key functionality
-      try {
-        const response = await fetch('https://www.coinpayments.net/api.php', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'HMAC': await testHmacSignature(privateKey)
-          },
-          body: new URLSearchParams({
-            version: '1',
-            cmd: 'get_basic_info',
-            key: publicKey,
-            nonce: Date.now().toString()
-          })
-        });
-        
-        apiCallTestPassed = response.ok;
-        console.log(`API call test result: ${apiCallTestPassed ? 'PASSED' : 'FAILED'}`);
-      } catch (apiError) {
-        console.error('API call test error:', apiError);
-      }
     }
     
-    if (!isPublicKeyValid || !isPrivateKeyValid || !hmacTestPassed || !apiCallTestPassed) {
+    if (!isPublicKeyValid || !isPrivateKeyValid || !hmacTestPassed) {
       return {
         isValid: false,
-        details: 'API keys appear to be invalid or have limited functionality',
+        details: 'API keys appear to be invalid (incorrect format or length)',
         service: 'coinpayments',
         keyCheck: {
           publicKeyValid: isPublicKeyValid,
           privateKeyValid: isPrivateKeyValid,
-          hmacTestPassed,
-          apiCallTestPassed
+          hmacTestPassed
         }
       };
     }
     
-    // Return comprehensive validation success
+    // Return validation success
     return {
       isValid: true,
-      details: 'API keys exist and are fully functional',
+      details: 'API keys exist and appear to be in the correct format.',
       service: 'coinpayments',
       publicKeyInfo: publicKey ? {
         length: publicKey.length,
@@ -94,6 +73,7 @@ async function validateCoinPaymentsKeys() {
         warning: 'IPN secret is not configured, which may affect webhook notifications'
       }
     };
+    
   } catch (error) {
     console.error('Error validating CoinPayments keys:', error);
     return { 
@@ -130,6 +110,8 @@ serve(async (req) => {
       case 'coinpayments':
         result = await validateCoinPaymentsKeys();
         break;
+        
+      // Add more services as needed
       
       default:
         return new Response(
