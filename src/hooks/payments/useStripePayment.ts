@@ -8,8 +8,8 @@ export const useStripePayment = (walletAddress: string | null) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { validatePaymentRequest } = usePaymentValidation(walletAddress);
 
-  const handleStripePayment = async (amount: number) => {
-    if (!validatePaymentRequest(amount)) return;
+  const handleStripePayment = async (amount: number): Promise<boolean> => {
+    if (!validatePaymentRequest(amount)) return false;
     
     setIsProcessing(true);
     
@@ -23,7 +23,7 @@ export const useStripePayment = (walletAddress: string | null) => {
           description: "You must be logged in to make a payment."
         });
         setIsProcessing(false);
-        return;
+        return false;
       }
       
       console.log("Invoking create-stripe-checkout function...");
@@ -37,7 +37,7 @@ export const useStripePayment = (walletAddress: string | null) => {
           description: error.message || "Please try again or contact support." 
         });
         setIsProcessing(false);
-        return;
+        return false;
       }
       
       if (!data?.url) {
@@ -46,7 +46,7 @@ export const useStripePayment = (walletAddress: string | null) => {
           description: "No checkout URL received. Please try again."
         });
         setIsProcessing(false);
-        return;
+        return false;
       }
       
       console.log("Received Stripe checkout URL:", data.url);
@@ -111,6 +111,8 @@ export const useStripePayment = (walletAddress: string | null) => {
           // Reset processing state if we're still here
           setIsProcessing(false);
         }, 3000);
+
+        return true;
         
       } catch (err) {
         console.error("Error during redirection:", err);
@@ -122,6 +124,7 @@ export const useStripePayment = (walletAddress: string | null) => {
           }
         });
         setIsProcessing(false);
+        return false;
       }
       
     } catch (error: any) {
@@ -130,6 +133,7 @@ export const useStripePayment = (walletAddress: string | null) => {
         description: error.message || "Please try again or contact support."
       });
       setIsProcessing(false);
+      return false;
     }
   };
 

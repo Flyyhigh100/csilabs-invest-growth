@@ -42,7 +42,7 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
   // Add amount to payment details if not already provided
   const enhancedPaymentDetails = paymentDetails ? {
     ...paymentDetails,
-    amount: paymentDetails.amount || amount || 0
+    amount: paymentDetails.amount !== undefined ? paymentDetails.amount : amount
   } : null;
 
   // Handle the close event from either prop

@@ -24,6 +24,7 @@ const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
   
   // Display both USD amount and crypto amount if available
   const currency = paymentDetails.currency || 'USDT';
+  const amount = paymentDetails.amount || 0; // Use default of 0 if amount isn't available
   
   return (
     <div className="space-y-4 my-2">
@@ -36,14 +37,14 @@ const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
         <div className="flex flex-col gap-1">
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-600">USD Amount:</span>
-            <span className="font-semibold">${paymentDetails.amount}</span>
+            <span className="font-semibold">${amount.toLocaleString()}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-600">Payment Amount:</span>
             <span className="font-semibold text-blue-700">
               {paymentDetails.cryptoAmount !== undefined 
                 ? `${paymentDetails.cryptoAmount} ${currency}`
-                : `${paymentDetails.amount} ${currency}`
+                : `${amount} ${currency}`
               }
             </span>
           </div>

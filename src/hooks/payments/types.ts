@@ -12,6 +12,7 @@ export interface CryptoPaymentDetails {
   currency?: string;
   checkStatusUrl?: string;
   cryptoAmount?: number; // Add crypto amount field
+  amount?: number; // Add USD amount field
 }
 
 export interface UsePaymentHandlersReturn {
@@ -23,4 +24,9 @@ export interface UsePaymentHandlersReturn {
   handleCoinPaymentsPayment: (amount: number, currency?: string) => Promise<boolean>;
   handleCryptoPayment: (amount: number) => Promise<boolean>;
   kycRequired: (amount: number) => boolean;
+}
+
+export interface PaymentValidationOptions {
+  isCrypto?: boolean;
+  skipWalletCheck?: boolean;
 }
