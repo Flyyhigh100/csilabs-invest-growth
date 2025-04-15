@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 import { useNavigate } from 'react-router-dom';
+import APIKeyValidator from '@/components/Admin/APIKeyValidator';
 
 // For simplicity, we'll simulate settings state with React state
 // In a real app, this would be connected to the database
@@ -163,6 +164,8 @@ const AdminSettings: React.FC = () => {
 
         {/* API Configuration */}
         <TabsContent value="api" className="space-y-4">
+          <APIKeyValidator />
+          
           <Card>
             <CardHeader>
               <CardTitle>API Settings</CardTitle>
