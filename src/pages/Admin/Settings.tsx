@@ -3,21 +3,20 @@ import React, { useState } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { CheckCircle, Info, Settings as SettingsIcon, Mail, Bell, Shield, WrenchIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Separator } from '@/components/ui/separator';
 import { useNavigate } from 'react-router-dom';
-import APIKeyValidator from '@/components/Admin/APIKeyValidator';
 
-// For simplicity, we'll simulate settings state with React state
-// In a real app, this would be connected to the database
+// Import the new tab components
+import NotificationsTab from '@/components/Admin/Settings/NotificationsTab';
+import ApiConfigTab from '@/components/Admin/Settings/ApiConfigTab';
+import SecurityTab from '@/components/Admin/Settings/SecurityTab';
+import ToolsTab from '@/components/Admin/Settings/ToolsTab';
+
 const AdminSettings: React.FC = () => {
   const navigate = useNavigate();
+  
   // Notification settings
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [kycAlerts, setKycAlerts] = useState(true);
@@ -91,191 +90,42 @@ const AdminSettings: React.FC = () => {
         
         {/* Notifications Settings */}
         <TabsContent value="notifications" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Email Notifications</CardTitle>
-              <CardDescription>
-                Configure when to receive email notifications for important events
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="email-notifications" className="font-medium">
-                      Enable Email Notifications
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive email alerts for critical events
-                    </p>
-                  </div>
-                  <Switch
-                    id="email-notifications"
-                    checked={emailNotifications}
-                    onCheckedChange={setEmailNotifications}
-                  />
-                </div>
-                
-                <Separator />
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="kyc-alerts" className="font-medium">
-                      KYC Verification Alerts
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Be notified when users submit KYC verifications
-                    </p>
-                  </div>
-                  <Switch
-                    id="kyc-alerts"
-                    checked={kycAlerts}
-                    onCheckedChange={setKycAlerts}
-                    disabled={!emailNotifications}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="payment-alerts" className="font-medium">
-                      Payment Transaction Alerts
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Be notified of high-value payments requiring approval
-                    </p>
-                  </div>
-                  <Switch
-                    id="payment-alerts"
-                    checked={paymentAlerts}
-                    onCheckedChange={setPaymentAlerts}
-                    disabled={!emailNotifications}
-                  />
-                </div>
-              </div>
-              
-              <div className="mt-6 flex justify-end">
-                <Button onClick={handleSaveNotificationSettings}>
-                  Save Notification Settings
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <NotificationsTab 
+            emailNotifications={emailNotifications}
+            setEmailNotifications={setEmailNotifications}
+            kycAlerts={kycAlerts}
+            setKycAlerts={setKycAlerts}
+            paymentAlerts={paymentAlerts}
+            setPaymentAlerts={setPaymentAlerts}
+            onSave={handleSaveNotificationSettings}
+          />
         </TabsContent>
 
         {/* API Configuration */}
         <TabsContent value="api" className="space-y-4">
-          <APIKeyValidator />
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>API Settings</CardTitle>
-              <CardDescription>
-                Configure the API integrations and parameters
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="api-url">Defined.fi API URL</Label>
-                  <Input 
-                    id="api-url" 
-                    value={apiUrl}
-                    onChange={(e) => setApiUrl(e.target.value)}
-                    placeholder="https://api.defined.fi/api/v1"
-                  />
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="api-timeout">API Timeout (seconds)</Label>
-                  <Input 
-                    id="api-timeout"
-                    type="number"
-                    value={apiTimeout}
-                    onChange={(e) => setApiTimeout(e.target.value)}
-                    placeholder="30"
-                  />
-                </div>
-
-                <div className="mt-6 flex justify-end">
-                  <Button onClick={handleSaveAPISettings}>
-                    Save API Settings
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ApiConfigTab 
+            apiUrl={apiUrl}
+            setApiUrl={setApiUrl}
+            apiTimeout={apiTimeout}
+            setApiTimeout={setApiTimeout}
+            onSave={handleSaveAPISettings}
+          />
         </TabsContent>
 
         {/* Security Settings */}
         <TabsContent value="security" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Security Settings</CardTitle>
-              <CardDescription>
-                Configure security options for admin accounts
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="two-factor" className="font-medium">
-                      Two-Factor Authentication (2FA)
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Enhance account security by requiring a second authentication factor
-                    </p>
-                  </div>
-                  <Switch
-                    id="two-factor"
-                    checked={twoFactorEnabled}
-                    onCheckedChange={handleToggle2FA}
-                  />
-                </div>
-                
-                {twoFactorEnabled && (
-                  <Alert>
-                    <Info className="h-4 w-4" />
-                    <AlertTitle>Setup Required</AlertTitle>
-                    <AlertDescription>
-                      Please check your email for instructions on completing 2FA setup.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                
-                <div className="mt-6 flex justify-end">
-                  <Button onClick={handleSaveSecuritySettings}>
-                    Save Security Settings
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <SecurityTab 
+            twoFactorEnabled={twoFactorEnabled}
+            onToggle2FA={handleToggle2FA}
+            onSave={handleSaveSecuritySettings}
+          />
         </TabsContent>
 
         {/* Transaction Tools */}
         <TabsContent value="tools" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Transaction Tools</CardTitle>
-              <CardDescription>
-                Access tools for managing and troubleshooting transactions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium">Transaction Management</h3>
-                  <p className="text-sm text-muted-foreground mt-1 mb-3">
-                    Tools to help manage and troubleshoot transaction processes
-                  </p>
-                  <Button onClick={handleGoToTransactionTools}>
-                    Open Transaction Tools
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ToolsTab 
+            onGoToTransactionTools={handleGoToTransactionTools}
+          />
         </TabsContent>
       </Tabs>
     </AdminLayout>
