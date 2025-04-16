@@ -125,10 +125,61 @@ export function useCryptoStatusCheck() {
     }
   }, []);
 
+  /**
+   * Refresh all pending transactions - this is the method required by RefreshCryptoTransactionsButton
+   */
+  const refreshAllPendingTransactions = useCallback(async (forceUpdateAll: boolean = false): Promise<boolean> => {
+    try {
+      setIsChecking(true);
+      const pendingTransactions = await getPendingTransactions();
+      
+      if (!pendingTransactions || pendingTransactions.length === 0) {
+        toast.info('No pending transactions found');
+        return true;
+      }
+      
+      toast.info(`${forceUpdateAll ? 'Force updating' : 'Checking'} ${pendingTransactions.length} pending transactions...`);
+      
+      const updatedTransactions: Transaction[] = [];
+      
+      // Process each transaction sequentially to avoid rate limits
+      for (const transaction of pendingTransactions) {
+        try {
+          const updatedTransaction = forceUpdateAll 
+            ? await forceUpdateTransaction(transaction)
+            : await checkTransactionStatus(transaction);
+            
+          if (updatedTransaction) {
+            updatedTransactions.push(updatedTransaction);
+          }
+          
+          // Small delay to prevent rate limiting
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (err) {
+          console.error(`Error processing transaction ${transaction.id}:`, err);
+        }
+      }
+      
+      const successMessage = forceUpdateAll 
+        ? `Completed force updating ${pendingTransactions.length} transactions`
+        : `Completed checking ${pendingTransactions.length} transactions`;
+      
+      toast.success(successMessage);
+      return true;
+    } catch (error) {
+      console.error('Error in refreshAllPendingTransactions:', error);
+      toast.error('Failed to process transactions');
+      return false;
+    } finally {
+      setIsChecking(false);
+    }
+  }, []);
+
   return {
     checkTransactionStatus: checkStatus,
     forceUpdateTransaction: forceUpdate,
     checkAllPendingTransactions,
+    refreshAllPendingTransactions,
     isChecking,
     lastCheckResult
   };
