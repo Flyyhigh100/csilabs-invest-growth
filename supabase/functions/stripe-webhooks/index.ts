@@ -2,7 +2,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClients } from "./clients.ts";
 import { handleStripeWebhook } from "./handlers.ts";
-import { corsHeaders } from "../create-coinpayments-payment/utils.ts";
+
+// Define CORS headers directly in this file instead of importing
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 // Main entry point
 // Version: [Timestamp or simple counter]
