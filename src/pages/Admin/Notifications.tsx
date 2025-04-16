@@ -26,10 +26,10 @@ const NotificationsPage = () => {
 
   return (
     <AdminLayout title="Notifications Management">
-      <Tabs defaultValue="single">
-        <TabsList className="mb-4">
-          <TabsTrigger value="single">Send to User</TabsTrigger>
-          <TabsTrigger value="broadcast">Broadcast</TabsTrigger>
+      <Tabs defaultValue="single" className="overflow-x-hidden w-full">
+        <TabsList className="mb-4 w-full grid grid-cols-2">
+          <TabsTrigger value="single" className="text-xs md:text-sm">Send to User</TabsTrigger>
+          <TabsTrigger value="broadcast" className="text-xs md:text-sm">Broadcast</TabsTrigger>
         </TabsList>
         
         <TabsContent value="single">

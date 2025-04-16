@@ -12,7 +12,7 @@ export const Container: React.FC<ContainerProps> = ({
   className 
 }) => {
   return (
-    <div className={cn("container-custom mx-auto px-4", className)}>
+    <div className={cn("container-custom mx-auto px-4 w-full", className)}>
       {children}
     </div>
   );

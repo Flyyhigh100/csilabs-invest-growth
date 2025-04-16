@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useKycContext } from '../KycContext';
 import { useKycActionHandlers } from '../hooks/useKycActionHandlers';
@@ -73,7 +74,7 @@ const KycVerificationsDashboard: React.FC = () => {
   const safeAllUsersWithKyc = Array.isArray(allUsersWithKyc) ? allUsersWithKyc : [];
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 overflow-x-hidden">
       <KycDashboardHeader 
         onManualRefresh={handleManualRefresh}
         onDirectDatabaseTest={() => {}}
@@ -83,7 +84,9 @@ const KycVerificationsDashboard: React.FC = () => {
       />
       
       {showAllUsers && safeAllUsersWithKyc.length > 0 && (
-        <KycAllUsersTable allUsersWithKyc={safeAllUsersWithKyc} />
+        <div className="overflow-x-auto">
+          <KycAllUsersTable allUsersWithKyc={safeAllUsersWithKyc} />
+        </div>
       )}
       
       <KycVerificationsContainer

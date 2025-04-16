@@ -75,17 +75,17 @@ const AdminUsersPage: React.FC = () => {
   
   return (
     <AdminLayout title="Users">
-      <Card className="mb-6">
+      <Card className="mb-6 overflow-hidden">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <UsersIcon className="h-5 w-5" />
             User Management
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs md:text-sm">
             View and manage all users in the system
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 md:p-6">
           <UsersToolbar 
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
@@ -93,17 +93,21 @@ const AdminUsersPage: React.FC = () => {
             onTestDbConnection={() => {}}
           />
           
-          {isLoading ? (
-            <UsersLoading />
-          ) : error ? (
-            <UsersError error={error as Error} onRetry={handleRefresh} />
-          ) : (
-            <UsersTable 
-              users={users} 
-              onCheckKyc={checkUserKyc} 
-              searchQuery={searchQuery}
-            />
-          )}
+          <div className="overflow-x-auto -mx-3 md:mx-0">
+            {isLoading ? (
+              <UsersLoading />
+            ) : error ? (
+              <UsersError error={error as Error} onRetry={handleRefresh} />
+            ) : (
+              <div className="min-w-full px-3 md:px-0">
+                <UsersTable 
+                  users={users} 
+                  onCheckKyc={checkUserKyc} 
+                  searchQuery={searchQuery}
+                />
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </AdminLayout>

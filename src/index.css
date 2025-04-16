@@ -105,11 +105,37 @@
   }
 
   .section-padding {
-    @apply py-16 md:py-24;
+    @apply py-12 md:py-16 lg:py-24;
   }
 
   .container-custom {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+}
+
+/* Responsive typography */
+@layer utilities {
+  .text-responsive {
+    @apply text-sm md:text-base;
+  }
+  
+  .heading-responsive {
+    @apply text-xl md:text-2xl lg:text-3xl;
+  }
+}
+
+/* Mobile optimizations */
+@layer utilities {
+  .mobile-full-width {
+    @apply -mx-4 px-4 md:mx-0 md:px-0;
+  }
+  
+  .mobile-card {
+    @apply p-3 md:p-6;
+  }
+  
+  .mobile-overflow-container {
+    @apply overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0;
   }
 }
 
