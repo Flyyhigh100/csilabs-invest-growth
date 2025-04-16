@@ -7,9 +7,13 @@ import { AlertCircle } from 'lucide-react';
 
 interface InstructionsSectionProps {
   paymentDetails: CryptoPaymentDetails | null;
+  instructions?: string; // Add this optional prop
 }
 
-const InstructionsSection: React.FC<InstructionsSectionProps> = ({ paymentDetails }) => {
+const InstructionsSection: React.FC<InstructionsSectionProps> = ({ 
+  paymentDetails, 
+  instructions 
+}) => {
   // No payment details
   if (!paymentDetails) return null;
   
@@ -23,6 +27,11 @@ const InstructionsSection: React.FC<InstructionsSectionProps> = ({ paymentDetail
   // For stablecoins like USDT, USDC that are pegged to USD, the amounts may be nearly the same
   // But for other cryptocurrencies, they will be different based on exchange rates
   const isStablecoin = ['USDT', 'USDC', 'DAI', 'BUSD'].includes(currency);
+  
+  // Use the passed instructions or fallback to default
+  const displayInstructions = instructions || 
+    paymentDetails.instructions || 
+    `Send exactly ${cryptoAmount} ${currency} to the address below to complete your purchase.`;
   
   return (
     <Card className="mb-6">
@@ -57,8 +66,7 @@ const InstructionsSection: React.FC<InstructionsSectionProps> = ({ paymentDetail
             )}
             
             <p>
-              {paymentDetails.instructions || 
-               `Send exactly ${cryptoAmount} ${currency} to the address below to complete your purchase.`}
+              {displayInstructions}
             </p>
           </div>
         </div>
@@ -68,3 +76,4 @@ const InstructionsSection: React.FC<InstructionsSectionProps> = ({ paymentDetail
 };
 
 export default InstructionsSection;
+

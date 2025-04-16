@@ -44,7 +44,10 @@ const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
       
       <Separator />
       
-      <InstructionsSection instructions={paymentDetails.instructions} />
+      <InstructionsSection 
+        paymentDetails={paymentDetails} 
+        instructions={paymentDetails.instructions} 
+      />
       
       {paymentDetails.statusUrl && (
         <StatusCheckSection statusUrl={paymentDetails.statusUrl} />
@@ -54,3 +57,4 @@ const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
 };
 
 export default DialogContent;
+
