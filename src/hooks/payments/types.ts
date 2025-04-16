@@ -11,7 +11,8 @@ export interface CryptoPaymentDetails {
   checkStatusUrl?: string;
   externalTransactionId?: string;
   currency: string;
-  usdValue?: number; // Add USD value for reference
+  amount?: string;    // Add amount field for cryptocurrency amount
+  usdValue?: number;  // Add USD value for reference
 }
 
 export interface UsePaymentHandlersProps {

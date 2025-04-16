@@ -76,23 +76,32 @@ export async function createSignature(params: Record<string, string>, privateKey
 
 // Generate mock payment data with proper currency conversion simulation
 export function generateMockPaymentData(amount: string, currencyCode: string = 'USDT'): any {
-  // Mock conversion rates for demonstration purposes
-  // In a real scenario, these would come from the API
-  const mockRates = {
-    BTC: 0.000022,  // 1 USD ≈ 0.000022 BTC
-    ETH: 0.000271,  // 1 USD ≈ 0.000271 ETH
-    USDT: 1.0,      // 1:1 with USD
-    USDC: 1.0,      // 1:1 with USD
-    BNB: 0.0023,    // 1 USD ≈ 0.0023 BNB
-    LTC: 0.0108,    // 1 USD ≈ 0.0108 LTC
-    DOGE: 8.71,     // 1 USD ≈ 8.71 DOGE
-    XRP: 1.40,      // 1 USD ≈ 1.40 XRP
-    LTCT: 0.0108,   // Same as LTC for testing
+  // FIXED: More realistic conversion rates for demonstration purposes
+  // These rates represent the approximate INVERSE of USD value (USD per crypto unit)
+  // meaning how many USD = 1 unit of cryptocurrency
+  const mockExchangeRates = {
+    BTC: 45000,    // 1 BTC ≈ $45,000
+    ETH: 3500,     // 1 ETH ≈ $3,500
+    USDT: 1.0,     // 1:1 with USD
+    USDC: 1.0,     // 1:1 with USD
+    BNB: 425,      // 1 BNB ≈ $425
+    LTC: 92,       // 1 LTC ≈ $92
+    DOGE: 0.115,   // 1 DOGE ≈ $0.115
+    XRP: 0.71,     // 1 XRP ≈ $0.71
+    LTCT: 92,      // Same as LTC for testing
   };
   
-  // Convert USD amount to cryptocurrency amount
-  const rate = mockRates[currencyCode as keyof typeof mockRates] || 1.0;
-  const cryptoAmount = (parseFloat(amount) * rate).toFixed(8);
+  // FIXED: Convert USD amount to cryptocurrency amount properly
+  // Amount in USD / Exchange Rate = Amount in cryptocurrency
+  const usdAmount = parseFloat(amount);
+  const cryptoRate = mockExchangeRates[currencyCode as keyof typeof mockExchangeRates] || 1.0;
+  
+  // The formula is: USD amount / USD per crypto unit = crypto amount
+  // For example: $100 / $45000 per BTC = 0.00222... BTC
+  const cryptoAmount = (usdAmount / cryptoRate).toFixed(8);
+  
+  console.log(`Converting $${usdAmount} to ${currencyCode} using rate 1 ${currencyCode} = $${cryptoRate}`);
+  console.log(`Result: ${cryptoAmount} ${currencyCode}`);
   
   // Generate a clean wallet address without currency prefixes for the QR code
   // We use the format expected by most QR scanners: just the address
@@ -105,7 +114,7 @@ export function generateMockPaymentData(amount: string, currencyCode: string = '
   
   return {
     address: mockAddress, // Clean address without prefix
-    amount: cryptoAmount, // Converted crypto amount (not 1:1 with USD)
+    amount: cryptoAmount, // Correctly converted crypto amount using exchange rates
     txn_id: `CP${Date.now()}`,
     timeout: Math.floor(Date.now() / 1000) + 3600,
     qrcode_url: qrCodeUrl,

@@ -67,11 +67,12 @@ export async function createCoinPaymentsTransaction(
     console.log('Using mock data (missing API keys or mock mode requested)');
     const mockPaymentData = generateMockPaymentData(amount.toString(), currency);
     console.log(`Mock CoinPayments payment created with ID: ${mockPaymentData.txn_id}`);
+    console.log(`Mock conversion: $${amount} = ${mockPaymentData.amount} ${currency}`);
     return mockPaymentData;
   }
   
   try {
-    // CRITICAL FIX: Use currency1=USD and currency2=selected crypto to let CoinPayments handle conversion
+    // CRITICAL: Use currency1=USD and currency2=selected crypto to let CoinPayments handle conversion
     // This ensures proper conversion from USD to the selected cryptocurrency
     const createTransactionParams = {
       amount: amount.toString(),
@@ -84,10 +85,12 @@ export async function createCoinPaymentsTransaction(
       ipn_url: `${Deno.env.get('SUPABASE_FUNCTIONS_URL')}/ipn-handler`, // Would need to implement this separately
     };
 
-    console.log('Attempting to create real CoinPayments transaction with params:', JSON.stringify(createTransactionParams));
+    console.log('Creating real CoinPayments transaction with params:', JSON.stringify(createTransactionParams));
+    console.log(`USD amount: $${amount}, Currency: ${currency}`);
     
     const paymentData = await coinPaymentsRequest('create_transaction', createTransactionParams);
     console.log('CoinPayments transaction created successfully:', JSON.stringify(paymentData));
+    console.log(`Real conversion: $${amount} = ${paymentData.amount} ${currency}`);
     
     return paymentData;
   } catch (apiError) {
@@ -98,6 +101,7 @@ export async function createCoinPaymentsTransaction(
     
     const mockPaymentData = generateMockPaymentData(amount.toString(), currency);
     console.log(`Mock CoinPayments payment created with ID: ${mockPaymentData.txn_id}`);
+    console.log(`Mock conversion (fallback): $${amount} = ${mockPaymentData.amount} ${currency}`);
     
     return mockPaymentData;
   }
