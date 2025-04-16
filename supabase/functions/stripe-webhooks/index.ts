@@ -4,6 +4,7 @@ import { handleStripeWebhook } from "./handlers.ts";
 import { corsHeaders } from "./utils.ts";
 
 // Main entry point
+// Version: [Timestamp or simple counter]
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
