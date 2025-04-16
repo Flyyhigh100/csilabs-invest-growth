@@ -1,3 +1,4 @@
+
 import { createSignature } from "./utils.ts";
 
 interface CoinPaymentsStatusResponse {
@@ -129,4 +130,3 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<CoinP
     };
   }
 }
-
