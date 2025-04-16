@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
+
 const Footer: React.FC = () => {
   return <footer className="bg-cbis-blue text-white py-12">
       <div className="container-custom">
@@ -48,22 +50,22 @@ const Footer: React.FC = () => {
             <h3 className="text-lg font-semibold mb-4">Legal</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="#" className="text-blue-100 hover:text-white transition-colors">
+                <Link to="/legal/terms-and-conditions" className="text-blue-100 hover:text-white transition-colors">
                   Terms & Conditions
                 </Link>
               </li>
               <li>
-                <Link to="#" className="text-blue-100 hover:text-white transition-colors">
-                  Privacy Policy
+                <Link to="/legal/foundation-disclosure" className="text-blue-100 hover:text-white transition-colors">
+                  Foundation Disclosure
                 </Link>
               </li>
               <li>
-                <Link to="#" className="text-blue-100 hover:text-white transition-colors">
+                <Link to="/legal/geographic-restrictions" className="text-blue-100 hover:text-white transition-colors">
                   Geographic Restrictions
                 </Link>
               </li>
               <li>
-                <Link to="#" className="text-blue-100 hover:text-white transition-colors">
+                <Link to="/legal/token-disclaimer" className="text-blue-100 hover:text-white transition-colors">
                   Token Disclaimer
                 </Link>
               </li>
@@ -100,4 +102,5 @@ const Footer: React.FC = () => {
       </div>
     </footer>;
 };
+
 export default Footer;

@@ -29,6 +29,12 @@ import Profile from './pages/Dashboard/Profile';
 import Documents from './pages/Dashboard/Documents';
 import DashboardHome from './pages/Dashboard/DashboardHome';
 
+// Import Legal pages
+import TermsAndConditions from './pages/Legal/TermsAndConditions';
+import FoundationDisclosure from './pages/Legal/FoundationDisclosure';
+import GeographicRestrictions from './pages/Legal/GeographicRestrictions';
+import TokenDisclaimer from './pages/Legal/TokenDisclaimer';
+
 // Import Admin pages explicitly
 import AdminDashboard from './pages/Admin/Dashboard';
 import AdminTransactionsPage from './pages/Admin/Transactions';
@@ -59,6 +65,12 @@ function App() {
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/research-documents" element={<ResearchDocuments />} />
                   <Route path="/token-info" element={<TokenInfo />} />
+                  
+                  {/* Legal Routes */}
+                  <Route path="/legal/terms-and-conditions" element={<TermsAndConditions />} />
+                  <Route path="/legal/foundation-disclosure" element={<FoundationDisclosure />} />
+                  <Route path="/legal/geographic-restrictions" element={<GeographicRestrictions />} />
+                  <Route path="/legal/token-disclaimer" element={<TokenDisclaimer />} />
                   
                   {/* Protected Routes */}
                   <Route element={<ProtectedRoute />}>
