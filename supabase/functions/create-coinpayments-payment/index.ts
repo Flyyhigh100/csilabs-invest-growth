@@ -60,13 +60,16 @@ serve(async (req) => {
           // Extract and clean payment address to ensure it doesn't have currency prefixes
           const paymentAddress = cleanPaymentAddress(paymentData.address);
           
+          // Generate a QR code with just the payment address
+          const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(paymentAddress)}&size=200x200`;
+          
           return new Response(
             JSON.stringify({
               paymentAddress: paymentAddress,
               amount: paymentData.amount,
               transactionId: transactionId,
               externalTransactionId: paymentData.txn_id,
-              qrCodeUrl: paymentData.qrcode_url,
+              qrCodeUrl: qrCodeUrl, // Use the clean QR code URL
               statusUrl: paymentData.status_url,
               expiresAt: new Date(paymentData.timeout * 1000).toISOString(),
               currency: paymentData.currency || currency,
@@ -90,13 +93,16 @@ serve(async (req) => {
           // Extract and clean payment address
           const paymentAddress = cleanPaymentAddress(mockPaymentData.address);
           
+          // Generate a QR code with just the payment address
+          const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(paymentAddress)}&size=200x200`;
+          
           return new Response(
             JSON.stringify({
               paymentAddress: paymentAddress,
               amount: mockPaymentData.amount,
               transactionId: transactionId,
               externalTransactionId: mockPaymentData.txn_id,
-              qrCodeUrl: mockPaymentData.qrcode_url,
+              qrCodeUrl: qrCodeUrl, // Use the clean QR code URL
               statusUrl: mockPaymentData.status_url,
               expiresAt: new Date(mockPaymentData.timeout * 1000).toISOString(),
               currency: mockPaymentData.currency || currency,
@@ -120,6 +126,9 @@ serve(async (req) => {
         
         // Extract and clean payment address
         const paymentAddress = cleanPaymentAddress(paymentData.address);
+        
+        // Generate a QR code with just the payment address
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(paymentAddress)}&size=200x200`;
 
         try {
           // Save transaction to database with the clean address
@@ -145,7 +154,7 @@ serve(async (req) => {
             amount: paymentData.amount,
             transactionId: transactionId,
             externalTransactionId: paymentData.txn_id,
-            qrCodeUrl: paymentData.qrcode_url,
+            qrCodeUrl: qrCodeUrl, // Use the clean QR code URL
             statusUrl: paymentData.status_url,
             expiresAt: new Date(paymentData.timeout * 1000).toISOString(),
             currency: paymentData.currency || currency,
@@ -170,6 +179,9 @@ serve(async (req) => {
         // Extract and clean payment address
         const paymentAddress = cleanPaymentAddress(mockPaymentData.address);
         
+        // Generate a QR code with just the payment address
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(paymentAddress)}&size=200x200`;
+        
         try {
           // Save transaction with mock data and clean address
           await saveTransaction(
@@ -192,7 +204,7 @@ serve(async (req) => {
             amount: mockPaymentData.amount,
             transactionId: transactionId,
             externalTransactionId: mockPaymentData.txn_id,
-            qrCodeUrl: mockPaymentData.qrcode_url,
+            qrCodeUrl: qrCodeUrl, // Use the clean QR code URL
             statusUrl: mockPaymentData.status_url,
             expiresAt: new Date(mockPaymentData.timeout * 1000).toISOString(),
             currency: mockPaymentData.currency || currency,
@@ -218,13 +230,16 @@ serve(async (req) => {
       // Extract and clean payment address
       const paymentAddress = cleanPaymentAddress(mockPaymentData.address);
       
+      // Generate a QR code with just the payment address
+      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(paymentAddress)}&size=200x200`;
+      
       return new Response(
         JSON.stringify({
           paymentAddress: paymentAddress,
           amount: mockPaymentData.amount,
           transactionId: transactionId,
           externalTransactionId: mockPaymentData.txn_id,
-          qrCodeUrl: mockPaymentData.qrcode_url,
+          qrCodeUrl: qrCodeUrl, // Use the clean QR code URL
           statusUrl: mockPaymentData.status_url,
           expiresAt: new Date(mockPaymentData.timeout * 1000).toISOString(),
           currency: mockPaymentData.currency || currency,

@@ -68,6 +68,16 @@ export async function createCoinPaymentsTransaction(
     const mockPaymentData = generateMockPaymentData(amount.toString(), currency);
     console.log(`Mock CoinPayments payment created with ID: ${mockPaymentData.txn_id}`);
     console.log(`Mock conversion: $${amount} = ${mockPaymentData.amount} ${currency}`);
+    
+    // Make sure the mock data has a clean address for the QR code
+    if (mockPaymentData.address && mockPaymentData.address.includes(':')) {
+      // Store the original address for reference
+      mockPaymentData.original_address = mockPaymentData.address;
+      // Clean the address for the QR code (without parameters)
+      mockPaymentData.address = mockPaymentData.address.split(':').pop().split('@')[0];
+      console.log(`Cleaned mock address: ${mockPaymentData.address}`);
+    }
+    
     return mockPaymentData;
   }
   
@@ -92,6 +102,15 @@ export async function createCoinPaymentsTransaction(
     console.log('CoinPayments transaction created successfully:', JSON.stringify(paymentData));
     console.log(`Real conversion: $${amount} = ${paymentData.amount} ${currency}`);
     
+    // Make sure the returned data has a clean address for the QR code
+    if (paymentData.address && paymentData.address.includes(':')) {
+      // Store the original address for reference
+      paymentData.original_address = paymentData.address;
+      // Clean the address for the QR code (without parameters)
+      paymentData.address = paymentData.address.split(':').pop().split('@')[0];
+      console.log(`Cleaned CoinPayments address: ${paymentData.address}`);
+    }
+    
     return paymentData;
   } catch (apiError) {
     console.error('CoinPayments API error:', apiError);
@@ -102,6 +121,15 @@ export async function createCoinPaymentsTransaction(
     const mockPaymentData = generateMockPaymentData(amount.toString(), currency);
     console.log(`Mock CoinPayments payment created with ID: ${mockPaymentData.txn_id}`);
     console.log(`Mock conversion (fallback): $${amount} = ${mockPaymentData.amount} ${currency}`);
+    
+    // Make sure the mock data has a clean address for the QR code
+    if (mockPaymentData.address && mockPaymentData.address.includes(':')) {
+      // Store the original address for reference
+      mockPaymentData.original_address = mockPaymentData.address;
+      // Clean the address for the QR code (without parameters)
+      mockPaymentData.address = mockPaymentData.address.split(':').pop().split('@')[0];
+      console.log(`Cleaned fallback mock address: ${mockPaymentData.address}`);
+    }
     
     return mockPaymentData;
   }

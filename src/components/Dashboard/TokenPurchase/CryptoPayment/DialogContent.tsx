@@ -29,9 +29,11 @@ const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
       )}
       
       <div className="flex flex-col md:flex-row items-center gap-4 justify-center">
-        {paymentDetails.qrCodeUrl && (
-          <QRCodeSection qrCodeUrl={paymentDetails.qrCodeUrl} />
-        )}
+        {/* Generate QR code using the clean payment address instead of the qrCodeUrl */}
+        <QRCodeSection 
+          qrCodeUrl={paymentDetails.qrCodeUrl}
+          paymentAddress={paymentDetails.paymentAddress} 
+        />
         
         <div className="space-y-4 flex-1">
           <PaymentAddressSection paymentAddress={paymentDetails.paymentAddress} />
@@ -57,4 +59,3 @@ const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
 };
 
 export default DialogContent;
-
