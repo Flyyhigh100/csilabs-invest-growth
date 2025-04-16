@@ -2,10 +2,12 @@
 import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Wallet, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { Wallet, AlertTriangle, CheckCircle, Info, RefreshCw } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KycVerificationData } from '@/hooks/kyc/types';
 import { toast } from 'sonner';
+import { useAvailableCurrencies } from '@/hooks/payments/useAvailableCurrencies';
+import { Spinner } from "@/components/ui/spinner";
 
 interface CryptoPaymentTabProps {
   amount: number;
@@ -28,6 +30,18 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
   isWalletMissing,
   kycData
 }) => {
+  const { currencies, isLoading, error, refreshCurrencies } = useAvailableCurrencies();
+  
+  // If the selected currency isn't in the list anymore, default to USDT
+  React.useEffect(() => {
+    if (!isLoading && currencies.length > 0) {
+      const currencyCodes = currencies.map(c => c.code);
+      if (!currencyCodes.includes(selectedCurrency)) {
+        setSelectedCurrency(currencyCodes[0] || 'USDT');
+      }
+    }
+  }, [currencies, selectedCurrency, setSelectedCurrency, isLoading]);
+
   const handlePaymentClick = () => {
     if (isWalletMissing) {
       toast.error("Wallet Address Required", {
@@ -83,18 +97,45 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
       )}
       
       <div className="bg-white p-4 rounded-lg border border-gray-200">
-        <Label htmlFor="crypto-currency" className="text-sm text-gray-700 font-medium">Select Cryptocurrency</Label>
-        <Select value={selectedCurrency} onValueChange={setSelectedCurrency} disabled={isProcessing}>
+        <div className="flex justify-between items-center mb-2">
+          <Label htmlFor="crypto-currency" className="text-sm text-gray-700 font-medium">Select Cryptocurrency</Label>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={refreshCurrencies} 
+            disabled={isLoading || isProcessing}
+            className="text-xs flex items-center gap-1"
+          >
+            {isLoading ? <Spinner className="h-3 w-3" /> : <RefreshCw className="h-3 w-3" />}
+            Refresh
+          </Button>
+        </div>
+        
+        <Select value={selectedCurrency} onValueChange={setSelectedCurrency} disabled={isProcessing || isLoading}>
           <SelectTrigger id="crypto-currency" className="mt-2 border border-gray-200 bg-white focus:ring-2 focus:ring-cbis-blue focus:border-cbis-blue transition-all">
-            <SelectValue placeholder="Select cryptocurrency" />
+            <SelectValue placeholder={isLoading ? "Loading currencies..." : "Select cryptocurrency"} />
           </SelectTrigger>
           <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
-            <SelectItem value="USDT" className="hover:bg-blue-50">USDT (Tether)</SelectItem>
-            <SelectItem value="BTC" className="hover:bg-blue-50">Bitcoin (BTC)</SelectItem>
-            <SelectItem value="ETH" className="hover:bg-blue-50">Ethereum (ETH)</SelectItem>
-            <SelectItem value="DOGE" className="hover:bg-blue-50">Dogecoin (DOGE)</SelectItem>
-            <SelectItem value="XRP" className="hover:bg-blue-50">Ripple (XRP)</SelectItem>
-            <SelectItem value="LTCT" className="hover:bg-blue-50">Litecoin Testnet (LTCT)</SelectItem>
+            {isLoading ? (
+              <div className="flex items-center justify-center p-4">
+                <Spinner className="h-4 w-4 mr-2" />
+                <span>Loading available currencies...</span>
+              </div>
+            ) : currencies.length > 0 ? (
+              currencies.map(currency => (
+                <SelectItem 
+                  key={currency.code} 
+                  value={currency.code} 
+                  className="hover:bg-blue-50"
+                >
+                  {currency.name}
+                </SelectItem>
+              ))
+            ) : (
+              <div className="p-4 text-red-500 text-center">
+                {error || "No currencies available"}
+              </div>
+            )}
           </SelectContent>
         </Select>
       </div>
@@ -106,10 +147,17 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
         </div>
         <Button 
           onClick={handlePaymentClick} 
-          disabled={isProcessing}
+          disabled={isProcessing || isLoading || currencies.length === 0}
           className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white py-2 px-4 sm:w-auto w-full"
         >
-          Pay with {selectedCurrency}
+          {isLoading ? (
+            <span className="flex items-center">
+              <Spinner className="h-4 w-4 mr-2" />
+              Loading...
+            </span>
+          ) : (
+            `Pay with ${selectedCurrency}`
+          )}
         </Button>
       </div>
       

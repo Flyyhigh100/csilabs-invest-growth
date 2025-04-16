@@ -1,7 +1,8 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClients } from "./clients.ts";
 import { handleStripeWebhook } from "./handlers.ts";
-import { corsHeaders } from "./utils.ts";
+import { corsHeaders } from "../create-coinpayments-payment/utils.ts";
 
 // Main entry point
 // Version: [Timestamp or simple counter]

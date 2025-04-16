@@ -101,8 +101,6 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
         )}
       </CardContent>
       
-      {/* Removed SyncCryptoPaymentButton */}
-      
       <CryptoPaymentDialog 
         open={showCryptoDialog} 
         onOpenChange={handleDialogOpenChange} 

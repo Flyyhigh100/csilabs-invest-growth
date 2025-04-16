@@ -1,3 +1,4 @@
+
 import { createSignature, generateMockPaymentData } from "./utils.ts";
 
 const COINPAYMENTS_API_URL = 'https://www.coinpayments.net/api.php';
@@ -97,5 +98,40 @@ export async function createCoinPaymentsTransaction(
     console.log(`Mock CoinPayments payment created with ID: ${mockPaymentData.txn_id}`);
     
     return mockPaymentData;
+  }
+}
+
+// Get available CoinPayments currencies
+export async function getAvailableCurrencies(forceMock: boolean = false) {
+  // If mock mode or missing API keys, return mock data
+  if (forceMock || !COINPAYMENTS_PUBLIC_KEY || !COINPAYMENTS_PRIVATE_KEY) {
+    console.log('Using mock currency data');
+    return {
+      BTC: { name: "Bitcoin", is_fiat: 0, rate_btc: "1.00", status: "online", accepted: 1 },
+      LTC: { name: "Litecoin", is_fiat: 0, rate_btc: "0.01", status: "online", accepted: 1 },
+      ETH: { name: "Ethereum", is_fiat: 0, rate_btc: "0.05", status: "online", accepted: 1 },
+      DOGE: { name: "Dogecoin", is_fiat: 0, rate_btc: "0.000001", status: "online", accepted: 1 },
+      USDT: { name: "Tether USD", is_fiat: 0, rate_btc: "0.000033", status: "online", accepted: 1 },
+      BNB: { name: "Binance Coin", is_fiat: 0, rate_btc: "0.01", status: "online", accepted: 1 },
+      XRP: { name: "Ripple", is_fiat: 0, rate_btc: "0.000025", status: "online", accepted: 1 },
+      LTCT: { name: "Litecoin Testnet", is_fiat: 0, rate_btc: "0.01", status: "online", accepted: 1 },
+    };
+  }
+  
+  try {
+    console.log('Fetching available currencies from CoinPayments API');
+    const result = await coinPaymentsRequest('rates', { accepted: "1" });
+    console.log(`Retrieved ${Object.keys(result).length} currencies from CoinPayments`);
+    return result;
+  } catch (error) {
+    console.error('Error fetching currencies:', error);
+    
+    // Fall back to mock data if the API call fails
+    return {
+      BTC: { name: "Bitcoin", is_fiat: 0, rate_btc: "1.00", status: "online", accepted: 1 },
+      ETH: { name: "Ethereum", is_fiat: 0, rate_btc: "0.05", status: "online", accepted: 1 },
+      USDT: { name: "Tether USD", is_fiat: 0, rate_btc: "0.000033", status: "online", accepted: 1 },
+      BNB: { name: "Binance Coin", is_fiat: 0, rate_btc: "0.01", status: "online", accepted: 1 },
+    };
   }
 }
