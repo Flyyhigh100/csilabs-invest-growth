@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 
@@ -73,17 +74,41 @@ async function createSignature(params: Record<string, string>, privateKey: strin
   }
 }
 
-// Generate mock payment data - Not needed for this function but keeping the pattern complete
+// Generate mock payment data with proper currency conversion
 function generateMockPaymentData(amount: string, currencyCode: string = 'USDT'): any {
-  // Mock implementation
+  // Mock conversion rates (same as in utils.ts)
+  const mockRates = {
+    BTC: 0.000022,  // 1 USD ≈ 0.000022 BTC
+    ETH: 0.000271,  // 1 USD ≈ 0.000271 ETH
+    USDT: 1.0,      // 1:1 with USD
+    USDC: 1.0,      // 1:1 with USD
+    BNB: 0.0023,    // 1 USD ≈ 0.0023 BNB
+    LTC: 0.0108,    // 1 USD ≈ 0.0108 LTC
+    DOGE: 8.71,     // 1 USD ≈ 8.71 DOGE
+    XRP: 1.40,      // 1 USD ≈ 1.40 XRP
+    LTCT: 0.0108,   // Same as LTC for testing
+  };
+  
+  // Convert USD amount to cryptocurrency amount
+  const rate = mockRates[currencyCode as keyof typeof mockRates] || 1.0;
+  const cryptoAmount = (parseFloat(amount) * rate).toFixed(8);
+  
+  // Generate a clean wallet address (without prefixes)
+  const mockAddress = `0x${Array.from({length: 40}, () => 
+    Math.floor(Math.random() * 16).toString(16)).join('')}`;
+  
+  // Generate QR code URL with clean address
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(mockAddress)}`;
+  
   return {
-    address: `mock_address_${currencyCode}_${Date.now()}`,
-    amount: amount,
+    address: mockAddress,
+    amount: cryptoAmount,
     txn_id: `CP${Date.now()}`,
     timeout: Math.floor(Date.now() / 1000) + 3600,
-    qrcode_url: `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(`${currencyCode.toLowerCase()}:mock_address`)}`,
+    qrcode_url: qrCodeUrl,
     status_url: `https://www.coinpayments.net/index.php?cmd=status&id=CP${Date.now()}`,
-    currency: currencyCode
+    currency: currencyCode,
+    usd_value: amount
   };
 }
 

@@ -56,10 +56,13 @@ serve(async (req) => {
             walletAddress, 
             'anonymous@example.com'
           );
-
+          
+          // Extract and clean payment address to ensure it doesn't have currency prefixes
+          const paymentAddress = cleanPaymentAddress(paymentData.address);
+          
           return new Response(
             JSON.stringify({
-              paymentAddress: paymentData.address,
+              paymentAddress: paymentAddress,
               amount: paymentData.amount,
               transactionId: transactionId,
               externalTransactionId: paymentData.txn_id,
@@ -67,7 +70,8 @@ serve(async (req) => {
               statusUrl: paymentData.status_url,
               expiresAt: new Date(paymentData.timeout * 1000).toISOString(),
               currency: paymentData.currency || currency,
-              instructions: `Please send ${paymentData.amount} ${paymentData.currency || currency} to the address above to complete your purchase.`
+              instructions: `Please send ${paymentData.amount} ${paymentData.currency || currency} to the address above to complete your purchase.`,
+              usdValue: amount // Add the original USD amount for reference
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
           );
@@ -83,9 +87,12 @@ serve(async (req) => {
             true // Force mock mode
           );
           
+          // Extract and clean payment address
+          const paymentAddress = cleanPaymentAddress(mockPaymentData.address);
+          
           return new Response(
             JSON.stringify({
-              paymentAddress: mockPaymentData.address,
+              paymentAddress: paymentAddress,
               amount: mockPaymentData.amount,
               transactionId: transactionId,
               externalTransactionId: mockPaymentData.txn_id,
@@ -93,7 +100,8 @@ serve(async (req) => {
               statusUrl: mockPaymentData.status_url,
               expiresAt: new Date(mockPaymentData.timeout * 1000).toISOString(),
               currency: mockPaymentData.currency || currency,
-              instructions: `Please send ${mockPaymentData.amount} ${mockPaymentData.currency || currency} to the address above to complete your purchase.`
+              instructions: `Please send ${mockPaymentData.amount} ${mockPaymentData.currency || currency} to the address above to complete your purchase.`,
+              usdValue: amount
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
           );
@@ -109,16 +117,19 @@ serve(async (req) => {
           walletAddress, 
           user.email
         );
+        
+        // Extract and clean payment address
+        const paymentAddress = cleanPaymentAddress(paymentData.address);
 
         try {
-          // Save transaction to database
+          // Save transaction to database with the clean address
           await saveTransaction(
             supabaseClient,
             user.id,
             amount,
             walletAddress,
             transactionId,
-            paymentData.address,
+            paymentAddress, // Use the cleaned address
             paymentData.txn_id,
             currency
           );
@@ -130,7 +141,7 @@ serve(async (req) => {
 
         return new Response(
           JSON.stringify({
-            paymentAddress: paymentData.address,
+            paymentAddress: paymentAddress,
             amount: paymentData.amount,
             transactionId: transactionId,
             externalTransactionId: paymentData.txn_id,
@@ -138,7 +149,8 @@ serve(async (req) => {
             statusUrl: paymentData.status_url,
             expiresAt: new Date(paymentData.timeout * 1000).toISOString(),
             currency: paymentData.currency || currency,
-            instructions: `Please send ${paymentData.amount} ${paymentData.currency || currency} to the address above to complete your purchase.`
+            instructions: `Please send ${paymentData.amount} ${paymentData.currency || currency} to the address above to complete your purchase.`,
+            usdValue: amount
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         );
@@ -155,15 +167,18 @@ serve(async (req) => {
           true // Force mock mode
         );
         
+        // Extract and clean payment address
+        const paymentAddress = cleanPaymentAddress(mockPaymentData.address);
+        
         try {
-          // Save transaction with mock data
+          // Save transaction with mock data and clean address
           await saveTransaction(
             supabaseClient,
             user.id,
             amount,
             walletAddress,
             transactionId,
-            mockPaymentData.address,
+            paymentAddress, // Use the cleaned address
             mockPaymentData.txn_id,
             currency
           );
@@ -173,7 +188,7 @@ serve(async (req) => {
         
         return new Response(
           JSON.stringify({
-            paymentAddress: mockPaymentData.address,
+            paymentAddress: paymentAddress,
             amount: mockPaymentData.amount,
             transactionId: transactionId,
             externalTransactionId: mockPaymentData.txn_id,
@@ -181,7 +196,8 @@ serve(async (req) => {
             statusUrl: mockPaymentData.status_url,
             expiresAt: new Date(mockPaymentData.timeout * 1000).toISOString(),
             currency: mockPaymentData.currency || currency,
-            instructions: `Please send ${mockPaymentData.amount} ${mockPaymentData.currency || currency} to the address above to complete your purchase.`
+            instructions: `Please send ${mockPaymentData.amount} ${mockPaymentData.currency || currency} to the address above to complete your purchase.`,
+            usdValue: amount
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         );
@@ -199,9 +215,12 @@ serve(async (req) => {
         true // Force mock mode
       );
       
+      // Extract and clean payment address
+      const paymentAddress = cleanPaymentAddress(mockPaymentData.address);
+      
       return new Response(
         JSON.stringify({
-          paymentAddress: mockPaymentData.address,
+          paymentAddress: paymentAddress,
           amount: mockPaymentData.amount,
           transactionId: transactionId,
           externalTransactionId: mockPaymentData.txn_id,
@@ -209,7 +228,8 @@ serve(async (req) => {
           statusUrl: mockPaymentData.status_url,
           expiresAt: new Date(mockPaymentData.timeout * 1000).toISOString(),
           currency: mockPaymentData.currency || currency,
-          instructions: `Please send ${mockPaymentData.amount} ${mockPaymentData.currency || currency} to the address above to complete your purchase.`
+          instructions: `Please send ${mockPaymentData.amount} ${mockPaymentData.currency || currency} to the address above to complete your purchase.`,
+          usdValue: amount
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
@@ -222,3 +242,48 @@ serve(async (req) => {
     );
   }
 });
+
+/**
+ * Helper function to clean cryptocurrency payment addresses by removing any prefixes
+ * This ensures wallet applications can properly scan the address
+ */
+function cleanPaymentAddress(address: string): string {
+  if (!address) return '';
+  
+  // Common patterns for prefixed addresses (e.g., 'btc:address', 'eth-network:address', etc.)
+  const prefixPatterns = [
+    /^[a-z]+-[a-z0-9]+:(0x[a-fA-F0-9]+)$/,  // Format: chain-network:0xaddress
+    /^[a-z]+:(0x[a-fA-F0-9]+)$/,            // Format: chain:0xaddress
+    /^[a-z]+-[a-z0-9]+:([a-zA-Z0-9]+)$/,    // Format: chain-network:address
+    /^[a-z]+:([a-zA-Z0-9]+)$/               // Format: chain:address
+  ];
+  
+  // Check each pattern and extract the clean address if match is found
+  for (const pattern of prefixPatterns) {
+    const match = address.match(pattern);
+    if (match && match[1]) {
+      console.log(`Cleaned payment address from ${address} to ${match[1]}`);
+      return match[1];
+    }
+  }
+  
+  // If ethereum-style address with 0x prefix but has other prefixes
+  if (address.includes('0x')) {
+    const ethMatch = address.match(/.*?(0x[a-fA-F0-9]+)$/);
+    if (ethMatch && ethMatch[1]) {
+      console.log(`Extracted Ethereum address from ${address} to ${ethMatch[1]}`);
+      return ethMatch[1];
+    }
+  }
+  
+  // For Bitcoin and similar addresses, remove any prefixes before the base58 or bech32 address
+  const btcMatch = address.match(/.*?:([a-zA-Z0-9]+)$/);
+  if (btcMatch && btcMatch[1]) {
+    console.log(`Extracted Bitcoin-style address from ${address} to ${btcMatch[1]}`);
+    return btcMatch[1];
+  }
+  
+  // If no pattern matches, return the original address
+  console.log(`No cleanup needed for address: ${address}`);
+  return address;
+}

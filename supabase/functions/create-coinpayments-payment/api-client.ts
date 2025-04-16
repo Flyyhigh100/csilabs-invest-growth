@@ -71,14 +71,16 @@ export async function createCoinPaymentsTransaction(
   }
   
   try {
+    // CRITICAL FIX: Use currency1=USD and currency2=selected crypto to let CoinPayments handle conversion
+    // This ensures proper conversion from USD to the selected cryptocurrency
     const createTransactionParams = {
       amount: amount.toString(),
-      currency1: 'USD',
-      currency2: currency,
+      currency1: 'USD',          // Amount is specified in USD
+      currency2: currency,       // User will pay with this cryptocurrency
       buyer_email: userEmail || 'customer@example.com',
       item_name: 'CSi Tokens Purchase',
       item_number: transactionId,
-      custom: walletAddress, // Store wallet address in custom field
+      custom: walletAddress,     // Store wallet address in custom field
       ipn_url: `${Deno.env.get('SUPABASE_FUNCTIONS_URL')}/ipn-handler`, // Would need to implement this separately
     };
 

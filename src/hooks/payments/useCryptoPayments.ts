@@ -59,16 +59,19 @@ export const useCryptoPayments = (walletAddress: string | null) => {
         throw new Error("No payment data received");
       }
       
+      // Create payment details with properly formatted data
       setCryptoPaymentDetails({
-        paymentAddress: data.paymentAddress,
+        paymentAddress: data.paymentAddress, // This should now be a clean address
         transactionId: data.transactionId,
-        instructions: data.instructions,
+        instructions: `Please send ${data.amount} ${data.currency || currency} to the address above to complete your purchase of $${amount} worth of CSi tokens.`,
         qrCodeUrl: data.qrCodeUrl,
         statusUrl: data.statusUrl,
         expiresAt: data.expiresAt,
         externalTransactionId: data.externalTransactionId,
         currency: data.currency || currency,
-        checkStatusUrl: data.checkStatusUrl
+        checkStatusUrl: data.checkStatusUrl,
+        // Store original USD value for reference
+        usdValue: amount
       });
       
       toast.success(`${currency} Payment Ready`, {
@@ -138,7 +141,8 @@ export const useCryptoPayments = (walletAddress: string | null) => {
         transactionId: data.transactionId,
         instructions: data.instructions,
         currency: 'USDC',
-        checkStatusUrl: data.checkStatusUrl
+        checkStatusUrl: data.checkStatusUrl,
+        usdValue: amount
       });
       
       toast.success("USDC Payment Ready", {

@@ -1,9 +1,12 @@
 
 import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
+// CORS headers for browser requests
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Content-Type': 'application/json'
 };
 
 // Helper function to create HMAC signature
@@ -71,64 +74,44 @@ export async function createSignature(params: Record<string, string>, privateKey
   }
 }
 
-// Generate mock payment data for testing when API fails
-export function generateMockPaymentData(amount: string, currencyCode: string = 'USDT'): {
-  address: string;
-  amount: string;
-  txn_id: string;
-  timeout: number;
-  qrcode_url: string;
-  status_url: string;
-  currency: string; // Added currency to the return type
-} {
-  // Generate a semi-realistic mock address based on the currency
-  let mockAddress = '';
-  const currency = currencyCode.toUpperCase();
+// Generate mock payment data with proper currency conversion simulation
+export function generateMockPaymentData(amount: string, currencyCode: string = 'USDT'): any {
+  // Mock conversion rates for demonstration purposes
+  // In a real scenario, these would come from the API
+  const mockRates = {
+    BTC: 0.000022,  // 1 USD ≈ 0.000022 BTC
+    ETH: 0.000271,  // 1 USD ≈ 0.000271 ETH
+    USDT: 1.0,      // 1:1 with USD
+    USDC: 1.0,      // 1:1 with USD
+    BNB: 0.0023,    // 1 USD ≈ 0.0023 BNB
+    LTC: 0.0108,    // 1 USD ≈ 0.0108 LTC
+    DOGE: 8.71,     // 1 USD ≈ 8.71 DOGE
+    XRP: 1.40,      // 1 USD ≈ 1.40 XRP
+    LTCT: 0.0108,   // Same as LTC for testing
+  };
   
-  switch (currency) {
-    case 'BTC':
-      // Bitcoin style address
-      mockAddress = `bc1${Array.from({length: 38}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
-      break;
-    case 'ETH':
-      // Ethereum style address
-      mockAddress = `0x${Array.from({length: 40}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
-      break;
-    case 'USDT': 
-      if (Math.random() > 0.5) {
-        // ERC-20 Ethereum token address style
-        mockAddress = `0x${Array.from({length: 40}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
-      } else {
-        // TRC-20 Tron token address style
-        mockAddress = `T${Array.from({length: 33}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
-      }
-      break;
-    case 'DOGE':
-      // Dogecoin style address
-      mockAddress = `D${Array.from({length: 33}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
-      break;
-    case 'XRP':
-      // Ripple style address
-      mockAddress = `r${Array.from({length: 24}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
-      break;
-    case 'LTCT':
-      // Litecoin testnet style address
-      mockAddress = `m${Array.from({length: 33}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
-      break;
-    default:
-      // Default to Ethereum style address
-      mockAddress = `0x${Array.from({length: 40}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
-  }
+  // Convert USD amount to cryptocurrency amount
+  const rate = mockRates[currencyCode as keyof typeof mockRates] || 1.0;
+  const cryptoAmount = (parseFloat(amount) * rate).toFixed(8);
   
-  const mockTxnId = `CP${Date.now()}`;
+  // Generate a clean wallet address without currency prefixes for the QR code
+  // We use the format expected by most QR scanners: just the address
+  const mockAddress = `0x${Array.from({length: 40}, () => 
+    Math.floor(Math.random() * 16).toString(16)).join('')}`;
+  
+  // Generate QR code URL with CLEAN address (without currency prefix)
+  // This ensures compatibility with wallet apps
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(mockAddress)}`;
   
   return {
-    address: mockAddress,
-    amount: amount,
-    txn_id: mockTxnId,
-    timeout: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
-    qrcode_url: `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(`${currency.toLowerCase()}:${mockAddress}`)}`,
-    status_url: `https://www.coinpayments.net/index.php?cmd=status&id=${mockTxnId}`,
-    currency: currency // Return the currency in the response
+    address: mockAddress, // Clean address without prefix
+    amount: cryptoAmount, // Converted crypto amount (not 1:1 with USD)
+    txn_id: `CP${Date.now()}`,
+    timeout: Math.floor(Date.now() / 1000) + 3600,
+    qrcode_url: qrCodeUrl,
+    status_url: `https://www.coinpayments.net/index.php?cmd=status&id=CP${Date.now()}`,
+    currency: currencyCode,
+    // Add estimated USD value for clarity
+    usd_value: amount
   };
 }
