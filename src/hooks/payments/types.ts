@@ -38,3 +38,8 @@ export interface CryptoStatusCheckResult {
   error?: string;
   details?: string;
 }
+
+// Add the missing PaymentValidationOptions interface
+export interface PaymentValidationOptions {
+  isCrypto?: boolean;
+}

@@ -38,6 +38,15 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
   const isKycNeeded = kycRequired(amount) && kycData?.status !== 'approved';
   const isWalletMissing = !walletAddress;
 
+  // Update this method to handle the boolean return value
+  const handleStripePaymentWrapper = async (amount: number): Promise<void> => {
+    const success = await handleStripePayment(amount);
+    // You can optionally do something with the success value here if needed
+    if (!success) {
+      console.error("Stripe payment was not successful");
+    }
+  };
+
   const handleCoinPaymentWithCurrency = () => {
     console.log('[BuyTokensTab] Initiating CoinPayments with amount:', amount, 'and selected currency:', selectedCurrency);
     handleCoinPaymentsPayment(amount, selectedCurrency);
@@ -85,7 +94,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
                 amount={amount}
                 selectedCurrency={selectedCurrency}
                 setSelectedCurrency={setSelectedCurrency}
-                handleStripePayment={handleStripePayment}
+                handleStripePayment={handleStripePaymentWrapper}
                 handleCoinPaymentWithCurrency={handleCoinPaymentWithCurrency}
                 isProcessing={isProcessing}
                 isKycNeeded={isKycNeeded}

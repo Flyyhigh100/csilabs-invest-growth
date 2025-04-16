@@ -12,7 +12,7 @@ export const usePaymentHandlers = (walletAddress: string | null): UsePaymentHand
   
   // Get payment method specific handlers
   const { 
-    handleStripePayment, 
+    handleStripePayment: processStripePayment, 
     isProcessing: isStripeProcessing,
     setIsProcessing: setStripeProcessing
   } = useStripePayment(walletAddress);
@@ -27,8 +27,19 @@ export const usePaymentHandlers = (walletAddress: string | null): UsePaymentHand
 
   const isProcessing = isStripeProcessing || isCryptoProcessing;
 
+  // Wrapper for Stripe payment to ensure it returns a boolean
+  const handleStripePayment = async (amount: number): Promise<boolean> => {
+    try {
+      await processStripePayment(amount);
+      return true;
+    } catch (error) {
+      console.error("Error in Stripe payment:", error);
+      return false;
+    }
+  };
+  
   // Wrapper for coin payments to handle dialog display
-  const handleCoinPaymentsPayment = async (amount: number, currency: string = 'USDT') => {
+  const handleCoinPaymentsPayment = async (amount: number, currency: string = 'USDT'): Promise<boolean> => {
     const success = await processCoinPayment(amount, currency);
     if (success) {
       setShowCryptoDialog(true);
@@ -38,10 +49,11 @@ export const usePaymentHandlers = (walletAddress: string | null): UsePaymentHand
         description: `Please follow the instructions to complete your ${currency} payment.`
       });
     }
+    return success;
   };
   
   // Wrapper for crypto payments to handle dialog display
-  const handleCryptoPayment = async (amount: number) => {
+  const handleCryptoPayment = async (amount: number): Promise<boolean> => {
     const success = await processCryptoPayment(amount);
     if (success) {
       setShowCryptoDialog(true);
@@ -51,6 +63,7 @@ export const usePaymentHandlers = (walletAddress: string | null): UsePaymentHand
         description: "Please follow the instructions to complete your USDC payment."
       });
     }
+    return success;
   };
 
   return {
