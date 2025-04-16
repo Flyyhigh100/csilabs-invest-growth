@@ -1,6 +1,5 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createSignature, generateMockPaymentData } from "../create-coinpayments-payment/utils.ts";
+import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 
 // CORS headers for browser requests
 const corsHeaders = {
@@ -9,7 +8,86 @@ const corsHeaders = {
   'Content-Type': 'application/json'
 };
 
-// Get available CoinPayments currencies (moved from api-client.ts to prevent import issues)
+// Helper function to create HMAC signature (inlined from utils.ts)
+async function createSignature(params: Record<string, string>, privateKey: string): Promise<string> {
+  const payload = new URLSearchParams(params).toString();
+  console.log('Creating signature for payload:', payload);
+  
+  try {
+    // Method 1: Try using the private key directly as UTF-8
+    const encoder = new TextEncoder();
+    const message = encoder.encode(payload);
+    
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(privateKey),
+      { name: "HMAC", hash: "SHA-512" },
+      false,
+      ["sign"]
+    );
+    
+    const signature = await crypto.subtle.sign(
+      "HMAC",
+      key,
+      message
+    );
+    
+    // Convert to hex string
+    return Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  } catch (error) {
+    console.error('Error in first signature attempt:', error);
+    
+    // Method 2: If the first method fails, try converting hex to bytes first
+    try {
+      // Convert hex key to bytes if it's in hex format
+      const keyBytes = privateKey.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || [];
+      const keyBuffer = new Uint8Array(keyBytes);
+      
+      const encoder = new TextEncoder();
+      const message = encoder.encode(payload);
+      
+      // Create HMAC using SubtleCrypto API with the byte array
+      const key = await crypto.subtle.importKey(
+        "raw",
+        keyBuffer,
+        { name: "HMAC", hash: "SHA-512" },
+        false,
+        ["sign"]
+      );
+      
+      const signature = await crypto.subtle.sign(
+        "HMAC",
+        key,
+        message
+      );
+      
+      // Convert to hex string
+      return Array.from(new Uint8Array(signature))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+    } catch (fallbackError) {
+      throw new Error(`Both signature methods failed. Original: ${error.message}, Fallback: ${fallbackError.message}`);
+    }
+  }
+}
+
+// Generate mock payment data - Not needed for this function but keeping the pattern complete
+function generateMockPaymentData(amount: string, currencyCode: string = 'USDT'): any {
+  // Mock implementation
+  return {
+    address: `mock_address_${currencyCode}_${Date.now()}`,
+    amount: amount,
+    txn_id: `CP${Date.now()}`,
+    timeout: Math.floor(Date.now() / 1000) + 3600,
+    qrcode_url: `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(`${currencyCode.toLowerCase()}:mock_address`)}`,
+    status_url: `https://www.coinpayments.net/index.php?cmd=status&id=CP${Date.now()}`,
+    currency: currencyCode
+  };
+}
+
+// Get available CoinPayments currencies (fully inlined)
 async function getAvailableCurrencies(forceMock: boolean = false) {
   const COINPAYMENTS_API_URL = 'https://www.coinpayments.net/api.php';
   const COINPAYMENTS_PUBLIC_KEY = Deno.env.get('COINPAYMENTS_PUBLIC_KEY');
