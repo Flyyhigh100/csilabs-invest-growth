@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -6,6 +7,8 @@ import DocumentsGrid from '@/components/ResearchDocuments/DocumentsGrid';
 import DocumentViewer from '@/components/ResearchDocuments/DocumentViewer';
 import CategoryFilter from '@/components/ResearchDocuments/CategoryFilter';
 import { useResearchDocuments } from '@/hooks/research/useResearchDocuments';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
+
 const ResearchDocuments: React.FC = () => {
   const {
     filteredDocuments,
@@ -18,9 +21,6 @@ const ResearchDocuments: React.FC = () => {
     refreshDocuments
   } = useResearchDocuments();
 
-  // This was causing an infinite loop - removed the call to refreshDocuments from here
-  // The useResearchDocuments hook already fetches documents on mount
-
   return <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <Navbar />
       <div className="pt-24 pb-16">
@@ -31,6 +31,28 @@ const ResearchDocuments: React.FC = () => {
                 Research <span className="bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">Documentation</span>
               </h1>
               <p className="text-lg text-gray-600 max-w-3xl mx-auto">Explore CSi Labs' research documents and other studies supporting our cannabinoid-based cancer treatments.</p>
+            </div>
+          </FadeInSection>
+
+          {/* Featured Research Video */}
+          <FadeInSection>
+            <div className="mb-12">
+              <h2 className="text-2xl font-bold mb-4">Featured Research</h2>
+              <div className="bg-white p-4 rounded-lg shadow-md">
+                <AspectRatio ratio={16/9} className="overflow-hidden rounded-md">
+                  <iframe 
+                    src="https://www.youtube.com/embed/x3q2uQ7J7f4" 
+                    title="CSI Labs Research Video"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    className="w-full h-full border-0"
+                    allowFullScreen
+                  ></iframe>
+                </AspectRatio>
+                <div className="mt-4 text-center">
+                  <h3 className="font-medium text-lg">CSI Labs Research Overview</h3>
+                  <p className="text-gray-600 text-sm">Explore our comprehensive research approach and latest findings</p>
+                </div>
+              </div>
             </div>
           </FadeInSection>
 

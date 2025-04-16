@@ -1,14 +1,17 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTransactions } from '@/hooks/transactions/useTransactions';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency } from '@/utils/format';
-import { Loader2, Coins, AlertCircle } from 'lucide-react';
+import { Loader2, Coins, AlertCircle, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { format } from 'date-fns';
 
 const TokenBalanceCard: React.FC = () => {
   const { user } = useAuth();
   const { data: transactions, isLoading, error } = useTransactions(user?.id);
+  const [isOpen, setIsOpen] = useState(false);
   
   // Calculate total tokens transferred
   const completedTransactions = transactions?.filter(tx => 
@@ -56,9 +59,58 @@ const TokenBalanceCard: React.FC = () => {
             )}
             
             {completedTransactions.length > 0 && (
-              <div className="text-sm text-gray-500 flex justify-between">
-                <span>Transfers completed:</span>
-                <span>{completedTransactions.length}</span>
+              <div className="space-y-2">
+                <div className="text-sm text-gray-500 flex justify-between">
+                  <span>Transfers completed:</span>
+                  <span>{completedTransactions.length}</span>
+                </div>
+                
+                <Collapsible
+                  open={isOpen}
+                  onOpenChange={setIsOpen}
+                  className="w-full"
+                >
+                  <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-sm rounded-md hover:bg-green-50 text-green-700 bg-green-100 border border-green-200 transition-colors">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                      <span>Tokens Delivered</span>
+                    </div>
+                    {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                  </CollapsibleTrigger>
+                  
+                  <CollapsibleContent className="mt-2">
+                    <div className="border rounded-md overflow-hidden">
+                      <div className="bg-gray-100 p-2 text-xs font-medium text-gray-700 grid grid-cols-3">
+                        <div>Date</div>
+                        <div>Amount</div>
+                        <div>Transaction</div>
+                      </div>
+                      <div className="divide-y">
+                        {completedTransactions.map(tx => (
+                          <div key={tx.id} className="p-2 text-sm grid grid-cols-3 hover:bg-gray-50">
+                            <div>{format(new Date(tx.updated_at), 'MMM dd, yyyy HH:mm')}</div>
+                            <div className="font-medium">{Number(tx.amount).toFixed(2)} CSI</div>
+                            <div>
+                              {tx.blockchain_tx_id ? (
+                                <a 
+                                  href={`https://blockexplorer.com/tx/${tx.blockchain_tx_id}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="flex items-center text-blue-600 hover:text-blue-800 hover:underline"
+                                >
+                                  <span className="truncate max-w-[100px]">{tx.blockchain_tx_id.substring(0, 8)}...</span>
+                                  <ExternalLink size={12} className="ml-1 inline" />
+                                </a>
+                              ) : (
+                                <span className="text-gray-400 italic">No blockchain ID</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </div>
             )}
             
