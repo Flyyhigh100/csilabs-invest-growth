@@ -4,14 +4,15 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { NotificationType } from './useNotificationActions';
 
 interface NotificationFormFieldsProps {
   title: string;
   setTitle: (title: string) => void;
   message: string;
   setMessage: (message: string) => void;
-  notificationType: 'wallet' | 'payment' | 'kyc' | 'tokens' | 'other';
-  setNotificationType: (type: 'wallet' | 'payment' | 'kyc' | 'tokens' | 'other') => void;
+  type: NotificationType;
+  setType: (type: NotificationType) => void;
 }
 
 const NotificationFormFields: React.FC<NotificationFormFieldsProps> = ({
@@ -19,16 +20,16 @@ const NotificationFormFields: React.FC<NotificationFormFieldsProps> = ({
   setTitle,
   message,
   setMessage,
-  notificationType,
-  setNotificationType,
+  type,
+  setType,
 }) => {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="type">Notification Type</Label>
         <Select 
-          value={notificationType} 
-          onValueChange={(val: any) => setNotificationType(val)}
+          value={type} 
+          onValueChange={(val: NotificationType) => setType(val)}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select notification type" />

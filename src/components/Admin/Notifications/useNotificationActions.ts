@@ -1,18 +1,21 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
+export type NotificationType = 'wallet' | 'payment' | 'kyc' | 'tokens' | 'other';
+
 export const useNotificationActions = () => {
-  const [notificationType, setNotificationType] = useState('info');
+  const [type, setType] = useState<NotificationType>('other');
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [userId, setUserId] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSendingToUser, setIsSendingToUser] = useState(false);
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
   
   // Fetch all users
-  const { data: users = [] } = useQuery({
+  const { data: users = [], isLoading: isLoadingUsers } = useQuery({
     queryKey: ['notification-users'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -35,7 +38,7 @@ export const useNotificationActions = () => {
       return;
     }
     
-    setIsLoading(true);
+    setIsSendingToUser(true);
     
     try {
       const { error } = await supabase
@@ -44,7 +47,7 @@ export const useNotificationActions = () => {
           user_id: userId,
           title,
           message,
-          type: notificationType,
+          type,
         });
       
       if (error) throw error;
@@ -56,7 +59,7 @@ export const useNotificationActions = () => {
       console.error('Error sending notification:', error);
       toast.error(`Error: ${error.message}`);
     } finally {
-      setIsLoading(false);
+      setIsSendingToUser(false);
     }
   };
   
@@ -66,7 +69,7 @@ export const useNotificationActions = () => {
       return;
     }
     
-    setIsLoading(true);
+    setIsBroadcasting(true);
     
     try {
       // For each user in the system, create a notification
@@ -74,12 +77,12 @@ export const useNotificationActions = () => {
         user_id: user.id,
         title,
         message,
-        type: notificationType,
+        type,
       }));
       
       if (notifications.length === 0) {
         toast.error('No users found to send notifications to');
-        setIsLoading(false);
+        setIsBroadcasting(false);
         return;
       }
       
@@ -96,21 +99,23 @@ export const useNotificationActions = () => {
       console.error('Error broadcasting notification:', error);
       toast.error(`Error: ${error.message}`);
     } finally {
-      setIsLoading(false);
+      setIsBroadcasting(false);
     }
   };
   
   return {
-    notificationType,
-    setNotificationType,
+    type,
+    setType,
     title,
     setTitle,
     message,
     setMessage,
     userId,
     setUserId,
-    isLoading,
+    isSendingToUser,
+    isBroadcasting,
     users,
+    isLoadingUsers,
     handleSendToUser,
     handleBroadcast
   };

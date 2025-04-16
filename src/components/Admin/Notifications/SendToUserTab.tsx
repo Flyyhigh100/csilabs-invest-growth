@@ -5,19 +5,21 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Bell } from 'lucide-react';
 import UserSelector from './UserSelector';
 import NotificationFormFields from './NotificationFormFields';
+import { NotificationType } from './useNotificationActions';
 
 interface SendToUserTabProps {
   title: string;
   setTitle: (title: string) => void;
   message: string;
   setMessage: (message: string) => void;
-  notificationType: 'wallet' | 'payment' | 'kyc' | 'tokens' | 'other';
-  setNotificationType: (type: 'wallet' | 'payment' | 'kyc' | 'tokens' | 'other') => void;
+  type: NotificationType;
+  setType: (type: NotificationType) => void;
   userId: string;
   setUserId: (userId: string) => void;
   users: { id: string; email: string }[];
   isLoading: boolean;
-  handleSendToUser: () => Promise<void>;
+  onSubmit: () => Promise<void>;
+  isSubmitting: boolean;
 }
 
 const SendToUserTab: React.FC<SendToUserTabProps> = ({
@@ -25,13 +27,14 @@ const SendToUserTab: React.FC<SendToUserTabProps> = ({
   setTitle,
   message,
   setMessage,
-  notificationType,
-  setNotificationType,
+  type,
+  setType,
   userId,
   setUserId,
   users,
   isLoading,
-  handleSendToUser,
+  onSubmit,
+  isSubmitting,
 }) => {
   return (
     <Card>
@@ -55,18 +58,18 @@ const SendToUserTab: React.FC<SendToUserTabProps> = ({
             setTitle={setTitle}
             message={message}
             setMessage={setMessage}
-            notificationType={notificationType}
-            setNotificationType={setNotificationType}
+            type={type}
+            setType={setType}
           />
         </form>
       </CardContent>
       <CardFooter className="flex justify-end">
         <Button 
-          onClick={handleSendToUser} 
-          disabled={isLoading || !title || !message || !userId}
+          onClick={onSubmit} 
+          disabled={isSubmitting || !title || !message || !userId}
         >
           <Bell className="mr-2 h-4 w-4" />
-          {isLoading ? "Sending..." : "Send Notification"}
+          {isSubmitting ? "Sending..." : "Send Notification"}
         </Button>
       </CardFooter>
     </Card>
