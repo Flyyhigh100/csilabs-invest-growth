@@ -30,7 +30,7 @@ import Documents from './pages/Dashboard/Documents';
 import DashboardHome from './pages/Dashboard/DashboardHome';
 
 // Import Legal pages
-import TermsAndConditions from './pages/Legal/TermsAndConditions';
+import TermsOfService from './pages/Legal/TermsAndConditions';
 import FoundationDisclosure from './pages/Legal/FoundationDisclosure';
 import GeographicRestrictions from './pages/Legal/GeographicRestrictions';
 import TokenDisclaimer from './pages/Legal/TokenDisclaimer';
@@ -67,7 +67,7 @@ function App() {
                   <Route path="/token-info" element={<TokenInfo />} />
                   
                   {/* Legal Routes */}
-                  <Route path="/legal/terms-and-conditions" element={<TermsAndConditions />} />
+                  <Route path="/legal/terms-and-conditions" element={<TermsOfService />} />
                   <Route path="/legal/foundation-disclosure" element={<FoundationDisclosure />} />
                   <Route path="/legal/geographic-restrictions" element={<GeographicRestrictions />} />
                   <Route path="/legal/token-disclaimer" element={<TokenDisclaimer />} />

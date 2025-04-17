@@ -51,7 +51,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-2">
               <li>
                 <Link to="/legal/terms-and-conditions" className="text-blue-100 hover:text-white transition-colors">
-                  Terms & Conditions
+                  Terms of Service
                 </Link>
               </li>
               <li>
