@@ -1,16 +1,15 @@
-
 import React, { useEffect } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import DashboardHeader from '@/components/Admin/Dashboard/DashboardHeader';
 import StatCards from '@/components/Admin/Dashboard/StatCards';
 import DetailCards from '@/components/Admin/Dashboard/DetailCards';
+import SystemFlowCard from '@/components/Admin/SystemFlow/SystemFlowCard';
 import { useDashboardStats } from '@/components/Admin/Dashboard/useDashboardStats';
 import { toast } from 'sonner';
 
 const AdminDashboard: React.FC = () => {
   const { data, isLoading, error, refetch } = useDashboardStats();
   
-  // Force refetch on initial load
   useEffect(() => {
     console.log('Admin Dashboard mounted, fetching data...');
     refetch();
@@ -22,7 +21,6 @@ const AdminDashboard: React.FC = () => {
     toast.info('Refreshing dashboard data...');
   };
   
-  // Log dashboard data when it changes
   useEffect(() => {
     if (data) {
       console.log('Dashboard data updated:', data);
@@ -39,6 +37,10 @@ const AdminDashboard: React.FC = () => {
         totalTransactionValue={data?.totalTransactionValue || 0}
         isLoading={isLoading}
       />
+      
+      <div className="my-6">
+        <SystemFlowCard />
+      </div>
       
       <DetailCards
         kycCounts={data?.kycCounts || { 
