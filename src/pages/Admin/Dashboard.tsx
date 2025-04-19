@@ -3,7 +3,6 @@ import AdminLayout from '@/components/Admin/Layout';
 import DashboardHeader from '@/components/Admin/Dashboard/DashboardHeader';
 import StatCards from '@/components/Admin/Dashboard/StatCards';
 import DetailCards from '@/components/Admin/Dashboard/DetailCards';
-import SystemFlowCard from '@/components/Admin/SystemFlow/SystemFlowCard';
 import { useDashboardStats } from '@/components/Admin/Dashboard/useDashboardStats';
 import { toast } from 'sonner';
 
@@ -37,10 +36,6 @@ const AdminDashboard: React.FC = () => {
         totalTransactionValue={data?.totalTransactionValue || 0}
         isLoading={isLoading}
       />
-      
-      <div className="my-6">
-        <SystemFlowCard />
-      </div>
       
       <DetailCards
         kycCounts={data?.kycCounts || { 

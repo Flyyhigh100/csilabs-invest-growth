@@ -13,7 +13,7 @@ import {
 import '@xyflow/react/dist/style.css';
 
 const initialNodes: Node[] = [
-  // User Flow
+  // User Flow Start
   {
     id: 'user-start',
     type: 'input',
@@ -23,10 +23,12 @@ const initialNodes: Node[] = [
   },
   {
     id: 'token-purchase',
-    data: { label: 'Select Token Purchase\n(Enter Amount)' },
+    data: { label: 'Select Token Purchase Amount' },
     position: { x: 0, y: 100 },
     className: 'bg-background border-2'
   },
+  
+  // Payment Flow
   {
     id: 'payment-choice',
     data: { label: 'Choose Payment Method' },
@@ -35,54 +37,54 @@ const initialNodes: Node[] = [
   },
   {
     id: 'crypto-payment',
-    data: { label: 'Crypto Payment\n(USDT, USDC)' },
-    position: { x: -150, y: 300 },
+    data: { label: 'CoinPayments.net\n(USDT, USDC)' },
+    position: { x: -200, y: 300 },
     className: 'bg-background border-2'
   },
   {
     id: 'card-payment',
-    data: { label: 'Card Payment\n(Credit/Debit)' },
-    position: { x: 150, y: 300 },
+    data: { label: 'Stripe\n(Credit/Debit Card)' },
+    position: { x: 200, y: 300 },
     className: 'bg-background border-2'
   },
   
   // KYC Flow
   {
     id: 'kyc-required',
-    data: { label: 'KYC Required?\n(Required for $3,001+)' },
+    data: { label: 'KYC Required?\n($3,001 or higher)' },
     position: { x: 0, y: 400 },
     className: 'bg-background border-2 border-warning'
   },
   {
     id: 'kyc-submit',
-    data: { label: 'Submit KYC\n(ID & Address Verification)' },
-    position: { x: -150, y: 500 },
+    data: { label: 'Submit KYC Documents\n(ID & Address Verification)' },
+    position: { x: -200, y: 500 },
     className: 'bg-background border-2'
   },
   {
     id: 'kyc-review',
-    data: { label: 'Admin KYC Review\n(Document Verification)' },
-    position: { x: -150, y: 600 },
+    data: { label: 'Admin KYC Review' },
+    position: { x: -200, y: 600 },
     className: 'bg-background border-2 border-destructive'
   },
   
   // Payment & Admin Flow
   {
     id: 'payment-confirm',
-    data: { label: 'Payment Confirmed\n(Transaction Verified)' },
-    position: { x: 150, y: 500 },
+    data: { label: 'Payment Confirmed' },
+    position: { x: 200, y: 500 },
     className: 'bg-background border-2 border-success'
   },
   {
     id: 'admin-send',
-    data: { label: 'Admin Sends Tokens\n(Manual Distribution)' },
+    data: { label: 'Admin Token Distribution' },
     position: { x: 0, y: 700 },
     className: 'bg-background border-2 border-destructive'
   },
   {
     id: 'complete',
     type: 'output',
-    data: { label: 'Process Complete\n(Tokens Received)' },
+    data: { label: 'Tokens Received' },
     position: { x: 0, y: 800 },
     className: 'bg-background border-2 border-success'
   },
@@ -91,12 +93,12 @@ const initialNodes: Node[] = [
 const initialEdges: Edge[] = [
   { id: 'e1', source: 'user-start', target: 'token-purchase' },
   { id: 'e2', source: 'token-purchase', target: 'payment-choice' },
-  { id: 'e3', source: 'payment-choice', target: 'crypto-payment' },
-  { id: 'e4', source: 'payment-choice', target: 'card-payment' },
+  { id: 'e3', source: 'payment-choice', target: 'crypto-payment', label: 'Crypto' },
+  { id: 'e4', source: 'payment-choice', target: 'card-payment', label: 'Card' },
   { id: 'e5', source: 'crypto-payment', target: 'kyc-required' },
   { id: 'e6', source: 'card-payment', target: 'kyc-required' },
-  { id: 'e7', source: 'kyc-required', target: 'kyc-submit', label: 'Yes' },
-  { id: 'e8', source: 'kyc-required', target: 'payment-confirm', label: 'No' },
+  { id: 'e7', source: 'kyc-required', target: 'kyc-submit', label: '$3,001+' },
+  { id: 'e8', source: 'kyc-required', target: 'payment-confirm', label: 'Under $3,001' },
   { id: 'e9', source: 'kyc-submit', target: 'kyc-review' },
   { id: 'e10', source: 'kyc-review', target: 'payment-confirm', label: 'Approved' },
   { id: 'e11', source: 'payment-confirm', target: 'admin-send' },

@@ -41,6 +41,10 @@ const SystemFlowCard = () => {
               <div className="w-4 h-4 border-2 bg-background"></div>
               <span>User Actions</span>
             </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 border-2 border-gray-400 bg-background"></div>
+              <span>System Processing</span>
+            </div>
           </div>
         </CardContent>
       </Card>
