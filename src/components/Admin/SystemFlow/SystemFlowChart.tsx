@@ -23,7 +23,7 @@ const initialNodes: Node[] = [
   },
   {
     id: 'token-purchase',
-    data: { label: 'Select Token Purchase' },
+    data: { label: 'Select Token Purchase\n(Enter Amount)' },
     position: { x: 0, y: 100 },
     className: 'bg-background border-2'
   },
@@ -35,13 +35,13 @@ const initialNodes: Node[] = [
   },
   {
     id: 'crypto-payment',
-    data: { label: 'Crypto Payment' },
+    data: { label: 'Crypto Payment\n(USDT, USDC)' },
     position: { x: -150, y: 300 },
     className: 'bg-background border-2'
   },
   {
     id: 'card-payment',
-    data: { label: 'Card Payment' },
+    data: { label: 'Card Payment\n(Credit/Debit)' },
     position: { x: 150, y: 300 },
     className: 'bg-background border-2'
   },
@@ -49,40 +49,40 @@ const initialNodes: Node[] = [
   // KYC Flow
   {
     id: 'kyc-required',
-    data: { label: 'KYC Required?' },
+    data: { label: 'KYC Required?\n(Required for $3,001+)' },
     position: { x: 0, y: 400 },
     className: 'bg-background border-2 border-warning'
   },
   {
     id: 'kyc-submit',
-    data: { label: 'Submit KYC' },
+    data: { label: 'Submit KYC\n(ID & Address Verification)' },
     position: { x: -150, y: 500 },
     className: 'bg-background border-2'
   },
   {
     id: 'kyc-review',
-    data: { label: 'Admin KYC Review' },
+    data: { label: 'Admin KYC Review\n(Document Verification)' },
     position: { x: -150, y: 600 },
     className: 'bg-background border-2 border-destructive'
   },
   
-  // Admin Flow
+  // Payment & Admin Flow
   {
     id: 'payment-confirm',
-    data: { label: 'Payment Confirmed' },
+    data: { label: 'Payment Confirmed\n(Transaction Verified)' },
     position: { x: 150, y: 500 },
     className: 'bg-background border-2 border-success'
   },
   {
     id: 'admin-send',
-    data: { label: 'Admin Sends Tokens' },
+    data: { label: 'Admin Sends Tokens\n(Manual Distribution)' },
     position: { x: 0, y: 700 },
     className: 'bg-background border-2 border-destructive'
   },
   {
     id: 'complete',
     type: 'output',
-    data: { label: 'Process Complete' },
+    data: { label: 'Process Complete\n(Tokens Received)' },
     position: { x: 0, y: 800 },
     className: 'bg-background border-2 border-success'
   },

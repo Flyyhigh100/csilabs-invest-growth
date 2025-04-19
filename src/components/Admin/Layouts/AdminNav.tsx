@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -7,7 +6,8 @@ import {
   CheckCircleIcon,
   CreditCardIcon,
   BellIcon,
-  SettingsIcon
+  SettingsIcon,
+  InfoIcon
 } from 'lucide-react';
 
 interface NavItem {
@@ -47,6 +47,11 @@ export const getAdminNavItems = (): NavItem[] => {
       title: 'Settings',
       path: '/admin/settings',
       icon: <SettingsIcon className="h-5 w-5" />,
+    },
+    {
+      title: 'System Flow',
+      path: '/admin/system-flow',
+      icon: <InfoIcon className="h-5 w-5" />,
     },
   ];
 };
