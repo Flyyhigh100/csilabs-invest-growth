@@ -17,6 +17,7 @@ export interface CryptoPaymentDetails {
   usdValue?: number;
   tokenAmount?: number;
   tokenPrice?: number;
+  amount?: string; // Add missing amount property
 }
 
 export interface UsePaymentHandlersProps {

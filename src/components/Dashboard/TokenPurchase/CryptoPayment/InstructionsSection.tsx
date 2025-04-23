@@ -76,4 +76,3 @@ const InstructionsSection: React.FC<InstructionsSectionProps> = ({
 };
 
 export default InstructionsSection;
-

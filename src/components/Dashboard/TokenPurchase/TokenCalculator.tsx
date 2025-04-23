@@ -87,7 +87,7 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
           <div className="flex items-center">
             <span className="font-semibold text-cbis-blue mr-2">
               {isLoading ? (
-                <Spinner size="sm" className="h-4 w-4" />
+                <Spinner className="h-4 w-4" />
               ) : currentPrice ? (
                 `$${currentPrice.toFixed(5)} USD`
               ) : (
@@ -110,7 +110,7 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
           <span className="text-gray-700 font-medium">You will receive:</span>
           <span className="font-bold text-cbis-blue text-xl">
             {isLoading ? (
-              <Spinner size="sm" className="h-5 w-5" />
+              <Spinner className="h-5 w-5" />
             ) : (
               `${tokenAmount.toLocaleString(undefined, {
                 maximumFractionDigits: 5,

@@ -84,7 +84,7 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
         
         <div className="flex flex-col gap-4 py-4">
           {expiresAt && (
-            <Alert variant="warning" className="bg-amber-50">
+            <Alert variant="default" className="bg-amber-50">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Time Remaining</AlertTitle>
               <AlertDescription>

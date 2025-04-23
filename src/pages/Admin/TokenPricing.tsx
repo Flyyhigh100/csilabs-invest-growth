@@ -222,7 +222,7 @@ const TokenPricingPage = () => {
                 </div>
                 
                 <div className="pt-4">
-                  <Alert variant="warning" className="bg-amber-50 border-amber-200">
+                  <Alert variant="default" className="bg-amber-50 border-amber-200">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
                       Current pricing configuration can only be modified in the source code.

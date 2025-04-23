@@ -7,7 +7,7 @@ import { PaymentValidationOptions } from './types';
 export const usePaymentValidation = (walletAddress: string | null) => {
   const { kycData } = useKycVerification();
   
-  const validatePaymentRequest = (amount: number, options: PaymentValidationOptions = {}): boolean => {
+  const validatePaymentRequest = (amount: number, options: PaymentValidationOptions = { isCrypto: false }): boolean => {
     const { isCrypto = false } = options;
     
     // Validate wallet address
