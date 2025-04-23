@@ -6,6 +6,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from 'sonner';
 import { NavbarContextProvider } from './contexts/NavbarContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import TokenPricingPage from './pages/Admin/TokenPricing';
 
 // Import components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -94,6 +95,7 @@ export default function App() {
                     <Route path="/admin/settings" element={<AdminSettingsPage />} />
                     <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
                     <Route path="/admin/research-documents" element={<AdminResearchDocuments />} />
+                    <Route path="/admin/token-pricing" element={<TokenPricingPage />} />
                   </Route>
                   
                   {/* Fallback */}

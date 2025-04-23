@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -7,7 +8,8 @@ import {
   CreditCardIcon,
   BellIcon,
   SettingsIcon,
-  InfoIcon
+  InfoIcon,
+  BarChart2
 } from 'lucide-react';
 
 interface NavItem {
@@ -32,6 +34,11 @@ export const getAdminNavItems = (): NavItem[] => {
       title: 'Token Distribution',
       path: '/admin/transactions',
       icon: <CreditCardIcon className="h-5 w-5" />,
+    },
+    {
+      title: 'Token Pricing',
+      path: '/admin/token-pricing',
+      icon: <BarChart2 className="h-5 w-5" />,
     },
     {
       title: 'Users',

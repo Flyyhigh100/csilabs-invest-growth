@@ -19,7 +19,7 @@ serve(async (req) => {
 
   try {
     // Parse the request body
-    const { amount, walletAddress } = await req.json();
+    const { amount, walletAddress, tokenPrice } = await req.json();
     
     // Validate required parameters
     if (!amount || amount <= 0) {
@@ -29,6 +29,13 @@ serve(async (req) => {
     if (!walletAddress) {
       throw new Error("Wallet address is required");
     }
+    
+    // Log the token price if provided
+    console.log(`Received token price: ${tokenPrice || 'Not provided'}`);
+    
+    // Calculate token amount based on price if available (fallback to 1:1)
+    const tokenAmount = tokenPrice ? amount / tokenPrice : amount;
+    console.log(`Calculated token amount: ${tokenAmount}`);
     
     // Initialize Supabase client with the anon key
     const supabaseClient = createClient(
@@ -73,7 +80,7 @@ serve(async (req) => {
             currency: "usd",
             product_data: {
               name: `Token Purchase - $${amount}`,
-              description: `Purchase of tokens for wallet address: ${walletAddress}`,
+              description: `Purchase of ${tokenAmount.toFixed(5)} CSi tokens for wallet address: ${walletAddress}`,
             },
             unit_amount: amountInCents, // amount in cents
           },
@@ -85,6 +92,8 @@ serve(async (req) => {
         user_id: userId,
         wallet_address: walletAddress,
         amount: amount,
+        token_price: tokenPrice ? tokenPrice.toString() : "1.00",
+        token_amount: tokenAmount.toString(),
       },
       success_url: successUrl,
       cancel_url: cancelUrl,
@@ -107,6 +116,8 @@ serve(async (req) => {
         status: "pending",
         transaction_id: session.id,
         external_transaction_id: session.payment_intent || null,  // Store payment_intent if available
+        token_price: tokenPrice || 1.00,
+        token_amount: tokenAmount,
       })
       .select()
       .single();
@@ -118,6 +129,7 @@ serve(async (req) => {
     
     console.log(`Created transaction record: ${transaction.id} with session ID: ${session.id}`);
     console.log(`Payment intent ID (if available): ${session.payment_intent || 'Not available yet'}`);
+    console.log(`Token price: ${tokenPrice || '1.00'}, Token amount: ${tokenAmount}`);
 
     // Return the URL and session ID
     return new Response(JSON.stringify({ 
@@ -125,7 +137,9 @@ serve(async (req) => {
       session_id: session.id,
       payment_intent: session.payment_intent || null,
       transaction_id: transaction.id,
-      user_id: userId
+      user_id: userId,
+      token_amount: tokenAmount,
+      token_price: tokenPrice || 1.00
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200

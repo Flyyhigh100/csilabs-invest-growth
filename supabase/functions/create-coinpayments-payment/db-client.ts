@@ -1,65 +1,76 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-// Create Supabase client
+/**
+ * Creates a Supabase client with service role key
+ */
 export function createSupabaseClient() {
   return createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    Deno.env.get('SUPABASE_URL') || '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
+    {
+      auth: {
+        persistSession: false,
+      }
+    }
   );
 }
 
-// Save transaction to database
+/**
+ * Saves transaction data to Supabase
+ */
 export async function saveTransaction(
-  supabaseClient: any,
+  supabase: any,
   userId: string,
   amount: number,
   walletAddress: string,
   transactionId: string,
   paymentAddress: string,
   externalTransactionId: string,
-  currency?: string
+  currency: string,
+  tokenPrice?: number,
+  tokenAmount?: number
 ) {
-  try {
-    // First, check if the transactions table has the currency column
-    const { error: tablesError } = await supabaseClient
-      .from('transactions')
-      .select('currency')
-      .limit(1);
-    
-    // If there's no currency column, log it but continue without trying to use it
-    const hasCurrencyColumn = !tablesError;
-    
-    // Construct the insert object based on column availability
-    const insertData: any = {
+  const { error } = await supabase
+    .from('transactions')
+    .insert({
       user_id: userId,
-      amount: amount,
-      wallet_address: walletAddress,
+      amount,
       payment_method: 'coinpayments',
-      status: 'pending',
+      wallet_address: walletAddress,
       transaction_id: transactionId,
       payment_address: paymentAddress,
       external_transaction_id: externalTransactionId,
-    };
-    
-    // Only add currency if the column exists
-    if (hasCurrencyColumn && currency) {
-      insertData.currency = currency;
-    }
-    
-    // Insert the transaction record
-    const { error: insertError } = await supabaseClient
-      .from('transactions')
-      .insert(insertData);
+      status: 'pending',
+      currency,
+      token_price: tokenPrice || 1.00,
+      token_amount: tokenAmount || amount
+    });
 
-    if (insertError) {
-      console.error('Error inserting transaction record:', insertError);
-      throw new Error('Failed to record transaction');
-    }
-    
-    return true;
-  } catch (dbError) {
-    console.error('Database operation error:', dbError);
-    throw dbError;
+  if (error) {
+    console.error('Error saving transaction:', error);
+    throw error;
+  }
+}
+
+/**
+ * Updates transaction status in Supabase
+ */
+export async function updateTransactionStatus(
+  supabase: any,
+  transactionId: string,
+  status: string
+) {
+  const { error } = await supabase
+    .from('transactions')
+    .update({
+      status,
+      updated_at: new Date().toISOString()
+    })
+    .eq('transaction_id', transactionId);
+
+  if (error) {
+    console.error('Error updating transaction status:', error);
+    throw error;
   }
 }

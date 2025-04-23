@@ -8,13 +8,14 @@ export const useStripePayment = (walletAddress: string | null) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { validatePaymentRequest } = usePaymentValidation(walletAddress);
 
-  const handleStripePayment = async (amount: number) => {
+  const handleStripePayment = async (amount: number, currentTokenPrice?: number) => {
     if (!validatePaymentRequest(amount)) return;
     
     setIsProcessing(true);
     
     try {
       console.log(`Creating Stripe checkout for $${amount} to wallet ${walletAddress}`);
+      console.log(`Current token price: ${currentTokenPrice || 'not provided'}`);
       
       // Get the current auth session token
       const { data: sessionData } = await supabase.auth.getSession();
@@ -28,7 +29,11 @@ export const useStripePayment = (walletAddress: string | null) => {
       
       console.log("Invoking create-stripe-checkout function...");
       const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
-        body: { amount, walletAddress }
+        body: { 
+          amount, 
+          walletAddress,
+          tokenPrice: currentTokenPrice // Pass the current token price to the checkout function
+        }
       });
       
       if (error) {
@@ -64,7 +69,9 @@ export const useStripePayment = (walletAddress: string | null) => {
           timestamp: Date.now(),
           auth_refresh_token: sessionData.session?.refresh_token || null,
           amount: amount,
-          wallet_address: walletAddress
+          wallet_address: walletAddress,
+          token_price: currentTokenPrice,
+          token_amount: data.token_amount || (currentTokenPrice ? amount / currentTokenPrice : amount)
         };
         
         localStorage.setItem('stripe_session_data', JSON.stringify(sessionObject));

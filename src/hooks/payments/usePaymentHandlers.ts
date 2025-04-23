@@ -28,9 +28,9 @@ export const usePaymentHandlers = (walletAddress: string | null): UsePaymentHand
   const isProcessing = isStripeProcessing || isCryptoProcessing;
 
   // Wrapper for Stripe payment to ensure it returns a boolean
-  const handleStripePayment = async (amount: number): Promise<boolean> => {
+  const handleStripePayment = async (amount: number, currentTokenPrice?: number): Promise<boolean> => {
     try {
-      await processStripePayment(amount);
+      await processStripePayment(amount, currentTokenPrice);
       return true;
     } catch (error) {
       console.error("Error in Stripe payment:", error);
@@ -39,8 +39,8 @@ export const usePaymentHandlers = (walletAddress: string | null): UsePaymentHand
   };
   
   // Wrapper for coin payments to handle dialog display
-  const handleCoinPaymentsPayment = async (amount: number, currency: string = 'USDT'): Promise<boolean> => {
-    const success = await processCoinPayment(amount, currency);
+  const handleCoinPaymentsPayment = async (amount: number, currency: string = 'USDT', currentTokenPrice?: number): Promise<boolean> => {
+    const success = await processCoinPayment(amount, currency, currentTokenPrice);
     if (success) {
       setShowCryptoDialog(true);
       
@@ -53,8 +53,8 @@ export const usePaymentHandlers = (walletAddress: string | null): UsePaymentHand
   };
   
   // Wrapper for crypto payments to handle dialog display
-  const handleCryptoPayment = async (amount: number): Promise<boolean> => {
-    const success = await processCryptoPayment(amount);
+  const handleCryptoPayment = async (amount: number, currentTokenPrice?: number): Promise<boolean> => {
+    const success = await processCryptoPayment(amount, currentTokenPrice);
     if (success) {
       setShowCryptoDialog(true);
       

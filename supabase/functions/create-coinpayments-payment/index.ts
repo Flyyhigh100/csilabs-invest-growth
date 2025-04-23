@@ -20,7 +20,7 @@ serve(async (req) => {
     }
     
     // Get request data
-    const { amount, walletAddress, currency = 'USDT' } = await req.json();
+    const { amount, walletAddress, currency = 'USDT', tokenPrice } = await req.json();
     
     if (!amount || amount <= 0 || !walletAddress) {
       return new Response(
@@ -30,9 +30,14 @@ serve(async (req) => {
     }
 
     console.log(`Creating CoinPayments payment for amount: $${amount}, wallet: ${walletAddress}, currency: ${currency}`);
+    console.log(`Received token price: ${tokenPrice || 'Not provided'}`);
+    
+    // Calculate token amount based on price if available
+    const tokenAmount = tokenPrice ? amount / tokenPrice : amount;
+    console.log(`Calculated token amount: ${tokenAmount}`);
     
     // Process payment request through the handler
-    const paymentResponse = await handleCryptoPaymentRequest(authHeader, amount, walletAddress, currency);
+    const paymentResponse = await handleCryptoPaymentRequest(authHeader, amount, walletAddress, currency, tokenPrice, tokenAmount);
     
     return new Response(
       JSON.stringify(paymentResponse),

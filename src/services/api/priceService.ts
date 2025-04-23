@@ -1,6 +1,11 @@
+
 import { TokenPriceData } from '@/types/token';
 import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE, START_DATE, END_DATE, QUOTE_TOKEN, AGGREGATION_DAYS, DAYS_TO_INCLUDE } from './config';
 import { generateMockPriceData, generateMockCurrentPrice } from '../mocks/mockDataGenerators';
+
+// Cache mechanism for current price
+let cachedCurrentPrice: { price: number; timestamp: number } | null = null;
+const PRICE_CACHE_DURATION = 30000; // 30 seconds cache
 
 /**
  * Formats a timestamp to a readable date
@@ -15,6 +20,20 @@ const formatDate = (timestamp: number): string => {
     month: 'short',
     day: 'numeric'
   });
+};
+
+/**
+ * Validates if a price is reasonable (not too high or too low)
+ * @param price The price to validate
+ * @returns Boolean indicating if price is valid
+ */
+const isValidPrice = (price: number): boolean => {
+  // Implement sanity checks based on expected price range
+  // These thresholds should be adjusted based on your token's expected price range
+  const MIN_ACCEPTABLE_PRICE = 0.01; // Minimum price (e.g., $0.01)
+  const MAX_ACCEPTABLE_PRICE = 100;  // Maximum price (e.g., $100)
+  
+  return price >= MIN_ACCEPTABLE_PRICE && price <= MAX_ACCEPTABLE_PRICE;
 };
 
 /**
@@ -117,17 +136,27 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
 };
 
 /**
- * Fetches current token price
+ * Fetches current token price with caching mechanism
+ * @param forceRefresh Whether to bypass cache and force a fresh fetch
  * @returns Promise with current price
  */
-export const fetchCurrentTokenPrice = async (): Promise<number> => {
+export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Promise<number> => {
   try {
-    console.log('Fetching current token price');
+    // Check cache first if not forcing refresh
+    if (!forceRefresh && cachedCurrentPrice && 
+        (Date.now() - cachedCurrentPrice.timestamp) < PRICE_CACHE_DURATION) {
+      console.log('Using cached price:', cachedCurrentPrice.price);
+      return cachedCurrentPrice.price;
+    }
+    
+    console.log('Fetching current token price' + (forceRefresh ? ' (forced refresh)' : ''));
     
     // Use mock data if no API key is provided
     if (!API_KEY) {
       console.log('No API key provided, using mock current price');
-      return generateMockCurrentPrice();
+      const mockPrice = generateMockCurrentPrice();
+      cachedCurrentPrice = { price: mockPrice, timestamp: Date.now() };
+      return mockPrice;
     }
     
     const url = `${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/price?quoteToken=${QUOTE_TOKEN}`;
@@ -150,22 +179,99 @@ export const fetchCurrentTokenPrice = async (): Promise<number> => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API error ${response.status}:`, errorText);
-      return generateMockCurrentPrice();
+      if (cachedCurrentPrice) {
+        console.log('API error, using last cached price:', cachedCurrentPrice.price);
+        return cachedCurrentPrice.price;
+      }
+      const mockPrice = generateMockCurrentPrice();
+      cachedCurrentPrice = { price: mockPrice, timestamp: Date.now() };
+      return mockPrice;
     }
 
     const data = await response.json();
     
+    let currentPrice: number;
+    
     // Return the current price
     if (data.data && typeof data.data.price_usd === 'number') {
-      return data.data.price_usd;
+      currentPrice = data.data.price_usd;
     } else if (data.data && typeof data.data.price_usd === 'string') {
-      return parseFloat(data.data.price_usd);
+      currentPrice = parseFloat(data.data.price_usd);
     } else {
       console.warn('Unexpected current price data format:', data);
-      return generateMockCurrentPrice();
+      if (cachedCurrentPrice) {
+        return cachedCurrentPrice.price;
+      }
+      currentPrice = generateMockCurrentPrice();
+    }
+    
+    // Validate price before caching and returning
+    if (isValidPrice(currentPrice)) {
+      cachedCurrentPrice = { price: currentPrice, timestamp: Date.now() };
+      console.log('New price cached:', currentPrice);
+      return currentPrice;
+    } else {
+      console.warn('Received invalid price:', currentPrice);
+      if (cachedCurrentPrice) {
+        console.log('Using last valid cached price instead');
+        return cachedCurrentPrice.price;
+      }
+      const fallbackPrice = generateMockCurrentPrice();
+      cachedCurrentPrice = { price: fallbackPrice, timestamp: Date.now() };
+      return fallbackPrice;
     }
   } catch (error) {
     console.error('Error fetching current token price:', error);
-    return generateMockCurrentPrice();
+    if (cachedCurrentPrice) {
+      console.log('Error occurred, using last cached price:', cachedCurrentPrice.price);
+      return cachedCurrentPrice.price;
+    }
+    const fallbackPrice = generateMockCurrentPrice();
+    cachedCurrentPrice = { price: fallbackPrice, timestamp: Date.now() };
+    return fallbackPrice;
   }
+};
+
+/**
+ * Gets the time remaining until the next price refresh
+ * @returns Time in milliseconds until next refresh or 0 if cache is expired
+ */
+export const getTimeUntilNextPriceRefresh = (): number => {
+  if (!cachedCurrentPrice) return 0;
+  
+  const elapsed = Date.now() - cachedCurrentPrice.timestamp;
+  if (elapsed >= PRICE_CACHE_DURATION) return 0;
+  
+  return PRICE_CACHE_DURATION - elapsed;
+};
+
+/**
+ * Gets the timestamp of when the price was last updated
+ * @returns Timestamp or null if no price has been fetched
+ */
+export const getPriceLastUpdatedTime = (): number | null => {
+  return cachedCurrentPrice ? cachedCurrentPrice.timestamp : null;
+};
+
+/**
+ * Converts USD value to token amount using current price
+ * @param usdAmount USD amount to convert
+ * @param tokenPrice Current token price (optional, will fetch if not provided)
+ * @returns Promise with token amount
+ */
+export const convertUsdToTokenAmount = async (usdAmount: number, tokenPrice?: number): Promise<number> => {
+  const price = tokenPrice || await fetchCurrentTokenPrice();
+  if (price <= 0) return 0;
+  return usdAmount / price;
+};
+
+/**
+ * Converts token amount to USD value using current price
+ * @param tokenAmount Token amount to convert
+ * @param tokenPrice Current token price (optional, will fetch if not provided)
+ * @returns Promise with USD amount
+ */
+export const convertTokenAmountToUsd = async (tokenAmount: number, tokenPrice?: number): Promise<number> => {
+  const price = tokenPrice || await fetchCurrentTokenPrice();
+  return tokenAmount * price;
 };

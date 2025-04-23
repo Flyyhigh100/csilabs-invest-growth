@@ -7,7 +7,14 @@ import { cleanPaymentAddress } from "./address-utils.ts";
 /**
  * Handles the crypto payment request, with or without authentication
  */
-export async function handleCryptoPaymentRequest(authHeader: string, amount: number, walletAddress: string, currency: string) {
+export async function handleCryptoPaymentRequest(
+  authHeader: string, 
+  amount: number, 
+  walletAddress: string, 
+  currency: string,
+  tokenPrice?: number,
+  tokenAmount?: number
+) {
   // Create Supabase client to record the transaction
   const supabaseClient = createSupabaseClient();
   
@@ -21,7 +28,7 @@ export async function handleCryptoPaymentRequest(authHeader: string, amount: num
     
     if (userError || !user) {
       console.log('Authentication error:', userError?.message || 'User not found');
-      return await handleAnonymousPayment(amount, currency, transactionId, walletAddress);
+      return await handleAnonymousPayment(amount, currency, transactionId, walletAddress, false, tokenPrice, tokenAmount);
     }
 
     // Authenticated user flow
@@ -32,13 +39,15 @@ export async function handleCryptoPaymentRequest(authHeader: string, amount: num
       amount, 
       currency, 
       transactionId, 
-      walletAddress
+      walletAddress,
+      tokenPrice,
+      tokenAmount
     );
     
   } catch (error) {
     console.error('General error in user authentication flow:', error);
     // Fall back to anonymous payment as a last resort
-    return await handleAnonymousPayment(amount, currency, transactionId, walletAddress, true);
+    return await handleAnonymousPayment(amount, currency, transactionId, walletAddress, true, tokenPrice, tokenAmount);
   }
 }
 
@@ -52,9 +61,14 @@ async function handleAuthenticatedPayment(
   amount: number, 
   currency: string, 
   transactionId: string, 
-  walletAddress: string
+  walletAddress: string,
+  tokenPrice?: number,
+  tokenAmount?: number
 ) {
   try {
+    // Calculate token amount if not provided but token price is
+    const calculatedTokenAmount = tokenAmount || (tokenPrice ? amount / tokenPrice : amount);
+    
     // Create a new transaction in CoinPayments API with authenticated user
     const paymentData = await createCoinPaymentsTransaction(
       amount, 
@@ -71,7 +85,7 @@ async function handleAuthenticatedPayment(
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(paymentAddress)}&size=200x200`;
 
     try {
-      // Save transaction to database with the clean address
+      // Save transaction to database with the clean address and token data
       await saveTransaction(
         supabaseClient,
         userId,
@@ -80,7 +94,9 @@ async function handleAuthenticatedPayment(
         transactionId,
         paymentAddress, // Use the cleaned address
         paymentData.txn_id,
-        currency
+        currency,
+        tokenPrice,
+        calculatedTokenAmount
       );
     } catch (dbError) {
       // Continue without failing - we'll still return the payment details
@@ -88,7 +104,16 @@ async function handleAuthenticatedPayment(
       console.log('Continuing despite database error');
     }
 
-    return formatPaymentResponse(paymentData, paymentAddress, transactionId, qrCodeUrl, amount, currency);
+    return formatPaymentResponse(
+      paymentData, 
+      paymentAddress, 
+      transactionId, 
+      qrCodeUrl, 
+      amount, 
+      currency, 
+      tokenPrice, 
+      calculatedTokenAmount
+    );
     
   } catch (apiError) {
     console.error('Error with CoinPayments API:', apiError);
@@ -102,6 +127,9 @@ async function handleAuthenticatedPayment(
       userEmail,
       true // Force mock mode
     );
+    
+    // Calculate token amount if not provided but token price is
+    const calculatedTokenAmount = tokenAmount || (tokenPrice ? amount / tokenPrice : amount);
     
     // Extract and clean payment address
     const paymentAddress = cleanPaymentAddress(mockPaymentData.address);
@@ -119,13 +147,24 @@ async function handleAuthenticatedPayment(
         transactionId,
         paymentAddress, // Use the cleaned address
         mockPaymentData.txn_id,
-        currency
+        currency,
+        tokenPrice,
+        calculatedTokenAmount
       );
     } catch (dbError) {
       console.error('Database error when saving transaction with mock data:', dbError);
     }
     
-    return formatPaymentResponse(mockPaymentData, paymentAddress, transactionId, qrCodeUrl, amount, currency);
+    return formatPaymentResponse(
+      mockPaymentData, 
+      paymentAddress, 
+      transactionId, 
+      qrCodeUrl, 
+      amount, 
+      currency, 
+      tokenPrice, 
+      calculatedTokenAmount
+    );
   }
 }
 
@@ -137,9 +176,14 @@ async function handleAnonymousPayment(
   currency: string, 
   transactionId: string, 
   walletAddress: string,
-  forceMock = false
+  forceMock = false,
+  tokenPrice?: number,
+  tokenAmount?: number
 ) {
   try {
+    // Calculate token amount if not provided but token price is
+    const calculatedTokenAmount = tokenAmount || (tokenPrice ? amount / tokenPrice : amount);
+    
     // Create a transaction using API keys but with anonymous email
     const paymentData = await createCoinPaymentsTransaction(
       amount, 
@@ -156,9 +200,21 @@ async function handleAnonymousPayment(
     // Generate a QR code with just the payment address
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(paymentAddress)}&size=200x200`;
     
-    return formatPaymentResponse(paymentData, paymentAddress, transactionId, qrCodeUrl, amount, currency);
+    return formatPaymentResponse(
+      paymentData, 
+      paymentAddress, 
+      transactionId, 
+      qrCodeUrl, 
+      amount, 
+      currency,
+      tokenPrice,
+      calculatedTokenAmount
+    );
   } catch (apiError) {
     console.error('Error creating transaction with anonymous user:', apiError);
+    
+    // Calculate token amount if not provided but token price is
+    const calculatedTokenAmount = tokenAmount || (tokenPrice ? amount / tokenPrice : amount);
     
     // Fall back to mock data if api fails
     const mockPaymentData = await createCoinPaymentsTransaction(
@@ -176,14 +232,32 @@ async function handleAnonymousPayment(
     // Generate a QR code with just the payment address
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(paymentAddress)}&size=200x200`;
     
-    return formatPaymentResponse(mockPaymentData, paymentAddress, transactionId, qrCodeUrl, amount, currency);
+    return formatPaymentResponse(
+      mockPaymentData, 
+      paymentAddress, 
+      transactionId, 
+      qrCodeUrl, 
+      amount, 
+      currency,
+      tokenPrice,
+      calculatedTokenAmount
+    );
   }
 }
 
 /**
  * Formats the payment response object
  */
-function formatPaymentResponse(paymentData: any, paymentAddress: string, transactionId: string, qrCodeUrl: string, amount: number, currency: string) {
+function formatPaymentResponse(
+  paymentData: any, 
+  paymentAddress: string, 
+  transactionId: string, 
+  qrCodeUrl: string, 
+  amount: number, 
+  currency: string,
+  tokenPrice?: number,
+  tokenAmount?: number
+) {
   return {
     paymentAddress: paymentAddress,
     amount: paymentData.amount,
@@ -194,6 +268,8 @@ function formatPaymentResponse(paymentData: any, paymentAddress: string, transac
     expiresAt: new Date(paymentData.timeout * 1000).toISOString(),
     currency: paymentData.currency || currency,
     instructions: `Please send ${paymentData.amount} ${paymentData.currency || currency} to the address above to complete your purchase.`,
-    usdValue: amount // Add the original USD amount for reference
+    usdValue: amount, // Add the original USD amount for reference
+    tokenPrice: tokenPrice || 1.00, // Include token price (default to 1.00 if not provided)
+    tokenAmount: tokenAmount || amount // Include token amount (default to same as USD if price is 1)
   };
 }

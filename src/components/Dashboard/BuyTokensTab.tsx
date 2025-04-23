@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign } from 'lucide-react';
@@ -13,6 +13,7 @@ import TokenCalculator from './TokenPurchase/TokenCalculator';
 import PaymentTabs from './TokenPurchase/PaymentTabs';
 import WalletMissingContent from './TokenPurchase/WalletMissingContent';
 import PurchaseGuide from './TokenPurchase/PurchaseGuide';
+import { useTokenPrice } from '@/context/TokenPriceContext';
 
 interface BuyTokensTabProps {
   walletAddress: string | null;
@@ -24,6 +25,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
   const [amount, setAmount] = useState<number>(100);
   const [selectedCurrency, setSelectedCurrency] = useState<string>("USDT");
   const { kycData } = useKycVerification();
+  const { currentPrice } = useTokenPrice();
   
   const {
     isProcessing,
@@ -40,7 +42,8 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
 
   // Update this method to handle the boolean return value
   const handleStripePaymentWrapper = async (amount: number): Promise<void> => {
-    const success = await handleStripePayment(amount);
+    // Pass current token price to the payment handler
+    const success = await handleStripePayment(amount, currentPrice);
     // You can optionally do something with the success value here if needed
     if (!success) {
       console.error("Stripe payment was not successful");
@@ -49,7 +52,8 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
 
   const handleCoinPaymentWithCurrency = () => {
     console.log('[BuyTokensTab] Initiating CoinPayments with amount:', amount, 'and selected currency:', selectedCurrency);
-    handleCoinPaymentsPayment(amount, selectedCurrency);
+    // Pass current token price to the payment handler
+    handleCoinPaymentsPayment(amount, selectedCurrency, currentPrice);
   };
 
   const handleDialogOpenChange = (show: boolean) => {

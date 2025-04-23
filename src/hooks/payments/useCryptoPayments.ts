@@ -12,7 +12,7 @@ export const useCryptoPayments = (walletAddress: string | null) => {
   const { validatePaymentRequest } = usePaymentValidation(walletAddress);
   const { checkTransactionStatus } = useCryptoStatusCheck();
 
-  const handleCoinPaymentsPayment = async (amount: number, currency: string = 'USDT') => {
+  const handleCoinPaymentsPayment = async (amount: number, currency: string = 'USDT', currentTokenPrice?: number) => {
     // Pass true for isCrypto to validate KYC if needed
     if (!validatePaymentRequest(amount, { isCrypto: true })) return false;
     
@@ -43,9 +43,15 @@ export const useCryptoPayments = (walletAddress: string | null) => {
       });
       
       console.log(`Creating CoinPayments payment with currency: ${currency}`);
+      console.log(`Current token price: ${currentTokenPrice || 'not provided'}`);
       
       const { data, error } = await supabase.functions.invoke('create-coinpayments-payment', {
-        body: { amount, walletAddress, currency }
+        body: { 
+          amount, 
+          walletAddress, 
+          currency,
+          tokenPrice: currentTokenPrice // Pass the current token price to the payment function
+        }
       });
       
       toast.dismiss("crypto-preparing");
@@ -71,7 +77,10 @@ export const useCryptoPayments = (walletAddress: string | null) => {
         currency: data.currency || currency,
         checkStatusUrl: data.checkStatusUrl,
         // Store original USD value for reference
-        usdValue: amount
+        usdValue: amount,
+        // Store token amount and price for reference
+        tokenAmount: data.tokenAmount,
+        tokenPrice: data.tokenPrice || currentTokenPrice
       });
       
       toast.success(`${currency} Payment Ready`, {
@@ -91,7 +100,7 @@ export const useCryptoPayments = (walletAddress: string | null) => {
     }
   };
   
-  const handleCryptoPayment = async (amount: number) => {
+  const handleCryptoPayment = async (amount: number, currentTokenPrice?: number) => {
     // Pass true for isCrypto to validate KYC if needed
     if (!validatePaymentRequest(amount, { isCrypto: true })) return false;
     
@@ -122,7 +131,11 @@ export const useCryptoPayments = (walletAddress: string | null) => {
       });
       
       const { data, error } = await supabase.functions.invoke('create-crypto-payment', {
-        body: { amount, walletAddress }
+        body: { 
+          amount, 
+          walletAddress,
+          tokenPrice: currentTokenPrice // Pass the current token price
+        }
       });
       
       toast.dismiss("direct-crypto-preparing");
@@ -142,11 +155,13 @@ export const useCryptoPayments = (walletAddress: string | null) => {
         instructions: data.instructions,
         currency: 'USDC',
         checkStatusUrl: data.checkStatusUrl,
-        usdValue: amount
+        usdValue: amount,
+        tokenAmount: data.tokenAmount,
+        tokenPrice: data.tokenPrice || currentTokenPrice
       });
       
       toast.success("USDC Payment Ready", {
-        description: "Follow the payment instructions to complete your purchase.",
+        description: "Follow the instructions to complete your purchase.",
         duration: 5000,
       });
       

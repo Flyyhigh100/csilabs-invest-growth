@@ -1,46 +1,42 @@
 
-import { Transaction } from '@/types/transactions';
+// Payment related types
+export interface PaymentValidationOptions {
+  isCrypto: boolean;
+}
 
 export interface CryptoPaymentDetails {
   paymentAddress: string;
   transactionId: string;
-  instructions: string;
+  instructions?: string;
   qrCodeUrl?: string;
   statusUrl?: string;
   expiresAt?: string;
-  checkStatusUrl?: string;
   externalTransactionId?: string;
   currency: string;
-  amount?: string;    // Add amount field for cryptocurrency amount
-  usdValue?: number;  // Add USD value for reference
+  checkStatusUrl?: string;
+  usdValue?: number;
+  tokenAmount?: number;
+  tokenPrice?: number;
 }
 
 export interface UsePaymentHandlersProps {
-  amount: number;
+  walletAddress: string | null;
 }
 
 export interface UsePaymentHandlersReturn {
   isProcessing: boolean;
   showCryptoDialog: boolean;
-  cryptoPaymentDetails: CryptoPaymentDetails | null;
-  handleStripePayment: (amount: number) => Promise<boolean>;
-  handleCoinPaymentsPayment: (amount: number, currency?: string) => Promise<boolean>;
-  handleCryptoPayment: (amount: number) => Promise<boolean>;
   setShowCryptoDialog: (show: boolean) => void;
+  cryptoPaymentDetails: CryptoPaymentDetails | null;
+  handleStripePayment: (amount: number, currentTokenPrice?: number) => Promise<boolean>;
+  handleCoinPaymentsPayment: (amount: number, currency: string, currentTokenPrice?: number) => Promise<boolean>;
+  handleCryptoPayment: (amount: number, currentTokenPrice?: number) => Promise<boolean>;
   kycRequired: (amount: number) => boolean;
 }
 
 export interface CryptoStatusCheckResult {
   status: string;
-  external_status: string | null;
-  external_status_text: string | null;
   updated: boolean;
-  transaction?: Transaction;
+  transaction?: any;
   error?: string;
-  details?: string;
-}
-
-// Add the missing PaymentValidationOptions interface
-export interface PaymentValidationOptions {
-  isCrypto?: boolean;
 }
