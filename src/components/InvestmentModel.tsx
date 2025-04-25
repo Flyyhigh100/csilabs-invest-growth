@@ -55,7 +55,7 @@ const InvestmentModel: React.FC = () => {
                 <div>
                   <h3 className="text-xl font-semibold mb-2 text-cbis-dark">Project Potential</h3>
                   <p className="text-gray-600">
-                    Token holders may receive a percentage of the multiplied asset growth from our Lab Series, with potential dividend structures as our treatments progress.
+                    The CSi Labs token ecosystem is designed for potential public trading on upper markets through future offerings based on the growth of our Lab Series funding, FDA research, and drug development success.
                   </p>
                 </div>
               </div>
@@ -80,14 +80,12 @@ const InvestmentModel: React.FC = () => {
             </div>
           </FadeInSection>
           
-          {/* Update Project Potential card */}
           <FadeInSection direction="right" delay={200}>
             <div className="glass-card p-6 rounded-2xl overflow-hidden shadow-elevation bg-white p-6">
               <div className="relative z-10">
                 <h3 className="text-2xl font-bold mb-6 bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">Roadmap</h3>
                 
                 <div className="space-y-8 relative">
-                  {/* Vertical connection line */}
                   <div className="absolute top-6 bottom-6 left-6 w-0.5 bg-gradient-to-b from-cbis-blue to-cbis-teal"></div>
                   
                   <div className="flex items-start gap-6 relative">
@@ -124,7 +122,6 @@ const InvestmentModel: React.FC = () => {
                 </div>
               </div>
               
-              {/* Decorative elements */}
               <div className="absolute -z-10 w-40 h-40 rounded-full bg-cbis-blue/5 -bottom-10 -left-10 blur-2xl"></div>
               <div className="absolute -z-10 w-60 h-60 rounded-full bg-cbis-teal/5 -top-10 -right-10 blur-3xl"></div>
             </div>
