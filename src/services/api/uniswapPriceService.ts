@@ -1,21 +1,11 @@
-
 import { UNISWAP_SUBGRAPH_URL, TOKEN_ADDRESS, MAX_RETRIES, RETRY_DELAY, ENABLE_LOGGING } from './config';
 
-const createUniswapV3Query = () => `{
-  pool(id: "${TOKEN_ADDRESS.toLowerCase()}") {
-    token0Price
-    token1Price
-    token0 {
-      symbol
-      id
-    }
-    token1 {
-      symbol
-      id
-    }
+const createUniswapV2Query = () => `{
+  token(id: "${TOKEN_ADDRESS.toLowerCase()}") {
+    derivedETH
   }
   bundle(id: "1") {
-    ethPriceUSD
+    ethPrice
   }
 }`;
 
@@ -46,7 +36,7 @@ async function fetchWithRetry(url: string, options: RequestInit, retries: number
 export const fetchUniswapTokenPrice = async (): Promise<number> => {
   try {
     if (ENABLE_LOGGING) {
-      console.log('Fetching price from Uniswap V3 Subgraph:', new Date().toISOString());
+      console.log('Fetching price from Uniswap V2 Subgraph:', new Date().toISOString());
     }
     
     const response = await fetchWithRetry(
@@ -57,7 +47,7 @@ export const fetchUniswapTokenPrice = async (): Promise<number> => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query: createUniswapV3Query()
+          query: createUniswapV2Query()
         })
       }
     );
@@ -65,25 +55,16 @@ export const fetchUniswapTokenPrice = async (): Promise<number> => {
     const data = await response.json();
     
     if (ENABLE_LOGGING) {
-      console.log('Uniswap V3 API Response:', data);
+      console.log('Uniswap V2 API Response:', data);
     }
 
-    if (!data.data?.pool || !data.data?.bundle) {
-      throw new Error('Invalid response format from Uniswap V3 API');
+    if (!data.data?.token || !data.data?.bundle) {
+      throw new Error('Invalid response format from Uniswap V2 API');
     }
 
-    const { pool, bundle } = data.data;
-    let tokenPrice;
-
-    // Determine if our token is token0 or token1 and calculate price accordingly
-    if (pool.token0.id.toLowerCase() === TOKEN_ADDRESS.toLowerCase()) {
-      tokenPrice = parseFloat(pool.token0Price);
-    } else {
-      tokenPrice = parseFloat(pool.token1Price);
-    }
-
-    const ethPriceUSD = parseFloat(bundle.ethPriceUSD);
-    const tokenPriceUSD = tokenPrice * ethPriceUSD;
+    const tokenDerivedETH = parseFloat(data.data.token.derivedETH);
+    const ethPriceUSD = parseFloat(data.data.bundle.ethPrice);
+    const tokenPriceUSD = tokenDerivedETH * ethPriceUSD;
 
     if (isNaN(tokenPriceUSD) || tokenPriceUSD <= 0) {
       throw new Error('Invalid price calculation');
@@ -95,59 +76,7 @@ export const fetchUniswapTokenPrice = async (): Promise<number> => {
 
     return tokenPriceUSD;
   } catch (error) {
-    console.error('Error fetching token price from Uniswap V3:', error);
-    
-    // Add fallback to QuickSwap if Uniswap V3 fails
-    try {
-      if (ENABLE_LOGGING) {
-        console.log('Attempting fallback to QuickSwap...');
-      }
-      
-      const fallbackUrl = 'https://api.thegraph.com/subgraphs/name/sameepsi/quickswap06';
-      const response = await fetchWithRetry(
-        fallbackUrl,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            query: `{
-              token(id: "${TOKEN_ADDRESS.toLowerCase()}") {
-                derivedETH
-                symbol
-              }
-              bundle(id: "1") {
-                ethPrice
-              }
-            }`
-          })
-        }
-      );
-
-      const fallbackData = await response.json();
-      
-      if (!fallbackData.data?.token || !fallbackData.data?.bundle) {
-        throw new Error('Invalid response format from QuickSwap API');
-      }
-
-      const tokenDerivedETH = parseFloat(fallbackData.data.token.derivedETH);
-      const ethPriceUSD = parseFloat(fallbackData.data.bundle.ethPrice);
-      const tokenPriceUSD = tokenDerivedETH * ethPriceUSD;
-
-      if (isNaN(tokenPriceUSD) || tokenPriceUSD <= 0) {
-        throw new Error('Invalid price calculation from fallback');
-      }
-
-      if (ENABLE_LOGGING) {
-        console.log('Calculated token price from QuickSwap:', tokenPriceUSD);
-      }
-
-      return tokenPriceUSD;
-    } catch (fallbackError) {
-      console.error('Both Uniswap V3 and QuickSwap fallback failed:', fallbackError);
-      throw new Error(`Price fetch failed: ${error.message}. Fallback also failed: ${fallbackError.message}`);
-    }
+    console.error('Error fetching token price from Uniswap V2:', error);
+    throw error;
   }
 };
-
