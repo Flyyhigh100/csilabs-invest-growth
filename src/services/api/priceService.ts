@@ -1,4 +1,3 @@
-
 import { TokenPriceData } from '@/types/token';
 import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE, START_DATE, END_DATE, QUOTE_TOKEN, AGGREGATION_DAYS, DAYS_TO_INCLUDE } from './config';
 import { generateMockPriceData, generateMockCurrentPrice } from '../mocks/mockDataGenerators';
@@ -28,10 +27,9 @@ const formatDate = (timestamp: number): string => {
  * @returns Boolean indicating if price is valid
  */
 const isValidPrice = (price: number): boolean => {
-  // Implement sanity checks based on expected price range
-  // These thresholds should be adjusted based on your token's expected price range
-  const MIN_ACCEPTABLE_PRICE = 0.01; // Minimum price (e.g., $0.01)
-  const MAX_ACCEPTABLE_PRICE = 100;  // Maximum price (e.g., $100)
+  // Allow for micro-priced tokens (8 decimal places)
+  const MIN_ACCEPTABLE_PRICE = 0.00000001;
+  const MAX_ACCEPTABLE_PRICE = 100;  // Maximum price cap for sanity check
   
   return price >= MIN_ACCEPTABLE_PRICE && price <= MAX_ACCEPTABLE_PRICE;
 };
@@ -149,17 +147,18 @@ export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Pro
       return cachedCurrentPrice.price;
     }
     
-    console.log('Fetching current token price' + (forceRefresh ? ' (forced refresh)' : ''));
+    console.log(`Fetching current token price for ${TOKEN_ADDRESS} on chain ${CHAIN_ID}`);
     
     // Use mock data if no API key is provided
     if (!API_KEY) {
-      console.log('No API key provided, using mock current price');
+      console.error('No API key provided for Defined.fi');
       const mockPrice = generateMockCurrentPrice();
       cachedCurrentPrice = { price: mockPrice, timestamp: Date.now() };
       return mockPrice;
     }
     
     const url = `${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/price?quoteToken=${QUOTE_TOKEN}`;
+    console.log('Fetching price from URL:', url);
     
     // Add a timeout to the fetch operation
     const controller = new AbortController();
@@ -179,34 +178,42 @@ export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Pro
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API error ${response.status}:`, errorText);
+      console.error('Token:', TOKEN_ADDRESS);
+      console.error('Chain:', CHAIN_ID);
+      
+      if (response.status === 401 || response.status === 403) {
+        console.error('API key authentication failed. Please verify your Defined.fi API key.');
+      }
+      
       if (cachedCurrentPrice) {
         console.log('API error, using last cached price:', cachedCurrentPrice.price);
         return cachedCurrentPrice.price;
       }
+      
       const mockPrice = generateMockCurrentPrice();
       cachedCurrentPrice = { price: mockPrice, timestamp: Date.now() };
       return mockPrice;
     }
 
     const data = await response.json();
+    console.log('API Response:', data);
     
     let currentPrice: number;
     
-    // Return the current price
     if (data.data && typeof data.data.price_usd === 'number') {
       currentPrice = data.data.price_usd;
     } else if (data.data && typeof data.data.price_usd === 'string') {
       currentPrice = parseFloat(data.data.price_usd);
     } else {
-      console.warn('Unexpected current price data format:', data);
+      console.warn('Unexpected price data format:', data);
       if (cachedCurrentPrice) {
         return cachedCurrentPrice.price;
       }
       currentPrice = generateMockCurrentPrice();
     }
     
-    // Validate price before caching and returning
-    if (isValidPrice(currentPrice)) {
+    // Always cache valid prices
+    if (!isNaN(currentPrice) && currentPrice > 0) {
       cachedCurrentPrice = { price: currentPrice, timestamp: Date.now() };
       console.log('New price cached:', currentPrice);
       return currentPrice;
@@ -222,6 +229,9 @@ export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Pro
     }
   } catch (error) {
     console.error('Error fetching current token price:', error);
+    console.error('Token:', TOKEN_ADDRESS);
+    console.error('Chain:', CHAIN_ID);
+    
     if (cachedCurrentPrice) {
       console.log('Error occurred, using last cached price:', cachedCurrentPrice.price);
       return cachedCurrentPrice.price;
