@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Bug } from 'lucide-react';
 import { toast } from 'sonner';
-import { TOKEN_ADDRESS, CHAIN_ID, UNISWAP_SUBGRAPH_URL } from '@/services/api/config';
+import { TOKEN_ADDRESS, CHAIN_ID } from '@/services/api/config';
 import { supabase } from '@/integrations/supabase/client';
 
 const APIKeyValidator = () => {
@@ -17,77 +17,72 @@ const APIKeyValidator = () => {
     headers?: any;
   } | null>(null);
 
-  const validateUniswapConnection = async () => {
+  const validateDefinedConnection = async () => {
     setIsValidating(true);
     setTestResponse(null);
     setDebugInfo(null);
 
     try {
-      toast.info("Testing Uniswap Subgraph connection...");
+      toast.info("Testing Defined.fi API connection...");
       
-      // Test the Uniswap connection with a simple query
-      const testUrl = UNISWAP_SUBGRAPH_URL;
-      console.log('Testing Uniswap connection with token:', TOKEN_ADDRESS);
-      console.log('Full request URL:', testUrl);
-      
-      const query = `{
-        token(id: "${TOKEN_ADDRESS.toLowerCase()}") {
-          derivedETH
-          totalLiquidity
+      // Call our edge function to test the connection
+      const { data, error } = await supabase.functions.invoke('get-token-price', {
+        body: {
+          tokenAddress: TOKEN_ADDRESS,
+          chainId: CHAIN_ID
         }
-        bundle(id: "1") {
-          ethPrice
-        }
-      }`;
-      
-      const headers = {
-        'Content-Type': 'application/json'
-      };
-      
-      console.log('Request headers:', headers);
-
-      // Set debug info
-      setDebugInfo({
-        requestUrl: testUrl,
-        headers: headers
       });
 
-      const response = await fetch(testUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ query })
-      });
-
-      const responseData = await response.json();
-      console.log('API Response:', response.status, responseData);
+      console.log('API Response:', data);
       
-      setTestResponse({
-        isValid: response.ok && responseData?.data?.token && responseData?.data?.bundle,
-        status: response.status,
-        data: responseData
-      });
-
-      if (response.ok && responseData?.data?.token) {
-        const tokenDerivedETH = parseFloat(responseData.data.token.derivedETH);
-        const ethPriceUSD = parseFloat(responseData.data.bundle.ethPrice);
-        const tokenPriceUSD = tokenDerivedETH * ethPriceUSD;
+      if (error) {
+        console.error('Function error:', error);
+        setTestResponse({
+          isValid: false,
+          status: 500,
+          data: null,
+          error: error.message
+        });
         
-        toast.success('Uniswap connection is valid', {
-          description: `Current price: $${tokenPriceUSD.toFixed(5)}`
+        toast.error('Defined.fi connection failed', {
+          description: error.message
+        });
+      } else if (data?.price) {
+        setTestResponse({
+          isValid: true,
+          status: 200,
+          data: data
+        });
+        
+        toast.success('Defined.fi connection is valid', {
+          description: `Current price: $${data.price.toFixed(5)}`
         });
       } else {
-        const error = responseData.errors?.[0]?.message || 'Invalid response from API';
-        toast.error('Uniswap connection failed', {
+        setTestResponse({
+          isValid: false,
+          status: data?.status || 400,
+          data: data
+        });
+        
+        const error = data?.error || 'Invalid response from API';
+        toast.error('Defined.fi connection failed', {
           description: error
         });
       }
+
+      setDebugInfo({
+        requestUrl: `Supabase Function: get-token-price`,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
     } catch (err: any) {
       console.error('Validation error:', err);
       setTestResponse({
         isValid: false,
         error: err.message || 'Unknown error occurred'
       });
-      toast.error('Uniswap connection failed');
+      toast.error('Defined.fi connection failed');
     } finally {
       setIsValidating(false);
     }
@@ -100,22 +95,22 @@ const APIKeyValidator = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Uniswap Connection Validator</CardTitle>
+        <CardTitle>Defined.fi API Validator</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert className="bg-blue-50">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            This will validate your connection to the Uniswap Subgraph API by making a test request to fetch the current token price.
+            This will validate your connection to the Defined.fi API by making a test request to fetch the current token price.
           </AlertDescription>
         </Alert>
 
         <Button 
-          onClick={validateUniswapConnection} 
+          onClick={validateDefinedConnection} 
           disabled={isValidating}
           className="w-full"
         >
-          {isValidating ? 'Validating...' : 'Test Uniswap Connection'}
+          {isValidating ? 'Validating...' : 'Test Defined.fi Connection'}
         </Button>
         
         {testResponse && (
@@ -154,7 +149,7 @@ const APIKeyValidator = () => {
               <Bug className="h-4 w-4 text-amber-600 mr-2" />
               <AlertDescription className="text-xs space-y-1">
                 <p><strong>Debug Info:</strong></p>
-                <p>Request URL: {debugInfo.requestUrl}</p>
+                <p>Request: {debugInfo.requestUrl}</p>
                 {debugInfo.headers && (
                   <details>
                     <summary className="cursor-pointer">Headers</summary>
@@ -171,7 +166,7 @@ const APIKeyValidator = () => {
             <p><strong>Testing Configuration:</strong></p>
             <p>Token Address: {TOKEN_ADDRESS}</p>
             <p>Chain ID: {CHAIN_ID} (Polygon)</p>
-            <p>Subgraph URL: {UNISWAP_SUBGRAPH_URL}</p>
+            <p>API: Defined.fi</p>
           </AlertDescription>
         </Alert>
       </CardContent>

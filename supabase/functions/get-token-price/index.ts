@@ -21,7 +21,7 @@ serve(async (req) => {
   
   try {
     // Get environment variables
-    const DEFINED_API_KEY = Deno.env.get('DEFINED_API_KEY');
+    const DEFINED_API_KEY = Deno.env.get('DEFINED_API_KEY') || '3fe52a290da2025bdddcc45a353c0268810eacf7'; // Use provided key from custom instructions
     
     if (!DEFINED_API_KEY) {
       console.error('Missing DEFINED_API_KEY in environment variables');
@@ -49,7 +49,7 @@ serve(async (req) => {
       console.log('Using default token parameters');
     }
     
-    console.log(`Fetching price for token ${tokenAddress} on chain ${chainId}`);
+    console.log(`Fetching price for token ${tokenAddress} on chain ${chainId} with API key`);
     
     // Call Defined.fi API to fetch token price
     const response = await fetch(`https://api.defined.fi/api/v0/tokens/${chainId}/${tokenAddress}/price`, {
