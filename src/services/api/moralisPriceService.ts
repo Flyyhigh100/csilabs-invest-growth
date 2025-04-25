@@ -19,11 +19,20 @@ async function getApiKey(): Promise<string> {
       throw new Error('API key not configured');
     }
 
-    // Validate key format
-    if (typeof data !== 'string' || data.length < 30) {
-      console.error('Invalid Moralis API key format received. Length:', data?.length);
+    // Validate key format - showing debug info without exposing the full key
+    if (typeof data !== 'string') {
+      console.error('Invalid Moralis API key format: not a string');
       throw new Error('API key has invalid format');
     }
+    
+    if (data.length < 30) {
+      console.error('Invalid Moralis API key format: too short, length:', data?.length);
+      throw new Error('API key has invalid format (too short)');
+    }
+    
+    // Log key format for debugging (without exposing the full key)
+    console.log('API key format check: starts with', data.substring(0, 5), 'ends with', data.substring(data.length - 5));
+    console.log('API key length:', data.length);
 
     return data;
   } catch (error) {
@@ -45,13 +54,18 @@ async function fetchWithRetry(url: string, apiKey: string, retries = MAX_RETRIES
       }
     });
 
+    // Log response status for debugging
+    console.log('Moralis API response status:', response.status);
+    
     if (!response.ok) {
       let errorMessage = 'Unknown error';
       try {
         const errorData = await response.json();
         errorMessage = errorData.message || errorData.error || `Status: ${response.status}`;
+        console.error('Moralis API error details:', errorData);
       } catch (e) {
         errorMessage = `Status: ${response.status} ${response.statusText}`;
+        console.error('Could not parse error response from Moralis API');
       }
       
       console.error(`Moralis API error:`, errorMessage);
