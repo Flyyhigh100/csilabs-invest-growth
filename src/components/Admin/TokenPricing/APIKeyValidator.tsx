@@ -144,7 +144,7 @@ const APIKeyValidator = () => {
             </div>
             
             <Button 
-              variant="outline" 
+              variant="default" 
               size="sm" 
               onClick={() => setShowDetails(!showDetails)}
               className="w-full"
@@ -162,7 +162,7 @@ const APIKeyValidator = () => {
         
         {debugInfo && (
           <div className="mt-4">
-            <Alert variant="outline" className="bg-amber-50 border-amber-200">
+            <Alert variant="default" className="bg-amber-50 border-amber-200">
               <Bug className="h-4 w-4 text-amber-600 mr-2" />
               <AlertDescription className="text-xs space-y-1">
                 <p><strong>Debug Info:</strong></p>
