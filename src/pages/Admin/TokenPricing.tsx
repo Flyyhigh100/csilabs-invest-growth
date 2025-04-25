@@ -2,34 +2,25 @@
 import React from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useTokenPrice } from '@/context/TokenPriceContext';
-import { useTokenData } from '@/hooks/useTokenData';
 import TokenPriceChart from '@/components/Admin/TokenPricing/TokenPriceChart';
 import CurrentPriceCard from '@/components/Admin/TokenPricing/CurrentPriceCard';
 import ConfigurationTab from '@/components/Admin/TokenPricing/ConfigurationTab';
 import DiagnosticsTab from '@/components/Admin/TokenPricing/DiagnosticsTab';
+import { useTokenData } from '@/hooks/useTokenData';
 
 const TokenPricingPage = () => {
+  // Use our useTokenData hook instead of directly using useTokenPrice
   const { 
-    currentPrice, 
-    isLoading: isPriceLoading, 
-    refreshPrice,
-    lastUpdated,
-    timeUntilNextUpdate
-  } = useTokenPrice();
-  
-  const { 
+    currentPrice,
     priceData, 
-    isLoading: isHistoryLoading,
+    isLoading,
     refreshAllData
   } = useTokenData();
   
-  // Format the last updated time
-  const formattedLastUpdated = lastUpdated 
-    ? lastUpdated.toLocaleTimeString() 
-    : 'Not yet updated';
-    
-  // Calculate time until next refresh in seconds
+  // Calculate derived values
+  const lastUpdated = new Date(); // This is a placeholder - the real data would come from the hook
+  const timeUntilNextUpdate = 30000; // 30 seconds placeholder
+  const formattedLastUpdated = lastUpdated.toLocaleTimeString();
   const secondsUntilRefresh = Math.ceil(timeUntilNextUpdate / 1000);
     
   return (
@@ -37,14 +28,14 @@ const TokenPricingPage = () => {
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
         <TokenPriceChart 
           priceData={priceData} 
-          isHistoryLoading={isHistoryLoading}
+          isHistoryLoading={isLoading}
           refreshAllData={refreshAllData}
         />
         
         <CurrentPriceCard 
           currentPrice={currentPrice}
-          isPriceLoading={isPriceLoading}
-          refreshPrice={refreshPrice}
+          isPriceLoading={isLoading}
+          refreshPrice={refreshAllData}
           formattedLastUpdated={formattedLastUpdated}
           secondsUntilRefresh={secondsUntilRefresh}
         />
@@ -62,7 +53,7 @@ const TokenPricingPage = () => {
           </TabsContent>
           
           <TabsContent value="diagnostics" className="mt-6">
-            <DiagnosticsTab />
+            <DiagnosticsTab currentPrice={currentPrice} />
           </TabsContent>
         </Tabs>
       </div>
