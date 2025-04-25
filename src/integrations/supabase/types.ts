@@ -219,6 +219,27 @@ export type Database = {
         }
         Relationships: []
       }
+      secrets: {
+        Row: {
+          created_at: string
+          name: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          name: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          name?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           admin_notes: string | null
@@ -287,6 +308,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_secret: {
+        Args: { secret_name: string }
+        Returns: string
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean

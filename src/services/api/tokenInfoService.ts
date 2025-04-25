@@ -1,4 +1,3 @@
-
 import { TokenInfo } from '@/types/token';
 import { MORALIS_BASE_URL, TOKEN_ADDRESS, MORALIS_CHAIN } from './config';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,9 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 async function getApiKey(): Promise<string> {
   try {
     const { data, error } = await supabase
-      .functions.invoke('get-secret', {
-        body: { secret_name: 'MORALIS_API_KEY' }
-      });
+      .rpc('get_secret', { secret_name: 'MORALIS_API_KEY' });
 
     if (error || !data) {
       console.error('Failed to fetch Moralis API key:', error);

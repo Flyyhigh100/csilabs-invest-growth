@@ -1,8 +1,13 @@
-
-import { TokenVolumeData } from '@/types/token';
-import { MORALIS_BASE_URL, TOKEN_ADDRESS, MORALIS_CHAIN, START_DATE, END_DATE } from './config';
-import { generateMockVolumeData } from '../mocks/mockDataGenerators';
 import { supabase } from '@/integrations/supabase/client';
+import { generateMockVolumeData } from '../mocks/mockDataGenerators';
+import { TokenVolumeData } from '@/types/token';
+import { 
+  TOKEN_ADDRESS, 
+  MORALIS_BASE_URL, 
+  MORALIS_CHAIN, 
+  START_DATE, 
+  END_DATE 
+} from './config';
 
 /**
  * Formats a timestamp to a readable date
@@ -22,9 +27,7 @@ const formatDate = (timestamp: number): string => {
 async function getApiKey(): Promise<string> {
   try {
     const { data, error } = await supabase
-      .functions.invoke('get-secret', {
-        body: { secret_name: 'MORALIS_API_KEY' }
-      });
+      .rpc('get_secret', { secret_name: 'MORALIS_API_KEY' });
 
     if (error || !data) {
       console.error('Failed to fetch Moralis API key:', error);

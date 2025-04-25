@@ -1,4 +1,3 @@
-
 import { MORALIS_BASE_URL, MORALIS_CHAIN, TOKEN_ADDRESS, PRICE_CACHE_DURATION } from './config';
 import { generateMockCurrentPrice } from '../mocks/mockDataGenerators';
 import { getCachedPrice, setCachedPrice, invalidateCache } from './utils/priceCache';
