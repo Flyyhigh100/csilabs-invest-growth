@@ -1,30 +1,32 @@
 
+# A string used to distinguish different Supabase projects on the same host. Defaults to the
+# working directory name when running `supabase init`.
 project_id = "hrhvliqkmetcdphnetxb"
 
 [api]
 enabled = true
-port = 8080
-schemas = []
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
 
 [db]
-port = 5432
+port = 54322
 
 [studio]
-enabled = true
-port = 9000
+port = 54323
 
 [inbucket]
-enabled = true
-port = 4200
+port = 54324
 
 [auth]
 enabled = true
-port = 9999
+site_url = "http://localhost:3000"
 
 [storage]
 enabled = true
-port = 5000
 
-[functions.get-secret]
-verify_jwt = true
+[realtime]
+enabled = true
 
+[functions]
+[functions.get-token-price]
+verify_jwt = false
