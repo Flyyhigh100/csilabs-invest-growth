@@ -1,5 +1,6 @@
+
 import { TokenVolumeData } from '@/types/token';
-import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID, TIME_RANGE, START_DATE, END_DATE, QUOTE_TOKEN, AGGREGATION_DAYS } from './config';
+import { MORALIS_BASE_URL, API_KEY, TOKEN_ADDRESS, MORALIS_CHAIN, START_DATE, END_DATE } from './config';
 import { generateMockVolumeData } from '../mocks/mockDataGenerators';
 
 /**
@@ -32,8 +33,11 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
       return generateMockVolumeData();
     }
     
-    // Build URL with all necessary parameters
-    const url = `${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/volume_history?timeRange=${TIME_RANGE}&quoteToken=${QUOTE_TOKEN}`;
+    // Use Moralis token transfers API to estimate volume
+    // Calculate days from START_DATE
+    const daysAgo = Math.floor((Date.now() / 1000 - START_DATE) / 86400);
+    const url = `${MORALIS_BASE_URL}/erc20/${TOKEN_ADDRESS}/transfers?chain=${MORALIS_CHAIN}&from_date=${new Date(START_DATE * 1000).toISOString()}`;
+    
     console.log('Fetching volume history from URL:', url);
     
     // Add a timeout to the fetch operation
@@ -43,8 +47,8 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
-        'X-API-KEY': API_KEY
+        'Accept': 'application/json',
+        'X-API-Key': API_KEY
       },
       signal: controller.signal
     });
@@ -53,117 +57,57 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`API error ${response.status}:`, errorText);
+      console.error(`Moralis API error ${response.status}:`, errorText);
       console.log('Using mock data as fallback due to API error');
       return generateMockVolumeData();
     }
 
     const data = await response.json();
-    console.log('Volume history data received, status:', data.status);
-    console.log('Data points received:', data.data ? data.data.length : 0);
+    console.log('Token transfers data received:', data);
     
-    // Transform the API response to match our expected format
-    if (data.data && Array.isArray(data.data)) {
-      // Log sample data point
-      if (data.data.length > 0) {
-        console.log('Sample data point:', data.data[0]);
-      }
+    // Process transfers into daily volume data
+    // This is a simplified approach since we don't have direct volume data
+    if (data.result && Array.isArray(data.result)) {
+      console.log(`Received ${data.result.length} transfer records`);
       
-      // Filter data to only include records between START_DATE and END_DATE
-      const filteredData = data.data.filter((item: any) => 
-        item.timestamp >= START_DATE && item.timestamp <= END_DATE
-      );
+      // Group transfers by day
+      const dailyVolumes: Record<string, number> = {};
       
-      console.log(`Filtered ${filteredData.length} data points between ${new Date(START_DATE * 1000).toLocaleDateString()} and ${new Date(END_DATE * 1000).toLocaleDateString()}`);
-      
-      if (filteredData.length === 0) {
-        console.warn('No volume data found in specified date range, using mock data');
-        return generateMockVolumeData();
-      }
-      
-      // Process the data based on the AGGREGATION_DAYS setting
-      if (AGGREGATION_DAYS > 1) {
-        // Group data by day/month for aggregated view
-        const groupedData: { [key: string]: { volumes: number[], timestamp: number } } = {};
+      data.result.forEach((transfer: any) => {
+        const timestamp = new Date(transfer.block_timestamp).getTime() / 1000;
+        const dateKey = formatDate(timestamp);
         
-        filteredData.forEach((item: any) => {
-          const timestamp = item.timestamp;
-          const formattedDate = formatDate(timestamp);
-          
-          if (!groupedData[formattedDate]) {
-            groupedData[formattedDate] = {
-              volumes: [],
-              timestamp: timestamp
-            };
-          }
-          
-          // Ensure we're using the actual volume from the API
-          const volume = typeof item.volume_usd === 'string' 
-            ? parseFloat(item.volume_usd) 
-            : (typeof item.volume_usd === 'number' ? item.volume_usd : 0);
-              
-          if (!isNaN(volume) && volume > 0) {
-            groupedData[formattedDate].volumes.push(volume);
-          }
+        // Convert value from wei to token units using the token decimals (usually 18)
+        // This is a simple approximation for volume
+        const value = parseInt(transfer.value) / 1e18;
+        
+        if (!dailyVolumes[dateKey]) {
+          dailyVolumes[dateKey] = 0;
+        }
+        
+        dailyVolumes[dateKey] += value;
+      });
+      
+      // Convert to array format
+      const volumeData = Object.entries(dailyVolumes).map(([date, volume]) => ({
+        date,
+        volume
+      }));
+      
+      console.log(`Processed ${volumeData.length} volume data points`);
+      
+      if (volumeData.length > 0) {
+        return volumeData.sort((a, b) => {
+          // Sort by date
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          return dateA.getTime() - dateB.getTime();
         });
-        
-        // Calculate total volume for each group
-        const result = Object.entries(groupedData)
-          .map(([date, data]) => ({
-            date,
-            volume: data.volumes.length > 0 
-              ? data.volumes.reduce((sum, volume) => sum + volume, 0)
-              : 0
-          }))
-          .filter(item => item.volume > 0) // Filter out zero volumes
-          .sort((a, b) => {
-            // Sort by date from oldest to newest
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
-            return dateA.getTime() - dateB.getTime();
-          });
-        
-        console.log(`Processed ${result.length} aggregated data points`);
-        if (result.length > 0) {
-          console.log('First data point:', result[0]);
-          console.log('Last data point:', result[result.length - 1]);
-        }
-        
-        return result;
-      } else {
-        // Use daily data (no aggregation)
-        const result = filteredData
-          .map((item: any) => {
-            const volume = typeof item.volume_usd === 'string' 
-              ? parseFloat(item.volume_usd) 
-              : (typeof item.volume_usd === 'number' ? item.volume_usd : 0);
-              
-            return {
-              date: formatDate(item.timestamp),
-              volume: volume
-            };
-          })
-          .filter(item => !isNaN(item.volume) && item.volume > 0) // Filter out invalid volumes
-          .sort((a, b) => {
-            // Sort by date from oldest to newest
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
-            return dateA.getTime() - dateB.getTime();
-          });
-          
-        console.log(`Processed ${result.length} daily data points`);
-        if (result.length > 0) {
-          console.log('First data point:', result[0]);
-          console.log('Last data point:', result[result.length - 1]);
-        }
-        
-        return result;
       }
-    } else {
-      console.warn('Unexpected volume history data format:', data);
-      console.log('Using mock data as fallback due to unexpected data format');
-      return generateMockVolumeData();
     }
+    
+    console.log('No valid volume data processed, using mock data');
+    return generateMockVolumeData();
   } catch (error) {
     console.error('Error fetching token volume history:', error);
     console.log('Using mock data as fallback due to error');

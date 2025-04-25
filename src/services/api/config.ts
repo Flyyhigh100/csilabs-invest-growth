@@ -8,6 +8,12 @@ export const MORALIS_BASE_URL = 'https://deep-index.moralis.io/api/v2';
 export const MORALIS_CHAIN = '0x89'; // Polygon mainnet in hex format
 export const API_KEY = '3fe52a290da2025bdddcc45a353c0268810eacf7';  // Moralis API key
 
+// Legacy API configuration - needed for tokenInfoService and volumeService
+export const API_BASE_URL = 'https://api.defined.fi';
+export const TIME_RANGE = '30d'; // Default time range for volume data
+export const QUOTE_TOKEN = 'usd'; // Default quote currency
+export const AGGREGATION_DAYS = 1; // Default aggregation for volume data
+
 // Token configuration - Token on Polygon network
 export const TOKEN_ADDRESS = '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0';  // Token address
 export const CHAIN_ID = '137';  // Polygon mainnet
@@ -16,6 +22,10 @@ export const CHAIN_ID = '137';  // Polygon mainnet
 export const START_DATE = Math.floor(new Date('2021-10-26').getTime() / 1000);  // Oct 26, 2021
 export const END_DATE = Math.floor(new Date().getTime() / 1000);  // Current time
 export const DAYS_TO_INCLUDE = 90;  // Show last 90 days for short-term chart
+
+// Cache settings
+export const PRICE_CACHE_DURATION = 30 * 1000; // 30 seconds
+export const FORCE_REFRESH_CACHE = true; // Force cache refresh on component mount
 
 // For logging
 export const ENABLE_LOGGING = true;  // Enable detailed logging for debugging

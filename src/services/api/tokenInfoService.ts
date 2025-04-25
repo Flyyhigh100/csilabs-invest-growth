@@ -1,6 +1,6 @@
 
 import { TokenInfo } from '@/types/token';
-import { API_BASE_URL, API_KEY, TOKEN_ADDRESS, CHAIN_ID } from './config';
+import { MORALIS_BASE_URL, API_KEY, TOKEN_ADDRESS, MORALIS_CHAIN } from './config';
 
 /**
  * Fetches token information like total supply and blockchain
@@ -10,34 +10,34 @@ export const fetchTokenInfo = async (): Promise<TokenInfo> => {
   try {
     console.log('Fetching token info with API key:', API_KEY ? 'API key present' : 'No API key');
     
-    const response = await fetch(`${API_BASE_URL}/v0/token/${CHAIN_ID}/${TOKEN_ADDRESS}/info`, {
+    // Use Moralis API instead of the old API
+    const url = `${MORALIS_BASE_URL}/erc20/${TOKEN_ADDRESS}?chain=${MORALIS_CHAIN}`;
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
-        'X-API-KEY': API_KEY
+        'Accept': 'application/json',
+        'X-API-Key': API_KEY
       }
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`API error ${response.status}:`, errorText);
+      console.error(`Moralis API error ${response.status}:`, errorText);
       throw new Error(`API error: ${response.status}`);
     }
 
     const data = await response.json();
     console.log('Token info data received:', data);
     
-    // Transform the API response to match our expected format
-    if (data.data) {
-      return {
-        totalSupply: data.data.total_supply ? data.data.total_supply.toLocaleString() : "100,000,000",
-        blockchain: "Polygon",
-        contractAddress: TOKEN_ADDRESS
-      };
-    } else {
-      console.warn('Unexpected token info data format:', data);
-      throw new Error('Unexpected data format');
-    }
+    // Transform the Moralis response to match our expected format
+    return {
+      totalSupply: data.totalSupply ? 
+        (parseInt(data.totalSupply) / Math.pow(10, parseInt(data.decimals))).toLocaleString() : 
+        "100,000,000",
+      blockchain: "Polygon",
+      contractAddress: TOKEN_ADDRESS
+    };
   } catch (error) {
     console.error('Error fetching token info:', error);
     // Fall back to mock data if the API call fails
