@@ -1,3 +1,4 @@
+
 import { TokenPriceData } from '@/types/token';
 import { MORALIS_BASE_URL, MORALIS_CHAIN, TOKEN_ADDRESS, START_DATE, END_DATE, DAYS_TO_INCLUDE } from './config';
 import { generateMockPriceData } from '../mocks/mockDataGenerators';
@@ -6,11 +7,12 @@ import { supabase } from '@/integrations/supabase/client';
 
 async function getApiKey(): Promise<string> {
   try {
+    // Standardize on using rpc call
     const { data, error } = await supabase
       .rpc('get_secret', { secret_name: 'MORALIS_API_KEY' });
 
     if (error || !data) {
-      console.error('Failed to fetch Moralis API key:', error);
+      console.error('Failed to fetch Defined.fi API key:', error);
       throw new Error('API key not configured');
     }
 
@@ -23,12 +25,15 @@ async function getApiKey(): Promise<string> {
 
 export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
   try {
-    console.log('Fetching token price history from Moralis');
+    console.log('Fetching token price history from Defined.fi');
+    console.log('Using token address:', TOKEN_ADDRESS);
     
     const apiKey = await getApiKey();
 
     const daysAgo = Math.floor((Date.now() / 1000 - START_DATE) / 86400);
     const url = `${MORALIS_BASE_URL}/erc20/${TOKEN_ADDRESS}/price/history?chain=${MORALIS_CHAIN}&days=${daysAgo}`;
+    
+    console.log('Request URL:', url);
     
     const response = await fetch(url, {
       method: 'GET',
@@ -40,7 +45,7 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Moralis API error:', errorText);
+      console.error('Defined.fi API error:', errorText);
       throw new Error(`Failed to fetch price history: ${response.status}`);
     }
 

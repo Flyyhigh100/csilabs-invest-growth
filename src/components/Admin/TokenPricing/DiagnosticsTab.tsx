@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTokenPrice } from '@/context/TokenPriceContext';
@@ -18,8 +18,40 @@ interface DiagnosticsTabProps {
 
 const PriceDebugger: React.FC<DiagnosticsTabProps> = ({ currentPrice: propCurrentPrice }) => {
   // Use the prop or fall back to context
-  const { currentPrice: contextCurrentPrice } = useTokenPrice();
+  const { currentPrice: contextCurrentPrice, error } = useTokenPrice();
   const currentPrice = propCurrentPrice ?? contextCurrentPrice;
+  const [apiKeyStatus, setApiKeyStatus] = useState<{isConfigured: boolean, details?: string}>({isConfigured: false});
+  
+  useEffect(() => {
+    checkApiKeyStatus();
+  }, []);
+
+  const checkApiKeyStatus = async () => {
+    try {
+      // Use the RPC function directly for consistency
+      const { data, error } = await supabase
+        .rpc('get_secret', { secret_name: 'MORALIS_API_KEY' });
+      
+      if (error) {
+        console.error('Error checking API key status:', error);
+        setApiKeyStatus({ 
+          isConfigured: false, 
+          details: `Error: ${error.message}`
+        });
+      } else {
+        setApiKeyStatus({ 
+          isConfigured: Boolean(data), 
+          details: data ? 'API key is configured' : 'API key is not configured'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error checking API key status:', error);
+      setApiKeyStatus({
+        isConfigured: false,
+        details: `Exception: ${error.message || "Unknown error"}`
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -44,11 +76,14 @@ const PriceDebugger: React.FC<DiagnosticsTabProps> = ({ currentPrice: propCurren
               </div>
               
               <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                <h3 className="font-medium text-sm text-gray-700 mb-2">Price Caching</h3>
+                <h3 className="font-medium text-sm text-gray-700 mb-2">API Key Status</h3>
                 <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                  <span>Working</span>
+                  <div className={`w-3 h-3 rounded-full mr-2 ${apiKeyStatus.isConfigured ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <span>{apiKeyStatus.isConfigured ? 'Configured' : 'Missing or Invalid'}</span>
                 </div>
+                {apiKeyStatus.details && (
+                  <p className="text-xs text-gray-500 mt-1">{apiKeyStatus.details}</p>
+                )}
               </div>
             </div>
             
@@ -61,14 +96,23 @@ const PriceDebugger: React.FC<DiagnosticsTabProps> = ({ currentPrice: propCurren
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Chain ID:</span>
-                  <span className="font-medium">137 (Polygon)</span>
+                  <span className="font-medium">{MORALIS_CHAIN} (Polygon)</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Token Address:</span>
-                  <span className="font-medium text-xs">0x4e5f276d29a122d787a8b345b1bc4bd5dd0f40c3</span>
+                  <span className="font-medium text-xs">{TOKEN_ADDRESS}</span>
                 </div>
               </div>
             </div>
+
+            {error && (
+              <Alert variant="destructive" className="bg-red-50 border-red-200">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  <strong>API Error:</strong> {error.message}
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         </CardContent>
       </Card>

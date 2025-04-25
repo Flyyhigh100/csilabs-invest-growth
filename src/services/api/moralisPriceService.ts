@@ -1,3 +1,4 @@
+
 import { MORALIS_BASE_URL, MORALIS_CHAIN, TOKEN_ADDRESS, PRICE_CACHE_DURATION } from './config';
 import { generateMockCurrentPrice } from '../mocks/mockDataGenerators';
 import { getCachedPrice, setCachedPrice, invalidateCache } from './utils/priceCache';
@@ -9,14 +10,12 @@ const RETRY_DELAY = 1000; // 1 second
 
 async function getApiKey(): Promise<string> {
   try {
-    // Use a specific function call to get the API key from secrets
+    // Standardize on using rpc call
     const { data, error } = await supabase
-      .functions.invoke('get-secret', {
-        body: { secret_name: 'MORALIS_API_KEY' }
-      });
+      .rpc('get_secret', { secret_name: 'MORALIS_API_KEY' });
 
     if (error || !data) {
-      console.error('Failed to fetch Moralis API key:', error);
+      console.error('Failed to fetch Defined.fi API key:', error);
       throw new Error('API key not configured');
     }
 
@@ -29,7 +28,9 @@ async function getApiKey(): Promise<string> {
 
 async function fetchWithRetry(url: string, apiKey: string, retries = MAX_RETRIES): Promise<Response> {
   try {
-    console.log('Fetching price from Moralis:', new Date().toISOString());
+    console.log('Fetching price from Defined.fi:', new Date().toISOString());
+    console.log('Request URL:', url);
+    
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -40,7 +41,7 @@ async function fetchWithRetry(url: string, apiKey: string, retries = MAX_RETRIES
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Moralis API error ${response.status}:`, errorText);
+      console.error(`Defined.fi API error ${response.status}:`, errorText);
       
       if (retries > 0 && response.status !== 401) { // Don't retry on auth errors
         console.log(`Retry attempt ${MAX_RETRIES - retries + 1}/${MAX_RETRIES}`);
@@ -87,16 +88,17 @@ export const fetchMoralisTokenPrice = async (forceRefresh: boolean = false): Pro
     
     const url = `${MORALIS_BASE_URL}/erc20/${TOKEN_ADDRESS}/price?chain=${MORALIS_CHAIN}`;
     console.log('Fetching fresh token price from URL:', url);
+    console.log('Using token address:', TOKEN_ADDRESS);
     
     const response = await fetchWithRetry(url, apiKey);
     const data = await response.json();
     
-    console.log('Moralis API Response:', data);
+    console.log('Defined.fi API Response:', data);
     
     const price = data.usdPrice;
     
     if (!isValidPrice(price)) {
-      console.error('Invalid price received from Moralis:', price);
+      console.error('Invalid price received from Defined.fi:', price);
       throw new Error('Invalid price received from API');
     }
     
@@ -105,7 +107,7 @@ export const fetchMoralisTokenPrice = async (forceRefresh: boolean = false): Pro
     return price;
     
   } catch (error) {
-    console.error('Error fetching token price from Moralis:', error);
+    console.error('Error fetching token price from Defined.fi:', error);
     
     // Invalidate cache on error to prevent stale data
     invalidateCache();
