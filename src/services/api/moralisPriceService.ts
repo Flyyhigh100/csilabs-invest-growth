@@ -1,94 +1,10 @@
 
-import { MORALIS_BASE_URL, MORALIS_CHAIN, TOKEN_ADDRESS, PRICE_CACHE_DURATION } from './config';
+import { PRICE_CACHE_DURATION } from './config';
 import { generateMockCurrentPrice } from '../mocks/mockDataGenerators';
 import { getCachedPrice, setCachedPrice, invalidateCache } from './utils/priceCache';
 import { isValidPrice } from './utils/priceValidation';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchUniswapTokenPrice } from './uniswapPriceService';
 import { toast } from 'sonner';
-
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000; // 1 second
-
-async function getApiKey(): Promise<string> {
-  try {
-    const { data, error } = await supabase
-      .rpc('get_secret', { secret_name: 'MORALIS_API_KEY' });
-
-    if (error || !data) {
-      console.error('Failed to fetch Moralis API key:', error);
-      throw new Error('API key not configured');
-    }
-
-    // Validate key format - showing debug info without exposing the full key
-    if (typeof data !== 'string') {
-      console.error('Invalid Moralis API key format: not a string');
-      throw new Error('API key has invalid format');
-    }
-    
-    if (data.length < 30) {
-      console.error('Invalid Moralis API key format: too short, length:', data?.length);
-      throw new Error('API key has invalid format (too short)');
-    }
-    
-    // Log key format for debugging (without exposing the full key)
-    console.log('API key format check: starts with', data.substring(0, 5), 'ends with', data.substring(data.length - 5));
-    console.log('API key length:', data.length);
-
-    return data;
-  } catch (error) {
-    console.error('Error fetching Moralis API key:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to fetch API key');
-  }
-}
-
-async function fetchWithRetry(url: string, apiKey: string, retries = MAX_RETRIES): Promise<Response> {
-  try {
-    console.log('Fetching price from Moralis:', new Date().toISOString());
-    console.log('Request URL:', url);
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'X-API-Key': apiKey
-      }
-    });
-
-    // Log response status for debugging
-    console.log('Moralis API response status:', response.status);
-    
-    if (!response.ok) {
-      let errorMessage = 'Unknown error';
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || `Status: ${response.status}`;
-        console.error('Moralis API error details:', errorData);
-      } catch (e) {
-        errorMessage = `Status: ${response.status} ${response.statusText}`;
-        console.error('Could not parse error response from Moralis API');
-      }
-      
-      console.error(`Moralis API error:`, errorMessage);
-      
-      if (retries > 0 && response.status !== 401) { // Don't retry on auth errors
-        console.log(`Retry attempt ${MAX_RETRIES - retries + 1}/${MAX_RETRIES}`);
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
-        return fetchWithRetry(url, apiKey, retries - 1);
-      }
-      
-      throw new Error(`API error: ${errorMessage}`);
-    }
-    
-    return response;
-  } catch (error) {
-    if (retries > 0) {
-      console.log(`Retry attempt ${MAX_RETRIES - retries + 1}/${MAX_RETRIES} after error:`, error);
-      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
-      return fetchWithRetry(url, apiKey, retries - 1);
-    }
-    throw error;
-  }
-}
 
 export const fetchMoralisTokenPrice = async (forceRefresh: boolean = false): Promise<number> => {
   try {
@@ -110,28 +26,11 @@ export const fetchMoralisTokenPrice = async (forceRefresh: boolean = false): Pro
       }
     }
     
-    // Get API key - will throw error if not configured or invalid
-    const apiKey = await getApiKey();
-    
-    const url = `${MORALIS_BASE_URL}/erc20/${TOKEN_ADDRESS}/price?chain=${MORALIS_CHAIN}`;
-    console.log('Fetching fresh token price from Moralis API');
-    console.log('Using token address:', TOKEN_ADDRESS);
-    console.log('Using chain ID:', MORALIS_CHAIN);
-    
-    const response = await fetchWithRetry(url, apiKey);
-    const data = await response.json();
-    
-    console.log('Moralis API Response:', data);
-    
-    if (!data || !data.usdPrice) {
-      console.error('Invalid response from Moralis API:', data);
-      throw new Error('Invalid response format from Moralis API');
-    }
-    
-    const price = data.usdPrice;
+    console.log('Fetching fresh token price from Uniswap API');
+    const price = await fetchUniswapTokenPrice();
     
     if (!isValidPrice(price)) {
-      console.error('Invalid price received from Moralis:', price);
+      console.error('Invalid price received from Uniswap:', price);
       throw new Error('Invalid price received from API');
     }
     
@@ -140,7 +39,7 @@ export const fetchMoralisTokenPrice = async (forceRefresh: boolean = false): Pro
     return price;
     
   } catch (error) {
-    console.error('Error fetching token price from Moralis:', error);
+    console.error('Error fetching token price:', error);
     
     // Show error toast to user
     toast.error('Failed to fetch current token price', {

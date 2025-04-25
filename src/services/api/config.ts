@@ -3,9 +3,7 @@
  * API Configuration for Token Data
  */
 
-// Moralis Configuration
-export const MORALIS_BASE_URL = 'https://deep-index.moralis.io/api/v2';
-export const MORALIS_CHAIN = '0x89'; // Polygon mainnet in hex format
+// Token Configuration
 export const TOKEN_ADDRESS = '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0';  // Token address
 export const CHAIN_ID = '137';  // Polygon mainnet
 
@@ -20,5 +18,3 @@ export const FORCE_REFRESH_CACHE = true; // Force cache refresh on component mou
 
 // For logging
 export const ENABLE_LOGGING = true;  // Enable detailed logging for debugging
-
-// The API key field is now completely removed since we're using Supabase secrets
