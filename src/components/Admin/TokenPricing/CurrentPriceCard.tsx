@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Clock, RefreshCw, Spinner } from 'lucide-react';
+import { Clock, RefreshCw, Loader2 } from 'lucide-react';
 
 interface CurrentPriceCardProps {
   currentPrice: number | null;
@@ -37,7 +37,7 @@ const CurrentPriceCard: React.FC<CurrentPriceCardProps> = ({
           <div className="text-4xl font-bold text-blue-600">
             {isPriceLoading ? (
               <div className="flex items-center justify-center">
-                <Spinner className="h-6 w-6 mr-2" />
+                <Loader2 className="h-6 w-6 mr-2 animate-spin" />
                 Loading...
               </div>
             ) : currentPrice ? (
