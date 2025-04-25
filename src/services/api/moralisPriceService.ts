@@ -46,27 +46,23 @@ export const fetchMoralisTokenPrice = async (forceRefresh: boolean = false): Pro
       console.log('Using cached price:', cachedCurrentPrice.price);
       return cachedCurrentPrice.price;
     }
-
-    const moralisApiKey = process.env.MORALIS_API_KEY;
-    if (!moralisApiKey) {
-      console.error('Moralis API key not found');
-      throw new Error('Moralis API key not configured');
-    }
-    
-    console.log(`Fetching fresh token price for ${TOKEN_ADDRESS} on chain ${MORALIS_CHAIN}`);
     
     const url = `${MORALIS_BASE_URL}/erc20/${TOKEN_ADDRESS}/price?chain=${MORALIS_CHAIN}`;
+    console.log('Fetching fresh token price from URL:', url);
+    
     const response = await fetchWithRetry(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'X-API-Key': moralisApiKey
+        'X-API-Key': process.env.MORALIS_API_KEY || ''
       }
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Moralis API error ${response.status}:`, errorText);
+      console.error('Token:', TOKEN_ADDRESS);
+      console.error('Chain:', MORALIS_CHAIN);
       throw new Error(`Moralis API error: ${response.status}`);
     }
 
@@ -80,15 +76,12 @@ export const fetchMoralisTokenPrice = async (forceRefresh: boolean = false): Pro
       throw new Error('Invalid price received from API');
     }
     
-    // Only cache if the price is valid
+    console.log('New valid price received:', price);
     setCachedPrice(price);
-    console.log('New price cached:', price);
     return price;
     
   } catch (error) {
     console.error('Error fetching token price from Moralis:', error);
-    console.error('Token:', TOKEN_ADDRESS);
-    console.error('Chain:', MORALIS_CHAIN);
     
     // Invalidate cache on error to prevent stale data
     invalidateCache();
@@ -99,7 +92,7 @@ export const fetchMoralisTokenPrice = async (forceRefresh: boolean = false): Pro
       return cachedPrice.price;
     }
     
-    console.log('Falling back to mock price');
+    console.log('No valid price available, using mock data');
     const mockPrice = generateMockCurrentPrice();
     setCachedPrice(mockPrice);
     return mockPrice;

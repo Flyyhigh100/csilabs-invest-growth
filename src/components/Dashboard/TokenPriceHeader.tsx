@@ -3,6 +3,7 @@ import React from 'react';
 import { useTokenPrice } from '@/context/TokenPriceContext';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { RefreshCw, TrendingUp } from 'lucide-react';
 import { Spinner } from "@/components/ui/spinner";
 
@@ -15,7 +16,8 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
     currentPrice, 
     isLoading, 
     lastUpdated, 
-    refreshPrice 
+    refreshPrice,
+    error 
   } = useTokenPrice();
   
   // Format the last updated time
@@ -23,24 +25,35 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
     ? lastUpdated.toLocaleTimeString() 
     : 'Not yet updated';
 
+  const isDemoData = error !== null;
+
   return (
     <Card className={`flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-blue-100 ${className}`}>
-      <div className="flex items-center">
-        <TrendingUp className="h-5 w-5 text-cbis-blue mr-2" />
-        <div>
-          <p className="text-sm font-medium text-gray-600">Current CSi Token Price</p>
-          <p className="text-lg font-bold text-cbis-blue">
-            {isLoading ? (
-              <span className="flex items-center">
-                <Spinner className="h-4 w-4 mr-2" />
-                Loading...
-              </span>
-            ) : currentPrice ? (
-              `$${currentPrice.toFixed(5)} USD`
-            ) : (
-              'Price unavailable'
-            )}
-          </p>
+      <div className="flex items-center space-x-3">
+        <div className="flex items-center">
+          <TrendingUp className="h-5 w-5 text-cbis-blue mr-2" />
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-gray-600">Current CSi Token Price</p>
+              {isDemoData && (
+                <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
+                  Demo Data
+                </Badge>
+              )}
+            </div>
+            <p className="text-lg font-bold text-cbis-blue">
+              {isLoading ? (
+                <span className="flex items-center">
+                  <Spinner className="h-4 w-4 mr-2" />
+                  Loading...
+                </span>
+              ) : currentPrice ? (
+                `$${currentPrice.toFixed(5)} USD`
+              ) : (
+                'Price unavailable'
+              )}
+            </p>
+          </div>
         </div>
       </div>
       
