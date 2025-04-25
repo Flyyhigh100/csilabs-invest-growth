@@ -55,7 +55,7 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
             {error && (
               <p className="text-xs text-red-600 flex items-center mt-1">
                 <AlertCircle className="h-3 w-3 mr-1" />
-                {error.message.substring(0, 50)}...
+                {error.message}
               </p>
             )}
           </div>
@@ -75,7 +75,7 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
         </Button>
         <div className="text-xs text-gray-500">
           <span>Last updated: {formattedLastUpdated}</span>
-          <span className="ml-2 text-cbis-blue">via Uniswap V2</span>
+          <span className="ml-2 text-cbis-blue">via Uniswap V3 (Polygon)</span>
         </div>
       </div>
     </Card>
@@ -83,3 +83,4 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
 };
 
 export default TokenPriceHeader;
+
