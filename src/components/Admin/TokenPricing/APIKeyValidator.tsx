@@ -1,61 +1,52 @@
-
 import React, { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { TOKEN_ADDRESS, MORALIS_CHAIN } from '@/services/api/config';
-import { Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-const APIKeyValidator: React.FC = () => {
+const APIKeyValidator = () => {
   const [isValidating, setIsValidating] = useState(false);
-  const [keyStatus, setKeyStatus] = useState<string | null>(null);
   const [testResponse, setTestResponse] = useState<any>(null);
   const [showDetails, setShowDetails] = useState(false);
 
-  const validateDefinedfiAPIKey = async () => {
+  const validateMoralisAPIKey = async () => {
     setIsValidating(true);
-    setKeyStatus(null);
     setTestResponse(null);
 
     try {
-      // Use the RPC method for consistency
+      toast.info("Validating Moralis API key...");
+      
       const { data: apiKey, error: keyError } = await supabase
         .rpc('get_secret', { secret_name: 'MORALIS_API_KEY' });
 
-      if (keyError) {
+      if (keyError || !apiKey) {
         console.error('Error fetching API key:', keyError);
-        setKeyStatus('Error fetching API key');
-        toast.error('Failed to retrieve Defined.fi API key', {
-          description: keyError.message
+        toast.error('Failed to retrieve Moralis API key');
+        setTestResponse({
+          isValid: false,
+          error: keyError?.message || 'API key not found'
         });
-        setIsValidating(false);
         return;
       }
 
-      if (!apiKey) {
-        setKeyStatus('No API key found');
-        toast.warning('No Defined.fi API key configured');
-        setIsValidating(false);
-        return;
-      }
-
-      // Validate key format first - Moralis API keys should be 32 characters or longer
+      // Validate key format first
       if (typeof apiKey !== 'string' || apiKey.length < 30) {
         console.error('API key has invalid format, length:', apiKey?.length);
-        setKeyStatus('API Key has invalid format');
-        toast.error('Defined.fi API key has invalid format', {
-          description: 'Please check that you have entered a valid API key'
+        toast.error('Invalid Moralis API key format');
+        setTestResponse({
+          isValid: false,
+          error: 'Invalid API key format'
         });
-        setIsValidating(false);
         return;
       }
 
-      // Validate key by making a test request to Defined.fi
-      console.log(`Testing API key with token address: ${TOKEN_ADDRESS}`);
-      const testUrl = `https://deep-index.moralis.io/api/v2/erc20/${TOKEN_ADDRESS}/price?chain=${MORALIS_CHAIN}`;
+      // Test the API key with a price request
+      console.log('Testing API key with token:', TOKEN_ADDRESS);
+      const testUrl = `${MORALIS_BASE_URL}/erc20/${TOKEN_ADDRESS}/price?chain=${MORALIS_CHAIN}`;
       
-      console.log('Sending test request to:', testUrl);
       const response = await fetch(testUrl, {
         method: 'GET',
         headers: {
@@ -64,47 +55,31 @@ const APIKeyValidator: React.FC = () => {
         }
       });
 
-      // Store the full response for debugging
-      let responseData;
-      const responseText = await response.text();
-      try {
-        responseData = JSON.parse(responseText);
-      } catch (e) {
-        responseData = { raw: responseText };
-      }
-
+      const responseData = await response.json();
+      
       setTestResponse({
+        isValid: response.ok,
         status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
         data: responseData
       });
-      
-      console.log('API test response:', response.status, responseData);
 
-      if (response.ok) {
-        setKeyStatus('API Key is valid');
-        toast.success('Defined.fi API key successfully validated', {
-          description: `Current price: $${responseData.usdPrice || 'N/A'}`
+      if (response.ok && responseData.usdPrice) {
+        toast.success('Moralis API key is valid', {
+          description: `Current price: $${responseData.usdPrice}`
         });
       } else {
-        let errorMessage = 'Unknown error';
-        if (responseData) {
-          errorMessage = responseData.message || responseData.error || 'API validation failed';
-        }
-        
-        setKeyStatus('API Key validation failed');
-        toast.error('Defined.fi API key validation failed', {
-          description: errorMessage
+        const error = responseData.message || 'Invalid response from API';
+        toast.error('API key validation failed', {
+          description: error
         });
       }
-    } catch (error: any) {
-      console.error('Validation error:', error);
-      setKeyStatus('Validation error');
-      setTestResponse({ error: error.toString() });
-      toast.error('Error validating Defined.fi API key', {
-        description: error instanceof Error ? error.message : 'Unknown error'
+    } catch (err: any) {
+      console.error('Validation error:', err);
+      setTestResponse({
+        isValid: false,
+        error: err.message || 'Unknown error occurred'
       });
+      toast.error('API key validation failed');
     } finally {
       setIsValidating(false);
     }
@@ -113,73 +88,50 @@ const APIKeyValidator: React.FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Defined.fi API Key Validator</CardTitle>
+        <CardTitle>Moralis API Key Validator</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <Alert className="bg-blue-50">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            This will validate your Moralis API key by making a test request to fetch the current token price.
+          </AlertDescription>
+        </Alert>
+
         <Button 
-          onClick={validateDefinedfiAPIKey} 
+          onClick={validateMoralisAPIKey} 
           disabled={isValidating}
           className="w-full"
         >
-          {isValidating ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Validating...
-            </>
-          ) : (
-            'Validate Defined.fi API Key'
-          )}
+          {isValidating ? 'Validating...' : 'Validate Moralis API Key'}
         </Button>
         
-        {keyStatus && (
-          <div 
-            className={`p-3 rounded-md ${
-              keyStatus.includes('valid') && !keyStatus.includes('invalid')
-                ? 'bg-green-50 text-green-800 border border-green-200'
-                : 'bg-red-50 text-red-800 border border-red-200'
-            }`}
-          >
-            <div className="flex items-center">
-              {keyStatus.includes('valid') && !keyStatus.includes('invalid') ? (
-                <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-              ) : (
-                <XCircle className="h-5 w-5 text-red-600 mr-2" />
-              )}
-              <span>{keyStatus}</span>
-            </div>
-          </div>
-        )}
-        
         {testResponse && (
-          <div className="mt-2">
+          <div className="mt-4">
             <Button 
               variant="outline" 
               size="sm" 
               onClick={() => setShowDetails(!showDetails)}
               className="w-full"
             >
-              {showDetails ? 'Hide' : 'Show'} API Response Details
+              {showDetails ? 'Hide' : 'Show'} Response Details
             </Button>
             
             {showDetails && (
-              <div className="mt-2 p-3 bg-gray-50 rounded-md text-xs border border-gray-200 overflow-auto max-h-60">
+              <div className="mt-2 p-3 bg-gray-50 rounded-md text-xs font-mono overflow-auto max-h-60">
                 <pre>{JSON.stringify(testResponse, null, 2)}</pre>
               </div>
             )}
           </div>
         )}
         
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-800">
-          <div className="flex items-center">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            <span className="font-medium">Testing configuration:</span>
-          </div>
-          <div className="ml-6 mt-1 text-xs">
-            <p><strong>Token Address:</strong> {TOKEN_ADDRESS}</p>
-            <p><strong>Chain ID:</strong> {MORALIS_CHAIN} (Polygon)</p>
-            <p><strong>API Endpoint:</strong> https://deep-index.moralis.io</p>
-          </div>
-        </div>
+        <Alert variant="default" className="mt-4">
+          <AlertDescription className="text-xs space-y-1">
+            <p><strong>Testing Configuration:</strong></p>
+            <p>Token Address: {TOKEN_ADDRESS}</p>
+            <p>Chain ID: {MORALIS_CHAIN} (Polygon)</p>
+          </AlertDescription>
+        </Alert>
       </CardContent>
     </Card>
   );

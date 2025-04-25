@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useTokenPrice } from '@/context/TokenPriceContext';
 import { TOKEN_ADDRESS, MORALIS_CHAIN } from '@/services/api/config';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -17,9 +16,6 @@ interface DiagnosticsTabProps {
 }
 
 const PriceDebugger: React.FC<DiagnosticsTabProps> = ({ currentPrice: propCurrentPrice }) => {
-  // Use the prop or fall back to context
-  const { currentPrice: contextCurrentPrice, error } = useTokenPrice();
-  const currentPrice = propCurrentPrice ?? contextCurrentPrice;
   const [apiKeyStatus, setApiKeyStatus] = useState<{isConfigured: boolean, details?: string, isValidFormat?: boolean}>({isConfigured: false});
   
   useEffect(() => {
@@ -28,7 +24,6 @@ const PriceDebugger: React.FC<DiagnosticsTabProps> = ({ currentPrice: propCurren
 
   const checkApiKeyStatus = async () => {
     try {
-      // Use the RPC function directly for consistency
       const { data, error } = await supabase
         .rpc('get_secret', { secret_name: 'MORALIS_API_KEY' });
       
@@ -47,9 +42,9 @@ const PriceDebugger: React.FC<DiagnosticsTabProps> = ({ currentPrice: propCurren
           isValidFormat: isValidFormat,
           details: data 
             ? (isValidFormat 
-                ? 'API key is configured and has valid format' 
-                : 'API key is configured but has invalid format')
-            : 'API key is not configured'
+                ? 'Moralis API key is configured and has valid format' 
+                : 'Moralis API key is configured but has invalid format')
+            : 'Moralis API key is not configured'
         });
       }
     } catch (error: any) {
@@ -69,22 +64,14 @@ const PriceDebugger: React.FC<DiagnosticsTabProps> = ({ currentPrice: propCurren
         <CardHeader>
           <CardTitle>Price Service Diagnostics</CardTitle>
           <CardDescription>
-            Check the status of the token pricing service
+            Check the status of the Moralis token pricing service
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                <h3 className="font-medium text-sm text-gray-700 mb-2">Price Source Status</h3>
-                <div className="flex items-center">
-                  <div className={`w-3 h-3 rounded-full mr-2 ${currentPrice ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  <span>{currentPrice ? 'Online' : 'Offline'}</span>
-                </div>
-              </div>
-              
-              <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                <h3 className="font-medium text-sm text-gray-700 mb-2">API Key Status</h3>
+                <h3 className="font-medium text-sm text-gray-700 mb-2">Moralis API Status</h3>
                 <div className="flex items-center">
                   <div className={`w-3 h-3 rounded-full mr-2 ${
                     apiKeyStatus.isConfigured && apiKeyStatus.isValidFormat
@@ -95,10 +82,10 @@ const PriceDebugger: React.FC<DiagnosticsTabProps> = ({ currentPrice: propCurren
                   }`}></div>
                   <span>
                     {apiKeyStatus.isConfigured && apiKeyStatus.isValidFormat
-                      ? 'Configured' 
+                      ? 'Connected' 
                       : apiKeyStatus.isConfigured 
                         ? 'Invalid Format' 
-                        : 'Missing'}
+                        : 'Not Connected'}
                   </span>
                 </div>
                 {apiKeyStatus.details && (
@@ -114,34 +101,29 @@ const PriceDebugger: React.FC<DiagnosticsTabProps> = ({ currentPrice: propCurren
                   Refresh Status
                 </Button>
               </div>
-            </div>
-            
-            <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-              <h3 className="font-medium text-sm text-gray-700 mb-2">Price Service Info</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">API Provider:</span>
-                  <span className="font-medium">Defined.fi</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Chain ID:</span>
-                  <span className="font-medium">{MORALIS_CHAIN} (Polygon)</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Token Address:</span>
-                  <span className="font-medium text-xs break-all">{TOKEN_ADDRESS}</span>
+              
+              <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                <h3 className="font-medium text-sm text-gray-700 mb-2">Network Info</h3>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">Chain ID:</span>
+                    <span className="text-xs font-medium">{MORALIS_CHAIN} (Polygon)</span>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-600">Token:</span>
+                    <span className="text-xs font-mono block mt-1 break-all">{TOKEN_ADDRESS}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {error && (
-              <Alert variant="destructive" className="bg-red-50 border-red-200">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-xs">
-                  <strong>API Error:</strong> {error.message}
-                </AlertDescription>
-              </Alert>
-            )}
+            <Alert className="bg-blue-50 border-blue-200">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Token price data is provided by the Moralis API. Make sure your API key is properly configured 
+                in the Supabase secrets panel.
+              </AlertDescription>
+            </Alert>
           </div>
         </CardContent>
       </Card>
