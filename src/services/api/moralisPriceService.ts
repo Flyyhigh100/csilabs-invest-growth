@@ -10,21 +10,14 @@ const RETRY_DELAY = 1000; // 1 second
 
 async function getApiKey(): Promise<string> {
   try {
-    // Using RPC call instead of direct table access for better type safety
-    const { data, error } = await supabase.rpc('get_secret', { 
-      secret_name: 'MORALIS_API_KEY'
-    });
+    // Use a specific function call to get the API key from secrets
+    const { data, error } = await supabase
+      .functions.invoke('get-secret', {
+        body: { secret_name: 'MORALIS_API_KEY' }
+      });
 
     if (error || !data) {
       console.error('Failed to fetch Moralis API key:', error);
-      
-      // Check if we have API_KEY in config.ts as fallback
-      const configApiKey = API_KEY;
-      if (configApiKey) {
-        console.log('Using API key from config as fallback');
-        return configApiKey;
-      }
-      
       throw new Error('API key not configured');
     }
 

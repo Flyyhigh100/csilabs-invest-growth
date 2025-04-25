@@ -33,9 +33,10 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
   React.useEffect(() => {
     const checkApiKey = async () => {
       try {
-        const { data, error } = await supabase.rpc('get_secret', {
-          secret_name: 'MORALIS_API_KEY'
-        });
+        const { data, error } = await supabase
+          .functions.invoke('get-secret', {
+            body: { secret_name: 'MORALIS_API_KEY' }
+          });
         
         setApiKeyConfigured(Boolean(data));
       } catch (e) {

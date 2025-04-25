@@ -21,9 +21,10 @@ const formatDate = (timestamp: number): string => {
 
 async function getApiKey(): Promise<string> {
   try {
-    const { data, error } = await supabase.rpc('get_secret', {
-      secret_name: 'MORALIS_API_KEY'
-    });
+    const { data, error } = await supabase
+      .functions.invoke('get-secret', {
+        body: { secret_name: 'MORALIS_API_KEY' }
+      });
 
     if (error || !data) {
       console.error('Failed to fetch Moralis API key:', error);

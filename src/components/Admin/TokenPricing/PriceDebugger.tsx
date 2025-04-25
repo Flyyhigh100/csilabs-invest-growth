@@ -92,10 +92,12 @@ function useMoralisApiStatus() {
   React.useEffect(() => {
     const checkApiKeyStatus = async () => {
       try {
-        const { data: secretData } = await supabase.rpc('get_secret', { 
-          secret_name: 'MORALIS_API_KEY'
-        });
-        setIsConfigured(Boolean(secretData));
+        const { data, error } = await supabase
+          .functions.invoke('get-secret', {
+            body: { secret_name: 'MORALIS_API_KEY' }
+          });
+        
+        setIsConfigured(Boolean(data));
       } catch (error) {
         console.error('Error checking API key status:', error);
         setIsConfigured(false);
