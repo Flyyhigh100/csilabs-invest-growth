@@ -40,6 +40,12 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = MAX_R
 
 export const fetchMoralisTokenPrice = async (forceRefresh: boolean = false): Promise<number> => {
   try {
+    // Clear any existing cache if force refresh
+    if (forceRefresh) {
+      invalidateCache();
+    }
+
+    // Check cache first
     const cachedCurrentPrice = getCachedPrice();
     if (!forceRefresh && cachedCurrentPrice && 
         (Date.now() - cachedCurrentPrice.timestamp) < PRICE_CACHE_DURATION) {
