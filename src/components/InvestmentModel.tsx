@@ -1,4 +1,3 @@
-
 import React from 'react';
 import FadeInSection from './FadeInSection';
 import { Button } from '@/components/ui/button';
@@ -54,7 +53,7 @@ const InvestmentModel: React.FC = () => {
                   <TrendingUp className="h-6 w-6 text-cbis-blue" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-2 text-cbis-dark">Token Holder Benefits</h3>
+                  <h3 className="text-xl font-semibold mb-2 text-cbis-dark">Project Potential</h3>
                   <p className="text-gray-600">
                     Token holders may receive a percentage of the multiplied asset growth from our Lab Series, with potential dividend structures as our treatments progress.
                   </p>
@@ -81,8 +80,9 @@ const InvestmentModel: React.FC = () => {
             </div>
           </FadeInSection>
           
+          {/* Update Project Potential card */}
           <FadeInSection direction="right" delay={200}>
-            <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white p-6">
+            <div className="glass-card p-6 rounded-2xl overflow-hidden shadow-elevation bg-white p-6">
               <div className="relative z-10">
                 <h3 className="text-2xl font-bold mb-6 bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">Roadmap</h3>
                 
