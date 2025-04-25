@@ -3,16 +3,17 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTokenPrice } from '@/context/TokenPriceContext';
-import { API_KEY, TOKEN_ADDRESS, MORALIS_CHAIN } from '@/services/api/config';
+import { TOKEN_ADDRESS, MORALIS_CHAIN } from '@/services/api/config';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from '@/integrations/supabase/client';
 
 const PriceDebugger = () => {
   const { currentPrice, error, lastUpdated, timeUntilNextUpdate, refreshPrice } = useTokenPrice();
   
   const isDemoData = error !== null;
-  const apiKeyConfigured = !!API_KEY;
+  const apiStatus = useMoralisApiStatus();
   
   return (
     <Card>
@@ -43,7 +44,7 @@ const PriceDebugger = () => {
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-500">API Key Status:</span>
-            <span className="font-mono">{apiKeyConfigured ? '✅ Configured' : '❌ Missing'}</span>
+            <span className="font-mono">{apiStatus.isConfigured ? '✅ Configured' : '❌ Missing'}</span>
           </div>
           
           <div className="mt-2">
@@ -75,7 +76,7 @@ const PriceDebugger = () => {
                 Error Details
               </h4>
               <p className="text-xs text-red-600">{error.message}</p>
-              <p className="text-xs text-red-500 mt-2">Check that your API key is properly configured in config.ts</p>
+              <p className="text-xs text-red-500 mt-2">Check that your API key is properly configured in Supabase secrets</p>
             </div>
           )}
         </div>
@@ -83,5 +84,28 @@ const PriceDebugger = () => {
     </Card>
   );
 };
+
+// Custom hook to check Moralis API key status
+function useMoralisApiStatus() {
+  const [isConfigured, setIsConfigured] = React.useState<boolean>(false);
+  
+  React.useEffect(() => {
+    const checkApiKeyStatus = async () => {
+      try {
+        const { data: secretData } = await supabase.rpc('get_secret', { 
+          secret_name: 'MORALIS_API_KEY'
+        });
+        setIsConfigured(Boolean(secretData));
+      } catch (error) {
+        console.error('Error checking API key status:', error);
+        setIsConfigured(false);
+      }
+    };
+    
+    checkApiKeyStatus();
+  }, []);
+  
+  return { isConfigured };
+}
 
 export default PriceDebugger;

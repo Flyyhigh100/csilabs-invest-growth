@@ -1,16 +1,33 @@
 
 import { TokenPriceData } from '@/types/token';
-import { MORALIS_BASE_URL, API_KEY, TOKEN_ADDRESS, MORALIS_CHAIN, START_DATE, END_DATE, DAYS_TO_INCLUDE } from './config';
+import { MORALIS_BASE_URL, MORALIS_CHAIN, TOKEN_ADDRESS, START_DATE, END_DATE, DAYS_TO_INCLUDE } from './config';
 import { generateMockPriceData } from '../mocks/mockDataGenerators';
 import { formatDate } from './utils/dateUtils';
+import { supabase } from '@/integrations/supabase/client';
+
+async function getApiKey(): Promise<string> {
+  try {
+    const { data, error } = await supabase.rpc('get_secret', {
+      secret_name: 'MORALIS_API_KEY'
+    });
+
+    if (error || !data) {
+      console.error('Failed to fetch Moralis API key:', error);
+      throw new Error('API key not configured');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error fetching API key:', error);
+    throw new Error('Failed to fetch API key');
+  }
+}
 
 export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
   try {
     console.log('Fetching token price history from Moralis');
     
-    if (!API_KEY) {
-      throw new Error('Moralis API key not configured');
-    }
+    const apiKey = await getApiKey();
 
     const daysAgo = Math.floor((Date.now() / 1000 - START_DATE) / 86400);
     const url = `${MORALIS_BASE_URL}/erc20/${TOKEN_ADDRESS}/price/history?chain=${MORALIS_CHAIN}&days=${daysAgo}`;
@@ -19,7 +36,7 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'X-API-Key': API_KEY
+        'X-API-Key': apiKey
       }
     });
 

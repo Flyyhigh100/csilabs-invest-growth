@@ -1,5 +1,5 @@
 
-import { MORALIS_BASE_URL, MORALIS_CHAIN, TOKEN_ADDRESS } from './config';
+import { MORALIS_BASE_URL, MORALIS_CHAIN, TOKEN_ADDRESS, PRICE_CACHE_DURATION } from './config';
 import { generateMockCurrentPrice } from '../mocks/mockDataGenerators';
 import { getCachedPrice, setCachedPrice, invalidateCache } from './utils/priceCache';
 import { isValidPrice } from './utils/priceValidation';
@@ -10,18 +10,25 @@ const RETRY_DELAY = 1000; // 1 second
 
 async function getApiKey(): Promise<string> {
   try {
-    const { data, error } = await supabase
-      .from('secrets')
-      .select('value')
-      .eq('name', 'MORALIS_API_KEY')
-      .single();
+    // Using RPC call instead of direct table access for better type safety
+    const { data, error } = await supabase.rpc('get_secret', { 
+      secret_name: 'MORALIS_API_KEY'
+    });
 
-    if (error || !data?.value) {
+    if (error || !data) {
       console.error('Failed to fetch Moralis API key:', error);
+      
+      // Check if we have API_KEY in config.ts as fallback
+      const configApiKey = API_KEY;
+      if (configApiKey) {
+        console.log('Using API key from config as fallback');
+        return configApiKey;
+      }
+      
       throw new Error('API key not configured');
     }
 
-    return data.value;
+    return data;
   } catch (error) {
     console.error('Error fetching API key:', error);
     throw new Error('Failed to fetch API key');
@@ -49,7 +56,7 @@ async function fetchWithRetry(url: string, apiKey: string, retries = MAX_RETRIES
         return fetchWithRetry(url, apiKey, retries - 1);
       }
       
-      throw new Error(`API error: ${response.status}`);
+      throw new Error(`API error: ${response.status} - ${errorText}`);
     }
     
     return response;
@@ -83,6 +90,7 @@ export const fetchMoralisTokenPrice = async (forceRefresh: boolean = false): Pro
       }
     }
     
+    // Get API key - will throw error if not configured
     const apiKey = await getApiKey();
     
     const url = `${MORALIS_BASE_URL}/erc20/${TOKEN_ADDRESS}/price?chain=${MORALIS_CHAIN}`;

@@ -1,6 +1,25 @@
 
 import { TokenInfo } from '@/types/token';
-import { MORALIS_BASE_URL, API_KEY, TOKEN_ADDRESS, MORALIS_CHAIN } from './config';
+import { MORALIS_BASE_URL, TOKEN_ADDRESS, MORALIS_CHAIN } from './config';
+import { supabase } from '@/integrations/supabase/client';
+
+async function getApiKey(): Promise<string> {
+  try {
+    const { data, error } = await supabase.rpc('get_secret', {
+      secret_name: 'MORALIS_API_KEY'
+    });
+
+    if (error || !data) {
+      console.error('Failed to fetch Moralis API key:', error);
+      throw new Error('API key not configured');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error fetching API key:', error);
+    throw new Error('Failed to fetch API key');
+  }
+}
 
 /**
  * Fetches token information like total supply and blockchain
@@ -8,7 +27,9 @@ import { MORALIS_BASE_URL, API_KEY, TOKEN_ADDRESS, MORALIS_CHAIN } from './confi
  */
 export const fetchTokenInfo = async (): Promise<TokenInfo> => {
   try {
-    console.log('Fetching token info with API key:', API_KEY ? 'API key present' : 'No API key');
+    console.log('Fetching token info');
+    
+    const apiKey = await getApiKey();
     
     // Use Moralis API instead of the old API
     const url = `${MORALIS_BASE_URL}/erc20/${TOKEN_ADDRESS}?chain=${MORALIS_CHAIN}`;
@@ -17,7 +38,7 @@ export const fetchTokenInfo = async (): Promise<TokenInfo> => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'X-API-Key': API_KEY
+        'X-API-Key': apiKey
       }
     });
 

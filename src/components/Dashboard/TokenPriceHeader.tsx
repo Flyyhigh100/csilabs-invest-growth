@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
 import { Spinner } from "@/components/ui/spinner";
-import { API_KEY } from '@/services/api/config';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TokenPriceHeaderProps {
   className?: string;
@@ -27,7 +27,25 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
     : 'Not yet updated';
 
   const isDemoData = error !== null;
-  const apiKeyMissing = !API_KEY;
+  const [apiKeyConfigured, setApiKeyConfigured] = React.useState<boolean | null>(null);
+
+  // Check if API key is configured
+  React.useEffect(() => {
+    const checkApiKey = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_secret', {
+          secret_name: 'MORALIS_API_KEY'
+        });
+        
+        setApiKeyConfigured(Boolean(data));
+      } catch (e) {
+        console.error('Error checking API key:', e);
+        setApiKeyConfigured(false);
+      }
+    };
+    
+    checkApiKey();
+  }, []);
 
   return (
     <Card className={`flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-blue-100 ${className}`}>
@@ -42,9 +60,9 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
                   Demo Data
                 </Badge>
               )}
-              {apiKeyMissing && (
+              {apiKeyConfigured === false && (
                 <Badge variant="outline" className="border-red-300 text-red-700">
-                  API Key Issue
+                  API Key Missing
                 </Badge>
               )}
             </div>
