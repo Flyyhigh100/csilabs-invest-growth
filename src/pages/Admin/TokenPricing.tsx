@@ -62,7 +62,7 @@ const TokenPricingPage = () => {
           </TabsContent>
           
           <TabsContent value="diagnostics" className="mt-6">
-            <DiagnosticsTab currentPrice={currentPrice} />
+            <DiagnosticsTab />
           </TabsContent>
         </Tabs>
       </div>

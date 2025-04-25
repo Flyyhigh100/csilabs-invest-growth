@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,8 +10,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import APIKeyValidator from './APIKeyValidator';
 import { supabase } from '@/integrations/supabase/client';
 
-const PriceDebugger = () => {
-  const { currentPrice } = useTokenPrice();
+// Add an interface for the component props
+interface DiagnosticsTabProps {
+  // Make currentPrice optional since we might get it from context too
+  currentPrice?: number | null;
+}
+
+const PriceDebugger: React.FC<DiagnosticsTabProps> = ({ currentPrice: propCurrentPrice }) => {
+  // Use the prop or fall back to context
+  const { currentPrice: contextCurrentPrice } = useTokenPrice();
+  const currentPrice = propCurrentPrice ?? contextCurrentPrice;
 
   return (
     <div className="space-y-6">
