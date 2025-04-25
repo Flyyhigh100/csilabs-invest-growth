@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
-import { TOKEN_ADDRESS, MORALIS_CHAIN } from '@/services/api/config';
+import { TOKEN_ADDRESS, MORALIS_CHAIN, MORALIS_BASE_URL } from '@/services/api/config';
 import { supabase } from '@/integrations/supabase/client';
 
 const APIKeyValidator = () => {
