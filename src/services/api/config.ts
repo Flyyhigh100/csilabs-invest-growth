@@ -1,4 +1,3 @@
-
 /**
  * API Configuration for Token Data
  * 
@@ -12,8 +11,8 @@ export const API_BASE_URL = 'https://api.defined.fi';
 // API key from custom instructions
 export const API_KEY = '3fe52a290da2025bdddcc45a353c0268810eacf7';  // Defined.fi API key
 
-// Token configuration - CSi token on Polygon network
-export const TOKEN_ADDRESS = '0x4e5f276d29a122d787a8b345b1bc4bd5dd0f40c3';  // CSi token address
+// Token configuration - New token on Polygon network
+export const TOKEN_ADDRESS = '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0';  // New token address
 export const CHAIN_ID = '137';  // Polygon mainnet
 export const QUOTE_TOKEN = 'token1';  // Quote in USD
 
