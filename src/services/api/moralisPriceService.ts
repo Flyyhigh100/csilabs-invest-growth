@@ -1,5 +1,5 @@
 
-import { MORALIS_BASE_URL, MORALIS_CHAIN, TOKEN_ADDRESS } from './config';
+import { MORALIS_BASE_URL, MORALIS_CHAIN, TOKEN_ADDRESS, API_KEY } from './config';
 import { generateMockCurrentPrice } from '../mocks/mockDataGenerators';
 import { getCachedPrice, setCachedPrice, PRICE_CACHE_DURATION, invalidateCache } from './utils/priceCache';
 import { isValidPrice } from './utils/priceValidation';
@@ -47,6 +47,12 @@ export const fetchMoralisTokenPrice = async (forceRefresh: boolean = false): Pro
       return cachedCurrentPrice.price;
     }
     
+    // Check if API key is available
+    if (!API_KEY) {
+      console.error('Moralis API key is not configured');
+      throw new Error('API key not configured');
+    }
+    
     const url = `${MORALIS_BASE_URL}/erc20/${TOKEN_ADDRESS}/price?chain=${MORALIS_CHAIN}`;
     console.log('Fetching fresh token price from URL:', url);
     
@@ -54,7 +60,7 @@ export const fetchMoralisTokenPrice = async (forceRefresh: boolean = false): Pro
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'X-API-Key': process.env.MORALIS_API_KEY || ''
+        'X-API-Key': API_KEY
       }
     });
 

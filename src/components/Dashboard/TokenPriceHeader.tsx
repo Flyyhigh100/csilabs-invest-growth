@@ -4,8 +4,9 @@ import { useTokenPrice } from '@/context/TokenPriceContext';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, TrendingUp } from 'lucide-react';
+import { RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
 import { Spinner } from "@/components/ui/spinner";
+import { API_KEY } from '@/services/api/config';
 
 interface TokenPriceHeaderProps {
   className?: string;
@@ -26,6 +27,7 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
     : 'Not yet updated';
 
   const isDemoData = error !== null;
+  const apiKeyMissing = !API_KEY;
 
   return (
     <Card className={`flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-blue-100 ${className}`}>
@@ -38,6 +40,11 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
               {isDemoData && (
                 <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
                   Demo Data
+                </Badge>
+              )}
+              {apiKeyMissing && (
+                <Badge variant="outline" className="border-red-300 text-red-700">
+                  API Key Issue
                 </Badge>
               )}
             </div>
@@ -53,6 +60,12 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
                 'Price unavailable'
               )}
             </p>
+            {error && (
+              <p className="text-xs text-red-600 flex items-center mt-1">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                {error.message.substring(0, 50)}...
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -65,7 +78,7 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
           disabled={isLoading}
           className="mb-1"
         >
-          <RefreshCw className="h-3 w-3 mr-1" />
+          <RefreshCw className={`h-3 w-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
         <p className="text-xs text-gray-500">Last updated: {formattedLastUpdated}</p>

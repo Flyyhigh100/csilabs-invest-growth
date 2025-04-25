@@ -14,7 +14,7 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
     console.log('Fetching token price history with API key:', API_KEY ? 'API key present' : 'No API key');
     console.log(`Fetching data from ${new Date(START_DATE * 1000).toLocaleDateString()} to ${new Date(END_DATE * 1000).toLocaleDateString()}`);
     
-    // Use mock data if no API key is provided
+    // Check if API key is available
     if (!API_KEY) {
       console.log('No API key provided, using mock data');
       return generateMockPriceData();
