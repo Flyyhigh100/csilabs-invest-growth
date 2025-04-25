@@ -4,6 +4,7 @@ import { useVolumeHistory } from './token/useVolumeHistory';
 import { useCurrentPrice } from './token/useCurrentPrice';
 import { useTokenInfo } from './token/useTokenInfo';
 import { useTokenError } from './token/useTokenError';
+import { toast } from "@/components/ui/use-toast";
 
 export const useTokenData = () => {
   const { 
