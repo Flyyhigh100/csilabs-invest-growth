@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Bug } from 'lucide-react';
 import { toast } from 'sonner';
-import { TOKEN_ADDRESS, MORALIS_CHAIN, MORALIS_BASE_URL } from '@/services/api/config';
+import { TOKEN_ADDRESS, CHAIN_ID, UNISWAP_SUBGRAPH_URL } from '@/services/api/config';
 import { supabase } from '@/integrations/supabase/client';
 
 const APIKeyValidator = () => {
@@ -13,87 +13,71 @@ const APIKeyValidator = () => {
   const [testResponse, setTestResponse] = useState<any>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [debugInfo, setDebugInfo] = useState<{
-    keyLength?: number;
-    keyPrefix?: string;
     requestUrl?: string;
     headers?: any;
   } | null>(null);
 
-  const validateMoralisAPIKey = async () => {
+  const validateUniswapConnection = async () => {
     setIsValidating(true);
     setTestResponse(null);
     setDebugInfo(null);
 
     try {
-      toast.info("Validating Moralis API key...");
+      toast.info("Testing Uniswap Subgraph connection...");
       
-      const { data: apiKey, error: keyError } = await supabase
-        .rpc('get_secret', { secret_name: 'MORALIS_API_KEY' });
-
-      if (keyError || !apiKey) {
-        console.error('Error fetching API key:', keyError);
-        toast.error('Failed to retrieve Moralis API key');
-        setTestResponse({
-          isValid: false,
-          error: keyError?.message || 'API key not found'
-        });
-        return;
-      }
-
-      // Store debug info about the key
-      const debugKeyInfo = {
-        keyLength: apiKey?.length,
-        keyPrefix: apiKey?.substring(0, 10) + '...' + apiKey?.substring(apiKey.length - 5),
-      };
-
-      console.log('API Key Debug Info:', debugKeyInfo);
-      
-      // Test the API key with a price request
-      console.log('Testing API key with token:', TOKEN_ADDRESS);
-      const testUrl = `${MORALIS_BASE_URL}/erc20/${TOKEN_ADDRESS}/price?chain=${MORALIS_CHAIN}`;
+      // Test the Uniswap connection with a simple query
+      const testUrl = UNISWAP_SUBGRAPH_URL;
+      console.log('Testing Uniswap connection with token:', TOKEN_ADDRESS);
       console.log('Full request URL:', testUrl);
       
+      const query = `{
+        token(id: "${TOKEN_ADDRESS.toLowerCase()}") {
+          derivedETH
+          totalLiquidity
+        }
+        bundle(id: "1") {
+          ethPrice
+        }
+      }`;
+      
       const headers = {
-        'Accept': 'application/json',
-        'X-API-Key': apiKey
+        'Content-Type': 'application/json'
       };
       
-      console.log('Request headers:', {
-        'Accept': headers.Accept,
-        'X-API-Key': `${headers['X-API-Key'].substring(0, 10)}...${headers['X-API-Key'].substring(headers['X-API-Key'].length - 5)}`
-      });
+      console.log('Request headers:', headers);
 
       // Set debug info
       setDebugInfo({
-        ...debugKeyInfo,
         requestUrl: testUrl,
-        headers: {
-          'Accept': headers.Accept,
-          'X-API-Key': `${headers['X-API-Key'].substring(0, 10)}...${headers['X-API-Key'].substring(headers['X-API-Key'].length - 5)}`
-        }
+        headers: headers
       });
 
       const response = await fetch(testUrl, {
-        method: 'GET',
-        headers
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ query })
       });
 
       const responseData = await response.json();
       console.log('API Response:', response.status, responseData);
       
       setTestResponse({
-        isValid: response.ok,
+        isValid: response.ok && responseData?.data?.token && responseData?.data?.bundle,
         status: response.status,
         data: responseData
       });
 
-      if (response.ok && responseData.usdPrice) {
-        toast.success('Moralis API key is valid', {
-          description: `Current price: $${responseData.usdPrice}`
+      if (response.ok && responseData?.data?.token) {
+        const tokenDerivedETH = parseFloat(responseData.data.token.derivedETH);
+        const ethPriceUSD = parseFloat(responseData.data.bundle.ethPrice);
+        const tokenPriceUSD = tokenDerivedETH * ethPriceUSD;
+        
+        toast.success('Uniswap connection is valid', {
+          description: `Current price: $${tokenPriceUSD.toFixed(5)}`
         });
       } else {
-        const error = responseData.message || 'Invalid response from API';
-        toast.error('API key validation failed', {
+        const error = responseData.errors?.[0]?.message || 'Invalid response from API';
+        toast.error('Uniswap connection failed', {
           description: error
         });
       }
@@ -103,31 +87,35 @@ const APIKeyValidator = () => {
         isValid: false,
         error: err.message || 'Unknown error occurred'
       });
-      toast.error('API key validation failed');
+      toast.error('Uniswap connection failed');
     } finally {
       setIsValidating(false);
     }
   };
 
+  const toggleDetails = () => {
+    setShowDetails(!showDetails);
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Moralis API Key Validator</CardTitle>
+        <CardTitle>Uniswap Connection Validator</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert className="bg-blue-50">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            This will validate your Moralis API key by making a test request to fetch the current token price.
+            This will validate your connection to the Uniswap Subgraph API by making a test request to fetch the current token price.
           </AlertDescription>
         </Alert>
 
         <Button 
-          onClick={validateMoralisAPIKey} 
+          onClick={validateUniswapConnection} 
           disabled={isValidating}
           className="w-full"
         >
-          {isValidating ? 'Validating...' : 'Validate Moralis API Key'}
+          {isValidating ? 'Validating...' : 'Test Uniswap Connection'}
         </Button>
         
         {testResponse && (
@@ -146,7 +134,7 @@ const APIKeyValidator = () => {
             <Button 
               variant="default" 
               size="sm" 
-              onClick={() => setShowDetails(!showDetails)}
+              onClick={toggleDetails}
               className="w-full"
             >
               {showDetails ? 'Hide' : 'Show'} Response Details
@@ -166,8 +154,6 @@ const APIKeyValidator = () => {
               <Bug className="h-4 w-4 text-amber-600 mr-2" />
               <AlertDescription className="text-xs space-y-1">
                 <p><strong>Debug Info:</strong></p>
-                <p>Key Length: {debugInfo.keyLength || 'Unknown'}</p>
-                <p>Key Format: {debugInfo.keyPrefix || 'Unknown'}</p>
                 <p>Request URL: {debugInfo.requestUrl}</p>
                 {debugInfo.headers && (
                   <details>
@@ -184,8 +170,8 @@ const APIKeyValidator = () => {
           <AlertDescription className="text-xs space-y-1">
             <p><strong>Testing Configuration:</strong></p>
             <p>Token Address: {TOKEN_ADDRESS}</p>
-            <p>Chain ID: {MORALIS_CHAIN} (Polygon)</p>
-            <p>Base URL: {MORALIS_BASE_URL}</p>
+            <p>Chain ID: {CHAIN_ID} (Polygon)</p>
+            <p>Subgraph URL: {UNISWAP_SUBGRAPH_URL}</p>
           </AlertDescription>
         </Alert>
       </CardContent>

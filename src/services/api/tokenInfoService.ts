@@ -1,23 +1,6 @@
+
 import { TokenInfo } from '@/types/token';
-import { MORALIS_BASE_URL, TOKEN_ADDRESS, MORALIS_CHAIN } from './config';
-import { supabase } from '@/integrations/supabase/client';
-
-async function getApiKey(): Promise<string> {
-  try {
-    const { data, error } = await supabase
-      .rpc('get_secret', { secret_name: 'MORALIS_API_KEY' });
-
-    if (error || !data) {
-      console.error('Failed to fetch Moralis API key:', error);
-      throw new Error('API key not configured');
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Error fetching API key:', error);
-    throw new Error('Failed to fetch API key');
-  }
-}
+import { TOKEN_ADDRESS, UNISWAP_SUBGRAPH_URL } from './config';
 
 /**
  * Fetches token information like total supply and blockchain
@@ -25,35 +8,49 @@ async function getApiKey(): Promise<string> {
  */
 export const fetchTokenInfo = async (): Promise<TokenInfo> => {
   try {
-    console.log('Fetching token info');
+    console.log('Fetching token info from Uniswap Subgraph');
     
-    const apiKey = await getApiKey();
-    
-    // Use Moralis API instead of the old API
-    const url = `${MORALIS_BASE_URL}/erc20/${TOKEN_ADDRESS}?chain=${MORALIS_CHAIN}`;
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'X-API-Key': apiKey
+    const query = `{
+      token(id: "${TOKEN_ADDRESS.toLowerCase()}") {
+        name
+        symbol
+        decimals
+        totalSupply
+        totalLiquidity
+        derivedETH
       }
+    }`;
+    
+    const response = await fetch(UNISWAP_SUBGRAPH_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Moralis API error ${response.status}:`, errorText);
+      console.error(`Uniswap Subgraph API error ${response.status}:`, errorText);
       throw new Error(`API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('Token info data received:', data);
+    console.log('Token info data received:', data?.data?.token);
     
-    // Transform the Moralis response to match our expected format
+    if (!data?.data?.token) {
+      throw new Error('No token data received');
+    }
+    
+    const token = data.data.token;
+    
+    // Format total supply based on decimals
+    const totalSupply = token.totalSupply && token.decimals ? 
+      (parseInt(token.totalSupply) / Math.pow(10, parseInt(token.decimals))).toLocaleString() : 
+      "100,000,000";
+    
     return {
-      totalSupply: data.totalSupply ? 
-        (parseInt(data.totalSupply) / Math.pow(10, parseInt(data.decimals))).toLocaleString() : 
-        "100,000,000",
+      totalSupply: totalSupply,
       blockchain: "Polygon",
       contractAddress: TOKEN_ADDRESS
     };

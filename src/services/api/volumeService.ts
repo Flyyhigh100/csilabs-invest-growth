@@ -1,10 +1,9 @@
-import { supabase } from '@/integrations/supabase/client';
+
 import { generateMockVolumeData } from '../mocks/mockDataGenerators';
 import { TokenVolumeData } from '@/types/token';
 import { 
   TOKEN_ADDRESS, 
-  MORALIS_BASE_URL, 
-  MORALIS_CHAIN, 
+  UNISWAP_SUBGRAPH_URL, 
   START_DATE, 
   END_DATE 
 } from './config';
@@ -24,23 +23,6 @@ const formatDate = (timestamp: number): string => {
   });
 };
 
-async function getApiKey(): Promise<string> {
-  try {
-    const { data, error } = await supabase
-      .rpc('get_secret', { secret_name: 'MORALIS_API_KEY' });
-
-    if (error || !data) {
-      console.error('Failed to fetch Moralis API key:', error);
-      throw new Error('API key not configured');
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Error fetching API key:', error);
-    throw new Error('Failed to fetch API key');
-  }
-}
-
 /**
  * Fetches historical volume data for a token
  * @returns Promise with volume data array
@@ -48,29 +30,36 @@ async function getApiKey(): Promise<string> {
 export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
   try {
     // Log API request details for debugging
-    console.log('Fetching token volume history');
+    console.log('Fetching token volume history from Uniswap Subgraph');
     
     try {
-      // Try to get API key 
-      const apiKey = await getApiKey();
+      // Use Uniswap Subgraph to get swap volume
+      const daysToFetch = Math.floor((Date.now() / 1000 - START_DATE) / 86400);
+      const query = `{
+        tokenDayDatas(
+          first: ${Math.min(daysToFetch, 100)}
+          orderBy: date
+          orderDirection: desc
+          where: { token: "${TOKEN_ADDRESS.toLowerCase()}" }
+        ) {
+          date
+          dailyVolumeUSD
+          totalLiquidityUSD
+        }
+      }`;
       
-      // Use Moralis token transfers API to estimate volume
-      // Calculate days from START_DATE
-      const daysAgo = Math.floor((Date.now() / 1000 - START_DATE) / 86400);
-      const url = `${MORALIS_BASE_URL}/erc20/${TOKEN_ADDRESS}/transfers?chain=${MORALIS_CHAIN}&from_date=${new Date(START_DATE * 1000).toISOString()}`;
-      
-      console.log('Fetching volume history from URL:', url);
+      console.log('Fetching volume history with query:', query);
       
       // Add a timeout to the fetch operation
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
       
-      const response = await fetch(url, {
-        method: 'GET',
+      const response = await fetch(UNISWAP_SUBGRAPH_URL, {
+        method: 'POST',
         headers: {
-          'Accept': 'application/json',
-          'X-API-Key': apiKey
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ query }),
         signal: controller.signal
       });
       
@@ -78,47 +67,31 @@ export const fetchTokenVolumeHistory = async (): Promise<TokenVolumeData[]> => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Moralis API error ${response.status}:`, errorText);
+        console.error(`Uniswap Subgraph API error ${response.status}:`, errorText);
         console.log('Using mock data as fallback due to API error');
         return generateMockVolumeData();
       }
 
       const data = await response.json();
-      console.log('Token transfers data received:', data);
+      console.log('Token volume data received:', data?.data?.tokenDayDatas?.length || 0);
       
-      // Process transfers into daily volume data
-      // This is a simplified approach since we don't have direct volume data
-      if (data.result && Array.isArray(data.result)) {
-        console.log(`Received ${data.result.length} transfer records`);
-        
-        // Group transfers by day
-        const dailyVolumes: Record<string, number> = {};
-        
-        data.result.forEach((transfer: any) => {
-          const timestamp = new Date(transfer.block_timestamp).getTime() / 1000;
-          const dateKey = formatDate(timestamp);
-          
-          // Convert value from wei to token units using the token decimals (usually 18)
-          // This is a simple approximation for volume
-          const value = parseInt(transfer.value) / 1e18;
-          
-          if (!dailyVolumes[dateKey]) {
-            dailyVolumes[dateKey] = 0;
-          }
-          
-          dailyVolumes[dateKey] += value;
-        });
+      // Process data into daily volume
+      if (data?.data?.tokenDayDatas && Array.isArray(data.data.tokenDayDatas) && data.data.tokenDayDatas.length > 0) {
+        console.log(`Received ${data.data.tokenDayDatas.length} volume records`);
         
         // Convert to array format
-        const volumeData = Object.entries(dailyVolumes).map(([date, volume]) => ({
-          date,
-          volume
-        }));
+        const volumeData = data.data.tokenDayDatas
+          .filter((day: any) => day.date && day.dailyVolumeUSD)
+          .map((day: any) => ({
+            date: formatDate(parseInt(day.date)),
+            volume: parseFloat(day.dailyVolumeUSD)
+          }))
+          .filter((item: TokenVolumeData) => !isNaN(item.volume) && item.volume > 0);
         
         console.log(`Processed ${volumeData.length} volume data points`);
         
         if (volumeData.length > 0) {
-          return volumeData.sort((a, b) => {
+          return volumeData.sort((a: TokenVolumeData, b: TokenVolumeData) => {
             // Sort by date
             const dateA = new Date(a.date);
             const dateB = new Date(b.date);

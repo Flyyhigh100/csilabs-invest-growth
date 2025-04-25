@@ -1,70 +1,74 @@
 
 import { TokenPriceData } from '@/types/token';
-import { MORALIS_BASE_URL, MORALIS_CHAIN, TOKEN_ADDRESS, START_DATE, END_DATE, DAYS_TO_INCLUDE } from './config';
+import { TOKEN_ADDRESS, START_DATE, END_DATE, DAYS_TO_INCLUDE, UNISWAP_SUBGRAPH_URL } from './config';
 import { generateMockPriceData } from '../mocks/mockDataGenerators';
 import { formatDate } from './utils/dateUtils';
-import { supabase } from '@/integrations/supabase/client';
 
-async function getApiKey(): Promise<string> {
-  try {
-    // Standardize on using rpc call
-    const { data, error } = await supabase
-      .rpc('get_secret', { secret_name: 'MORALIS_API_KEY' });
-
-    if (error || !data) {
-      console.error('Failed to fetch Defined.fi API key:', error);
-      throw new Error('API key not configured');
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Error fetching API key:', error);
-    throw new Error('Failed to fetch API key');
-  }
-}
-
+/**
+ * Fetches historical price data from Uniswap's Subgraph API
+ */
 export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
   try {
-    console.log('Fetching token price history from Defined.fi');
+    console.log('Fetching token price history from Uniswap Subgraph');
     console.log('Using token address:', TOKEN_ADDRESS);
     
-    const apiKey = await getApiKey();
-
-    const daysAgo = Math.floor((Date.now() / 1000 - START_DATE) / 86400);
-    const url = `${MORALIS_BASE_URL}/erc20/${TOKEN_ADDRESS}/price/history?chain=${MORALIS_CHAIN}&days=${daysAgo}`;
+    // Uniswap V2 subgraph doesn't have a direct daily price history endpoint
+    // We'll need to query token day data or swap events
+    // For simplicity, this example uses a basic query that gets current price
+    // In a production app, you'd want to implement a more sophisticated query
+    // that gets historical price points
     
-    console.log('Request URL:', url);
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'X-API-Key': apiKey
+    // This query attempts to get daily snapshots if available
+    const query = `{
+      tokenDayDatas(
+        first: ${DAYS_TO_INCLUDE}
+        orderBy: date
+        orderDirection: desc
+        where: { 
+          token: "${TOKEN_ADDRESS.toLowerCase()}"
+        }
+      ) {
+        date
+        priceUSD
+        totalLiquidityUSD
       }
+    }`;
+    
+    const response = await fetch(UNISWAP_SUBGRAPH_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Defined.fi API error:', errorText);
+      console.error('Uniswap Subgraph API error:', errorText);
       throw new Error(`Failed to fetch price history: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('Received historical price data points:', data.length);
+    console.log('Received historical price data points:', data?.data?.tokenDayDatas?.length || 0);
 
-    if (!Array.isArray(data) || data.length === 0) {
+    if (!data?.data?.tokenDayDatas || data.data.tokenDayDatas.length === 0) {
       console.warn('No historical price data received, using mock data');
       return generateMockPriceData();
     }
 
-    const formattedData: TokenPriceData[] = data
-      .filter((item: any) => item.date && item.price)
+    // Process the data
+    const formattedData: TokenPriceData[] = data.data.tokenDayDatas
+      .filter((item: any) => item.date && item.priceUSD)
       .map((item: any) => ({
-        date: formatDate(new Date(item.date).getTime() / 1000),
-        price: parseFloat(item.price)
+        date: formatDate(parseInt(item.date)),
+        price: parseFloat(item.priceUSD)
       }))
-      .filter(item => !isNaN(item.price) && item.price > 0)
-      .slice(-DAYS_TO_INCLUDE); // Only keep the most recent days
+      .filter((item: TokenPriceData) => !isNaN(item.price) && item.price > 0);
+      
+    // Sort data from oldest to newest
+    formattedData.sort((a: TokenPriceData, b: TokenPriceData) => {
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
 
     if (formattedData.length === 0) {
       console.warn('No valid price data after processing, using mock data');

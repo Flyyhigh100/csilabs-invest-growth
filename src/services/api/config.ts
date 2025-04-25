@@ -7,6 +7,13 @@
 export const TOKEN_ADDRESS = '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0';  // Token address
 export const CHAIN_ID = '137';  // Polygon mainnet
 
+// Uniswap Configuration
+export const UNISWAP_SUBGRAPH_URL = 'https://api.thegraph.com/subgraphs/name/sushiswap/matic-exchange';
+
+// Legacy Moralis Configuration (needed for components still referencing them)
+export const MORALIS_BASE_URL = 'https://deep-index.moralis.io/api/v2';
+export const MORALIS_CHAIN = 'polygon';
+
 // Time range settings
 export const START_DATE = Math.floor(new Date('2021-10-26').getTime() / 1000);  // Oct 26, 2021
 export const END_DATE = Math.floor(new Date().getTime() / 1000);  // Current time

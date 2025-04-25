@@ -1,9 +1,8 @@
 
-const UNISWAP_SUBGRAPH_URL = 'https://api.thegraph.com/subgraphs/name/sushiswap/matic-exchange';
-const TOKEN_ADDRESS = '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0'.toLowerCase();
+import { UNISWAP_SUBGRAPH_URL, TOKEN_ADDRESS } from './config';
 
 const createUniswapQuery = () => `{
-  token(id: "${TOKEN_ADDRESS}") {
+  token(id: "${TOKEN_ADDRESS.toLowerCase()}") {
     derivedETH
     totalLiquidity
   }
