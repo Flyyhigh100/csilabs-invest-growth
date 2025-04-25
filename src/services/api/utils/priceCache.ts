@@ -1,7 +1,11 @@
 
 // Cache mechanism for current price
 let cachedCurrentPrice: { price: number; timestamp: number } | null = null;
-export const PRICE_CACHE_DURATION = 10000; // Reduced to 10 seconds from 30
+
+// Import cache duration from config to maintain single source of truth
+import { PRICE_CACHE_DURATION } from '../config';
+
+export { PRICE_CACHE_DURATION };
 
 export const getCachedPrice = () => cachedCurrentPrice;
 
@@ -10,6 +14,8 @@ export const setCachedPrice = (price: number) => {
     console.warn('Suspicious price change detected:', price);
     return; // Don't cache suspicious price changes
   }
+  
+  console.log('Caching new price:', price, 'at:', new Date().toISOString());
   cachedCurrentPrice = { price, timestamp: Date.now() };
 };
 
@@ -26,8 +32,8 @@ const isValidPriceChange = (newPrice: number): boolean => {
     console.log(`Old price: ${cachedCurrentPrice.price}, New price: ${newPrice}`);
   }
   
-  // Reject extreme price changes (>50%)
-  return changePercentage <= 50;
+  // Reject extreme price changes (>50%) and invalid prices
+  return changePercentage <= 50 && newPrice > 0;
 };
 
 export const getTimeUntilNextPriceRefresh = (): number => {
@@ -44,5 +50,6 @@ export const getPriceLastUpdatedTime = (): number | null => {
 };
 
 export const invalidateCache = () => {
+  console.log('Invalidating price cache at:', new Date().toISOString());
   cachedCurrentPrice = null;
 };
