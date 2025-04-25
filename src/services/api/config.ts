@@ -1,9 +1,10 @@
+
 /**
  * API Configuration for Token Data
  */
 
 // Token Configuration
-export const TOKEN_ADDRESS = '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0';  // Token address
+export const TOKEN_ADDRESS = '0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f4';  // Updated token address
 export const CHAIN_ID = '137';  // Polygon mainnet
 
 // Uniswap V3 Configuration
