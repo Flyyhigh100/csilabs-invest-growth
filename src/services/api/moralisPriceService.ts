@@ -10,7 +10,7 @@ const RETRY_DELAY = 1000; // 1 second
 
 async function getApiKey(): Promise<string> {
   try {
-    // Standardize on using rpc call
+    // Always use the RPC call for consistency
     const { data, error } = await supabase
       .rpc('get_secret', { secret_name: 'MORALIS_API_KEY' });
 
@@ -19,10 +19,16 @@ async function getApiKey(): Promise<string> {
       throw new Error('API key not configured');
     }
 
+    // Validate key format
+    if (typeof data !== 'string' || data.length < 30) {
+      console.error('Invalid API key format received. Length:', data?.length);
+      throw new Error('API key has invalid format');
+    }
+
     return data;
   } catch (error) {
     console.error('Error fetching API key:', error);
-    throw new Error('Failed to fetch API key');
+    throw new Error(error instanceof Error ? error.message : 'Failed to fetch API key');
   }
 }
 
@@ -40,8 +46,15 @@ async function fetchWithRetry(url: string, apiKey: string, retries = MAX_RETRIES
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Defined.fi API error ${response.status}:`, errorText);
+      let errorMessage = 'Unknown error';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || `Status: ${response.status}`;
+      } catch (e) {
+        errorMessage = `Status: ${response.status} ${response.statusText}`;
+      }
+      
+      console.error(`Defined.fi API error:`, errorMessage);
       
       if (retries > 0 && response.status !== 401) { // Don't retry on auth errors
         console.log(`Retry attempt ${MAX_RETRIES - retries + 1}/${MAX_RETRIES}`);
@@ -49,7 +62,7 @@ async function fetchWithRetry(url: string, apiKey: string, retries = MAX_RETRIES
         return fetchWithRetry(url, apiKey, retries - 1);
       }
       
-      throw new Error(`API error: ${response.status} - ${errorText}`);
+      throw new Error(`API error: ${errorMessage}`);
     }
     
     return response;
@@ -83,7 +96,7 @@ export const fetchMoralisTokenPrice = async (forceRefresh: boolean = false): Pro
       }
     }
     
-    // Get API key - will throw error if not configured
+    // Get API key - will throw error if not configured or invalid
     const apiKey = await getApiKey();
     
     const url = `${MORALIS_BASE_URL}/erc20/${TOKEN_ADDRESS}/price?chain=${MORALIS_CHAIN}`;

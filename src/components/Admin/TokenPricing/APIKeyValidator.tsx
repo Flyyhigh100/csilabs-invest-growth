@@ -29,12 +29,25 @@ const APIKeyValidator: React.FC = () => {
         toast.error('Failed to retrieve Defined.fi API key', {
           description: keyError.message
         });
+        setIsValidating(false);
         return;
       }
 
       if (!apiKey) {
         setKeyStatus('No API key found');
         toast.warning('No Defined.fi API key configured');
+        setIsValidating(false);
+        return;
+      }
+
+      // Validate key format first - Moralis API keys should be 32 characters or longer
+      if (typeof apiKey !== 'string' || apiKey.length < 30) {
+        console.error('API key has invalid format, length:', apiKey?.length);
+        setKeyStatus('API Key has invalid format');
+        toast.error('Defined.fi API key has invalid format', {
+          description: 'Please check that you have entered a valid API key'
+        });
+        setIsValidating(false);
         return;
       }
 
@@ -52,7 +65,14 @@ const APIKeyValidator: React.FC = () => {
       });
 
       // Store the full response for debugging
-      const responseData = await response.json();
+      let responseData;
+      const responseText = await response.text();
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        responseData = { raw: responseText };
+      }
+
       setTestResponse({
         status: response.status,
         statusText: response.statusText,
@@ -68,9 +88,14 @@ const APIKeyValidator: React.FC = () => {
           description: `Current price: $${responseData.usdPrice || 'N/A'}`
         });
       } else {
+        let errorMessage = 'Unknown error';
+        if (responseData) {
+          errorMessage = responseData.message || responseData.error || 'API validation failed';
+        }
+        
         setKeyStatus('API Key validation failed');
         toast.error('Defined.fi API key validation failed', {
-          description: responseData.message || 'Unknown error'
+          description: errorMessage
         });
       }
     } catch (error: any) {
@@ -109,13 +134,13 @@ const APIKeyValidator: React.FC = () => {
         {keyStatus && (
           <div 
             className={`p-3 rounded-md ${
-              keyStatus.includes('valid') 
+              keyStatus.includes('valid') && !keyStatus.includes('invalid')
                 ? 'bg-green-50 text-green-800 border border-green-200'
                 : 'bg-red-50 text-red-800 border border-red-200'
             }`}
           >
             <div className="flex items-center">
-              {keyStatus.includes('valid') ? (
+              {keyStatus.includes('valid') && !keyStatus.includes('invalid') ? (
                 <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
               ) : (
                 <XCircle className="h-5 w-5 text-red-600 mr-2" />
@@ -151,7 +176,7 @@ const APIKeyValidator: React.FC = () => {
           </div>
           <div className="ml-6 mt-1 text-xs">
             <p><strong>Token Address:</strong> {TOKEN_ADDRESS}</p>
-            <p><strong>Chain ID:</strong> {MORALIS_CHAIN}</p>
+            <p><strong>Chain ID:</strong> {MORALIS_CHAIN} (Polygon)</p>
             <p><strong>API Endpoint:</strong> https://deep-index.moralis.io</p>
           </div>
         </div>

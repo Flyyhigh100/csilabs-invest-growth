@@ -20,7 +20,7 @@ const PriceDebugger: React.FC<DiagnosticsTabProps> = ({ currentPrice: propCurren
   // Use the prop or fall back to context
   const { currentPrice: contextCurrentPrice, error } = useTokenPrice();
   const currentPrice = propCurrentPrice ?? contextCurrentPrice;
-  const [apiKeyStatus, setApiKeyStatus] = useState<{isConfigured: boolean, details?: string}>({isConfigured: false});
+  const [apiKeyStatus, setApiKeyStatus] = useState<{isConfigured: boolean, details?: string, isValidFormat?: boolean}>({isConfigured: false});
   
   useEffect(() => {
     checkApiKeyStatus();
@@ -39,9 +39,17 @@ const PriceDebugger: React.FC<DiagnosticsTabProps> = ({ currentPrice: propCurren
           details: `Error: ${error.message}`
         });
       } else {
+        // Check if API key has valid format
+        const isValidFormat = typeof data === 'string' && data.length >= 30;
+        
         setApiKeyStatus({ 
           isConfigured: Boolean(data), 
-          details: data ? 'API key is configured' : 'API key is not configured'
+          isValidFormat: isValidFormat,
+          details: data 
+            ? (isValidFormat 
+                ? 'API key is configured and has valid format' 
+                : 'API key is configured but has invalid format')
+            : 'API key is not configured'
         });
       }
     } catch (error: any) {
@@ -78,12 +86,33 @@ const PriceDebugger: React.FC<DiagnosticsTabProps> = ({ currentPrice: propCurren
               <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
                 <h3 className="font-medium text-sm text-gray-700 mb-2">API Key Status</h3>
                 <div className="flex items-center">
-                  <div className={`w-3 h-3 rounded-full mr-2 ${apiKeyStatus.isConfigured ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  <span>{apiKeyStatus.isConfigured ? 'Configured' : 'Missing or Invalid'}</span>
+                  <div className={`w-3 h-3 rounded-full mr-2 ${
+                    apiKeyStatus.isConfigured && apiKeyStatus.isValidFormat
+                      ? 'bg-green-500' 
+                      : apiKeyStatus.isConfigured 
+                        ? 'bg-amber-500' 
+                        : 'bg-red-500'
+                  }`}></div>
+                  <span>
+                    {apiKeyStatus.isConfigured && apiKeyStatus.isValidFormat
+                      ? 'Configured' 
+                      : apiKeyStatus.isConfigured 
+                        ? 'Invalid Format' 
+                        : 'Missing'}
+                  </span>
                 </div>
                 {apiKeyStatus.details && (
                   <p className="text-xs text-gray-500 mt-1">{apiKeyStatus.details}</p>
                 )}
+                <Button
+                  variant="ghost" 
+                  size="sm"
+                  onClick={checkApiKeyStatus}
+                  className="w-full mt-2 text-xs"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Refresh Status
+                </Button>
               </div>
             </div>
             
@@ -100,7 +129,7 @@ const PriceDebugger: React.FC<DiagnosticsTabProps> = ({ currentPrice: propCurren
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Token Address:</span>
-                  <span className="font-medium text-xs">{TOKEN_ADDRESS}</span>
+                  <span className="font-medium text-xs break-all">{TOKEN_ADDRESS}</span>
                 </div>
               </div>
             </div>
