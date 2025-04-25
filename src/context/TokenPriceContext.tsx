@@ -1,5 +1,6 @@
+
 import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { fetchCurrentTokenPrice, fetchMoralisTokenPrice, getTimeUntilNextPriceRefresh, getPriceLastUpdatedTime } from '@/services/api/priceService';
+import { fetchCurrentTokenPrice } from '@/services/api/priceService';
 import { toast } from 'sonner';
 
 interface TokenPriceContextType {
@@ -30,7 +31,7 @@ interface TokenPriceProviderProps {
 
 export const TokenPriceProvider = ({ 
   children,
-  refreshInterval = 10000 // Updated to 10 seconds to match cache duration
+  refreshInterval = 10000 
 }: TokenPriceProviderProps) => {
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -41,13 +42,9 @@ export const TokenPriceProvider = ({
   const fetchPrice = async (showToast: boolean = false) => {
     try {
       setIsLoading(true);
-      const price = await fetchMoralisTokenPrice(showToast); // Pass showToast to force refresh when manual
+      const price = await fetchCurrentTokenPrice(showToast);
       setCurrentPrice(price);
-      
-      const lastUpdatedTime = getPriceLastUpdatedTime();
-      if (lastUpdatedTime) {
-        setLastUpdated(new Date(lastUpdatedTime));
-      }
+      setLastUpdated(new Date());
       
       if (showToast) {
         toast.success("Price updated", {
@@ -80,8 +77,7 @@ export const TokenPriceProvider = ({
     }, refreshInterval);
     
     const countdownId = setInterval(() => {
-      const remaining = getTimeUntilNextPriceRefresh();
-      setTimeUntilNextUpdate(remaining > 0 ? remaining : 0);
+      setTimeUntilNextUpdate(prev => prev > 0 ? prev - 1000 : refreshInterval);
     }, 1000);
     
     return () => {

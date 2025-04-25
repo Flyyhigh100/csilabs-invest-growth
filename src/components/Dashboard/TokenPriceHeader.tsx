@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
 import { Spinner } from "@/components/ui/spinner";
-import { supabase } from '@/integrations/supabase/client';
 
 interface TokenPriceHeaderProps {
   className?: string;
@@ -21,32 +20,11 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
     error 
   } = useTokenPrice();
   
-  // Format the last updated time
   const formattedLastUpdated = lastUpdated 
     ? lastUpdated.toLocaleTimeString() 
     : 'Not yet updated';
 
   const isDemoData = error !== null;
-  const [apiKeyConfigured, setApiKeyConfigured] = React.useState<boolean | null>(null);
-
-  // Check if API key is configured
-  React.useEffect(() => {
-    const checkApiKey = async () => {
-      try {
-        const { data, error } = await supabase
-          .functions.invoke('get-secret', {
-            body: { secret_name: 'MORALIS_API_KEY' }
-          });
-        
-        setApiKeyConfigured(Boolean(data));
-      } catch (e) {
-        console.error('Error checking API key:', e);
-        setApiKeyConfigured(false);
-      }
-    };
-    
-    checkApiKey();
-  }, []);
 
   return (
     <Card className={`flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-blue-100 ${className}`}>
@@ -59,11 +37,6 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
               {isDemoData && (
                 <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
                   Demo Data
-                </Badge>
-              )}
-              {apiKeyConfigured === false && (
-                <Badge variant="outline" className="border-red-300 text-red-700">
-                  API Key Missing
                 </Badge>
               )}
             </div>
@@ -100,7 +73,10 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
           <RefreshCw className={`h-3 w-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
-        <p className="text-xs text-gray-500">Last updated: {formattedLastUpdated}</p>
+        <div className="text-xs text-gray-500">
+          <span>Last updated: {formattedLastUpdated}</span>
+          <span className="ml-2 text-cbis-blue">via Uniswap V2</span>
+        </div>
       </div>
     </Card>
   );
