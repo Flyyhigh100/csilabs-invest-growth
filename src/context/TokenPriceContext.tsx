@@ -1,6 +1,5 @@
-
 import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { fetchCurrentTokenPrice, getTimeUntilNextPriceRefresh, getPriceLastUpdatedTime } from '@/services/api/priceService';
+import { fetchCurrentTokenPrice, fetchMoralisTokenPrice, getTimeUntilNextPriceRefresh, getPriceLastUpdatedTime } from '@/services/api/priceService';
 import { toast } from 'sonner';
 
 interface TokenPriceContextType {
@@ -31,7 +30,7 @@ interface TokenPriceProviderProps {
 
 export const TokenPriceProvider = ({ 
   children,
-  refreshInterval = 30000 // Default: refresh every 30 seconds
+  refreshInterval = 10000 // Updated to 10 seconds to match cache duration
 }: TokenPriceProviderProps) => {
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -39,11 +38,10 @@ export const TokenPriceProvider = ({
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [timeUntilNextUpdate, setTimeUntilNextUpdate] = useState<number>(refreshInterval);
 
-  // Function to fetch and update the current token price
   const fetchPrice = async (showToast: boolean = false) => {
     try {
       setIsLoading(true);
-      const price = await fetchCurrentTokenPrice(true); // Force fresh data
+      const price = await fetchMoralisTokenPrice(showToast); // Pass showToast to force refresh when manual
       setCurrentPrice(price);
       
       const lastUpdatedTime = getPriceLastUpdatedTime();
@@ -72,18 +70,15 @@ export const TokenPriceProvider = ({
     }
   };
   
-  // Initialize price on mount
   useEffect(() => {
     fetchPrice();
   }, []);
   
-  // Setup automatic refresh interval
   useEffect(() => {
     const intervalId = setInterval(() => {
       fetchPrice();
     }, refreshInterval);
     
-    // Update countdown timer every second
     const countdownId = setInterval(() => {
       const remaining = getTimeUntilNextPriceRefresh();
       setTimeUntilNextUpdate(remaining > 0 ? remaining : 0);
@@ -95,7 +90,6 @@ export const TokenPriceProvider = ({
     };
   }, [refreshInterval]);
   
-  // Conversion helpers
   const convertUsdToTokens = (usdAmount: number): number => {
     if (!currentPrice || currentPrice <= 0) return 0;
     return usdAmount / currentPrice;
