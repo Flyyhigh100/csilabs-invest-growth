@@ -1,14 +1,25 @@
-
 import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 import { encode as hexEncode } from "https://deno.land/std@0.190.0/encoding/hex.ts";
 
 // Function to create HMAC signature for CoinPayments API
-function createHmac(message: string, secret: string): string {
-  const key = new TextEncoder().encode(secret);
-  const data = new TextEncoder().encode(message);
-  const hmac = crypto.subtle.createHmac('SHA512', key, { algorithm: 'HMAC' });
-  const signature = hmac.update(data).digest();
-  return hexEncode(signature);
+async function createHmac(message: string, secret: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-512" },
+    false,
+    ["sign"]
+  );
+  
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(message)
+  );
+
+  return Array.from(new Uint8Array(signature))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 // Base URL for the CoinPayments API
@@ -60,20 +71,20 @@ async function coinPaymentsRequest(cmd: string, params: Record<string, string>):
     const data = await response.text();
     
     // Log the response for debugging
-    console.log(`CoinPayments API response for ${cmd}: ${data}`);
+    console.log(`CoinPayments API response for ${cmd}:`, data);
     
     // Parse the JSON response
     const result = JSON.parse(data);
     
     // Check for errors
     if (result.error !== "ok") {
-      console.error(`CoinPayments API error: ${result.error}`);
+      console.error(`CoinPayments API error:`, result.error);
       throw new Error(`CoinPayments API error: ${result.error}`);
     }
     
     return result;
   } catch (error) {
-    console.error(`Error in API request: ${error}`);
+    console.error(`Error in API request:`, error);
     throw error;
   }
 }
@@ -176,25 +187,25 @@ function createMockCoinPaymentsTransaction(
       cryptoAmount = (usdAmount * 0.01).toFixed(8);
   }
   
-  console.log(`Mock conversion (fallback): $${usdAmount} = ${cryptoAmount} ${currency}`);
+  console.log(`Mock conversion: $${usdAmount} = ${cryptoAmount} ${currency}`);
   
   // Generate a valid blockchain address for payment
   const mockPaymentAddress = generateValidBlockchainAddress();
   
-  // Generate QR code URL with proper format
+  // Generate QR code URL with encoded payment data
   const qrData = {
     address: mockPaymentAddress,
     amount: cryptoAmount,
     currency: currency
   };
   
-  // Create QR code URL with encoded payment data
+  // Create QR code URL with proper format
   const qrCodeUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(
     JSON.stringify(qrData)
   )}&choe=UTF-8`;
 
-  console.log(`Mock CoinPayments payment created with ID: ${mockTxnId}`);
-  console.log(`Generated valid payment address: ${mockPaymentAddress}`);
+  console.log(`Mock payment created with ID: ${mockTxnId}`);
+  console.log(`Generated payment address: ${mockPaymentAddress}`);
   console.log(`QR code data:`, qrData);
 
   return {

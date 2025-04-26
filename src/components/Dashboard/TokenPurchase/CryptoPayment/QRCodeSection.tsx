@@ -1,8 +1,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { QrCode, AlertCircle } from 'lucide-react';
-import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import QRCodeDisplay from './QRCodeDisplay';
 
 interface QRCodeSectionProps {
   qrCodeUrl?: string;
@@ -28,7 +28,6 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({ qrCodeUrl, paymentAddress
     }
     
     if (qrCodeUrl) {
-      console.log("Using CoinPayments QR code URL:", qrCodeUrl);
       return qrCodeUrl;
     }
     
@@ -39,9 +38,7 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({ qrCodeUrl, paymentAddress
       type: 'address'
     };
     
-    const fallbackUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(JSON.stringify(qrData))}&choe=UTF-8`;
-    console.log("Using fallback QR code URL with payment data");
-    return fallbackUrl;
+    return `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(JSON.stringify(qrData))}&choe=UTF-8`;
   }, [qrCodeUrl, paymentAddress, isValidAddress]);
 
   // Handle successful loading
@@ -52,8 +49,8 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({ qrCodeUrl, paymentAddress
   };
 
   // Handle loading error
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    console.error('Error loading QR code image:', e);
+  const handleImageError = () => {
+    console.error('Error loading QR code image');
     setLoadError(true);
     setIsLoading(false);
   };
@@ -83,21 +80,14 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({ qrCodeUrl, paymentAddress
             QR code failed to load. Please use the payment address below.
           </AlertDescription>
         </Alert>
-      ) : isLoading ? (
-        <div className="w-[300px] h-[300px] flex items-center justify-center bg-gray-50 rounded">
-          <Skeleton className="w-[280px] h-[280px]" />
-        </div>
-      ) : null}
-      
-      {!loadError && displayQrCodeUrl && (
-        <img 
-          src={displayQrCodeUrl} 
-          alt="Payment QR Code" 
-          className={`w-[300px] h-[300px] object-contain ${isLoading ? 'hidden' : ''} border border-gray-100 rounded`}
+      ) : displayQrCodeUrl ? (
+        <QRCodeDisplay
+          qrCodeUrl={displayQrCodeUrl}
           onLoad={handleImageLoad}
           onError={handleImageError}
+          isLoading={isLoading}
         />
-      )}
+      ) : null}
       
       <p className="text-xs text-gray-500 mt-2">
         Scan to make payment
