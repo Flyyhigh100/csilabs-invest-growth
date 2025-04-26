@@ -1,6 +1,5 @@
 
-import { createHmac } from "https://deno.land/std@0.190.0/node/crypto.ts";
-import { encode as hexEncode } from "https://deno.land/std@0.190.0/encoding/hex.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
 /**
  * Makes a request to the CoinPayments API to check a transaction status
@@ -35,10 +34,21 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<any> 
       requestData.append('format', 'json');
       requestData.append('nonce', requestTime);
       
-      // Create HMAC signature using Deno's crypto
-      const hmac = createHmac('sha512', privateKey);
-      hmac.update(requestData.toString());
-      const signature = hmac.digest('hex');
+      // Create HMAC signature using native crypto
+      const encoder = new TextEncoder();
+      const key = encoder.encode(privateKey);
+      const message = encoder.encode(requestData.toString());
+      const cryptoKey = await crypto.subtle.importKey(
+        "raw", key, { name: "HMAC", hash: "SHA-512" }, false, ["sign"]
+      );
+      const signature = await crypto.subtle.sign(
+        "HMAC", cryptoKey, message
+      );
+      
+      // Convert signature to hex string
+      const signatureHex = Array.from(new Uint8Array(signature))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
       
       console.log(`Making API request to CoinPayments for transaction ${txnId}`);
       
@@ -47,7 +57,7 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<any> 
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'HMAC': signature
+          'HMAC': signatureHex
         },
         body: requestData
       });
