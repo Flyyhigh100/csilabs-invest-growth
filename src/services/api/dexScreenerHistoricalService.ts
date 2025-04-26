@@ -1,4 +1,6 @@
 
+import { TokenPriceData } from '@/types/token';
+
 interface DexScreenerPairData {
   pair: {
     priceUsd: string;
