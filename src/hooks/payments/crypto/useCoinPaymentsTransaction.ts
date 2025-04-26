@@ -4,6 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { usePaymentCreation } from './usePaymentCreation';
 import { usePaymentValidation } from '../usePaymentValidation';
 
+/**
+ * Hook for handling CoinPayments transactions
+ */
 export const useCoinPaymentsTransaction = (walletAddress: string | null) => {
   const { 
     isProcessing, 
@@ -16,6 +19,9 @@ export const useCoinPaymentsTransaction = (walletAddress: string | null) => {
   
   const { validatePaymentRequest } = usePaymentValidation(walletAddress);
 
+  /**
+   * Create a CoinPayments payment using the edge function
+   */
   const handleCoinPaymentsPayment = async (
     amount: number, 
     currency: string = 'USDT', 

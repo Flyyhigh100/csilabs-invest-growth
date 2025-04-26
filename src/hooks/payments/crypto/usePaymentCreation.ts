@@ -4,10 +4,16 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CryptoPaymentDetails } from '../types';
 
+/**
+ * Hook that provides common functionality for creating crypto payments
+ */
 export const usePaymentCreation = (walletAddress: string | null) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [cryptoPaymentDetails, setCryptoPaymentDetails] = useState<CryptoPaymentDetails>(null);
 
+  /**
+   * Format raw payment API data into a standardized format
+   */
   const formatPaymentDetails = (data: any, amount: number, currency: string, currentTokenPrice?: number) => {
     // Calculate expiration time properly
     const expiresAt = new Date(Date.now() + (data.timeout * 1000)).toISOString();
@@ -29,6 +35,9 @@ export const usePaymentCreation = (walletAddress: string | null) => {
     };
   };
 
+  /**
+   * Validate that a wallet address is provided
+   */
   const validateWalletAddress = () => {
     if (!walletAddress) {
       toast.error("Wallet Address Required", {

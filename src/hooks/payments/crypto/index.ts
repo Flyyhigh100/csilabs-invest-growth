@@ -1,6 +1,9 @@
 
-// Re-export all crypto payment status functionality
+// Re-export all crypto payment functionality
 export * from './useCryptoStatusCheck';
+export * from './usePaymentCreation';
+export * from './useCoinPaymentsTransaction';
+export * from './useDirectCryptoPayment';
 export * from './cryptoStatusService';
 export * from './transactionUtils';
 export * from './types';

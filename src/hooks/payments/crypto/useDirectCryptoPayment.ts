@@ -6,11 +6,17 @@ import { usePaymentValidation } from '../usePaymentValidation';
 import { usePaymentCreation } from './usePaymentCreation';
 import { CryptoPaymentDetails } from '../types';
 
+/**
+ * Hook for handling direct crypto payments (USDC)
+ */
 export const useDirectCryptoPayment = (walletAddress: string | null) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { validatePaymentRequest } = usePaymentValidation(walletAddress);
   const { validateWalletAddress, formatPaymentDetails } = usePaymentCreation(walletAddress);
 
+  /**
+   * Create a direct crypto payment using the edge function
+   */
   const handleDirectCryptoPayment = async (amount: number, currentTokenPrice?: number): Promise<boolean> => {
     if (!validatePaymentRequest(amount, { isCrypto: true })) return false;
     if (!validateWalletAddress()) return false;
