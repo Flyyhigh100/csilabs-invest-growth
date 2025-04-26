@@ -1,3 +1,4 @@
+
 export interface CryptoPaymentDetails {
   paymentAddress: string;
   transactionId: string;
@@ -26,7 +27,7 @@ export interface UsePaymentHandlersReturn {
   handleStripePayment: (amount: number, currentTokenPrice?: number) => Promise<boolean>;
   handleCoinPaymentsPayment: (amount: number, currency: string, currentTokenPrice?: number) => Promise<boolean>;
   handleCryptoPayment: (amount: number, currentTokenPrice?: number) => Promise<boolean>;
-  kycRequired: (amount: number) => boolean;
+  kycRequired: (amount: number) => boolean; // Updated to be a function type
 }
 
 export interface CryptoStatusCheckResult {

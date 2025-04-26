@@ -70,6 +70,7 @@ export const usePaymentValidation = (walletAddress: string | null) => {
 
   return {
     validatePaymentRequest,
-    kycRequired
+    kycRequired: requiresKyc, // Export the function directly instead of the state
+    isKycRequired: kycRequired // Keep the state as well under a different name if needed
   };
 };

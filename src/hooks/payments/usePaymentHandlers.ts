@@ -74,6 +74,6 @@ export const usePaymentHandlers = (walletAddress: string | null): UsePaymentHand
     handleStripePayment,
     handleCoinPaymentsPayment,
     handleCryptoPayment,
-    kycRequired
+    kycRequired // This is now correctly passing the function from usePaymentValidation
   };
 };
