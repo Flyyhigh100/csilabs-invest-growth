@@ -20,6 +20,8 @@ export async function handleCryptoPaymentRequest(
   tokenAmount?: number
 ): Promise<any> {
   try {
+    console.log(`Starting payment request handler for amount: ${amount} ${currency}`);
+    
     // Extract token from auth header
     const token = authHeader.replace('Bearer ', '');
     
@@ -37,11 +39,24 @@ export async function handleCryptoPaymentRequest(
     console.log(`Creating payment for user ${user.id}, wallet: ${walletAddress}, amount: ${amount} ${currency}`);
     
     // Create crypto payment using CoinPayments
-    const paymentResponse = await createCryptoPayment(amount, walletAddress, currency, tokenPrice);
+    let paymentResponse;
+    try {
+      paymentResponse = await createCryptoPayment(amount, walletAddress, currency, tokenPrice);
+    } catch (paymentError) {
+      console.error('Failed to create CoinPayments transaction:', paymentError);
+      return {
+        success: false,
+        message: paymentError.message || 'Failed to create payment',
+        error: paymentError instanceof Error ? paymentError.message : 'Unknown error'
+      };
+    }
     
     if (!paymentResponse.success) {
-      console.error('Failed to create CoinPayments transaction:', paymentResponse.message);
-      throw new Error(paymentResponse.message || 'Failed to create CoinPayments transaction');
+      console.error('Payment creation failed:', paymentResponse);
+      return {
+        success: false,
+        message: paymentResponse.message || 'Failed to create payment'
+      };
     }
     
     // Generate a transaction ID for our system

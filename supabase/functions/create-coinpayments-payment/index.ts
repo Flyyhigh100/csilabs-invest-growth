@@ -53,7 +53,7 @@ serve(async (req) => {
     );
     
     if (!paymentResponse.success) {
-      return createErrorResponse(paymentResponse.message || 'Failed to create payment');
+      return createErrorResponse(paymentResponse.message || 'Failed to create payment', 400, paymentResponse);
     }
     
     return createSuccessResponse(paymentResponse);
