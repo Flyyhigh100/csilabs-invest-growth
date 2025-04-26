@@ -258,18 +258,23 @@ function formatPaymentResponse(
   tokenPrice?: number,
   tokenAmount?: number
 ) {
+  // For mock data, set a longer timeout (30 minutes)
+  const timeoutSeconds = paymentData.timeout || 1800; // Default to 30 minutes for mock data
+  const expiresAt = new Date(Date.now() + (timeoutSeconds * 1000)).toISOString();
+  
   return {
     paymentAddress: paymentAddress,
     amount: paymentData.amount,
     transactionId: transactionId,
     externalTransactionId: paymentData.txn_id,
-    qrCodeUrl: qrCodeUrl, // Use the clean QR code URL
+    qrCodeUrl: qrCodeUrl,
     statusUrl: paymentData.status_url,
-    expiresAt: new Date(paymentData.timeout * 1000).toISOString(),
+    expiresAt: expiresAt, // Now uses calculated expiration
     currency: paymentData.currency || currency,
     instructions: `Please send ${paymentData.amount} ${paymentData.currency || currency} to the address above to complete your purchase.`,
-    usdValue: amount, // Add the original USD amount for reference
-    tokenPrice: tokenPrice || 1.00, // Include token price (default to 1.00 if not provided)
-    tokenAmount: tokenAmount || amount // Include token amount (default to same as USD if price is 1)
+    usdValue: amount,
+    tokenPrice: tokenPrice || 1.00,
+    tokenAmount: tokenAmount || amount
   };
 }
+
