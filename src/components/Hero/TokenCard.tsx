@@ -1,9 +1,11 @@
+
 import React from 'react';
 import { Info } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PriceChart, VolumeChart } from './TokenCharts';
 import TokenInfo from './TokenInfo';
 import { TokenInfo as TokenInfoType } from '@/types/token';
+import DexToolsChart from '@/components/TokenPricing/DexToolsChart';
 
 interface TokenCardProps {
   isLoaded: boolean;

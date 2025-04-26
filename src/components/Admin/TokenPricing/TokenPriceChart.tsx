@@ -2,8 +2,19 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import DexToolsChart from '@/components/TokenPricing/DexToolsChart';
+import { TokenPriceData } from '@/types/token';
 
-const TokenPriceChart: React.FC = () => {
+interface TokenPriceChartProps {
+  priceData?: TokenPriceData[];
+  isHistoryLoading?: boolean;
+  refreshAllData?: () => void;
+}
+
+const TokenPriceChart: React.FC<TokenPriceChartProps> = ({ 
+  priceData, 
+  isHistoryLoading, 
+  refreshAllData 
+}) => {
   return (
     <Card className="col-span-1 lg:col-span-2">
       <CardHeader>
