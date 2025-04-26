@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Transaction } from '@/types/transactions';
-import { formatCurrency } from '@/lib/utils'; // Assuming a utility for formatting
+import { formatCurrency } from '@/utils/format'; // Updated import path
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -31,7 +31,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
           {transaction.payment_method.toUpperCase()} Transaction
         </div>
         <div className="text-sm text-gray-500">
-          {formatCurrency(transaction.amount, 'USD')}
+          {formatCurrency(transaction.amount)}
         </div>
       </div>
       <Badge 
@@ -45,4 +45,3 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
 };
 
 export default TransactionItem;
-
