@@ -51,68 +51,52 @@ export async function verifyHmacSignature(data: any, signature: string, ipnSecre
 /**
  * Create a new crypto payment transaction
  */
-export async function createCryptoPayment(amount: number, walletAddress: string, currency: string = 'USDT'): Promise<any> {
+export async function createCryptoPayment(
+  amount: number, 
+  walletAddress: string, 
+  currency: string = 'USDT',
+  tokenPrice?: number
+): Promise<any> {
   try {
-    // Get API credentials from environment
-    const publicKey = Deno.env.get('COINPAYMENTS_PUBLIC_KEY');
-    const privateKey = Deno.env.get('COINPAYMENTS_PRIVATE_KEY');
-    
-    if (!publicKey || !privateKey) {
-      console.error('Missing CoinPayments API keys');
-      throw new Error('CoinPayments API keys not configured');
-    }
-    
-    // Prepare request data
-    const requestData = new URLSearchParams();
-    requestData.append('version', '1');
-    requestData.append('cmd', 'create_transaction');
-    requestData.append('key', publicKey);
-    requestData.append('amount', amount.toString());
-    requestData.append('currency1', 'USD');
-    requestData.append('currency2', currency);
-    requestData.append('buyer_email', 'buyer@example.com'); // This will be replaced with the actual user's email
-    requestData.append('address', walletAddress);
-    
-    // Add timestamp for request
-    const requestTime = Math.floor(Date.now() / 1000).toString();
-    requestData.append('format', 'json');
-    requestData.append('nonce', requestTime);
-    
-    // Generate HMAC signature
-    const signature = await generateHmacSignature(privateKey, requestData.toString());
-    
-    console.log(`Creating CoinPayments transaction for amount: ${amount} ${currency}`);
-    
-    // Make the API request
-    const response = await fetch('https://www.coinpayments.net/api.php', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'HMAC': signature
-      },
-      body: requestData
+    console.log(`Creating CoinPayments payment with params:`, {
+      amount,
+      walletAddress,
+      currency,
+      tokenPrice
     });
     
-    // Parse the response
-    const data = await response.json();
-    console.log('CoinPayments API response:', data);
+    // Calculate token amount if price is provided
+    const tokenAmount = tokenPrice ? amount / tokenPrice : amount;
     
-    if (data.error !== 'ok') {
-      console.error('CoinPayments API error:', data.error);
-      throw new Error(`CoinPayments API error: ${data.error}`);
+    // Create transaction using the api client
+    const result = await createCoinPaymentsTransaction(
+      amount,
+      currency,
+      crypto.randomUUID(),
+      walletAddress,
+      'buyer@example.com',
+      false
+    );
+    
+    if (!result) {
+      throw new Error('Failed to create CoinPayments transaction');
     }
+    
+    console.log('Transaction created successfully:', result);
     
     return {
       success: true,
-      address: data.result.address,
-      amount: data.result.amount,
-      txn_id: data.result.txn_id,
-      status_url: data.result.status_url,
-      qrcode_url: data.result.qrcode_url,
-      timeout: data.result.timeout
+      address: result.address,
+      amount: result.amount,
+      txn_id: result.txn_id,
+      status_url: result.status_url,
+      qrcode_url: result.qrcode_url,
+      timeout: result.timeout,
+      tokenAmount,
+      tokenPrice
     };
   } catch (error) {
-    console.error('Error creating crypto payment:', error);
+    console.error('Error in createCryptoPayment:', error);
     throw error;
   }
 }

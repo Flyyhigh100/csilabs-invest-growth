@@ -2,6 +2,12 @@
 import { createSupabaseClient, saveTransaction } from './db-client.ts';
 import { createCryptoPayment } from './crypto-service.ts';
 
+// CORS headers for browser requests
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 /**
  * Handles the crypto payment request and creates transaction records
  */
@@ -31,7 +37,7 @@ export async function handleCryptoPaymentRequest(
     console.log(`Creating payment for user ${user.id}, wallet: ${walletAddress}, amount: ${amount} ${currency}`);
     
     // Create crypto payment using CoinPayments
-    const paymentResponse = await createCryptoPayment(amount, walletAddress, currency);
+    const paymentResponse = await createCryptoPayment(amount, walletAddress, currency, tokenPrice);
     
     if (!paymentResponse.success) {
       console.error('Failed to create CoinPayments transaction:', paymentResponse.message);
@@ -54,7 +60,7 @@ export async function handleCryptoPaymentRequest(
       paymentResponse.txn_id,
       currency,
       tokenPrice,
-      tokenAmount
+      tokenAmount || paymentResponse.tokenAmount
     );
     
     // Return success with payment information
@@ -70,7 +76,7 @@ export async function handleCryptoPaymentRequest(
       externalTransactionId: paymentResponse.txn_id,
       currency: currency,
       checkStatusUrl: `/dashboard/transactions?payment=crypto&txn=${savedTransaction.id}`,
-      tokenAmount: tokenAmount,
+      tokenAmount: tokenAmount || paymentResponse.tokenAmount,
       tokenPrice: tokenPrice
     };
   } catch (error) {

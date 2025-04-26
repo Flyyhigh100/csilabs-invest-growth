@@ -43,7 +43,14 @@ serve(async (req) => {
     console.log(`Calculated token amount: ${tokenAmount}`);
     
     // Process payment request through the handler
-    const paymentResponse = await handleCryptoPaymentRequest(authHeader, amount, walletAddress, currency, tokenPrice, tokenAmount);
+    const paymentResponse = await handleCryptoPaymentRequest(
+      authHeader, 
+      amount, 
+      walletAddress, 
+      currency, 
+      tokenPrice, 
+      tokenAmount
+    );
     
     if (!paymentResponse.success) {
       return createErrorResponse(paymentResponse.message || 'Failed to create payment');
