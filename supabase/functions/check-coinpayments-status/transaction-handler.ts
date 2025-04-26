@@ -1,3 +1,4 @@
+
 import { createDbClient } from "./db-client.ts";
 import { mapCoinPaymentsStatus, getStatusDescription } from "./status-mapper.ts";
 import { createPaymentConfirmationNotification } from "./notification.ts";
@@ -111,14 +112,11 @@ export async function processIpnPayload(ipnData: any, logEntryId?: string) {
     // Create notification for completed or failed status
     if (newStatus === 'completed' || newStatus === 'failed') {
       try {
-        await supabase
-          .from('notifications')
-          .insert({
-            user_id: transaction.user_id,
-            type: newStatus === 'completed' ? 'payment_success' : 'payment_failed',
-            title: newStatus === 'completed' ? 'Payment Completed' : 'Payment Failed',
-            message: `Your payment of ${transaction.amount} ${transaction.currency} has ${newStatus}.`
-          });
+        await createPaymentConfirmationNotification(
+          supabase, 
+          transaction.user_id, 
+          transaction.amount
+        );
       } catch (notifError) {
         console.error('Error creating notification:', notifError);
       }

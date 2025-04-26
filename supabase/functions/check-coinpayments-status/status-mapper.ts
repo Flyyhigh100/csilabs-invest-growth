@@ -1,38 +1,39 @@
 
-// Map CoinPayments status codes to our internal status
-export function mapCoinPaymentsStatus(
-  currentStatus: string, 
-  paymentStatus: { status: number, status_text?: string }
-): { newStatus: string, updated: boolean } {
-  // Status codes: https://www.coinpayments.net/merchant-tools-ipn
-  // -1 = Error/canceled
-  // 0 = Pending
-  // 1 = Payment received (partial or complete payment) - Important: Update to completed!
-  // 2 = Complete
-  // 3 = Confirmed (3+ confirmations)
-  // 100 = Complete/Confirmed
-  
-  let newStatus = currentStatus;
-  let updated = false;
-  
-  if (paymentStatus.status < 0) {
-    newStatus = 'failed';
-    updated = newStatus !== currentStatus;
-  } else if (paymentStatus.status === 0) {
-    newStatus = 'pending';
-    // Only mark as updated if current status isn't already pending
-    updated = currentStatus !== 'pending';
-  } else if (paymentStatus.status === 1) {
-    // CRITICAL: Status 1 means payment received - mark as completed
-    newStatus = 'completed';
-    updated = newStatus !== currentStatus;
-    console.log(`CRITICAL STATUS UPDATE: Payment received (status 1), marking as completed. Current status: ${currentStatus}`);
-  } else if (paymentStatus.status >= 2) {
-    // All values >= 2 should be considered fully completed
-    newStatus = 'completed';
-    updated = newStatus !== currentStatus;
+/**
+ * Maps CoinPayments status codes to our application status values
+ */
+export function mapCoinPaymentsStatus(statusCode: number): string {
+  if (statusCode === 100 || statusCode === 2) {
+    // 100 = Complete, 2 = Confirmed
+    return 'completed';
+  } else if (statusCode === 1) {
+    // 1 = Pending
+    return 'confirmed'; 
+  } else if (statusCode < 0) {
+    // Negative values = Error/canceled
+    return 'failed';
+  } else {
+    // Default to pending for any other status
+    return 'pending';
   }
-  
-  console.log(`CoinPayments status mapping: CP status=${paymentStatus.status}, CP text=${paymentStatus.status_text || 'none'}, Current=${currentStatus}, New=${newStatus}, Updated=${updated}`);
-  return { newStatus, updated };
+}
+
+/**
+ * Gets a user-friendly description for a status code
+ */
+export function getStatusDescription(statusCode: number): string {
+  switch (statusCode) {
+    case -1:
+      return 'Cancelled / Timed Out';
+    case 0:
+      return 'Waiting for buyer funds';
+    case 1:
+      return 'Funds received and confirmed, sending to you shortly';
+    case 2:
+      return 'Funds confirmed, processing payment';
+    case 100:
+      return 'Payment complete';
+    default:
+      return `Status code: ${statusCode}`;
+  }
 }
