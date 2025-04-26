@@ -1,13 +1,30 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.29.0';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-export function createSupabaseClient() {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-  
-  return createClient(supabaseUrl, supabaseKey);
+/**
+ * Create a Supabase client
+ */
+export function createSupabaseClient(token?: string) {
+  try {
+    // Get Supabase URL and key from environment variables
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = token || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY");
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error("Missing Supabase environment variables");
+    }
+    
+    // Create and return client
+    return createClient(supabaseUrl, supabaseKey);
+  } catch (error) {
+    console.error('Error creating Supabase client:', error);
+    throw error;
+  }
 }
 
+/**
+ * Save transaction to database
+ */
 export async function saveTransaction(
   supabaseClient: any,
   userId: string,
@@ -15,54 +32,42 @@ export async function saveTransaction(
   walletAddress: string,
   transactionId: string,
   paymentAddress: string,
-  externalId: string,
+  externalTransactionId: string,
   currency: string,
   tokenPrice?: number,
   tokenAmount?: number
 ) {
   try {
-    console.log(`Saving transaction to database:
-      userId: ${userId}
-      amount: ${amount}
-      walletAddress: ${walletAddress}
-      transactionId: ${transactionId}
-      paymentAddress: ${paymentAddress}
-      externalId: ${externalId}
-      currency: ${currency}
-      tokenPrice: ${tokenPrice}
-      tokenAmount: ${tokenAmount}
-    `);
+    console.log(`Saving transaction to database. User: ${userId}, Amount: $${amount}, Wallet: ${walletAddress}`);
     
-    const transactionData = {
-      user_id: userId,
-      amount: amount,
-      wallet_address: walletAddress,
-      transaction_id: transactionId,
-      payment_address: paymentAddress,
-      external_transaction_id: externalId,
-      payment_method: 'coinpayments',
-      status: 'pending',
-      currency: currency,
-      token_price: tokenPrice || null,
-      token_amount: tokenAmount || null
-    };
-
-    const { data, error } = await supabaseClient
+    // Create transaction record
+    const { data: transaction, error } = await supabaseClient
       .from('transactions')
-      .insert([transactionData])
-      .select()
+      .insert({
+        user_id: userId,
+        amount,
+        wallet_address: walletAddress,
+        transaction_id: transactionId,
+        payment_address: paymentAddress,
+        external_transaction_id: externalTransactionId,
+        payment_method: 'coinpayments',
+        status: 'pending',
+        currency,
+        token_price: tokenPrice || null,
+        token_amount: tokenAmount || null
+      })
+      .select('*')
       .single();
-      
+    
     if (error) {
       console.error('Error saving transaction:', error);
       throw error;
     }
     
-    console.log('Successfully saved transaction:', data);
-    return data;
-  } catch (err) {
-    console.error('Exception in saveTransaction:', err);
-    throw err;
+    console.log(`Transaction saved successfully. ID: ${transaction.id}`);
+    return transaction;
+  } catch (error) {
+    console.error('Error in saveTransaction:', error);
+    throw error;
   }
 }
-

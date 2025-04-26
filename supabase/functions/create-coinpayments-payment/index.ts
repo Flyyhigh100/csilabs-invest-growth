@@ -6,13 +6,17 @@ import { handleCryptoPaymentRequest } from "./payment-handlers.ts";
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log("Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Add authorization header verification
+    console.log("Processing create-coinpayments-payment request");
+    
+    // Get authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.log("Missing authorization header");
       return createErrorResponse('No authorization header', 401);
     }
     
@@ -20,6 +24,7 @@ serve(async (req) => {
     let requestBody;
     try {
       requestBody = await req.json();
+      console.log("Request body:", JSON.stringify(requestBody));
     } catch (parseError) {
       console.error('Error parsing request body:', parseError);
       return createErrorResponse('Invalid JSON in request body');
@@ -38,6 +43,12 @@ serve(async (req) => {
     console.log(`Creating CoinPayments payment for amount: $${amount}, wallet: ${walletAddress}, currency: ${currency}`);
     console.log(`Received token price: ${tokenPrice || 'Not provided'}`);
     
+    // Enable mock mode for testing
+    const useMockData = Deno.env.get("USE_MOCK_DATA") === "true";
+    if (useMockData) {
+      console.log("MOCK MODE ENABLED: Using mock CoinPayments data");
+    }
+    
     // Calculate token amount based on price if available
     const tokenAmount = tokenPrice ? amount / tokenPrice : amount;
     console.log(`Calculated token amount: ${tokenAmount}`);
@@ -53,9 +64,11 @@ serve(async (req) => {
     );
     
     if (!paymentResponse.success) {
+      console.error("Payment request failed:", paymentResponse.message);
       return createErrorResponse(paymentResponse.message || 'Failed to create payment', 400, paymentResponse);
     }
     
+    console.log("Payment created successfully:", paymentResponse.transactionId);
     return createSuccessResponse(paymentResponse);
   } catch (error) {
     console.error('Unexpected error in edge function:', error);

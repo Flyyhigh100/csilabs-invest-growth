@@ -18,7 +18,7 @@ export interface CoinPaymentsTransaction {
 /**
  * Generate HMAC signature for CoinPayments API
  */
-function generateHmac(payload: string): string {
+async function generateHmac(payload: string): Promise<string> {
   try {
     const privateKey = Deno.env.get("COINPAYMENTS_PRIVATE_KEY") || "";
     if (!privateKey) {

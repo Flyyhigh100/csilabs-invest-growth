@@ -39,6 +39,7 @@ export const useCoinPaymentsTransaction = (walletAddress: string | null) => {
         description: `Preparing ${currency} payment session.`,
       });
       
+      // Call the edge function with better error handling
       const { data, error } = await supabase.functions.invoke('create-coinpayments-payment', {
         body: { 
           amount, 
@@ -50,8 +51,12 @@ export const useCoinPaymentsTransaction = (walletAddress: string | null) => {
       
       toast.dismiss("crypto-preparing");
       
+      console.log('Response from edge function:', data);
+      
       if (error || !data?.success) {
-        throw new Error(error?.message || data?.message || "Failed to create payment");
+        const errorMessage = error?.message || data?.message || "Failed to create payment";
+        console.error('Error from edge function:', error || data);
+        throw new Error(errorMessage);
       }
 
       console.log('CoinPayments payment data received:', data);
