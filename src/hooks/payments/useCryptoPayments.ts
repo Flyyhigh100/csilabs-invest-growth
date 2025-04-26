@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,17 +12,14 @@ export const useCryptoPayments = (walletAddress: string | null) => {
   const { checkTransactionStatus } = useCryptoStatusCheck();
 
   const handleCoinPaymentsPayment = async (amount: number, currency: string = 'USDT', currentTokenPrice?: number) => {
-    // Pass true for isCrypto to validate KYC if needed
     if (!validatePaymentRequest(amount, { isCrypto: true })) return false;
     
-    // Extra validation check for wallet address
     if (!walletAddress) {
       toast.error("Wallet Address Required", {
         description: "You need to provide a wallet address to receive your tokens after purchase.",
         duration: 5000,
       });
       
-      // Scroll to wallet section
       setTimeout(() => {
         document.getElementById('wallet-address-section')?.scrollIntoView({ 
           behavior: 'smooth',
@@ -50,7 +46,7 @@ export const useCryptoPayments = (walletAddress: string | null) => {
           amount, 
           walletAddress, 
           currency,
-          tokenPrice: currentTokenPrice // Pass the current token price to the payment function
+          tokenPrice: currentTokenPrice
         }
       });
       
@@ -64,24 +60,20 @@ export const useCryptoPayments = (walletAddress: string | null) => {
       if (!data) {
         throw new Error("No payment data received");
       }
-      
-      // Create payment details with properly formatted data
+
       setCryptoPaymentDetails({
-        paymentAddress: data.paymentAddress, // This should now be a clean address
+        paymentAddress: data.paymentAddress,
         transactionId: data.transactionId,
-        instructions: `Please send ${data.amount} ${data.currency || currency} to the address above to complete your purchase of $${amount} worth of CSi tokens.`,
+        instructions: `Please send ${data.amount} ${data.currency || currency} to the address above.`,
         qrCodeUrl: data.qrCodeUrl,
         statusUrl: data.statusUrl,
         expiresAt: data.expiresAt,
         externalTransactionId: data.externalTransactionId,
         currency: data.currency || currency,
         checkStatusUrl: data.checkStatusUrl,
-        // Store original USD value for reference
         usdValue: amount,
-        // Store token amount and price for reference
         tokenAmount: data.tokenAmount,
         tokenPrice: data.tokenPrice || currentTokenPrice,
-        // Add the actual crypto amount from the API response
         amount: data.amount
       });
       
@@ -93,27 +85,24 @@ export const useCryptoPayments = (walletAddress: string | null) => {
       return true;
     } catch (error: any) {
       console.error("Error creating CoinPayments transaction:", error);
-      toast.error("Crypto payment failed", {
-        description: error.message || "Unable to create payment request. Please try again.",
+      toast.error("Payment creation failed", {
+        description: error.message || "Unable to create payment. Please try again.",
       });
       return false;
     } finally {
       setIsProcessing(false);
     }
   };
-  
+
   const handleCryptoPayment = async (amount: number, currentTokenPrice?: number) => {
-    // Pass true for isCrypto to validate KYC if needed
     if (!validatePaymentRequest(amount, { isCrypto: true })) return false;
     
-    // Double check wallet address
     if (!walletAddress) {
       toast.error("Wallet Address Required", {
         description: "You need to provide a wallet address to receive your tokens after purchase.",
         duration: 5000,
       });
       
-      // Scroll to wallet section
       setTimeout(() => {
         document.getElementById('wallet-address-section')?.scrollIntoView({ 
           behavior: 'smooth',
@@ -136,7 +125,7 @@ export const useCryptoPayments = (walletAddress: string | null) => {
         body: { 
           amount, 
           walletAddress,
-          tokenPrice: currentTokenPrice // Pass the current token price
+          tokenPrice: currentTokenPrice
         }
       });
       
@@ -179,10 +168,8 @@ export const useCryptoPayments = (walletAddress: string | null) => {
     }
   };
 
-  // Check status of a payment by transaction ID in Supabase
   const checkPaymentStatus = async (transactionId: string) => {
     try {
-      // Get the transaction from Supabase
       const { data: transaction, error } = await supabase
         .from('transactions')
         .select('*')
@@ -194,7 +181,6 @@ export const useCryptoPayments = (walletAddress: string | null) => {
         return false;
       }
       
-      // Use the checkTransactionStatus function from useCryptoStatusCheck
       return await checkTransactionStatus(transaction);
     } catch (err) {
       console.error("Error checking payment status:", err);
@@ -212,4 +198,3 @@ export const useCryptoPayments = (walletAddress: string | null) => {
     checkPaymentStatus
   };
 };
-

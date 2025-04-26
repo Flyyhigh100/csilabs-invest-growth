@@ -1,123 +1,144 @@
+import { createDbClient } from "./db-client.ts";
+import { mapCoinPaymentsStatus, getStatusDescription } from "./status-mapper.ts";
+import { createPaymentConfirmationNotification } from "./notification.ts";
 
-import { mapCoinPaymentsStatus } from "./status-mapper.ts";
-import { ensureExternalTransactionIdStored } from "./utils.ts";
-
-export async function processTransactionStatus(
-  supabase: any, 
-  transaction: any, 
-  statusData: any,
-  storeExternalIds = true
-) {
-  console.log(`Processing status update for transaction ${transaction.id}`);
+export async function processIpnPayload(ipnData: any, logEntryId?: string) {
+  console.log("Processing IPN payload:", JSON.stringify(ipnData));
   
   try {
-    // Skip if no result data
-    if (!statusData || !statusData.result) {
+    // Validate required fields
+    if (!ipnData.ipn_type) {
+      console.error("Missing ipn_type in IPN data");
+      return { success: false, message: "Missing ipn_type field" };
+    }
+    
+    if (ipnData.ipn_type !== 'api' && ipnData.ipn_type !== 'button') {
+      console.log(`Ignoring IPN with type ${ipnData.ipn_type} (only handling 'api' and 'button' types)`);
+      return { success: true, message: `IPN type ${ipnData.ipn_type} not handled` };
+    }
+    
+    if (!ipnData.txn_id) {
+      console.error("Missing txn_id in IPN data");
+      return { success: false, message: "Missing txn_id field" };
+    }
+
+    // Extract status code from IPN data
+    const status = parseInt(ipnData.status || '0');
+    const txnId = ipnData.txn_id;
+
+    console.log(`Processing IPN for transaction ${txnId} with status ${status}`);
+    
+    const supabase = createDbClient();
+
+    // Enhanced transaction lookup strategy with detailed logging
+    console.log(`Looking for transaction with external_transaction_id=${txnId}`);
+
+    let transaction;
+    
+    // Try looking up by external_transaction_id first
+    const { data: extIdTx, error: extIdError } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('external_transaction_id', txnId)
+      .maybeSingle();
+      
+    if (extIdTx) {
+      console.log('Found transaction by external_transaction_id');
+      transaction = extIdTx;
+    } else {
+      // If not found, try transaction_id
+      const { data: txIdTx, error: txIdError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('transaction_id', txnId)
+        .maybeSingle();
+        
+      if (txIdTx) {
+        console.log('Found transaction by transaction_id');
+        transaction = txIdTx;
+        
+        // Update external_transaction_id for future lookups
+        const { error: updateError } = await supabase
+          .from('transactions')
+          .update({ external_transaction_id: txnId })
+          .eq('id', txIdTx.id);
+          
+        if (updateError) {
+          console.error('Error updating external_transaction_id:', updateError);
+        }
+      }
+    }
+
+    if (!transaction) {
+      console.error(`Transaction not found for txn_id: ${txnId}`);
       return { 
         success: false, 
-        message: "No valid status data available", 
-        transaction,
-        updated: false
+        message: 'Transaction not found',
+        txnId,
+        logEntryId 
       };
     }
-    
-    const cpStatus = statusData.result;
-    console.log(`CoinPayments status data:`, cpStatus);
-    
-    // Store the external transaction ID if available
-    if (storeExternalIds && cpStatus.txn_id) {
-      await ensureExternalTransactionIdStored(supabase, transaction, cpStatus.txn_id);
+
+    // Map status and update transaction
+    let newStatus;
+    if (status === 100 || status === 1) {
+      newStatus = 'completed';
+    } else if (status < 0) {
+      newStatus = 'failed';
+    } else {
+      newStatus = 'pending';
     }
     
-    // Map CoinPayments status code to our internal status
-    const statusCode = parseInt(cpStatus.status || '0');
-    const mappedStatus = mapCoinPaymentsStatus(transaction.status, { status: statusCode, status_text: cpStatus.status_text }).newStatus;
-    
-    console.log(`Status mapped: CP status ${statusCode} -> internal status '${mappedStatus}'`);
-    
-    // Skip update if status is the same and not forcing update
-    if (transaction.status === mappedStatus) {
-      console.log(`Transaction ${transaction.id} already has status '${mappedStatus}', skipping update`);
-      return {
-        success: true,
-        message: "Status unchanged",
-        transaction,
-        updated: false,
-        newStatus: mappedStatus,
-        previousStatus: transaction.status
-      };
-    }
-    
-    // Update the transaction status in our database
+    // Update transaction with new status
     const { error: updateError } = await supabase
       .from('transactions')
       .update({
-        status: mappedStatus,
+        status: newStatus,
         updated_at: new Date().toISOString()
       })
       .eq('id', transaction.id);
-    
+      
     if (updateError) {
-      console.error(`Error updating transaction ${transaction.id}:`, updateError);
+      console.error('Error updating transaction:', updateError);
       return {
         success: false,
-        message: `Database error: ${updateError.message}`,
+        message: `Failed to update transaction: ${updateError.message}`,
         transaction,
-        updated: false
+        logEntryId
       };
     }
-    
-    console.log(`Successfully updated transaction ${transaction.id} status from '${transaction.status}' to '${mappedStatus}'`);
-    
-    // Create notification if status changed to completed or failed
-    if (mappedStatus === 'completed' || mappedStatus === 'failed') {
+
+    // Create notification for completed or failed status
+    if (newStatus === 'completed' || newStatus === 'failed') {
       try {
-        // Get user ID from transaction
-        const userId = transaction.user_id;
-        
-        // Create notification
-        const { error: notifError } = await supabase
+        await supabase
           .from('notifications')
           .insert({
-            user_id: userId,
-            title: mappedStatus === 'completed' ? 'Payment Completed' : 'Payment Failed',
-            message: mappedStatus === 'completed' 
-              ? `Your payment of ${transaction.amount} has been confirmed.`
-              : `Your payment of ${transaction.amount} has failed.`,
-            type: mappedStatus === 'completed' ? 'payment_success' : 'payment_failed'
+            user_id: transaction.user_id,
+            type: newStatus === 'completed' ? 'payment_success' : 'payment_failed',
+            title: newStatus === 'completed' ? 'Payment Completed' : 'Payment Failed',
+            message: `Your payment of ${transaction.amount} ${transaction.currency} has ${newStatus}.`
           });
-        
-        if (notifError) {
-          console.error(`Error creating notification for user ${userId}:`, notifError);
-        } else {
-          console.log(`Created payment ${mappedStatus} notification for user ${userId}`);
-        }
       } catch (notifError) {
-        console.error(`Error in notification creation:`, notifError);
-        // Continue despite notification error
+        console.error('Error creating notification:', notifError);
       }
     }
-    
+
     return {
       success: true,
-      message: "Status updated successfully",
-      transaction: {
-        ...transaction,
-        status: mappedStatus
-      },
-      updated: true,
-      newStatus: mappedStatus,
-      previousStatus: transaction.status
+      message: `Transaction status updated to ${newStatus}`,
+      transaction,
+      newStatus,
+      logEntryId
     };
     
   } catch (error) {
-    console.error(`Error processing transaction status:`, error);
+    console.error('Unhandled exception in processIpnPayload:', error);
     return {
       success: false,
-      message: `Exception: ${error.message}`,
+      message: `Internal error: ${error.message}`,
       error: error.stack,
-      transaction,
-      updated: false
+      logEntryId
     };
   }
 }

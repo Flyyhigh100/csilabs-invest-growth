@@ -248,6 +248,7 @@ export type Database = {
           blockchain_tx_id: string | null
           completed_at: string | null
           created_at: string
+          currency: string | null
           external_transaction_id: string | null
           high_value_approval_required: boolean | null
           id: string
@@ -255,6 +256,8 @@ export type Database = {
           payment_address: string | null
           payment_method: string
           status: string
+          token_amount: number | null
+          token_price: number | null
           token_sent: boolean | null
           transaction_id: string
           updated_at: string
@@ -268,6 +271,7 @@ export type Database = {
           blockchain_tx_id?: string | null
           completed_at?: string | null
           created_at?: string
+          currency?: string | null
           external_transaction_id?: string | null
           high_value_approval_required?: boolean | null
           id?: string
@@ -275,6 +279,8 @@ export type Database = {
           payment_address?: string | null
           payment_method: string
           status: string
+          token_amount?: number | null
+          token_price?: number | null
           token_sent?: boolean | null
           transaction_id: string
           updated_at?: string
@@ -288,6 +294,7 @@ export type Database = {
           blockchain_tx_id?: string | null
           completed_at?: string | null
           created_at?: string
+          currency?: string | null
           external_transaction_id?: string | null
           high_value_approval_required?: boolean | null
           id?: string
@@ -295,6 +302,8 @@ export type Database = {
           payment_address?: string | null
           payment_method?: string
           status?: string
+          token_amount?: number | null
+          token_price?: number | null
           token_sent?: boolean | null
           transaction_id?: string
           updated_at?: string
