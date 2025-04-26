@@ -8,7 +8,17 @@ export const TOKEN_ADDRESS = '0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f4';  // U
 export const CHAIN_ID = '137';  // Polygon mainnet
 
 // Uniswap V3 Configuration
-export const UNISWAP_SUBGRAPH_URL = 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2-polygon';
+export const UNISWAP_V3_POOL = (import.meta.env?.VITE_V3_POOL as string | undefined)?.toLowerCase() || '0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f4';
+export const UNISWAP_V4_POOL = (import.meta.env?.VITE_V4_POOL as string | undefined)?.toLowerCase() || '0xe5c4a49b28f71506cdc43a48552804e8b7e7b3a727bb9b40d955ba69ec28976d';
+
+export const COUNTER_TOKEN_SYMBOL = 'USDT';
+export const COUNTER_TOKEN_DECIMALS = 6;
+
+export const UNISWAP_V3_URL = import.meta.env?.VITE_V3_URL || 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon';
+export const UNISWAP_V4_URL = import.meta.env?.VITE_V4_URL || 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-polygon';
+
+// Legacy constant used by existing services (points to V3 by default)
+export const UNISWAP_SUBGRAPH_URL = UNISWAP_V3_URL;
 
 // Time range settings
 export const START_DATE = Math.floor(new Date('2021-10-26').getTime() / 1000);

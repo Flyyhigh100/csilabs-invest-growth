@@ -1,6 +1,5 @@
-
 import { TokenPriceData } from '@/types/token';
-import { TOKEN_ADDRESS, START_DATE, END_DATE, DAYS_TO_INCLUDE, UNISWAP_SUBGRAPH_URL } from './config';
+import { UNISWAP_V3_POOL, DAYS_TO_INCLUDE, UNISWAP_V3_URL } from './config';
 import { generateMockPriceData } from '../mocks/mockDataGenerators';
 import { formatDate } from './utils/dateUtils';
 
@@ -10,7 +9,7 @@ import { formatDate } from './utils/dateUtils';
 export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
   try {
     console.log('Fetching token price history from Uniswap Subgraph');
-    console.log('Using token address:', TOKEN_ADDRESS);
+    console.log('Using token address:', UNISWAP_V3_POOL);
     
     // Uniswap V2 subgraph doesn't have a direct daily price history endpoint
     // We'll need to query token day data or swap events
@@ -20,21 +19,14 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
     
     // This query attempts to get daily snapshots if available
     const query = `{
-      tokenDayDatas(
-        first: ${DAYS_TO_INCLUDE}
-        orderBy: date
-        orderDirection: desc
-        where: { 
-          token: "${TOKEN_ADDRESS.toLowerCase()}"
-        }
-      ) {
+      poolDayDatas(first: ${DAYS_TO_INCLUDE}, orderBy: date, orderDirection: desc, where: { pool: \"${UNISWAP_V3_POOL}\" }) {
         date
-        priceUSD
-        totalLiquidityUSD
+        token0Price
+        token1Price
       }
     }`;
     
-    const response = await fetch(UNISWAP_SUBGRAPH_URL, {
+    const response = await fetch(UNISWAP_V3_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -49,19 +41,19 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
     }
 
     const data = await response.json();
-    console.log('Received historical price data points:', data?.data?.tokenDayDatas?.length || 0);
+    console.log('Received historical price data points:', data?.data?.poolDayDatas?.length || 0);
 
-    if (!data?.data?.tokenDayDatas || data.data.tokenDayDatas.length === 0) {
+    if (!data?.data?.poolDayDatas || data.data.poolDayDatas.length === 0) {
       console.warn('No historical price data received, using mock data');
       return generateMockPriceData();
     }
 
     // Process the data
-    const formattedData: TokenPriceData[] = data.data.tokenDayDatas
-      .filter((item: any) => item.date && item.priceUSD)
+    const formattedData: TokenPriceData[] = data.data.poolDayDatas
+      .filter((item: any) => item.date && (item.token0Price || item.token1Price))
       .map((item: any) => ({
         date: formatDate(parseInt(item.date)),
-        price: parseFloat(item.priceUSD)
+        price: Math.max(parseFloat(item.token0Price || '0'), parseFloat(item.token1Price || '0'))
       }))
       .filter((item: TokenPriceData) => !isNaN(item.price) && item.price > 0);
       
