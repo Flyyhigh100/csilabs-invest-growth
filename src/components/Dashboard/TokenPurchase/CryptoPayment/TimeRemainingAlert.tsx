@@ -9,16 +9,30 @@ interface TimeRemainingAlertProps {
 
 const TimeRemainingAlert: React.FC<TimeRemainingAlertProps> = ({ expiresAt }) => {
   const calculateTimeRemaining = () => {
-    const now = new Date();
-    const expiration = new Date(expiresAt);
-    const diff = expiration.getTime() - now.getTime();
-    
-    if (diff <= 0) return { expired: true, minutes: 0, seconds: 0 };
-    
-    const minutes = Math.floor(diff / 1000 / 60);
-    const seconds = Math.floor((diff / 1000) % 60);
-    
-    return { expired: false, minutes, seconds };
+    try {
+      const now = new Date();
+      const expiration = new Date(expiresAt);
+      
+      // Check if the date is valid
+      if (isNaN(expiration.getTime())) {
+        console.error('Invalid expiration date:', expiresAt);
+        // Default to expired if invalid date
+        return { expired: true, minutes: 0, seconds: 0 };
+      }
+      
+      const diff = expiration.getTime() - now.getTime();
+      
+      if (diff <= 0) return { expired: true, minutes: 0, seconds: 0 };
+      
+      const minutes = Math.floor(diff / 1000 / 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+      
+      return { expired: false, minutes, seconds };
+    } catch (error) {
+      console.error('Error calculating time remaining:', error, 'expiresAt:', expiresAt);
+      // Default to expired on error
+      return { expired: true, minutes: 0, seconds: 0 };
+    }
   };
   
   const [timeRemaining, setTimeRemaining] = useState(calculateTimeRemaining());

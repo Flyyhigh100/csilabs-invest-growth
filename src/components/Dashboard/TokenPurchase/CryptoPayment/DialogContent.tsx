@@ -4,7 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import QRCodeSection from './QRCodeSection';
 import PaymentAddressSection from './PaymentAddressSection';
 import TransactionIdSection from './TransactionIdSection';
-import TimeRemainingAlert from './TimeRemainingAlert';
+import TimeRemainingAlert from '../TimeRemainingAlert';
 import InstructionsSection from './InstructionsSection';
 import StatusCheckSection from './StatusCheckSection';
 import { CryptoPaymentDetails } from '@/hooks/payments/types';

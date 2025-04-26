@@ -46,6 +46,9 @@ export async function createCryptoPayment(
     }
     
     console.log('Transaction created successfully:', result);
+
+    // Ensure timeout is a number
+    const timeout = typeof result.timeout === 'string' ? parseInt(result.timeout, 10) : result.timeout;
     
     return {
       success: true,
@@ -54,7 +57,7 @@ export async function createCryptoPayment(
       txn_id: result.txn_id,
       status_url: result.status_url,
       qrcode_url: result.qrcode_url,
-      timeout: result.timeout,
+      timeout: timeout || 3600, // Default to 1 hour if not provided or invalid
       tokenAmount,
       tokenPrice
     };

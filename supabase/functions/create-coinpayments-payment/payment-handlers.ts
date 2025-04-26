@@ -85,7 +85,7 @@ export async function handleCryptoPaymentRequest(
       paymentAddress: paymentResponse.address,
       amount: paymentResponse.amount,
       amountf: paymentResponse.amount,
-      expiresAt: paymentResponse.timeout,
+      timeout: paymentResponse.timeout, // Send as a number of seconds
       statusUrl: paymentResponse.status_url,
       qrCodeUrl: paymentResponse.qrcode_url,
       externalTransactionId: paymentResponse.txn_id,

@@ -54,6 +54,8 @@ export const useCoinPaymentsTransaction = (walletAddress: string | null) => {
         throw new Error(error?.message || data?.message || "Failed to create payment");
       }
 
+      console.log('CoinPayments payment data received:', data);
+
       const paymentDetails = formatPaymentDetails(data, amount, currency, currentTokenPrice);
       setCryptoPaymentDetails(paymentDetails);
       

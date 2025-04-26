@@ -15,8 +15,28 @@ export const usePaymentCreation = (walletAddress: string | null) => {
    * Format raw payment API data into a standardized format
    */
   const formatPaymentDetails = (data: any, amount: number, currency: string, currentTokenPrice?: number) => {
-    // Calculate expiration time properly
-    const expiresAt = new Date(Date.now() + (data.timeout * 1000)).toISOString();
+    // Format expiration time properly
+    let expiresAt: string;
+    
+    try {
+      // Check if timeout is a number of seconds
+      if (typeof data.timeout === 'number') {
+        expiresAt = new Date(Date.now() + (data.timeout * 1000)).toISOString();
+      }
+      // Check if it's already an ISO string
+      else if (typeof data.timeout === 'string' && data.timeout.match(/^\d{4}-\d{2}-\d{2}T/)) {
+        expiresAt = data.timeout;
+      }
+      // Default to 1 hour from now if invalid or missing
+      else {
+        console.warn('Invalid timeout format received:', data.timeout);
+        expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
+      }
+    } catch (error) {
+      console.error('Error formatting expiration time:', error);
+      // Fallback to 1 hour from now
+      expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
+    }
     
     return {
       paymentAddress: data.address,
