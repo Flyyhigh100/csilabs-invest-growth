@@ -1,9 +1,4 @@
 
-// Payment related types
-export interface PaymentValidationOptions {
-  isCrypto: boolean;
-}
-
 export interface CryptoPaymentDetails {
   paymentAddress: string;
   transactionId: string;
@@ -12,12 +7,12 @@ export interface CryptoPaymentDetails {
   statusUrl?: string;
   expiresAt?: string;
   externalTransactionId?: string;
-  currency: string;
+  currency?: string;
+  amount?: string;  // Add this to store the actual crypto amount
   checkStatusUrl?: string;
-  usdValue?: number;
-  tokenAmount?: number;
-  tokenPrice?: number;
-  amount?: string; // Add missing amount property
+  usdValue?: number;  // USD value for reference
+  tokenAmount?: number;  // Store token amount for reference
+  tokenPrice?: number;   // Store token price for reference
 }
 
 export interface UsePaymentHandlersProps {

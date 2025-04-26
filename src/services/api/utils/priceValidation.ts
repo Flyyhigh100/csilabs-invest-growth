@@ -1,28 +1,18 @@
 
 /**
- * Validates if a price is reasonable and properly formatted
+ * Validates if a price value is valid
+ * @param price The price to validate
+ * @returns boolean indicating if price is valid
  */
-export const isValidPrice = (price: number): boolean => {
-  // Check if price is a valid number
-  if (typeof price !== 'number' || isNaN(price)) {
-    console.error('Invalid price type or NaN:', price);
-    return false;
-  }
-
-  // Check for negative prices
-  if (price < 0) {
-    console.error('Negative price detected:', price);
-    return false;
-  }
-
-  // Allow prices down to 8 decimal places
-  const MIN_ACCEPTABLE_PRICE = 0.00000001;
+export function isValidPrice(price: number | string | null | undefined): boolean {
+  // Convert to number if string
+  const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
   
-  const isValid = price >= MIN_ACCEPTABLE_PRICE;
-  
-  if (!isValid) {
-    console.error(`Price ${price} below minimum threshold ${MIN_ACCEPTABLE_PRICE}`);
-  }
-  
-  return isValid;
-};
+  // Check if it's a valid number greater than zero
+  return (
+    numericPrice !== null &&
+    numericPrice !== undefined &&
+    !isNaN(Number(numericPrice)) &&
+    numericPrice > 0
+  );
+}

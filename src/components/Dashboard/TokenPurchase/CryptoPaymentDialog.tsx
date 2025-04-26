@@ -38,7 +38,8 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
     expiresAt,
     usdValue,
     tokenAmount,
-    tokenPrice
+    tokenPrice,
+    amount: cryptoAmount // Get the actual crypto amount from payment details
   } = paymentDetails;
 
   // Format expiration time if available
@@ -119,11 +120,12 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
             </div>
           </div>
           
-          {instructions && (
-            <div className="space-y-2">
-              <p className="text-gray-700 text-sm">{instructions}</p>
-            </div>
-          )}
+          <div className="space-y-2">
+            <p className="text-gray-700 text-sm">
+              Please send <span className="font-medium">{cryptoAmount} {selectedCurrency}</span> to the address above to 
+              complete your purchase of ${usdValue?.toFixed(2)} worth of CSi tokens.
+            </p>
+          </div>
           
           {qrCodeUrl && (
             <div className="flex justify-center py-2">

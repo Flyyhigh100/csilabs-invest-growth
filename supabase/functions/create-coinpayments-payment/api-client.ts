@@ -1,171 +1,223 @@
+import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
+import { encodeHex } from "https://deno.land/std@0.190.0/encoding/hex.ts";
+import { CoinPaymentsTransaction } from "./types.ts";
 
-import { createSignature, generateMockPaymentData } from "./utils.ts";
+// Function to create HMAC signature for CoinPayments API
+function createHmac(message: string, secret: string): string {
+  const key = new TextEncoder().encode(secret);
+  const data = new TextEncoder().encode(message);
+  const hmac = crypto.subtle.createHmac('SHA512', key, { algorithm: 'HMAC' });
+  const signature = hmac.update(data).digest();
+  return encodeHex(signature);
+}
 
-const COINPAYMENTS_API_URL = 'https://www.coinpayments.net/api.php';
-const COINPAYMENTS_PUBLIC_KEY = Deno.env.get('COINPAYMENTS_PUBLIC_KEY');
-const COINPAYMENTS_PRIVATE_KEY = Deno.env.get('COINPAYMENTS_PRIVATE_KEY');
+// Base URL for the CoinPayments API
+const API_URL = "https://www.coinpayments.net/api.php";
 
-// Helper function to make CoinPayments API request
-export async function coinPaymentsRequest(command: string, params: Record<string, string>) {
-  if (!COINPAYMENTS_PUBLIC_KEY || !COINPAYMENTS_PRIVATE_KEY) {
-    throw new Error('CoinPayments API keys are not configured');
+// Function to make a request to the CoinPayments API with retry
+async function coinPaymentsRequest(cmd: string, params: Record<string, string>): Promise<any> {
+  const publicKey = Deno.env.get("COINPAYMENTS_PUBLIC_KEY") || "";
+  const privateKey = Deno.env.get("COINPAYMENTS_PRIVATE_KEY") || "";
+  
+  if (!publicKey || !privateKey) {
+    throw new Error("CoinPayments API keys not configured");
   }
 
-  // Add the required nonce parameter using the current timestamp
+  // Create a nonce (unique identifier for this request)
   const nonce = Date.now().toString();
 
-  const requestParams = {
-    cmd: command,
-    key: COINPAYMENTS_PUBLIC_KEY,
-    version: '1',
-    format: 'json',
-    nonce: nonce, // Add nonce here
-    ...params,
+  // Combine all parameters to create the payload
+  const payload = {
+    cmd,
+    key: publicKey,
+    version: "1",
+    format: "json",
+    nonce,
+    ...params
   };
 
-  const hmacSig = await createSignature(requestParams, COINPAYMENTS_PRIVATE_KEY);
-
-  console.log(`Making CoinPayments API request for command: ${command}`);
+  // Create a query string from the payload
+  const payloadString = new URLSearchParams(payload).toString();
   
+  // Log the payload for debugging (without private key)
+  console.log(`Creating signature for payload: ${payloadString}`);
+
+  // Create the HMAC signature
+  const hmac = await createHmac(payloadString, privateKey);
+
   try {
-    const response = await fetch(COINPAYMENTS_API_URL, {
+    // Send the request to the CoinPayments API
+    const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'HMAC': hmacSig,
+        'HMAC': hmac
       },
-      body: new URLSearchParams(requestParams),
+      body: payloadString
     });
 
-    const data = await response.json();
+    // Parse the response
+    const data = await response.text();
     
-    console.log(`CoinPayments API response for ${command}:`, JSON.stringify(data));
+    // Log the response for debugging
+    console.log(`CoinPayments API response for ${cmd}: ${data}`);
     
-    if (data.error !== 'ok') {
-      console.error('CoinPayments API error:', data.error);
-      throw new Error(`CoinPayments API error: ${data.error}`);
+    // Parse the JSON response
+    const result = JSON.parse(data);
+    
+    // Check for errors
+    if (result.error !== "ok") {
+      console.error(`CoinPayments API error: ${result.error}`);
+      throw new Error(`CoinPayments API error: ${result.error}`);
     }
-
-    return data.result;
+    
+    return result;
   } catch (error) {
-    console.error('Error in API request:', error);
+    console.error(`Error in API request: ${error}`);
     throw error;
   }
 }
 
-// Create a transaction in CoinPayments
-export async function createCoinPaymentsTransaction(
-  amount: number, 
-  currency: string, 
-  transactionId: string, 
-  walletAddress: string, 
-  userEmail: string,
-  forceMock: boolean = false
-) {
-  // Check if we have API keys, if not or if forceMock is true, use mock data
-  if (forceMock || !COINPAYMENTS_PUBLIC_KEY || !COINPAYMENTS_PRIVATE_KEY) {
-    console.log('Using mock data (missing API keys or mock mode requested)');
-    const mockPaymentData = generateMockPaymentData(amount.toString(), currency);
-    console.log(`Mock CoinPayments payment created with ID: ${mockPaymentData.txn_id}`);
-    console.log(`Mock conversion: $${amount} = ${mockPaymentData.amount} ${currency}`);
-    
-    // Make sure the mock data has a clean address for the QR code
-    if (mockPaymentData.address && mockPaymentData.address.includes(':')) {
-      // Store the original address for reference
-      mockPaymentData.original_address = mockPaymentData.address;
-      // Clean the address for the QR code (without parameters)
-      mockPaymentData.address = mockPaymentData.address.split(':').pop().split('@')[0];
-      console.log(`Cleaned mock address: ${mockPaymentData.address}`);
-    }
-    
-    return mockPaymentData;
-  }
-  
+// Function to create a real CoinPayments transaction
+async function createRealCoinPaymentsTransaction(
+  usdAmount: number,
+  currency: string,
+  transactionId: string,
+  walletAddress: string,
+  buyerEmail: string
+): Promise<CoinPaymentsTransaction> {
   try {
-    // CRITICAL: Use currency1=USD and currency2=selected crypto to let CoinPayments handle conversion
-    // This ensures proper conversion from USD to the selected cryptocurrency
-    const createTransactionParams = {
-      amount: amount.toString(),
-      currency1: 'USD',          // Amount is specified in USD
-      currency2: currency,       // User will pay with this cryptocurrency
-      buyer_email: userEmail || 'customer@example.com',
-      item_name: 'CSi Tokens Purchase',
+    // Log the request parameters
+    console.log(`USD amount: $${usdAmount}, Currency: ${currency}`);
+    
+    const ipnUrl = Deno.env.get("COINPAYMENTS_IPN_URL");
+    
+    // Set up the parameters for the create_transaction command
+    const params = {
+      amount: usdAmount.toString(),
+      currency1: "USD",
+      currency2: currency,
+      buyer_email: buyerEmail,
+      item_name: "CSi Tokens Purchase",
       item_number: transactionId,
-      custom: walletAddress,     // Store wallet address in custom field
-      ipn_url: `${Deno.env.get('SUPABASE_FUNCTIONS_URL')}/ipn-handler`, // Would need to implement this separately
+      custom: walletAddress,
+      ipn_url: ipnUrl ? `${ipnUrl}/ipn-handler` : undefined
     };
+    
+    console.log(`Creating real CoinPayments transaction with params: ${JSON.stringify(params)}`);
 
-    console.log('Creating real CoinPayments transaction with params:', JSON.stringify(createTransactionParams));
-    console.log(`USD amount: $${amount}, Currency: ${currency}`);
+    // Make the API request
+    const result = await coinPaymentsRequest("create_transaction", params);
     
-    const paymentData = await coinPaymentsRequest('create_transaction', createTransactionParams);
-    console.log('CoinPayments transaction created successfully:', JSON.stringify(paymentData));
-    console.log(`Real conversion: $${amount} = ${paymentData.amount} ${currency}`);
+    // Log successful transaction creation
+    console.log(`CoinPayments transaction created successfully: ${JSON.stringify(result.result)}`);
     
-    // Make sure the returned data has a clean address for the QR code
-    if (paymentData.address && paymentData.address.includes(':')) {
-      // Store the original address for reference
-      paymentData.original_address = paymentData.address;
-      // Clean the address for the QR code (without parameters)
-      paymentData.address = paymentData.address.split(':').pop().split('@')[0];
-      console.log(`Cleaned CoinPayments address: ${paymentData.address}`);
-    }
-    
-    return paymentData;
-  } catch (apiError) {
-    console.error('CoinPayments API error:', apiError);
-    
-    // Fall back to mock data for testing if the API call fails
-    console.log('Falling back to mock data due to API error');
-    
-    const mockPaymentData = generateMockPaymentData(amount.toString(), currency);
-    console.log(`Mock CoinPayments payment created with ID: ${mockPaymentData.txn_id}`);
-    console.log(`Mock conversion (fallback): $${amount} = ${mockPaymentData.amount} ${currency}`);
-    
-    // Make sure the mock data has a clean address for the QR code
-    if (mockPaymentData.address && mockPaymentData.address.includes(':')) {
-      // Store the original address for reference
-      mockPaymentData.original_address = mockPaymentData.address;
-      // Clean the address for the QR code (without parameters)
-      mockPaymentData.address = mockPaymentData.address.split(':').pop().split('@')[0];
-      console.log(`Cleaned fallback mock address: ${mockPaymentData.address}`);
-    }
-    
-    return mockPaymentData;
+    // Get the currency conversion result - this shows how much crypto is required for the USD amount
+    const cryptoAmount = result.result.amount;
+    console.log(`Real conversion: $${usdAmount} = ${cryptoAmount} ${currency}`);
+
+    // Return the transaction details with properly parsed data
+    return {
+      amount: cryptoAmount,
+      txn_id: result.result.txn_id,
+      address: result.result.address,
+      confirms_needed: result.result.confirms_needed,
+      timeout: result.result.timeout,
+      checkout_url: result.result.checkout_url,
+      status_url: result.result.status_url,
+      qrcode_url: result.result.qrcode_url,
+      currency: currency
+    };
+  } catch (error) {
+    console.error(`CoinPayments API error: ${error}`);
+    throw error;
   }
 }
 
-// Get available CoinPayments currencies
-export async function getAvailableCurrencies(forceMock: boolean = false) {
-  // If mock mode or missing API keys, return mock data
-  if (forceMock || !COINPAYMENTS_PUBLIC_KEY || !COINPAYMENTS_PRIVATE_KEY) {
-    console.log('Using mock currency data');
-    return {
-      BTC: { name: "Bitcoin", is_fiat: 0, rate_btc: "1.00", status: "online", accepted: 1 },
-      LTC: { name: "Litecoin", is_fiat: 0, rate_btc: "0.01", status: "online", accepted: 1 },
-      ETH: { name: "Ethereum", is_fiat: 0, rate_btc: "0.05", status: "online", accepted: 1 },
-      DOGE: { name: "Dogecoin", is_fiat: 0, rate_btc: "0.000001", status: "online", accepted: 1 },
-      USDT: { name: "Tether USD", is_fiat: 0, rate_btc: "0.000033", status: "online", accepted: 1 },
-      BNB: { name: "Binance Coin", is_fiat: 0, rate_btc: "0.01", status: "online", accepted: 1 },
-      XRP: { name: "Ripple", is_fiat: 0, rate_btc: "0.000025", status: "online", accepted: 1 },
-      LTCT: { name: "Litecoin Testnet", is_fiat: 0, rate_btc: "0.01", status: "online", accepted: 1 },
-    };
+// Function to create a mock CoinPayments transaction for testing or when API fails
+function createMockCoinPaymentsTransaction(
+  usdAmount: number,
+  currency: string,
+  transactionId: string,
+  walletAddress: string
+): CoinPaymentsTransaction {
+  // Mock transaction ID for testing
+  const mockTxnId = `CP${Date.now()}`;
+  
+  // Create a realistic crypto amount based on approximate exchange rates
+  // This simulates proper currency conversion from USD to the selected crypto
+  let cryptoAmount: string;
+  
+  // Use realistic exchange rates for common cryptocurrencies
+  // These are very approximate and would need to be updated in a real system
+  switch(currency) {
+    case 'BTC':
+      // ~$60,000 per BTC, so $1 = 0.000017 BTC
+      cryptoAmount = (usdAmount * 0.000017).toFixed(8);
+      break;
+    case 'ETH':
+      // ~$3,000 per ETH, so $1 = 0.00033 ETH
+      cryptoAmount = (usdAmount * 0.00033).toFixed(8);
+      break;
+    case 'BNB.BSC':
+      // ~$600 per BNB, so $1 = 0.00167 BNB
+      cryptoAmount = (usdAmount * 0.00167).toFixed(8);
+      break;
+    case 'USDT':
+    case 'USDC':
+    case 'USDC.PRC20':
+    case 'DAI':
+      // Stablecoins are approximately 1:1 with USD
+      cryptoAmount = usdAmount.toFixed(8);
+      break;
+    default:
+      // For other currencies, use a generic conversion rate
+      // This is just an approximation - in reality each currency would have its own rate
+      cryptoAmount = (usdAmount * 0.01).toFixed(8);
   }
   
+  console.log(`Mock conversion (fallback): $${usdAmount} = ${cryptoAmount} ${currency}`);
+  
+  // Create and log the mock transaction
+  console.log(`Mock CoinPayments payment created with ID: ${mockTxnId}`);
+  console.log(`Result: ${cryptoAmount} ${currency}`);
+
+  // Return a mock transaction object that mimics the CoinPayments API response
+  return {
+    amount: cryptoAmount,
+    txn_id: mockTxnId,
+    address: walletAddress,
+    confirms_needed: "1",
+    timeout: 3600,
+    checkout_url: `https://example.com/checkout/${mockTxnId}`,
+    status_url: `https://example.com/status/${mockTxnId}`,
+    qrcode_url: `https://api.qrserver.com/v1/create-qr-code/?data=${walletAddress}&size=200x200`,
+    currency: currency
+  };
+}
+
+// Main function to create a CoinPayments transaction
+export async function createCoinPaymentsTransaction(
+  usdAmount: number,
+  currency: string,
+  transactionId: string,
+  walletAddress: string,
+  buyerEmail: string,
+  forceMock: boolean = false
+): Promise<CoinPaymentsTransaction> {
   try {
-    console.log('Fetching available currencies from CoinPayments API');
-    const result = await coinPaymentsRequest('rates', { accepted: "1" });
-    console.log(`Retrieved ${Object.keys(result).length} currencies from CoinPayments`);
-    return result;
-  } catch (error) {
-    console.error('Error fetching currencies:', error);
+    // If forceMock is true or we're in development mode, use mock data
+    const isDev = Deno.env.get('SUPABASE_ENV') === 'dev';
     
-    // Fall back to mock data if the API call fails
-    return {
-      BTC: { name: "Bitcoin", is_fiat: 0, rate_btc: "1.00", status: "online", accepted: 1 },
-      ETH: { name: "Ethereum", is_fiat: 0, rate_btc: "0.05", status: "online", accepted: 1 },
-      USDT: { name: "Tether USD", is_fiat: 0, rate_btc: "0.000033", status: "online", accepted: 1 },
-      BNB: { name: "Binance Coin", is_fiat: 0, rate_btc: "0.01", status: "online", accepted: 1 },
-    };
+    if (forceMock || isDev) {
+      return createMockCoinPaymentsTransaction(usdAmount, currency, transactionId, walletAddress);
+    }
+    
+    // Otherwise, create a real CoinPayments transaction
+    return await createRealCoinPaymentsTransaction(usdAmount, currency, transactionId, walletAddress, buyerEmail);
+  } catch (error) {
+    console.log(`Falling back to mock data due to API error`);
+    // If the API call fails, fall back to mock data
+    return createMockCoinPaymentsTransaction(usdAmount, currency, transactionId, walletAddress);
   }
 }
