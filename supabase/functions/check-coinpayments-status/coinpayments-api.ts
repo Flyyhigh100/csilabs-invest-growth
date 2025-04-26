@@ -1,6 +1,6 @@
 
-import { HmacSha512 } from "https://deno.land/std@0.177.0/crypto/hmac.ts";
-import { encode as hexEncode } from "https://deno.land/std@0.177.0/encoding/hex.ts";
+import { createHmac } from "https://deno.land/std@0.190.0/node/crypto.ts";
+import { encode as hexEncode } from "https://deno.land/std@0.190.0/encoding/hex.ts";
 
 /**
  * Makes a request to the CoinPayments API to check a transaction status
@@ -36,11 +36,9 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<any> 
       requestData.append('nonce', requestTime);
       
       // Create HMAC signature using Deno's crypto
-      const key = new TextEncoder().encode(privateKey);
-      const message = new TextEncoder().encode(requestData.toString());
-      const hmacSignature = new HmacSha512(key);
-      hmacSignature.update(message);
-      const signature = hexEncode(hmacSignature.digest());
+      const hmac = createHmac('sha512', privateKey);
+      hmac.update(requestData.toString());
+      const signature = hmac.digest('hex');
       
       console.log(`Making API request to CoinPayments for transaction ${txnId}`);
       
