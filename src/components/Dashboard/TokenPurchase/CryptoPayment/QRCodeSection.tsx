@@ -13,22 +13,42 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({ qrCodeUrl, paymentAddress
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   
+  // Validate the payment address format
+  const isValidAddress = useMemo(() => {
+    if (!paymentAddress) return false;
+    // Check for valid BEP-20/ERC-20 address format
+    return /^0x[a-fA-F0-9]{40}$/.test(paymentAddress);
+  }, [paymentAddress]);
+  
   // Determine which QR code URL to use
   const displayQrCodeUrl = useMemo(() => {
+    if (!isValidAddress) {
+      console.error("Invalid payment address format:", paymentAddress);
+      return null;
+    }
+    
     if (qrCodeUrl) {
       console.log("Using CoinPayments QR code URL:", qrCodeUrl);
       return qrCodeUrl;
     }
-    // Only generate a QR code for the address as a fallback
-    const fallbackUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(paymentAddress)}&choe=UTF-8`;
-    console.log("Using fallback QR code URL:", fallbackUrl);
+    
+    // Generate QR code with payment data
+    const qrData = {
+      address: paymentAddress,
+      network: 'BSC', // For BEP-20 tokens
+      type: 'address'
+    };
+    
+    const fallbackUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(JSON.stringify(qrData))}&choe=UTF-8`;
+    console.log("Using fallback QR code URL with payment data");
     return fallbackUrl;
-  }, [qrCodeUrl, paymentAddress]);
+  }, [qrCodeUrl, paymentAddress, isValidAddress]);
 
   // Handle successful loading
   const handleImageLoad = () => {
     console.log("QR code image loaded successfully");
     setIsLoading(false);
+    setLoadError(false);
   };
 
   // Handle loading error
@@ -37,6 +57,17 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({ qrCodeUrl, paymentAddress
     setLoadError(true);
     setIsLoading(false);
   };
+
+  if (!isValidAddress) {
+    return (
+      <Alert variant="destructive" className="mb-2">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Invalid payment address format. Please contact support.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg p-4 border border-gray-200 text-center flex flex-col items-center">
@@ -49,12 +80,12 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({ qrCodeUrl, paymentAddress
         <Alert variant="destructive" className="mb-2">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            QR code failed to load. Use the payment address below instead.
+            QR code failed to load. Please use the payment address below.
           </AlertDescription>
         </Alert>
       ) : isLoading ? (
-        <div className="w-48 h-48 flex items-center justify-center bg-gray-50 rounded">
-          <Skeleton className="w-44 h-44" />
+        <div className="w-[300px] h-[300px] flex items-center justify-center bg-gray-50 rounded">
+          <Skeleton className="w-[280px] h-[280px]" />
         </div>
       ) : null}
       
@@ -62,14 +93,14 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({ qrCodeUrl, paymentAddress
         <img 
           src={displayQrCodeUrl} 
           alt="Payment QR Code" 
-          className={`w-48 h-48 object-contain ${isLoading ? 'hidden' : ''} border border-gray-100 rounded`}
+          className={`w-[300px] h-[300px] object-contain ${isLoading ? 'hidden' : ''} border border-gray-100 rounded`}
           onLoad={handleImageLoad}
           onError={handleImageError}
         />
       )}
       
       <p className="text-xs text-gray-500 mt-2">
-        {qrCodeUrl ? 'Scan to make payment' : 'QR code contains payment address'}
+        Scan to make payment
       </p>
       <p className="text-xs text-gray-500">
         Enter amount manually in your wallet app if needed

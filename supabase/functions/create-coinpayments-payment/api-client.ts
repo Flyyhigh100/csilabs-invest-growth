@@ -1,4 +1,3 @@
-
 import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 import { encode as hexEncode } from "https://deno.land/std@0.190.0/encoding/hex.ts";
 
@@ -134,7 +133,19 @@ async function createRealCoinPaymentsTransaction(
   }
 }
 
-// Function to create a mock CoinPayments transaction for testing or when API fails
+// Function to generate a valid mock BEP-20/ERC-20 address
+function generateValidBlockchainAddress(): string {
+  // Create 20 bytes of random data (40 hex chars)
+  const randomBytes = new Uint8Array(20);
+  crypto.getRandomValues(randomBytes);
+  
+  // Convert to hex and add 0x prefix to make valid address
+  return '0x' + Array.from(randomBytes)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+// Function to create a mock CoinPayments transaction for testing
 function createMockCoinPaymentsTransaction(
   usdAmount: number,
   currency: string,
@@ -166,21 +177,29 @@ function createMockCoinPaymentsTransaction(
   
   console.log(`Mock conversion (fallback): $${usdAmount} = ${cryptoAmount} ${currency}`);
   
-  // IMPORTANT: Generate a new mock payment address, don't use the user's wallet address
-  // This simulates what CoinPayments would do - generate a new deposit address
-  const mockPaymentAddress = `0x${crypto.randomUUID().replace(/-/g, '')}`.substring(0, 42);
+  // Generate a valid blockchain address for payment
+  const mockPaymentAddress = generateValidBlockchainAddress();
   
-  // Generate mock QR code URL
-  const qrCodeUrl = `https://www.coinpayments.net/qrgen.php?id=${mockTxnId}&key=${Date.now()}`;
+  // Generate QR code data with proper format
+  const qrData = {
+    address: mockPaymentAddress,
+    amount: cryptoAmount,
+    currency: currency
+  };
+  
+  // Create QR code URL with encoded payment data
+  const qrCodeUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(
+    JSON.stringify(qrData)
+  )}&choe=UTF-8`;
 
   console.log(`Mock CoinPayments payment created with ID: ${mockTxnId}`);
-  console.log(`Mock payment address: ${mockPaymentAddress} (different from wallet: ${walletAddress})`);
-  console.log(`Result: ${cryptoAmount} ${currency}`);
+  console.log(`Generated valid payment address: ${mockPaymentAddress}`);
+  console.log(`QR code data:`, qrData);
 
   return {
     amount: cryptoAmount,
     txn_id: mockTxnId,
-    address: mockPaymentAddress, // Use the generated mock address, not the user's wallet
+    address: mockPaymentAddress,
     confirms_needed: "1",
     timeout: 3600,
     checkout_url: `https://www.coinpayments.net/index.php?cmd=checkout&id=${mockTxnId}`,
