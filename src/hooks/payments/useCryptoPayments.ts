@@ -57,8 +57,8 @@ export const useCryptoPayments = (walletAddress: string | null) => {
         throw new Error(error.message || "Failed to create CoinPayments transaction");
       }
       
-      if (!data) {
-        throw new Error("No payment data received");
+      if (!data || !data.success) {
+        throw new Error(data?.message || "No payment data received");
       }
 
       setCryptoPaymentDetails({

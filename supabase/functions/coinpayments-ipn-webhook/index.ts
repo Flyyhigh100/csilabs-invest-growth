@@ -7,12 +7,6 @@ import { mapCoinPaymentsStatus } from "./status-mapper.ts";
 import { createPaymentConfirmationNotification } from "./notification.ts";
 import { processIpnPayload } from "./transaction-handler.ts";
 
-// CORS headers for preflight requests
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
 serve(async (req) => {
   console.log("CoinPayments IPN webhook received - Request method:", req.method);
   console.log("Request headers:", JSON.stringify(Object.fromEntries(req.headers)));
@@ -65,6 +59,25 @@ serve(async (req) => {
       console.log("Parsed as form data successfully");
     }
     
+    // Verify HMAC signature if provided
+    const hmacHeader = req.headers.get('HMAC');
+    const ipnSecret = Deno.env.get('COINPAYMENTS_IPN_SECRET');
+    
+    let isVerified = false;
+    
+    if (hmacHeader && ipnSecret) {
+      console.log("Verifying IPN signature...");
+      // Calculate expected HMAC
+      const hmac = createHmac('sha512', ipnSecret);
+      hmac.update(requestBody);
+      const expectedSignature = hmac.digest('hex');
+      
+      isVerified = hmacHeader === expectedSignature;
+      console.log(`IPN signature verification: ${isVerified ? 'SUCCESS' : 'FAILED'}`);
+    } else {
+      console.log("No HMAC signature found or IPN secret not configured");
+    }
+    
     console.log("Processed IPN data:", JSON.stringify(ipnData));
     
     // Update the log entry with the parsed data and processing details
@@ -76,13 +89,14 @@ serve(async (req) => {
           raw_data: ipnData,
           txn_id: ipnData.txn_id || null,
           status: ipnData.status || null,
-          verification_status: 'processed',
+          verification_status: isVerified ? 'verified' : 'unverified',
           processing_status: 'processing',
           processed_at: new Date().toISOString(),
           details: { 
             ipn_type: ipnData.ipn_type || 'unknown',
             request_method: req.method,
-            source_ip: req.headers.get('x-forwarded-for') || 'unknown'
+            source_ip: req.headers.get('x-forwarded-for') || 'unknown',
+            hmac_verified: isVerified
           },
           request_headers: JSON.stringify(Object.fromEntries(req.headers))
         })
