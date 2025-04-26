@@ -11,7 +11,22 @@ const TimeRemainingAlert: React.FC<TimeRemainingAlertProps> = ({ expiresAt }) =>
   const calculateTimeRemaining = () => {
     try {
       const now = new Date();
-      const expiration = new Date(expiresAt);
+      // Ensure expiration date is properly parsed regardless of format
+      let expiration: Date;
+      
+      if (typeof expiresAt === 'string') {
+        // Check if it's a numeric timestamp or a date string
+        if (/^\d+$/.test(expiresAt)) {
+          // Convert numeric string to number and interpret as milliseconds
+          expiration = new Date(parseInt(expiresAt));
+        } else {
+          // Try to parse the date string directly
+          expiration = new Date(expiresAt);
+        }
+      } else {
+        // It's already a Date object
+        expiration = expiresAt;
+      }
       
       // Check if the date is valid
       if (isNaN(expiration.getTime())) {
