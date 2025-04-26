@@ -27,7 +27,7 @@ const PaymentAddressSection: React.FC<PaymentAddressSectionProps> = ({ paymentAd
     <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
       <h3 className="text-sm font-medium mb-2">Payment Address</h3>
       <div className="flex items-center gap-2">
-        <div className="bg-white p-2 rounded border border-gray-200 text-sm font-mono overflow-x-auto w-full">
+        <div className="bg-white p-2 rounded border border-gray-200 text-sm font-mono overflow-auto max-w-full break-all w-full">
           {paymentAddress}
         </div>
         <Button 

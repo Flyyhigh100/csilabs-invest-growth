@@ -12,6 +12,7 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { ExternalLink, AlertTriangle, Wallet } from 'lucide-react';
 import { CryptoPaymentDetails } from '@/hooks/payments/types';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import DialogContentComponent from './CryptoPayment/DialogContent';
 
 interface CryptoPaymentDialogProps {
   open: boolean;
@@ -32,14 +33,12 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
   
   const { 
     paymentAddress, 
-    instructions, 
-    qrCodeUrl, 
     statusUrl, 
     expiresAt,
     usdValue,
     tokenAmount,
     tokenPrice,
-    amount: cryptoAmount // Get the actual crypto amount from payment details
+    amount: cryptoAmount 
   } = paymentDetails;
 
   // Format expiration time if available
@@ -75,7 +74,7 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wallet className="h-5 w-5" />
@@ -83,60 +82,8 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
           </DialogTitle>
         </DialogHeader>
         
-        <div className="flex flex-col gap-4 py-4">
-          {expiresAt && (
-            <Alert variant="default" className="bg-amber-50">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Time Remaining</AlertTitle>
-              <AlertDescription>
-                This payment expires in <span className="font-bold">{timeRemaining}</span>
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 text-center">
-            <h4 className="font-medium text-gray-800 mb-1">Purchase Summary</h4>
-            <p className="text-gray-600 text-sm">USD Amount: <strong>${usdValue?.toFixed(2)}</strong></p>
-            {tokenAmount && tokenPrice && (
-              <p className="text-gray-600 text-sm mt-1">
-                Token Amount: <strong>{tokenAmount.toLocaleString(undefined, { maximumFractionDigits: 5 })}</strong>
-                <br />
-                <span className="text-xs text-gray-500">(at ${tokenPrice.toFixed(5)} per token)</span>
-              </p>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <label className="font-medium text-sm">Send {selectedCurrency} to this address:</label>
-            <div className="flex">
-              <div className="flex-1 bg-gray-50 border border-r-0 rounded-l-md p-3 overflow-x-auto text-xs">
-                <code>{paymentAddress}</code>
-              </div>
-              <CopyButton 
-                value={paymentAddress} 
-                className="rounded-l-none"
-                variant="outline"
-              />
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <p className="text-gray-700 text-sm">
-              Please send <span className="font-medium">{cryptoAmount} {selectedCurrency}</span> to the address above to 
-              complete your purchase of ${usdValue?.toFixed(2)} worth of CSi tokens.
-            </p>
-          </div>
-          
-          {qrCodeUrl && (
-            <div className="flex justify-center py-2">
-              <img 
-                src={qrCodeUrl} 
-                alt="Payment QR Code" 
-                className="max-w-[150px] border rounded-md shadow-sm" 
-              />
-            </div>
-          )}
-        </div>
+        {/* Use the dedicated DialogContent component to organize and display payment details */}
+        <DialogContentComponent paymentDetails={paymentDetails} />
         
         <DialogFooter className="flex-col sm:flex-row gap-2">
           {statusUrl && (

@@ -29,7 +29,7 @@ const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
       )}
       
       <div className="flex flex-col md:flex-row items-center gap-4 justify-center">
-        {/* Use the CoinPayments-provided QR code URL directly when available */}
+        {/* Pass through both QR code URL and payment address */}
         <QRCodeSection 
           qrCodeUrl={paymentDetails.qrCodeUrl} 
           paymentAddress={paymentDetails.paymentAddress} 
