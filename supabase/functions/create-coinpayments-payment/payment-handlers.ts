@@ -28,15 +28,20 @@ export async function handleCryptoPaymentRequest(
       throw new Error(userError?.message || 'Authentication failed');
     }
     
+    console.log(`Creating payment for user ${user.id}, wallet: ${walletAddress}, amount: ${amount} ${currency}`);
+    
     // Create crypto payment using CoinPayments
     const paymentResponse = await createCryptoPayment(amount, walletAddress, currency);
     
     if (!paymentResponse.success) {
+      console.error('Failed to create CoinPayments transaction:', paymentResponse.message);
       throw new Error(paymentResponse.message || 'Failed to create CoinPayments transaction');
     }
     
     // Generate a transaction ID for our system (this is different from CoinPayments txn_id)
     const transactionId = crypto.randomUUID();
+    
+    console.log(`Payment created successfully. Transaction ID: ${transactionId}, External ID: ${paymentResponse.txn_id}`);
     
     // Save transaction in database
     const savedTransaction = await saveTransaction(

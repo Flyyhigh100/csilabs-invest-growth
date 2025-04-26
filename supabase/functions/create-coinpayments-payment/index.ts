@@ -27,8 +27,12 @@ serve(async (req) => {
     
     const { amount, walletAddress, currency = 'USDT', tokenPrice } = requestBody;
     
-    if (!amount || amount <= 0 || !walletAddress) {
-      return createErrorResponse('Invalid amount or missing wallet address');
+    if (!amount || amount <= 0) {
+      return createErrorResponse('Invalid amount');
+    }
+
+    if (!walletAddress) {
+      return createErrorResponse('Missing wallet address');
     }
 
     console.log(`Creating CoinPayments payment for amount: $${amount}, wallet: ${walletAddress}, currency: ${currency}`);
@@ -40,6 +44,10 @@ serve(async (req) => {
     
     // Process payment request through the handler
     const paymentResponse = await handleCryptoPaymentRequest(authHeader, amount, walletAddress, currency, tokenPrice, tokenAmount);
+    
+    if (!paymentResponse.success) {
+      return createErrorResponse(paymentResponse.message || 'Failed to create payment');
+    }
     
     return createSuccessResponse(paymentResponse);
   } catch (error) {

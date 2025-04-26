@@ -1,28 +1,46 @@
 
-// CORS headers for preflight requests
+// Define CORS headers
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };
 
-// Helper function to return error responses
-export function createErrorResponse(message: string, status: number = 400, details: any = {}) {
+// Create a standardized error response
+export function createErrorResponse(message: string, status: number = 400) {
   return new Response(
-    JSON.stringify({ error: message, details }),
-    { 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-      status 
+    JSON.stringify({
+      success: false,
+      message: message
+    }),
+    {
+      status: status,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      }
     }
   );
 }
 
-// Helper function to return success responses
+// Create a standardized success response
 export function createSuccessResponse(data: any, status: number = 200) {
   return new Response(
-    JSON.stringify(data),
-    { 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-      status 
+    JSON.stringify({
+      success: true,
+      ...data
+    }),
+    {
+      status: status,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      }
     }
   );
+}
+
+// Generate a random ID
+export function generateId(): string {
+  return crypto.randomUUID();
 }
