@@ -61,13 +61,16 @@ export const useCryptoPayments = (walletAddress: string | null) => {
         throw new Error(data?.message || "No payment data received");
       }
 
+      // Calculate expiration time from timeout
+      const expiresAt = new Date(Date.now() + (data.timeout * 1000)).toISOString();
+
       setCryptoPaymentDetails({
         paymentAddress: data.paymentAddress,
         transactionId: data.transactionId,
         instructions: `Please send ${data.amount} ${data.currency || currency} to the address above.`,
         qrCodeUrl: data.qrCodeUrl,
         statusUrl: data.statusUrl,
-        expiresAt: data.expiresAt,
+        expiresAt: expiresAt,
         externalTransactionId: data.externalTransactionId,
         currency: data.currency || currency,
         checkStatusUrl: data.checkStatusUrl,

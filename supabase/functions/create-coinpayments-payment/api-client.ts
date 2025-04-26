@@ -1,3 +1,4 @@
+
 import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 import { encode as hexEncode } from "https://deno.land/std@0.190.0/encoding/hex.ts";
 
@@ -180,7 +181,7 @@ function createMockCoinPaymentsTransaction(
   // Generate a valid blockchain address for payment
   const mockPaymentAddress = generateValidBlockchainAddress();
   
-  // Generate QR code data with proper format
+  // Generate QR code URL with proper format
   const qrData = {
     address: mockPaymentAddress,
     amount: cryptoAmount,
