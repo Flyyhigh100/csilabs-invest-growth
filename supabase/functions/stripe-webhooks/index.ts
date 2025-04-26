@@ -10,7 +10,6 @@ const corsHeaders = {
 };
 
 // Main entry point
-// Version: [Timestamp or simple counter]
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {

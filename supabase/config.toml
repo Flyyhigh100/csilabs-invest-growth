@@ -25,6 +25,9 @@ port = 9999
 enabled = true
 port = 5000
 
+# Disable JWT verification for the stripe-webhooks function
+[functions.stripe-webhooks]
+verify_jwt = false
+
 [functions.get-secret]
 verify_jwt = true
-
