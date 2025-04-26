@@ -1,38 +1,30 @@
 
 import React from 'react';
 import { Transaction } from '@/types/transactions';
-import TransactionsTable from './TransactionsTable';
-import { useTransactions } from '@/hooks/transactions/useTransactions';
-import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import TransactionItem from './TransactionItem';
+import TransactionStatusChecker from './TransactionStatusChecker';
 
 interface TransactionListProps {
   transactions: Transaction[];
-  isAdminView?: boolean;
-  onTransactionUpdated?: () => void;
+  onTransactionUpdated?: (transaction: Transaction | null) => void;
 }
 
-const TransactionList = ({ 
-  transactions, 
-  isAdminView = false,
+const TransactionList: React.FC<TransactionListProps> = ({ 
+  transactions,
   onTransactionUpdated 
-}: TransactionListProps) => {
-  const [expandedItem, setExpandedItem] = React.useState<string | null>(null);
-  
-  const handleSyncComplete = (updatedTransaction: Transaction | null) => {
-    if (onTransactionUpdated) {
-      onTransactionUpdated();
-    }
-  };
-
+}) => {
   return (
-    <TransactionsTable 
-      transactions={transactions}
-      expandedItem={expandedItem}
-      setExpandedItem={setExpandedItem}
-      onSyncComplete={handleSyncComplete}
-      isAdminView={isAdminView}
-    />
+    <div className="space-y-4">
+      {transactions.map((transaction) => (
+        <div key={transaction.id} className="space-y-2">
+          <TransactionItem transaction={transaction} />
+          <TransactionStatusChecker
+            transaction={transaction}
+            onTransactionUpdated={onTransactionUpdated}
+          />
+        </div>
+      ))}
+    </div>
   );
 };
 

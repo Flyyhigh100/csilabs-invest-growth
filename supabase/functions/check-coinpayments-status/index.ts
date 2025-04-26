@@ -82,26 +82,25 @@ serve(async (req) => {
       return createErrorResponse(`API error: ${apiResponse.status_text || 'Unknown API error'}`, 500);
     }
     
-    // If no result data was returned, something went wrong (should have been caught by apiResponse.error, but double check)
+    // If no result data was returned, something went wrong
     if (!apiResponse.result) {
       console.error('No result data returned from CoinPayments API function despite no error flag');
       return createErrorResponse('No status data returned from CoinPayments API call', 500);
     }
     
+    // Log the status data for debugging
+    console.log('Status data:', JSON.stringify(apiResponse));
+    
     // Use apiResponse.result which contains the payload for processing
     const statusData = { result: apiResponse.result }; // Structure expected by processTransactionStatus
     
-    // NOTE: Storing external transaction ID is now primarily handled by the webhook/initial creation.
-    // The ensureExternalTransactionIdStored check within processTransactionStatus will handle cases where it might be missing.
-    // The explicit update block here is removed as checkCoinPaymentsTransaction requires the ID beforehand.
-
     // Process the transaction status using the result from the API call
     const result = await processTransactionStatus(supabase, transaction, statusData, storeExternalIds);
     
     return createSuccessResponse({
       message: `Transaction status checked: ${result.message}`,
       transaction: result.transaction,
-      statusData: statusData, // Return the wrapped data
+      statusData: statusData,
       updated: result.updated,
       newStatus: result.newStatus,
       previousStatus: result.previousStatus
