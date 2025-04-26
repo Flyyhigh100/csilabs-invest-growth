@@ -1,4 +1,3 @@
-
 import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 import { createSupabaseClient, saveTransaction } from "./db-client.ts";
 import { createCoinPaymentsTransaction } from "./api-client.ts";
@@ -258,18 +257,20 @@ function formatPaymentResponse(
   tokenPrice?: number,
   tokenAmount?: number
 ) {
-  // For mock data, set a longer timeout (30 minutes)
-  const timeoutSeconds = paymentData.timeout || 1800; // Default to 30 minutes for mock data
+  const timeoutSeconds = paymentData.timeout || 1800;
   const expiresAt = new Date(Date.now() + (timeoutSeconds * 1000)).toISOString();
+  
+  // Use CoinPayments QR code URL directly if available, otherwise use the one we generate
+  const finalQrCodeUrl = paymentData.qrcode_url || qrCodeUrl;
   
   return {
     paymentAddress: paymentAddress,
     amount: paymentData.amount,
     transactionId: transactionId,
     externalTransactionId: paymentData.txn_id,
-    qrCodeUrl: qrCodeUrl,
+    qrCodeUrl: finalQrCodeUrl,
     statusUrl: paymentData.status_url,
-    expiresAt: expiresAt, // Now uses calculated expiration
+    expiresAt: expiresAt,
     currency: paymentData.currency || currency,
     instructions: `Please send ${paymentData.amount} ${paymentData.currency || currency} to the address above to complete your purchase.`,
     usdValue: amount,
@@ -277,4 +278,3 @@ function formatPaymentResponse(
     tokenAmount: tokenAmount || amount
   };
 }
-

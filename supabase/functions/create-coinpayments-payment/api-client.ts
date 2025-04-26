@@ -140,57 +140,46 @@ function createMockCoinPaymentsTransaction(
   transactionId: string,
   walletAddress: string
 ): CoinPaymentsTransaction {
-  // Mock transaction ID for testing
   const mockTxnId = `CP${Date.now()}`;
-  
-  // Create a realistic crypto amount based on approximate exchange rates
-  // This simulates proper currency conversion from USD to the selected crypto
   let cryptoAmount: string;
   
-  // Use realistic exchange rates for common cryptocurrencies
-  // These are very approximate and would need to be updated in a real system
   switch(currency) {
     case 'BTC':
-      // ~$60,000 per BTC, so $1 = 0.000017 BTC
       cryptoAmount = (usdAmount * 0.000017).toFixed(8);
       break;
     case 'ETH':
-      // ~$3,000 per ETH, so $1 = 0.00033 ETH
       cryptoAmount = (usdAmount * 0.00033).toFixed(8);
       break;
     case 'BNB.BSC':
-      // ~$600 per BNB, so $1 = 0.00167 BNB
       cryptoAmount = (usdAmount * 0.00167).toFixed(8);
       break;
     case 'USDT':
     case 'USDC':
     case 'USDC.PRC20':
     case 'DAI':
-      // Stablecoins are approximately 1:1 with USD
       cryptoAmount = usdAmount.toFixed(8);
       break;
     default:
-      // For other currencies, use a generic conversion rate
-      // This is just an approximation - in reality each currency would have its own rate
       cryptoAmount = (usdAmount * 0.01).toFixed(8);
   }
   
   console.log(`Mock conversion (fallback): $${usdAmount} = ${cryptoAmount} ${currency}`);
   
-  // Create and log the mock transaction
+  const mockPaymentAddress = `${currency.toLowerCase()}:${walletAddress}`;
+  const qrCodeUrl = `https://www.coinpayments.net/qrgen.php?id=${mockTxnId}&key=${Date.now()}`;
+
   console.log(`Mock CoinPayments payment created with ID: ${mockTxnId}`);
   console.log(`Result: ${cryptoAmount} ${currency}`);
 
-  // Return a mock transaction object that mimics the CoinPayments API response
   return {
     amount: cryptoAmount,
     txn_id: mockTxnId,
     address: walletAddress,
     confirms_needed: "1",
     timeout: 3600,
-    checkout_url: `https://example.com/checkout/${mockTxnId}`,
-    status_url: `https://example.com/status/${mockTxnId}`,
-    qrcode_url: `https://api.qrserver.com/v1/create-qr-code/?data=${walletAddress}&size=200x200`,
+    checkout_url: `https://www.coinpayments.net/index.php?cmd=checkout&id=${mockTxnId}`,
+    status_url: `https://www.coinpayments.net/index.php?cmd=status&id=${mockTxnId}`,
+    qrcode_url: qrCodeUrl,
     currency: currency
   };
 }
@@ -205,18 +194,15 @@ export async function createCoinPaymentsTransaction(
   forceMock: boolean = false
 ): Promise<CoinPaymentsTransaction> {
   try {
-    // If forceMock is true or we're in development mode, use mock data
     const isDev = Deno.env.get('SUPABASE_ENV') === 'dev';
     
     if (forceMock || isDev) {
       return createMockCoinPaymentsTransaction(usdAmount, currency, transactionId, walletAddress);
     }
     
-    // Otherwise, create a real CoinPayments transaction
     return await createRealCoinPaymentsTransaction(usdAmount, currency, transactionId, walletAddress, buyerEmail);
   } catch (error) {
     console.log(`Falling back to mock data due to API error`);
-    // If the API call fails, fall back to mock data
     return createMockCoinPaymentsTransaction(usdAmount, currency, transactionId, walletAddress);
   }
 }
