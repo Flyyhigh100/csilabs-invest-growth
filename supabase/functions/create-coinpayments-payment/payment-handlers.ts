@@ -1,3 +1,4 @@
+
 import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 import { createSupabaseClient, saveTransaction } from "./db-client.ts";
 import { createCoinPaymentsTransaction } from "./api-client.ts";
@@ -77,21 +78,19 @@ async function handleAuthenticatedPayment(
       userEmail
     );
     
-    // Extract and clean payment address
+    // Extract and clean payment address - IMPORTANT: This should be the address from CoinPayments, not the wallet address
     const paymentAddress = cleanPaymentAddress(paymentData.address);
+    console.log(`Payment address from CoinPayments: ${paymentAddress} (original: ${paymentData.address})`);
     
-    // Generate a QR code with just the payment address
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(paymentAddress)}&size=200x200`;
-
     try {
-      // Save transaction to database with the clean address and token data
+      // Save transaction to database with the CoinPayments payment address
       await saveTransaction(
         supabaseClient,
         userId,
         amount,
         walletAddress,
         transactionId,
-        paymentAddress, // Use the cleaned address
+        paymentAddress, // Using the CoinPayments address for payment
         paymentData.txn_id,
         currency,
         tokenPrice,
@@ -107,7 +106,6 @@ async function handleAuthenticatedPayment(
       paymentData, 
       paymentAddress, 
       transactionId, 
-      qrCodeUrl, 
       amount, 
       currency, 
       tokenPrice, 
@@ -130,21 +128,19 @@ async function handleAuthenticatedPayment(
     // Calculate token amount if not provided but token price is
     const calculatedTokenAmount = tokenAmount || (tokenPrice ? amount / tokenPrice : amount);
     
-    // Extract and clean payment address
+    // Extract and clean payment address - Use mock payment address
     const paymentAddress = cleanPaymentAddress(mockPaymentData.address);
-    
-    // Generate a QR code with just the payment address
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(paymentAddress)}&size=200x200`;
+    console.log(`Mock payment address: ${paymentAddress}`);
     
     try {
-      // Save transaction with mock data and clean address
+      // Save transaction with mock data 
       await saveTransaction(
         supabaseClient,
         userId,
         amount,
         walletAddress,
         transactionId,
-        paymentAddress, // Use the cleaned address
+        paymentAddress, // Use the mock payment address
         mockPaymentData.txn_id,
         currency,
         tokenPrice,
@@ -158,7 +154,6 @@ async function handleAuthenticatedPayment(
       mockPaymentData, 
       paymentAddress, 
       transactionId, 
-      qrCodeUrl, 
       amount, 
       currency, 
       tokenPrice, 
@@ -195,15 +190,12 @@ async function handleAnonymousPayment(
     
     // Extract and clean payment address to ensure it doesn't have currency prefixes
     const paymentAddress = cleanPaymentAddress(paymentData.address);
-    
-    // Generate a QR code with just the payment address
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(paymentAddress)}&size=200x200`;
+    console.log(`Anonymous payment address: ${paymentAddress}`);
     
     return formatPaymentResponse(
       paymentData, 
       paymentAddress, 
       transactionId, 
-      qrCodeUrl, 
       amount, 
       currency,
       tokenPrice,
@@ -227,15 +219,12 @@ async function handleAnonymousPayment(
     
     // Extract and clean payment address
     const paymentAddress = cleanPaymentAddress(mockPaymentData.address);
-    
-    // Generate a QR code with just the payment address
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(paymentAddress)}&size=200x200`;
+    console.log(`Mock anonymous payment address: ${paymentAddress}`);
     
     return formatPaymentResponse(
       mockPaymentData, 
       paymentAddress, 
       transactionId, 
-      qrCodeUrl, 
       amount, 
       currency,
       tokenPrice,
@@ -251,7 +240,6 @@ function formatPaymentResponse(
   paymentData: any, 
   paymentAddress: string, 
   transactionId: string, 
-  qrCodeUrl: string, 
   amount: number, 
   currency: string,
   tokenPrice?: number,
@@ -260,15 +248,18 @@ function formatPaymentResponse(
   const timeoutSeconds = paymentData.timeout || 1800;
   const expiresAt = new Date(Date.now() + (timeoutSeconds * 1000)).toISOString();
   
-  // Use CoinPayments QR code URL directly if available, otherwise use the one we generate
-  const finalQrCodeUrl = paymentData.qrcode_url || qrCodeUrl;
+  // Always use CoinPayments QR code URL if available
+  const qrCodeUrl = paymentData.qrcode_url || null;
+  
+  // Log QR code details for debugging
+  console.log(`QR code URL from payment data: ${paymentData.qrcode_url || 'Not provided'}`);
   
   return {
     paymentAddress: paymentAddress,
     amount: paymentData.amount,
     transactionId: transactionId,
     externalTransactionId: paymentData.txn_id,
-    qrCodeUrl: finalQrCodeUrl,
+    qrCodeUrl: qrCodeUrl,
     statusUrl: paymentData.status_url,
     expiresAt: expiresAt,
     currency: paymentData.currency || currency,

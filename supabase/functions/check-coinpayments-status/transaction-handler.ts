@@ -1,7 +1,7 @@
 
 import { createDbClient } from "./db-client.ts";
 import { mapCoinPaymentsStatus, getStatusDescription } from "./status-mapper.ts";
-import { createPaymentConfirmationNotification } from "./notification.ts";
+import { createPaymentConfirmationNotification, createPaymentFailedNotification } from "./notification.ts";
 
 export async function processIpnPayload(ipnData: any, logEntryId?: string) {
   console.log("Processing IPN payload:", JSON.stringify(ipnData));
@@ -110,12 +110,23 @@ export async function processIpnPayload(ipnData: any, logEntryId?: string) {
     }
 
     // Create notification for completed or failed status
-    if (newStatus === 'completed' || newStatus === 'failed') {
+    if (newStatus === 'completed') {
       try {
         await createPaymentConfirmationNotification(
           supabase, 
           transaction.user_id, 
           transaction.amount
+        );
+      } catch (notifError) {
+        console.error('Error creating notification:', notifError);
+      }
+    } else if (newStatus === 'failed') {
+      try {
+        await createPaymentFailedNotification(
+          supabase, 
+          transaction.user_id, 
+          transaction.amount,
+          'Payment was rejected or cancelled'
         );
       } catch (notifError) {
         console.error('Error creating notification:', notifError);
@@ -137,6 +148,114 @@ export async function processIpnPayload(ipnData: any, logEntryId?: string) {
       message: `Internal error: ${error.message}`,
       error: error.stack,
       logEntryId
+    };
+  }
+}
+
+export async function processTransactionStatus(supabase: any, transaction: any, statusData: any, storeExternalIds: boolean = true) {
+  try {
+    console.log(`Processing transaction status for transaction ID: ${transaction.id}`);
+    console.log(`Status data: ${JSON.stringify(statusData)}`);
+    
+    const result = statusData.result || {};
+    const previousStatus = transaction.status;
+    
+    // Map CoinPayments status to our internal status
+    let newStatus;
+    if (result.status === 100 || result.status === 1) {
+      newStatus = 'completed';
+    } else if (result.status < 0) {
+      newStatus = 'failed';
+    } else {
+      newStatus = 'pending';
+    }
+    
+    // Only update if status has changed
+    let updated = false;
+    
+    if (newStatus !== previousStatus) {
+      const { error: updateError } = await supabase
+        .from('transactions')
+        .update({
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', transaction.id);
+        
+      if (updateError) {
+        console.error('Error updating transaction:', updateError);
+        return {
+          success: false,
+          message: `Failed to update transaction: ${updateError.message}`,
+          transaction,
+          updated: false
+        };
+      }
+      
+      updated = true;
+      
+      // Create appropriate notifications
+      if (newStatus === 'completed') {
+        try {
+          await createPaymentConfirmationNotification(
+            supabase, 
+            transaction.user_id, 
+            transaction.amount
+          );
+        } catch (notifError) {
+          console.error('Error creating notification:', notifError);
+        }
+      } else if (newStatus === 'failed') {
+        try {
+          await createPaymentFailedNotification(
+            supabase, 
+            transaction.user_id, 
+            transaction.amount,
+            getStatusDescription(result.status)
+          );
+        } catch (notifError) {
+          console.error('Error creating notification:', notifError);
+        }
+      }
+    }
+    
+    // Ensure external_transaction_id is set if needed
+    if (storeExternalIds && result.txn_id && result.txn_id !== transaction.external_transaction_id) {
+      console.log(`Updating external_transaction_id from ${transaction.external_transaction_id} to ${result.txn_id}`);
+      
+      const { error: updateIdError } = await supabase
+        .from('transactions')
+        .update({
+          external_transaction_id: result.txn_id
+        })
+        .eq('id', transaction.id);
+        
+      if (updateIdError) {
+        console.error('Error updating external_transaction_id:', updateIdError);
+      } else {
+        updated = true;
+      }
+    }
+    
+    return {
+      success: true,
+      message: updated ? `Transaction status updated to ${newStatus}` : 'No changes needed',
+      transaction: {
+        ...transaction,
+        status: newStatus
+      },
+      updated,
+      newStatus,
+      previousStatus
+    };
+    
+  } catch (error) {
+    console.error('Unhandled exception in processTransactionStatus:', error);
+    return {
+      success: false,
+      message: `Internal error: ${error.message}`,
+      error: error.stack,
+      transaction
     };
   }
 }

@@ -1,3 +1,4 @@
+
 import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 import { encode as hexEncode } from "https://deno.land/std@0.190.0/encoding/hex.ts";
 
@@ -99,7 +100,7 @@ async function createRealCoinPaymentsTransaction(
       buyer_email: buyerEmail,
       item_name: "CSi Tokens Purchase",
       item_number: transactionId,
-      custom: walletAddress,
+      custom: walletAddress, // This is just for reference, not the payment address
       ipn_url: ipnUrl ? `${ipnUrl}/ipn-handler` : undefined
     };
     
@@ -119,7 +120,7 @@ async function createRealCoinPaymentsTransaction(
     return {
       amount: cryptoAmount,
       txn_id: result.result.txn_id,
-      address: result.result.address,
+      address: result.result.address, // This is the PAYMENT address, not the user's wallet
       confirms_needed: result.result.confirms_needed,
       timeout: result.result.timeout,
       checkout_url: result.result.checkout_url,
@@ -165,16 +166,21 @@ function createMockCoinPaymentsTransaction(
   
   console.log(`Mock conversion (fallback): $${usdAmount} = ${cryptoAmount} ${currency}`);
   
-  const mockPaymentAddress = `${currency.toLowerCase()}:${walletAddress}`;
+  // IMPORTANT: Generate a new mock payment address, don't use the user's wallet address
+  // This simulates what CoinPayments would do - generate a new deposit address
+  const mockPaymentAddress = `0x${crypto.randomUUID().replace(/-/g, '')}`.substring(0, 42);
+  
+  // Generate mock QR code URL
   const qrCodeUrl = `https://www.coinpayments.net/qrgen.php?id=${mockTxnId}&key=${Date.now()}`;
 
   console.log(`Mock CoinPayments payment created with ID: ${mockTxnId}`);
+  console.log(`Mock payment address: ${mockPaymentAddress} (different from wallet: ${walletAddress})`);
   console.log(`Result: ${cryptoAmount} ${currency}`);
 
   return {
     amount: cryptoAmount,
     txn_id: mockTxnId,
-    address: walletAddress,
+    address: mockPaymentAddress, // Use the generated mock address, not the user's wallet
     confirms_needed: "1",
     timeout: 3600,
     checkout_url: `https://www.coinpayments.net/index.php?cmd=checkout&id=${mockTxnId}`,
