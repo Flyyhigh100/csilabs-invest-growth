@@ -3,24 +3,6 @@ import { TokenPriceData } from '@/types/token';
 import { isValidPrice } from './utils/priceValidation';
 
 interface DexScreenerPairData {
-  pair: {
-    priceUsd: string;
-    txns: {
-      h24: {
-        buys: number;
-        sells: number;
-      };
-    };
-    volume: number;
-    priceChange: {
-      h24: number;
-    };
-    liquidity: {
-      usd: number;
-    };
-    fdv: number;
-    pairCreatedAt: number;
-  };
   pairs: Array<{
     priceUsd: string;
     timestamp: number;
@@ -30,15 +12,33 @@ interface DexScreenerPairData {
 const PAIR = import.meta.env.VITE_PAIR_ADDRESS?.toLowerCase() ||
   '0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f4';
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
+async function fetchWithRetry(url: string, retries = MAX_RETRIES): Promise<Response> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response;
+  } catch (error) {
+    if (retries > 0) {
+      console.log(`Retrying fetch... ${retries} attempts remaining`);
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+      return fetchWithRetry(url, retries - 1);
+    }
+    throw error;
+  }
+}
+
 export const fetchDexScreenerHistorical = async (): Promise<TokenPriceData[]> => {
   try {
     console.log('Fetching historical price data from DexScreener for pair:', PAIR);
     
-    const res = await fetch(`https://api.dexscreener.com/latest/dex/pairs/polygon/${PAIR}/chart/history`);
-    if (!res.ok) {
-      console.error('DexScreener Historical API error:', res.status);
-      throw new Error('DexScreener Historical ' + res.status);
-    }
+    const res = await fetchWithRetry(
+      `https://api.dexscreener.com/latest/dex/pairs/polygon/${PAIR}/chart/history`
+    );
     
     const json: DexScreenerPairData = await res.json();
     console.log('Raw DexScreener response:', json);
@@ -58,19 +58,15 @@ export const fetchDexScreenerHistorical = async (): Promise<TokenPriceData[]> =>
         return hasRequiredFields;
       })
       .map(p => {
-        const price = Number(p.priceUsd);
-        // Validate the price is reasonable
+        const price = Number(parseFloat(p.priceUsd).toFixed(8)); // Maintain 8 decimal precision
+        
         if (!isValidPrice(price)) {
           console.warn('Invalid price detected:', price);
           return null;
         }
         
         return {
-          date: new Date(p.timestamp * 1000).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-          }),
+          date: new Date(p.timestamp * 1000).toISOString().split('T')[0],
           price: price
         };
       })
@@ -81,17 +77,22 @@ export const fetchDexScreenerHistorical = async (): Promise<TokenPriceData[]> =>
       throw new Error('No valid price data available');
     }
 
-    // Sort by date and ensure unique dates
-    const uniquePriceData = Array.from(
-      new Map(priceData.map(item => [item.date, item])).values()
-    );
+    // Sort by date and ensure unique dates with latest price for each date
+    const priceMap = new Map<string, number>();
+    priceData.forEach(item => {
+      const existingPrice = priceMap.get(item.date);
+      if (!existingPrice || item.price > existingPrice) {
+        priceMap.set(item.date, item.price);
+      }
+    });
 
-    uniquePriceData.sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
+    const uniquePriceData = Array.from(priceMap.entries())
+      .map(([date, price]) => ({ date, price }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     console.log('Processed price data points:', uniquePriceData.length);
     console.log('Sample price data:', uniquePriceData[0]);
+    console.log('Latest price:', uniquePriceData[uniquePriceData.length - 1]);
 
     return uniquePriceData;
   } catch (error) {

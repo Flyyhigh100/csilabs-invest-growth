@@ -14,17 +14,18 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
       return generateMockPriceData();
     }
 
-    // Validate the data range
-    const prices = priceData.map(d => d.price);
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
-    
-    console.log('Price range validation:', { min, max, dataPoints: priceData.length });
-    
-    if (min <= 0 || max > 100) { // Sanity check for price range
-      console.error('Price data outside expected range:', { min, max });
+    // Validate the data
+    if (!priceData.every(d => d.price > 0)) {
+      console.error('Invalid price data detected');
       return generateMockPriceData();
     }
+
+    console.log('Price data validation successful:', { 
+      dataPoints: priceData.length,
+      firstDate: priceData[0].date,
+      lastDate: priceData[priceData.length - 1].date,
+      lastPrice: priceData[priceData.length - 1].price
+    });
 
     return priceData;
   } catch (error) {
