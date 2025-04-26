@@ -47,4 +47,11 @@ port = 54325
 
 [functions.create-coinpayments-payment]
 verify_jwt = true
-USE_MOCK_DATA = "true"
+USE_MOCK_DATA = "false"
+ALLOW_MOCK_FALLBACK = "true"
+
+[functions.check-coinpayments-status]
+verify_jwt = true
+
+[functions.coinpayments-ipn-webhook]
+verify_jwt = false

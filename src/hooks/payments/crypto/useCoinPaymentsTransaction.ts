@@ -33,11 +33,17 @@ export const useCoinPaymentsTransaction = (walletAddress: string | null) => {
     setIsProcessing(true);
     console.log(`Creating CoinPayments payment for ${amount} ${currency}`);
     
+    // Clear any existing payment details
+    setCryptoPaymentDetails(null);
+    
     try {
       toast.info("Creating crypto payment...", {
         id: "crypto-preparing",
         description: `Preparing ${currency} payment session.`,
       });
+      
+      // Generate a unique transaction ID for tracking
+      const localTxId = crypto.randomUUID();
       
       // Call the edge function with better error handling
       const { data, error } = await supabase.functions.invoke('create-coinpayments-payment', {
@@ -45,7 +51,8 @@ export const useCoinPaymentsTransaction = (walletAddress: string | null) => {
           amount, 
           walletAddress, 
           currency,
-          tokenPrice: currentTokenPrice
+          tokenPrice: currentTokenPrice,
+          localTransactionId: localTxId
         }
       });
       
@@ -53,14 +60,19 @@ export const useCoinPaymentsTransaction = (walletAddress: string | null) => {
       
       console.log('Response from edge function:', data);
       
-      if (error || !data?.success) {
-        const errorMessage = error?.message || data?.message || "Failed to create payment";
-        console.error('Error from edge function:', error || data);
-        throw new Error(errorMessage);
+      if (error) {
+        console.error('Error from edge function:', error);
+        throw new Error(error.message || "Failed to create payment");
+      }
+      
+      if (!data?.success) {
+        console.error('Error in payment response:', data);
+        throw new Error(data?.message || "Failed to create payment");
       }
 
       console.log('CoinPayments payment data received:', data);
 
+      // Format payment details with comprehensive information
       const paymentDetails = formatPaymentDetails(data, amount, currency, currentTokenPrice);
       setCryptoPaymentDetails(paymentDetails);
       

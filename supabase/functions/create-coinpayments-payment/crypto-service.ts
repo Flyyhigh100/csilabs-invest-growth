@@ -1,6 +1,19 @@
 
 import { createCoinPaymentsTransaction, CoinPaymentsTransaction } from './api-client.ts';
 
+interface CryptoPaymentResponse {
+  success: boolean;
+  address?: string;
+  amount?: string | number;
+  timeout?: number;
+  status_url?: string;
+  qrcode_url?: string;
+  txn_id?: string;
+  message?: string;
+  tokenAmount?: number;
+  expiresAt?: string;
+}
+
 /**
  * Create a new crypto payment transaction
  */
@@ -9,60 +22,53 @@ export async function createCryptoPayment(
   walletAddress: string, 
   currency: string = 'USDT',
   tokenPrice?: number
-): Promise<any> {
+): Promise<CryptoPaymentResponse> {
   try {
-    console.log(`Creating CoinPayments payment with params:`, {
-      amount,
-      walletAddress,
-      currency,
-      tokenPrice
-    });
+    console.log(`Creating crypto payment: $${amount} in ${currency} for wallet ${walletAddress}`);
     
-    // Calculate token amount if price is provided
-    const tokenAmount = tokenPrice ? amount / tokenPrice : amount;
-    console.log(`Calculated token amount: ${tokenAmount}`);
-    
-    // Check for required API keys
-    const publicKey = Deno.env.get("COINPAYMENTS_PUBLIC_KEY");
-    const privateKey = Deno.env.get("COINPAYMENTS_PRIVATE_KEY");
-    
-    if (!publicKey || !privateKey) {
-      console.error('Missing CoinPayments API keys');
-      throw new Error('CoinPayments API keys not configured');
+    if (!amount || amount <= 0) {
+      return { success: false, message: "Invalid amount" };
     }
     
-    // Create transaction using the api client
-    const result = await createCoinPaymentsTransaction(
-      amount,
-      currency,
-      crypto.randomUUID(),
-      walletAddress,
-      'buyer@example.com',
-      false
+    if (!walletAddress) {
+      return { success: false, message: "Missing wallet address" };
+    }
+    
+    // Generate a unique ID for this transaction based on timestamp and random values
+    const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+    
+    // Calculate token amount if token price is provided
+    const tokenAmount = tokenPrice ? amount / tokenPrice : amount;
+    
+    console.log(`Creating CoinPayments transaction for $${amount} in ${currency}`);
+    const payment = await createCoinPaymentsTransaction(
+      amount, 
+      currency, 
+      uniqueId, 
+      walletAddress
     );
     
-    if (!result) {
-      throw new Error('Failed to create CoinPayments transaction');
-    }
+    // Calculate expiration time
+    const expiresAt = new Date(Date.now() + (payment.timeout * 1000)).toISOString();
     
-    console.log('Transaction created successfully:', result);
-
-    // Ensure timeout is a number
-    const timeout = typeof result.timeout === 'string' ? parseInt(result.timeout, 10) : result.timeout;
+    console.log(`Payment created successfully: ${payment.txn_id}`);
     
     return {
       success: true,
-      address: result.address,
-      amount: result.amount,
-      txn_id: result.txn_id,
-      status_url: result.status_url,
-      qrcode_url: result.qrcode_url,
-      timeout: timeout || 3600, // Default to 1 hour if not provided or invalid
+      address: payment.address,
+      amount: payment.amount,
+      timeout: payment.timeout,
+      status_url: payment.status_url,
+      qrcode_url: payment.qrcode_url,
+      txn_id: payment.txn_id,
       tokenAmount,
-      tokenPrice
+      expiresAt
     };
   } catch (error) {
-    console.error('Error in createCryptoPayment:', error);
-    throw error;
+    console.error("Error creating crypto payment:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error creating payment"
+    };
   }
 }

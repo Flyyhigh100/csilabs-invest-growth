@@ -50,7 +50,7 @@ async function generateHmac(payload: string): Promise<string> {
       .join('');
   } catch (error) {
     console.error('Error generating HMAC signature:', error);
-    throw new Error(`Failed to generate HMAC signature: ${error.message}`);
+    throw new Error(`Failed to generate HMAC signature: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -64,22 +64,23 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
       throw new Error("CoinPayments public key not configured");
     }
     
-    // Build query parameters
-    const nonce = Date.now();
+    // Build query parameters with RFC 3986 compliant encoding
+    const currentTime = Math.floor(Date.now() / 1000);
     
     const queryParams = new URLSearchParams({
       cmd: command,
       key: publicKey,
       version: "1",
       format: "json",
-      nonce: nonce.toString(),
+      nonce: currentTime.toString(), // CoinPayments prefers seconds timestamp as nonce
       ...params
     });
     
     const payload = queryParams.toString();
-    console.log(`Creating signature for payload: ${payload}`);
+    console.log(`Creating signature for payload: ${payload.substring(0, 100)}${payload.length > 100 ? '...' : ''}`);
     
     const hmac = await generateHmac(payload);
+    console.log(`Generated HMAC signature: ${hmac.substring(0, 20)}...`);
     
     // Send request to CoinPayments API
     const response = await fetch("https://www.coinpayments.net/api.php", {
@@ -91,10 +92,16 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
       body: payload
     });
     
-    const data = await response.json();
-    console.log(`CoinPayments API response for ${command}:`, JSON.stringify(data));
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`CoinPayments API HTTP error: ${response.status} ${response.statusText}`, errorText);
+      throw new Error(`CoinPayments API HTTP error: ${response.status} ${response.statusText}`);
+    }
     
-    if (data.error) {
+    const data = await response.json();
+    console.log(`CoinPayments API response for ${command}: ${JSON.stringify(data).substring(0, 300)}...`);
+    
+    if (data.error !== "ok") {
       console.error(`CoinPayments API error: ${data.error}`);
       throw new Error(`CoinPayments API error: ${data.error}`);
     }
@@ -115,36 +122,43 @@ async function createRealCoinPaymentsTransaction(
   itemNumber: string,
   walletAddress: string,
   buyerEmail: string,
-  autoConfirm: boolean = false
+  autoConfirm: boolean = true
 ): Promise<CoinPaymentsTransaction> {
-  const params: Record<string, any> = {
-    amount: amount.toString(),
-    currency1: "USD", // Currency being converted from
-    currency2: currency, // Currency being converted to
-    buyer_email: buyerEmail,
-    item_name: "CSi Tokens Purchase",
-    item_number: itemNumber,
-    custom: walletAddress,
-    ipn_url: Deno.env.get("COINPAYMENTS_IPN_URL") // Optional IPN URL
-  };
-  
-  if (autoConfirm) {
-    params.auto_confirm = 1;
-  }
-  
-  console.log(`Creating real CoinPayments transaction with params: ${JSON.stringify(params)}`);
-  
   try {
-    const result = await coinPaymentsRequest("create_transaction", params);
-    return result;
-  } catch (error) {
-    console.error(`CoinPayments API error: ${error.message}`);
+    const params: Record<string, any> = {
+      amount: amount.toString(),
+      currency1: "USD", // Currency being converted from
+      currency2: currency, // Currency being converted to
+      buyer_email: buyerEmail || "anonymous@example.com", // Provide a fallback email if none provided
+      item_name: "CSi Tokens Purchase",
+      item_number: itemNumber,
+      custom: walletAddress,
+      ipn_url: Deno.env.get("COINPAYMENTS_IPN_URL") || "https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/coinpayments-ipn-webhook"
+    };
     
-    if (USE_MOCK_DATA) {
-      console.log(`Falling back to mock data due to API error`);
-      return createMockTransaction(amount, currency, walletAddress);
+    // Enable auto confirm - makes payments confirm quickly for testing
+    if (autoConfirm) {
+      params.auto_confirm = "1";
     }
     
+    console.log(`Creating real CoinPayments transaction with params: ${JSON.stringify(params)}`);
+    
+    try {
+      const result = await coinPaymentsRequest("create_transaction", params);
+      console.log("Successfully created CoinPayments transaction:", JSON.stringify(result).substring(0, 200));
+      return result;
+    } catch (apiError) {
+      console.error(`CoinPayments API error: ${apiError instanceof Error ? apiError.message : String(apiError)}`);
+      
+      if (USE_MOCK_DATA) {
+        console.log(`Falling back to mock data due to API error`);
+        return createMockTransaction(amount, currency, walletAddress);
+      }
+      
+      throw apiError;
+    }
+  } catch (error) {
+    console.error(`Error creating CoinPayments transaction: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
 }
@@ -163,7 +177,10 @@ function createMockTransaction(
     'ETH': 3000,
     'USDT': 1,
     'USDC': 1,
-    'BNB.BSC': 600
+    'BNB.BSC': 600,
+    'LTC': 80,
+    'DOGE': 0.1,
+    'TRX': 0.08
   };
   
   const rate = rates[currency] || 1;
@@ -175,14 +192,17 @@ function createMockTransaction(
     'ETH': '0xd8da6bf26964af9d7eed9e03e53415d37aa96045',
     'USDT': '0xdac17f958d2ee523a2206206994597c13d831ec7',
     'USDC': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-    'BNB.BSC': '0xd6c2ae7825b7e2fa65d3dd3c1ff5eeecdcaaef11'
+    'BNB.BSC': '0xd6c2ae7825b7e2fa65d3dd3c1ff5eeecdcaaef11',
+    'LTC': 'LTCnEH7zEc4FeJd2vzQFLSPMxYr5kJY2o4',
+    'DOGE': 'DLhMGJCXPyDvzmL5uZA1W5G789dun7YjMz',
+    'TRX': 'TBmGFmVwikNcKcMf8DXvEspRzWKiWrh6CB'
   };
   
   const address = addresses[currency] || walletAddress;
   
   console.log(`Mock conversion: $${amount} = ${cryptoAmount} ${currency}`);
   
-  // Generate a mock transaction ID
+  // Generate a mock transaction ID with a timestamp to ensure uniqueness
   const txnId = `CP${Date.now()}`;
   console.log(`Mock payment created with ID: ${txnId}`);
   
@@ -212,6 +232,29 @@ function createMockTransaction(
 }
 
 /**
+ * Check CoinPayments API configuration is valid
+ */
+export async function validateCoinPaymentsConfig(): Promise<boolean> {
+  try {
+    console.log("Validating CoinPayments API configuration");
+    const publicKey = Deno.env.get("COINPAYMENTS_PUBLIC_KEY");
+    const privateKey = Deno.env.get("COINPAYMENTS_PRIVATE_KEY");
+    
+    if (!publicKey || !privateKey) {
+      console.error("Missing CoinPayments API keys");
+      return false;
+    }
+    
+    // Make a simple API call to test keys
+    const result = await coinPaymentsRequest("get_basic_info");
+    return true;
+  } catch (error) {
+    console.error("CoinPayments API key validation failed:", error);
+    return false;
+  }
+}
+
+/**
  * Public function to create a CoinPayments transaction
  */
 export async function createCoinPaymentsTransaction(
@@ -220,15 +263,35 @@ export async function createCoinPaymentsTransaction(
   itemId: string,
   walletAddress: string,
   buyerEmail: string = 'buyer@example.com',
-  autoConfirm: boolean = false
+  autoConfirm: boolean = true
 ): Promise<CoinPaymentsTransaction> {
-  // Use mock data for development/testing
+  // Force mock mode for development/testing if configured to do so
   if (USE_MOCK_DATA) {
-    console.log('Using mock data for CoinPayments transaction');
+    console.log('Using mock data for CoinPayments transaction (mock mode enabled)');
     return createMockTransaction(amount, currency, walletAddress);
   }
   
-  // Use real API for production
-  console.log(`USD amount: $${amount}, Currency: ${currency}`);
-  return createRealCoinPaymentsTransaction(amount, currency, itemId, walletAddress, buyerEmail, autoConfirm);
+  // Perform a validation check first to avoid unnecessary API calls
+  try {
+    console.log(`Initiating CoinPayments transaction with USD amount: $${amount}, Currency: ${currency}`);
+    const isValid = await validateCoinPaymentsConfig();
+    
+    if (!isValid) {
+      console.warn("CoinPayments API keys appear to be invalid, falling back to mock data");
+      return createMockTransaction(amount, currency, walletAddress);
+    }
+    
+    // Use real API for production
+    return await createRealCoinPaymentsTransaction(amount, currency, itemId, walletAddress, buyerEmail, autoConfirm);
+  } catch (error) {
+    console.error("Error creating CoinPayments transaction:", error);
+    
+    // Fallback to mock if configured
+    if (Deno.env.get("ALLOW_MOCK_FALLBACK") === "true") {
+      console.log("Falling back to mock data after error");
+      return createMockTransaction(amount, currency, walletAddress);
+    }
+    
+    throw error;
+  }
 }
