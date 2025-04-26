@@ -1,6 +1,5 @@
 import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
-import { encodeHex } from "https://deno.land/std@0.190.0/encoding/hex.ts";
-import { CoinPaymentsTransaction } from "./types.ts";
+import { encode as hexEncode } from "https://deno.land/std@0.190.0/encoding/hex.ts";
 
 // Function to create HMAC signature for CoinPayments API
 function createHmac(message: string, secret: string): string {
@@ -8,7 +7,7 @@ function createHmac(message: string, secret: string): string {
   const data = new TextEncoder().encode(message);
   const hmac = crypto.subtle.createHmac('SHA512', key, { algorithm: 'HMAC' });
   const signature = hmac.update(data).digest();
-  return encodeHex(signature);
+  return hexEncode(signature);
 }
 
 // Base URL for the CoinPayments API
@@ -220,4 +219,17 @@ export async function createCoinPaymentsTransaction(
     // If the API call fails, fall back to mock data
     return createMockCoinPaymentsTransaction(usdAmount, currency, transactionId, walletAddress);
   }
+}
+
+// Interface for a CoinPayments transaction response
+export interface CoinPaymentsTransaction {
+  amount: string;
+  txn_id: string;
+  address: string;
+  confirms_needed: string;
+  timeout: number;
+  checkout_url: string;
+  status_url: string;
+  qrcode_url: string;
+  currency: string;
 }

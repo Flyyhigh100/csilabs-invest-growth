@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -79,7 +80,9 @@ export const useCryptoPayments = (walletAddress: string | null) => {
         usdValue: amount,
         // Store token amount and price for reference
         tokenAmount: data.tokenAmount,
-        tokenPrice: data.tokenPrice || currentTokenPrice
+        tokenPrice: data.tokenPrice || currentTokenPrice,
+        // Add the actual crypto amount from the API response
+        amount: data.amount
       });
       
       toast.success(`${currency} Payment Ready`, {
@@ -209,3 +212,4 @@ export const useCryptoPayments = (walletAddress: string | null) => {
     checkPaymentStatus
   };
 };
+

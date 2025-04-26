@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
-import { ExternalLink, AlertCircle, Wallet, Copy, AlertTriangle } from 'lucide-react';
+import { ExternalLink, AlertTriangle, Wallet } from 'lucide-react';
 import { CryptoPaymentDetails } from '@/hooks/payments/types';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 

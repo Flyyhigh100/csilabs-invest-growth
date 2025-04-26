@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { corsHeaders } from "./utils.ts";
+import { corsHeaders, createErrorResponse, createSuccessResponse } from "./utils.ts";
 import { handleCryptoPaymentRequest } from "./payment-handlers.ts";
 
 serve(async (req) => {
@@ -13,20 +13,22 @@ serve(async (req) => {
     // Add authorization header verification
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
-      );
+      return createErrorResponse('No authorization header', 401);
     }
     
     // Get request data
-    const { amount, walletAddress, currency = 'USDT', tokenPrice } = await req.json();
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
+      return createErrorResponse('Invalid JSON in request body');
+    }
+    
+    const { amount, walletAddress, currency = 'USDT', tokenPrice } = requestBody;
     
     if (!amount || amount <= 0 || !walletAddress) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid amount or missing wallet address' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+      return createErrorResponse('Invalid amount or missing wallet address');
     }
 
     console.log(`Creating CoinPayments payment for amount: $${amount}, wallet: ${walletAddress}, currency: ${currency}`);
@@ -39,15 +41,9 @@ serve(async (req) => {
     // Process payment request through the handler
     const paymentResponse = await handleCryptoPaymentRequest(authHeader, amount, walletAddress, currency, tokenPrice, tokenAmount);
     
-    return new Response(
-      JSON.stringify(paymentResponse),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    );
+    return createSuccessResponse(paymentResponse);
   } catch (error) {
     console.error('Unexpected error in edge function:', error);
-    return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    );
+    return createErrorResponse(error.message || 'Internal server error', 500);
   }
 });

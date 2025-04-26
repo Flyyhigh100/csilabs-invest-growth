@@ -1,4 +1,3 @@
-
 export interface CryptoPaymentDetails {
   paymentAddress: string;
   transactionId: string;
@@ -35,4 +34,9 @@ export interface CryptoStatusCheckResult {
   updated: boolean;
   transaction?: any;
   error?: string;
+}
+
+export interface PaymentValidationOptions {
+  isCrypto?: boolean;
+  skipKycCheck?: boolean;
 }
