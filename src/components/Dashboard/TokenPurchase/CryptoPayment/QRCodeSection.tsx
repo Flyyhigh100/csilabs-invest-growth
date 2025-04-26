@@ -10,7 +10,6 @@ interface QRCodeSectionProps {
 }
 
 const QRCodeSection: React.FC<QRCodeSectionProps> = ({ qrCodeUrl, paymentAddress }) => {
-  // Always prioritize the CoinPayments QR code URL
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   
@@ -21,7 +20,7 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({ qrCodeUrl, paymentAddress
       return qrCodeUrl;
     }
     // Only generate a QR code for the address as a fallback
-    const fallbackUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(paymentAddress)}&size=200x200`;
+    const fallbackUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(paymentAddress)}&choe=UTF-8`;
     console.log("Using fallback QR code URL:", fallbackUrl);
     return fallbackUrl;
   }, [qrCodeUrl, paymentAddress]);
@@ -40,7 +39,7 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({ qrCodeUrl, paymentAddress
   };
 
   return (
-    <div className="bg-white rounded-lg p-3 border-2 border-gray-200 text-center">
+    <div className="bg-white rounded-lg p-4 border border-gray-200 text-center flex flex-col items-center">
       <h3 className="text-sm font-medium mb-2 flex items-center justify-center gap-1">
         <QrCode className="h-4 w-4" />
         Scan QR Code
@@ -54,14 +53,16 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({ qrCodeUrl, paymentAddress
           </AlertDescription>
         </Alert>
       ) : isLoading ? (
-        <Skeleton className="w-40 h-40 mx-auto" />
+        <div className="w-48 h-48 flex items-center justify-center bg-gray-50 rounded">
+          <Skeleton className="w-44 h-44" />
+        </div>
       ) : null}
       
       {!loadError && displayQrCodeUrl && (
         <img 
           src={displayQrCodeUrl} 
           alt="Payment QR Code" 
-          className={`w-40 h-40 object-contain mx-auto ${isLoading ? 'hidden' : ''}`}
+          className={`w-48 h-48 object-contain ${isLoading ? 'hidden' : ''} border border-gray-100 rounded`}
           onLoad={handleImageLoad}
           onError={handleImageError}
         />

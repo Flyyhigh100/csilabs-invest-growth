@@ -8,6 +8,7 @@ import TimeRemainingAlert from './TimeRemainingAlert';
 import InstructionsSection from './InstructionsSection';
 import StatusCheckSection from './StatusCheckSection';
 import { CryptoPaymentDetails } from '@/hooks/payments/types';
+import { Spinner } from "@/components/ui/spinner";
 
 interface DialogContentProps {
   paymentDetails: CryptoPaymentDetails;
@@ -16,7 +17,8 @@ interface DialogContentProps {
 const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
   if (!paymentDetails) {
     return (
-      <div className="py-8 text-center text-gray-500">
+      <div className="py-8 text-center text-gray-500 flex flex-col items-center">
+        <Spinner className="mb-4" />
         <p>Payment information is loading...</p>
       </div>
     );
@@ -28,14 +30,13 @@ const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
         <TimeRemainingAlert expiresAt={paymentDetails.expiresAt} />
       )}
       
-      <div className="flex flex-col md:flex-row items-center gap-4 justify-center">
-        {/* Pass through both QR code URL and payment address */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <QRCodeSection 
           qrCodeUrl={paymentDetails.qrCodeUrl} 
           paymentAddress={paymentDetails.paymentAddress} 
         />
         
-        <div className="space-y-4 flex-1">
+        <div className="space-y-4">
           <PaymentAddressSection paymentAddress={paymentDetails.paymentAddress} />
           
           {paymentDetails.externalTransactionId && (
@@ -44,7 +45,7 @@ const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
         </div>
       </div>
       
-      <Separator />
+      <Separator className="my-4" />
       
       <InstructionsSection 
         paymentDetails={paymentDetails} 

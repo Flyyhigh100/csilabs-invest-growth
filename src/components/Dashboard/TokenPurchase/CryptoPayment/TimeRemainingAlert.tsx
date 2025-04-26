@@ -1,72 +1,57 @@
 
-import React, { useState, useEffect } from 'react';
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Clock, AlertTriangle } from "lucide-react";
+import React, { useEffect, useState } from 'react';
+import { AlertCircle, Clock } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface TimeRemainingAlertProps {
-  expiresAt: string;
+  expiresAt: string | Date;
 }
 
 const TimeRemainingAlert: React.FC<TimeRemainingAlertProps> = ({ expiresAt }) => {
-  const [timeRemaining, setTimeRemaining] = useState<string>('');
-  const [isExpired, setIsExpired] = useState(false);
-
-  useEffect(() => {
-    const calculateTimeRemaining = () => {
-      const expiresAtDate = new Date(expiresAt);
-      const now = new Date();
-      
-      const diffMs = expiresAtDate.getTime() - now.getTime();
-      
-      if (diffMs <= 0) {
-        setIsExpired(true);
-        setTimeRemaining('Expired');
-        return;
-      }
-      
-      setIsExpired(false);
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMins / 60);
-      const remainingMins = diffMins % 60;
-      
-      if (diffHours > 0) {
-        setTimeRemaining(`${diffHours} hour${diffHours > 1 ? 's' : ''} ${remainingMins} minute${remainingMins !== 1 ? 's' : ''}`);
-      } else {
-        setTimeRemaining(`${diffMins} minute${diffMins !== 1 ? 's' : ''}`);
-      }
-    };
-
-    // Calculate immediately
-    calculateTimeRemaining();
+  const calculateTimeRemaining = () => {
+    const now = new Date();
+    const expiration = new Date(expiresAt);
+    const diff = expiration.getTime() - now.getTime();
     
-    // Update every second
-    const timer = setInterval(calculateTimeRemaining, 1000);
+    if (diff <= 0) return { expired: true, minutes: 0, seconds: 0 };
+    
+    const minutes = Math.floor(diff / 1000 / 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+    
+    return { expired: false, minutes, seconds };
+  };
+  
+  const [timeRemaining, setTimeRemaining] = useState(calculateTimeRemaining());
+  
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeRemaining(calculateTimeRemaining());
+    }, 1000);
     
     return () => clearInterval(timer);
   }, [expiresAt]);
-
-  if (isExpired) {
+  
+  if (timeRemaining.expired) {
     return (
-      <Alert className="bg-red-50 border-red-200">
-        <AlertTriangle className="h-4 w-4 text-red-600" />
-        <AlertTitle className="text-red-800">Payment Time Expired</AlertTitle>
-        <AlertDescription className="text-red-700">
-          This payment request has expired. Please create a new payment to continue.
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Payment Expired</AlertTitle>
+        <AlertDescription>
+          This payment request has expired. Please create a new payment.
         </AlertDescription>
       </Alert>
     );
   }
-
+  
   return (
     <Alert className="bg-amber-50 border-amber-200">
-      <Clock className="h-4 w-4 text-amber-600" />
-      <AlertTitle className="text-amber-800">Time Remaining</AlertTitle>
-      <AlertDescription className="text-amber-700">
-        This payment request will expire in {timeRemaining}
+      <Clock className="h-4 w-4 text-amber-500" />
+      <AlertTitle className="text-amber-700">Time Remaining</AlertTitle>
+      <AlertDescription className="text-amber-600">
+        This payment request will expire in {timeRemaining.minutes.toString().padStart(2, '0')}:{timeRemaining.seconds.toString().padStart(2, '0')} minutes
       </AlertDescription>
     </Alert>
   );
 };
 
 export default TimeRemainingAlert;
-

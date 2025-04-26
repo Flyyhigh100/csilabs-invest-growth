@@ -7,7 +7,7 @@ import { AlertCircle } from 'lucide-react';
 
 interface InstructionsSectionProps {
   paymentDetails: CryptoPaymentDetails | null;
-  instructions?: string; // Add this optional prop
+  instructions?: string;
 }
 
 const InstructionsSection: React.FC<InstructionsSectionProps> = ({ 
@@ -34,10 +34,10 @@ const InstructionsSection: React.FC<InstructionsSectionProps> = ({
     `Send exactly ${cryptoAmount} ${currency} to the address below to complete your purchase.`;
   
   return (
-    <Card className="mb-6">
+    <Card className="mb-6 border-gray-200">
       <CardContent className="pt-6">
         <div className="space-y-4">
-          <h3 className="font-medium">Payment Instructions</h3>
+          <h3 className="font-medium text-base">Payment Instructions</h3>
           
           <div className="py-2 text-sm text-gray-700 space-y-4">
             <p>
@@ -46,7 +46,7 @@ const InstructionsSection: React.FC<InstructionsSectionProps> = ({
             
             <div className="flex flex-col space-y-1">
               <div className="font-mono bg-gray-100 p-3 rounded-md border border-gray-300 flex flex-col">
-                <span className="text-lg font-semibold text-gray-800">{cryptoAmount} {currency}</span>
+                <span className="text-xl font-semibold text-gray-800">{cryptoAmount} {currency}</span>
                 <span className="text-xs text-gray-600">≈ ${usdValue.toFixed(2)} USD</span>
               </div>
               
@@ -65,9 +65,9 @@ const InstructionsSection: React.FC<InstructionsSectionProps> = ({
               </Alert>
             )}
             
-            <p>
+            <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
               {displayInstructions}
-            </p>
+            </div>
           </div>
         </div>
       </CardContent>
