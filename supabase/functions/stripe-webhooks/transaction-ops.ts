@@ -10,19 +10,23 @@ export const updateTransactionStatus = async (supabase: any, transaction: any, p
     current_status: transaction.status,
     user_id: transaction.user_id,
     amount: transaction.amount,
-    wallet_address: transaction.wallet_address
+    wallet_address: transaction.wallet_address,
+    current_external_id: transaction.external_transaction_id,
+    new_external_id: paymentIntentId
   })}`);
   
   try {
     const updateData: any = {
       status: 'completed',
       updated_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
       token_sent: false
     };
     
     // Add payment intent ID if provided
     if (paymentIntentId) {
       updateData.external_transaction_id = paymentIntentId;
+      console.log(`[WEBHOOK] Setting external_transaction_id to: ${paymentIntentId}`);
     }
     
     // Log the exact query we're about to execute
@@ -42,7 +46,7 @@ export const updateTransactionStatus = async (supabase: any, transaction: any, p
       // Attempt direct database verification to see if status was actually updated
       const { data: verificationData, error: verificationError } = await supabase
         .from('transactions')
-        .select('id, status, updated_at')
+        .select('id, status, updated_at, external_transaction_id')
         .eq('id', transaction.id)
         .single();
       
@@ -98,7 +102,8 @@ export const findTransactionBySessionId = async (supabase: any, sessionId: strin
       console.log(`[WEBHOOK] Found transaction by session ID: ${JSON.stringify({
         id: data.id,
         status: data.status,
-        amount: data.amount
+        amount: data.amount,
+        external_transaction_id: data.external_transaction_id || 'Not set'
       })}`);
     } else {
       console.log(`[WEBHOOK] No transaction found with session ID: ${sessionId}`);
@@ -130,7 +135,8 @@ export const findTransactionByPaymentIntent = async (supabase: any, paymentInten
       console.log(`[WEBHOOK] Found transaction by payment intent: ${JSON.stringify({
         id: data.id,
         status: data.status,
-        amount: data.amount
+        amount: data.amount,
+        external_transaction_id: data.external_transaction_id
       })}`);
     } else {
       console.log(`[WEBHOOK] No transaction found with payment intent ID: ${paymentIntentId}`);
@@ -162,7 +168,9 @@ export const createTransactionFromSession = async (supabase: any, session: any) 
       transaction_id: session.id,
       external_transaction_id: session.payment_intent || null,
       token_sent: false,
-      completed_at: session.payment_status === 'paid' ? new Date().toISOString() : null // Set completed_at when paid
+      completed_at: session.payment_status === 'paid' ? new Date().toISOString() : null, // Set completed_at when paid
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
     
     console.log(`[WEBHOOK] Creating new transaction with data:`, JSON.stringify(insertData));

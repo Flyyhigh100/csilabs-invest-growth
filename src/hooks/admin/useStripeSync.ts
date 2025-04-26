@@ -40,7 +40,7 @@ export function useStripeSync() {
       
       if (data.error) {
         console.error('Error response from sync operation:', data.error);
-        toast.error(data.error.message);
+        toast.error(data.error.message || 'Error syncing payment');
         return null;
       }
       

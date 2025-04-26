@@ -106,7 +106,6 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
     
-    // Check if the transactions table has the token_amount column
     try {
       // Create transaction record with consistent field format
       const transactionData = {
@@ -115,15 +114,13 @@ serve(async (req) => {
         payment_method: "stripe",
         wallet_address: walletAddress,
         status: "pending",
-        transaction_id: session.id,
-        external_transaction_id: session.payment_intent || null,  // Store payment_intent if available
-        token_price: tokenPrice || 1.00
+        transaction_id: session.id, // Store checkout session ID
+        external_transaction_id: session.payment_intent || null, // Store payment_intent if already available
+        token_price: tokenPrice || 1.00,
+        token_amount: tokenAmount,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
-      
-      // Add token_amount only if the column exists
-      if (tokenAmount !== undefined) {
-        transactionData.token_amount = tokenAmount;
-      }
       
       const { data: transaction, error } = await supabaseAdmin
         .from("transactions")

@@ -29,10 +29,11 @@ export const handleCheckoutSessionCompleted = async (supabase: any, session: any
   // CRITICAL CHECK: Confirm payment_intent exists
   if (!session.payment_intent) {
     console.error('[CRITICAL] Session has no payment_intent field:', session.id);
-    return;
+    // Even without payment_intent, we should still try to find and update the transaction
+    // by session ID since we created it with the session ID during checkout
   }
   
-  console.log(`[CRITICAL] Processing completed payment for session: ${session.id} with payment_intent: ${session.payment_intent}`);
+  console.log(`[CRITICAL] Processing completed payment for session: ${session.id} with payment_intent: ${session.payment_intent || 'Not available'}`);
   
   try {
     // First, check if we already processed this session to prevent duplicates
@@ -69,37 +70,51 @@ export const handleCheckoutSessionCompleted = async (supabase: any, session: any
     const pendingTx = await findTransactionBySessionId(supabase, session.id);
     
     if (pendingTx) {
-      console.log(`[CRITICAL] Found transaction to update: ${pendingTx.id} with payment_intent: ${session.payment_intent}`);
+      console.log(`[CRITICAL] Found transaction to update: ${pendingTx.id} with payment_intent: ${session.payment_intent || 'Not available'}`);
       
-      // DIRECT APPROACH: Use the force update method to ensure external_transaction_id is updated
-      const updated = await forceUpdateExternalTransactionId(
-        supabase,
-        pendingTx.id,
-        session.payment_intent
-      );
-      
-      if (updated) {
-        console.log(`[CRITICAL] Successfully force-updated external_transaction_id for transaction ${pendingTx.id}`);
+      // Always attempt to update the transaction with the payment_intent if available
+      if (session.payment_intent) {
+        // DIRECT APPROACH: Use the force update method to ensure external_transaction_id is updated
+        const updated = await forceUpdateExternalTransactionId(
+          supabase,
+          pendingTx.id,
+          session.payment_intent
+        );
         
-        // Create a notification for the user
-        if (pendingTx.user_id) {
-          await createPaymentConfirmationNotification(supabase, pendingTx.user_id, (session.amount_total / 100).toFixed(2));
-        }
-      } else {
-        console.error(`[CRITICAL] Force update failed for transaction ${pendingTx.id}`);
-        
-        // Fall back to the standard update method
-        console.log(`[CRITICAL] Trying fallback to standard update method`);
-        const fallbackUpdate = await updateTransactionStatus(supabase, pendingTx, session.payment_intent);
-        
-        if (fallbackUpdate) {
-          console.log(`[CRITICAL] Standard update succeeded as fallback`);
+        if (updated) {
+          console.log(`[CRITICAL] Successfully force-updated external_transaction_id for transaction ${pendingTx.id}`);
+          
           // Create a notification for the user
           if (pendingTx.user_id) {
             await createPaymentConfirmationNotification(supabase, pendingTx.user_id, (session.amount_total / 100).toFixed(2));
           }
         } else {
-          console.error(`[CRITICAL] All update attempts failed for transaction ${pendingTx.id}`);
+          console.error(`[CRITICAL] Force update failed for transaction ${pendingTx.id}`);
+          
+          // Fall back to the standard update method
+          console.log(`[CRITICAL] Trying fallback to standard update method`);
+          const fallbackUpdate = await updateTransactionStatus(supabase, pendingTx, session.payment_intent);
+          
+          if (fallbackUpdate) {
+            console.log(`[CRITICAL] Standard update succeeded as fallback`);
+            // Create a notification for the user
+            if (pendingTx.user_id) {
+              await createPaymentConfirmationNotification(supabase, pendingTx.user_id, (session.amount_total / 100).toFixed(2));
+            }
+          } else {
+            console.error(`[CRITICAL] All update attempts failed for transaction ${pendingTx.id}`);
+          }
+        }
+      } else {
+        // Even without payment_intent, update status to completed if payment is marked as paid
+        if (session.payment_status === 'paid') {
+          const fallbackUpdate = await updateTransactionStatus(supabase, pendingTx);
+          console.log(`[CRITICAL] Updated transaction status without payment intent: ${fallbackUpdate ? 'success' : 'failed'}`);
+          
+          // Create notification
+          if (fallbackUpdate && pendingTx.user_id) {
+            await createPaymentConfirmationNotification(supabase, pendingTx.user_id, (session.amount_total / 100).toFixed(2));
+          }
         }
       }
     } else {

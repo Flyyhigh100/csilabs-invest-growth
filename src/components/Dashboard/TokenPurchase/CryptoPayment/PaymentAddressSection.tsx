@@ -28,19 +28,21 @@ const PaymentAddressSection: React.FC<PaymentAddressSectionProps> = ({ paymentAd
       <h3 className="text-sm font-medium mb-2">Payment Address</h3>
       <div className="flex items-center gap-2">
         <div className="bg-white p-2 rounded border border-gray-200 text-sm font-mono overflow-auto max-w-full break-all w-full">
-          {paymentAddress}
+          {paymentAddress || "No payment address available"}
         </div>
-        <Button 
-          variant="outline" 
-          size="icon"
-          className="flex-shrink-0"
-          onClick={handleCopy}
-        >
-          {copied ? 
-            <CheckCircle className="h-4 w-4 text-green-500" /> : 
-            <CopyIcon className="h-4 w-4" />
-          }
-        </Button>
+        {paymentAddress && (
+          <Button 
+            variant="outline" 
+            size="icon"
+            className="flex-shrink-0"
+            onClick={handleCopy}
+          >
+            {copied ? 
+              <CheckCircle className="h-4 w-4 text-green-500" /> : 
+              <CopyIcon className="h-4 w-4" />
+            }
+          </Button>
+        )}
       </div>
     </div>
   );

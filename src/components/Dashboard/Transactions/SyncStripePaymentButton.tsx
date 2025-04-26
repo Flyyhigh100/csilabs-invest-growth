@@ -11,7 +11,7 @@ interface SyncStripePaymentButtonProps {
   size?: 'default' | 'sm' | 'lg' | 'icon'; // Add size prop to match the expected type
 }
 
-const SyncWithStripeButton = ({ 
+const SyncStripePaymentButton = ({ 
   transaction, 
   onSyncComplete,
   size = 'sm' // Default to 'sm' if not provided
@@ -43,4 +43,4 @@ const SyncWithStripeButton = ({
   );
 };
 
-export default SyncWithStripeButton;
+export default SyncStripePaymentButton;
