@@ -38,7 +38,7 @@ export async function handleCryptoPaymentRequest(
       throw new Error(paymentResponse.message || 'Failed to create CoinPayments transaction');
     }
     
-    // Generate a transaction ID for our system (this is different from CoinPayments txn_id)
+    // Generate a transaction ID for our system
     const transactionId = crypto.randomUUID();
     
     console.log(`Payment created successfully. Transaction ID: ${transactionId}, External ID: ${paymentResponse.txn_id}`);
@@ -63,7 +63,7 @@ export async function handleCryptoPaymentRequest(
       transactionId: savedTransaction.id,
       paymentAddress: paymentResponse.address,
       amount: paymentResponse.amount,
-      amountf: paymentResponse.amountf,
+      amountf: paymentResponse.amount,
       expiresAt: paymentResponse.timeout,
       statusUrl: paymentResponse.status_url,
       qrCodeUrl: paymentResponse.qrcode_url,
