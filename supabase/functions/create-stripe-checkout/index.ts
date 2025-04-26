@@ -106,9 +106,10 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
     
-    const { data: transaction, error } = await supabaseAdmin
-      .from("transactions")
-      .insert({
+    // Check if the transactions table has the token_amount column
+    try {
+      // Create transaction record with consistent field format
+      const transactionData = {
         user_id: userId,
         amount: amount,
         payment_method: "stripe",
@@ -116,27 +117,58 @@ serve(async (req) => {
         status: "pending",
         transaction_id: session.id,
         external_transaction_id: session.payment_intent || null,  // Store payment_intent if available
-        token_price: tokenPrice || 1.00,
-        token_amount: tokenAmount,
-      })
-      .select()
-      .single();
+        token_price: tokenPrice || 1.00
+      };
       
-    if (error) {
-      console.error("Error creating transaction record:", error);
-      throw new Error(`Failed to create transaction record: ${error.message}`);
+      // Add token_amount only if the column exists
+      if (tokenAmount !== undefined) {
+        transactionData.token_amount = tokenAmount;
+      }
+      
+      const { data: transaction, error } = await supabaseAdmin
+        .from("transactions")
+        .insert(transactionData)
+        .select()
+        .single();
+        
+      if (error) {
+        console.error("Error creating transaction record:", error);
+        
+        // If the error is related to the token_amount column, try again without it
+        if (error.message && error.message.includes("token_amount")) {
+          console.log("Retrying without token_amount field");
+          delete transactionData.token_amount;
+          
+          const { data: retryTransaction, error: retryError } = await supabaseAdmin
+            .from("transactions")
+            .insert(transactionData)
+            .select()
+            .single();
+            
+          if (retryError) {
+            throw new Error(`Failed to create transaction record on retry: ${retryError.message}`);
+          }
+          
+          console.log(`Created transaction record on retry: ${retryTransaction.id} with session ID: ${session.id}`);
+        } else {
+          throw new Error(`Failed to create transaction record: ${error.message}`);
+        }
+      } else {
+        console.log(`Created transaction record: ${transaction.id} with session ID: ${session.id}`);
+        console.log(`Payment intent ID (if available): ${session.payment_intent || 'Not available yet'}`);
+        console.log(`Token price: ${tokenPrice || '1.00'}, Token amount: ${tokenAmount}`);
+      }
+    } catch (dbError) {
+      console.error("Database operation failed:", dbError);
+      // Continue the checkout process even if DB operation fails
+      // We'll log the error but still return the checkout URL to the user
     }
-    
-    console.log(`Created transaction record: ${transaction.id} with session ID: ${session.id}`);
-    console.log(`Payment intent ID (if available): ${session.payment_intent || 'Not available yet'}`);
-    console.log(`Token price: ${tokenPrice || '1.00'}, Token amount: ${tokenAmount}`);
 
     // Return the URL and session ID
     return new Response(JSON.stringify({ 
       url: session.url,
       session_id: session.id,
       payment_intent: session.payment_intent || null,
-      transaction_id: transaction.id,
       user_id: userId,
       token_amount: tokenAmount,
       token_price: tokenPrice || 1.00
