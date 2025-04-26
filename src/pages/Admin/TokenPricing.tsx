@@ -1,15 +1,11 @@
 
 import React from 'react';
 import AdminLayout from '@/components/Admin/Layout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TokenPriceChart from '@/components/Admin/TokenPricing/TokenPriceChart';
 import CurrentPriceCard from '@/components/Admin/TokenPricing/CurrentPriceCard';
-import ConfigurationTab from '@/components/Admin/TokenPricing/ConfigurationTab';
-import DiagnosticsTab from '@/components/Admin/TokenPricing/DiagnosticsTab';
 import { useTokenData } from '@/hooks/useTokenData';
 
 const TokenPricingPage = () => {
-  // Use our useTokenData hook instead of directly using useTokenPrice
   const { 
     currentPrice,
     priceData, 
@@ -39,23 +35,6 @@ const TokenPricingPage = () => {
           formattedLastUpdated={formattedLastUpdated}
           secondsUntilRefresh={secondsUntilRefresh}
         />
-      </div>
-      
-      <div className="mt-6">
-        <Tabs defaultValue="configuration" className="w-full">
-          <TabsList>
-            <TabsTrigger value="configuration">Configuration</TabsTrigger>
-            <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="configuration" className="mt-6">
-            <ConfigurationTab />
-          </TabsContent>
-          
-          <TabsContent value="diagnostics" className="mt-6">
-            <DiagnosticsTab currentPrice={currentPrice} />
-          </TabsContent>
-        </Tabs>
       </div>
     </AdminLayout>
   );

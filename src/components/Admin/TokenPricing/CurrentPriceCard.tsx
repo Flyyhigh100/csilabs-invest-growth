@@ -62,7 +62,7 @@ const CurrentPriceCard: React.FC<CurrentPriceCardProps> = ({
           <AlertDescription className="flex flex-col space-y-1 text-xs">
             <div className="flex justify-between">
               <span>Data source:</span>
-              <span className="font-medium">Uniswap V2 (Polygon)</span>
+              <span className="font-medium">Defined.fi (Polygon)</span>
             </div>
             <div className="flex justify-between">
               <span>Last updated:</span>
