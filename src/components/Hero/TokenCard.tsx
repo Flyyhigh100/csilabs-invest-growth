@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Info } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -25,7 +24,6 @@ const TokenCard: React.FC<TokenCardProps> = ({
   isLoading, 
   hasError 
 }) => {
-  // Format the current price for display
   const formattedCurrentPrice = currentPrice 
     ? `$${currentPrice.toFixed(5)}` 
     : 'Loading...';
@@ -43,41 +41,15 @@ const TokenCard: React.FC<TokenCardProps> = ({
               )}
             </div>
             
-            <Tabs defaultValue="price" className="w-full">
-              <div className="flex items-center justify-between mb-4">
-                <TabsList className="grid grid-cols-2 w-40">
-                  <TabsTrigger value="price">Price</TabsTrigger>
-                  <TabsTrigger value="volume">Volume</TabsTrigger>
-                </TabsList>
-                <div className="flex items-center text-xs text-gray-500">
-                  <Info className="h-3 w-3 mr-1" />
-                  <span>Powered by Defined.fi</span>
-                </div>
-              </div>
-              
-              <TabsContent value="price" className="mt-0">
-                <PriceChart 
-                  priceData={priceData} 
-                  isLoading={isLoading} 
-                  hasError={hasError} 
-                />
-              </TabsContent>
-              
-              <TabsContent value="volume" className="mt-0">
-                <VolumeChart 
-                  volumeData={volumeData} 
-                  isLoading={isLoading} 
-                  hasError={hasError} 
-                />
-              </TabsContent>
-            </Tabs>
+            <div className="h-[400px] mb-6">
+              <DexToolsChart />
+            </div>
             
             <TokenInfo tokenInfo={tokenInfo} isLoading={isLoading} />
           </div>
         </div>
       </div>
       
-      {/* Decorative element */}
       <div className="absolute -z-10 w-40 h-40 rounded-full bg-cbis-blue/10 -bottom-10 -left-10 blur-2xl"></div>
       <div className="absolute -z-10 w-60 h-60 rounded-full bg-cbis-teal/10 -top-10 -right-10 blur-3xl"></div>
     </div>
