@@ -1,4 +1,3 @@
-
 import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { fetchCurrentTokenPrice } from '@/services/api/priceService';
 import { toast } from 'sonner';
@@ -59,8 +58,8 @@ export const TokenPriceProvider = ({
       setError(err instanceof Error ? err : new Error('Failed to fetch token price'));
       
       if (showToast) {
-        toast.error("Price update failed", {
-          description: "Using last known price. Please try again later."
+        toast.warning("Using fallback price data", {
+          description: "Real-time price unavailable. Using latest known price."
         });
       }
     } finally {

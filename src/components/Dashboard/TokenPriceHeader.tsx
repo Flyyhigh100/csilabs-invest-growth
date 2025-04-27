@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useTokenPrice } from '@/context/TokenPriceContext';
 import { Card } from "@/components/ui/card";
@@ -26,7 +25,7 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
     ? lastUpdated.toLocaleTimeString() 
     : 'Not yet updated';
 
-  const isDemoData = error !== null;
+  const isFallbackData = error !== null;
 
   return (
     <Card className={`flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-blue-100 ${className}`}>
@@ -36,9 +35,9 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
           <div>
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium text-gray-600">Current CSi Token Price</p>
-              {isDemoData && (
+              {isFallbackData && (
                 <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
-                  Demo Data
+                  Historical Data
                 </Badge>
               )}
             </div>
@@ -55,9 +54,9 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
               )}
             </p>
             {error && (
-              <p className="text-xs text-red-600 flex items-center mt-1">
+              <p className="text-xs text-amber-600 flex items-center mt-1">
                 <AlertCircle className="h-3 w-3 mr-1" />
-                {error.message}
+                Using latest historical price
               </p>
             )}
           </div>
