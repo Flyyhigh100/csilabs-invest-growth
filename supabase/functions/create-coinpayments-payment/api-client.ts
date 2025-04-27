@@ -1,6 +1,6 @@
-
 // Mock implementation for local testing
 const USE_MOCK_DATA = Deno.env.get("USE_MOCK_DATA") === "true";
+const ALLOW_MOCK_FALLBACK = Deno.env.get("ALLOW_MOCK_FALLBACK") === "true";
 
 // Define the CoinPayments transaction response interface
 export interface CoinPaymentsTransaction {
@@ -121,7 +121,7 @@ async function createRealCoinPaymentsTransaction(
   currency: string,
   itemNumber: string,
   walletAddress: string,
-  buyerEmail: string,
+  buyerEmail: string = "anonymous@example.com",
   autoConfirm: boolean = true
 ): Promise<CoinPaymentsTransaction> {
   try {
@@ -129,7 +129,7 @@ async function createRealCoinPaymentsTransaction(
       amount: amount.toString(),
       currency1: "USD", // Currency being converted from
       currency2: currency, // Currency being converted to
-      buyer_email: buyerEmail || "anonymous@example.com", // Provide a fallback email if none provided
+      buyer_email: buyerEmail, // Provide a fallback email if none provided
       item_name: "CSi Tokens Purchase",
       item_number: itemNumber,
       custom: walletAddress,
@@ -150,7 +150,7 @@ async function createRealCoinPaymentsTransaction(
     } catch (apiError) {
       console.error(`CoinPayments API error: ${apiError instanceof Error ? apiError.message : String(apiError)}`);
       
-      if (USE_MOCK_DATA) {
+      if (ALLOW_MOCK_FALLBACK) {
         console.log(`Falling back to mock data due to API error`);
         return createMockTransaction(amount, currency, walletAddress);
       }
@@ -213,10 +213,8 @@ function createMockTransaction(
     currency
   };
   
-  console.log(`QR code data: ${JSON.stringify(qrData, null, 2)}`);
-  
-  // Generate a payment address
-  console.log(`Generated payment address: ${address}`);
+  // Generate a modified Google Charts QR code URL
+  const qrcodeUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(JSON.stringify(qrData))}&choe=UTF-8`;
   
   return {
     amount: cryptoAmount,
@@ -226,72 +224,26 @@ function createMockTransaction(
     timeout: 3600, // 1 hour in seconds
     checkout_url: `https://www.coinpayments.net/index.php?cmd=checkout&id=${txnId}`,
     status_url: `https://www.coinpayments.net/index.php?cmd=status&id=${txnId}`,
-    qrcode_url: `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(JSON.stringify(qrData))}&choe=UTF-8`,
-    currency
+    qrcode_url: qrcodeUrl,
+    currency: currency
   };
 }
 
 /**
- * Check CoinPayments API configuration is valid
- */
-export async function validateCoinPaymentsConfig(): Promise<boolean> {
-  try {
-    console.log("Validating CoinPayments API configuration");
-    const publicKey = Deno.env.get("COINPAYMENTS_PUBLIC_KEY");
-    const privateKey = Deno.env.get("COINPAYMENTS_PRIVATE_KEY");
-    
-    if (!publicKey || !privateKey) {
-      console.error("Missing CoinPayments API keys");
-      return false;
-    }
-    
-    // Make a simple API call to test keys
-    const result = await coinPaymentsRequest("get_basic_info");
-    return true;
-  } catch (error) {
-    console.error("CoinPayments API key validation failed:", error);
-    return false;
-  }
-}
-
-/**
- * Public function to create a CoinPayments transaction
+ * Main function to create a CoinPayments transaction
  */
 export async function createCoinPaymentsTransaction(
   amount: number,
   currency: string,
-  itemId: string,
-  walletAddress: string,
-  buyerEmail: string = 'buyer@example.com',
-  autoConfirm: boolean = true
+  itemNumber: string,
+  walletAddress: string
 ): Promise<CoinPaymentsTransaction> {
-  // Force mock mode for development/testing if configured to do so
+  // Use mock data if enabled via environment variable
   if (USE_MOCK_DATA) {
-    console.log('Using mock data for CoinPayments transaction (mock mode enabled)');
+    console.log(`Using mock data for CoinPayments transaction (amount: ${amount} ${currency})`);
     return createMockTransaction(amount, currency, walletAddress);
   }
   
-  // Perform a validation check first to avoid unnecessary API calls
-  try {
-    console.log(`Initiating CoinPayments transaction with USD amount: $${amount}, Currency: ${currency}`);
-    const isValid = await validateCoinPaymentsConfig();
-    
-    if (!isValid) {
-      console.warn("CoinPayments API keys appear to be invalid, falling back to mock data");
-      return createMockTransaction(amount, currency, walletAddress);
-    }
-    
-    // Use real API for production
-    return await createRealCoinPaymentsTransaction(amount, currency, itemId, walletAddress, buyerEmail, autoConfirm);
-  } catch (error) {
-    console.error("Error creating CoinPayments transaction:", error);
-    
-    // Fallback to mock if configured
-    if (Deno.env.get("ALLOW_MOCK_FALLBACK") === "true") {
-      console.log("Falling back to mock data after error");
-      return createMockTransaction(amount, currency, walletAddress);
-    }
-    
-    throw error;
-  }
+  // Otherwise use the real API
+  return createRealCoinPaymentsTransaction(amount, currency, itemNumber, walletAddress);
 }

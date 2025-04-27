@@ -43,10 +43,28 @@ serve(async (req) => {
     console.log(`Creating CoinPayments payment for amount: $${amount}, wallet: ${walletAddress}, currency: ${currency}`);
     console.log(`Received token price: ${tokenPrice || 'Not provided'}`);
     
+    // Check if we have API keys configured
+    const publicKey = Deno.env.get("COINPAYMENTS_PUBLIC_KEY");
+    const privateKey = Deno.env.get("COINPAYMENTS_PRIVATE_KEY");
+    
+    if (!publicKey || !privateKey) {
+      console.error("CoinPayments API keys not configured");
+      return createErrorResponse('CoinPayments API keys not configured. Please add them in the Supabase secrets.', 500, {
+        publicKeyExists: !!publicKey,
+        privateKeyExists: !!privateKey
+      });
+    }
+    
     // Enable mock mode for testing
     const useMockData = Deno.env.get("USE_MOCK_DATA") === "true";
+    const allowMockFallback = Deno.env.get("ALLOW_MOCK_FALLBACK") === "true";
+    
     if (useMockData) {
       console.log("MOCK MODE ENABLED: Using mock CoinPayments data");
+    }
+    
+    if (allowMockFallback) {
+      console.log("MOCK FALLBACK ENABLED: Will use mock data if API calls fail");
     }
     
     // Calculate token amount based on price if available
@@ -65,13 +83,31 @@ serve(async (req) => {
     
     if (!paymentResponse.success) {
       console.error("Payment request failed:", paymentResponse.message);
-      return createErrorResponse(paymentResponse.message || 'Failed to create payment', 400, paymentResponse);
+      return createErrorResponse(paymentResponse.message || 'Failed to create payment', 400, {
+        details: paymentResponse,
+        debug: {
+          useMockData,
+          allowMockFallback,
+          publicKeyExists: !!publicKey,
+          privateKeyExists: !!privateKey
+        }
+      });
     }
     
-    console.log("Payment created successfully:", paymentResponse.transactionId);
-    return createSuccessResponse(paymentResponse);
+    console.log("Payment created successfully:", paymentResponse.transactionId || paymentResponse.txn_id);
+    return createSuccessResponse({
+      ...paymentResponse,
+      debug: {
+        useMockData,
+        allowMockFallback
+      }
+    });
   } catch (error) {
     console.error('Unexpected error in edge function:', error);
-    return createErrorResponse(error.message || 'Internal server error', 500);
+    return createErrorResponse(error.message || 'Internal server error', 500, {
+      stack: error.stack,
+      useMockData: Deno.env.get("USE_MOCK_DATA") === "true",
+      allowMockFallback: Deno.env.get("ALLOW_MOCK_FALLBACK") === "true"
+    });
   }
 });

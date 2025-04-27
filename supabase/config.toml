@@ -49,9 +49,11 @@ port = 54325
 verify_jwt = true
 USE_MOCK_DATA = "false"
 ALLOW_MOCK_FALLBACK = "true"
+COINPAYMENTS_IPN_URL = "https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/coinpayments-ipn-webhook"
 
 [functions.check-coinpayments-status]
 verify_jwt = true
 
 [functions.coinpayments-ipn-webhook]
 verify_jwt = false
+

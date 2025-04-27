@@ -1,104 +1,99 @@
 
-import { createSupabaseClient, saveTransaction } from './db-client.ts';
-import { createCryptoPayment } from './crypto-service.ts';
-
-// CORS headers for browser requests
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+import { createCryptoPayment } from "./crypto-service.ts";
 
 /**
- * Handles the crypto payment request and creates transaction records
+ * Handle crypto payment request
  */
 export async function handleCryptoPaymentRequest(
-  authHeader: string, 
+  authHeader: string,
   amount: number, 
-  walletAddress: string,
+  walletAddress: string, 
   currency: string = 'USDT',
   tokenPrice?: number,
   tokenAmount?: number
-): Promise<any> {
+) {
   try {
-    console.log(`Starting payment request handler for amount: ${amount} ${currency}`);
+    console.log(`Handling crypto payment request for ${walletAddress} (${currency})`);
     
-    // Extract token from auth header
+    // Create a crypto payment
+    const payment = await createCryptoPayment(amount, walletAddress, currency, tokenPrice);
+    
+    if (!payment.success) {
+      console.error("Failed to create crypto payment:", payment.message);
+      return payment;
+    }
+    
+    // Create a Supabase client for storing the transaction
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Missing Supabase configuration");
+      return {
+        ...payment,
+        message: "Warning: Could not store transaction in database (missing Supabase configuration)"
+      };
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Extract user ID from auth header
     const token = authHeader.replace('Bearer ', '');
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
     
-    // Create Supabase client to interact with database
-    const supabaseClient = createSupabaseClient();
-    
-    // Get user information from the token
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-    
-    if (userError || !user) {
-      console.error('Error getting user:', userError);
-      throw new Error(userError?.message || 'Authentication failed');
-    }
-    
-    console.log(`Creating payment for user ${user.id}, wallet: ${walletAddress}, amount: ${amount} ${currency}`);
-    
-    // Create crypto payment using CoinPayments
-    let paymentResponse;
-    try {
-      paymentResponse = await createCryptoPayment(amount, walletAddress, currency, tokenPrice);
-    } catch (paymentError) {
-      console.error('Failed to create CoinPayments transaction:', paymentError);
+    if (userError || !userData?.user) {
+      console.error("Error getting user data:", userError);
       return {
-        success: false,
-        message: paymentError.message || 'Failed to create payment',
-        error: paymentError instanceof Error ? paymentError.message : 'Unknown error'
+        ...payment,
+        message: "Warning: Could not store transaction in database (user authentication error)"
       };
     }
     
-    if (!paymentResponse.success) {
-      console.error('Payment creation failed:', paymentResponse);
+    // Create unique transaction ID
+    const transactionId = `cp-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 9)}`;
+    
+    // Store the transaction in the database
+    const { data: transactionData, error: transactionError } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: userData.user.id,
+        amount: amount,
+        wallet_address: walletAddress,
+        payment_method: 'coinpayments',
+        status: 'pending',
+        currency: currency,
+        transaction_id: transactionId,
+        external_transaction_id: payment.txn_id,
+        token_amount: tokenAmount || (tokenPrice ? amount / tokenPrice : amount),
+        token_price: tokenPrice,
+        payment_address: payment.address
+      })
+      .select()
+      .single();
+    
+    if (transactionError) {
+      console.error("Error storing transaction:", transactionError);
       return {
-        success: false,
-        message: paymentResponse.message || 'Failed to create payment'
+        ...payment,
+        message: "Warning: Failed to store transaction in database"
       };
     }
     
-    // Generate a transaction ID for our system
-    const transactionId = crypto.randomUUID();
+    console.log("Transaction stored in database:", transactionData.id);
     
-    console.log(`Payment created successfully. Transaction ID: ${transactionId}, External ID: ${paymentResponse.txn_id}`);
-    
-    // Save transaction in database
-    const savedTransaction = await saveTransaction(
-      supabaseClient,
-      user.id,
-      amount,
-      walletAddress,
-      transactionId,
-      paymentResponse.address,
-      paymentResponse.txn_id,
-      currency,
-      tokenPrice,
-      tokenAmount || paymentResponse.tokenAmount
-    );
-    
-    // Return success with payment information
+    // Return success response with transaction data
     return {
-      success: true,
-      transactionId: savedTransaction.id,
-      paymentAddress: paymentResponse.address,
-      amount: paymentResponse.amount,
-      amountf: paymentResponse.amount,
-      timeout: paymentResponse.timeout, // Send as a number of seconds
-      statusUrl: paymentResponse.status_url,
-      qrCodeUrl: paymentResponse.qrcode_url,
-      externalTransactionId: paymentResponse.txn_id,
-      currency: currency,
-      checkStatusUrl: `/dashboard/transactions?payment=crypto&txn=${savedTransaction.id}`,
-      tokenAmount: tokenAmount || paymentResponse.tokenAmount,
-      tokenPrice: tokenPrice
+      ...payment,
+      transactionId: transactionData.id,
+      databaseTransactionId: transactionData.id, // Just for clarity
+      externalTransactionId: payment.txn_id
     };
   } catch (error) {
-    console.error('Error in handleCryptoPaymentRequest:', error);
+    console.error("Error handling crypto payment request:", error);
     return {
       success: false,
-      message: error.message || 'Failed to process crypto payment'
+      message: error instanceof Error ? error.message : "Unknown error handling payment request"
     };
   }
 }

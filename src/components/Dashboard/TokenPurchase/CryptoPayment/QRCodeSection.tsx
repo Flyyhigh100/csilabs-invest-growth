@@ -89,7 +89,7 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({
         };
       }
       
-      // Use Google Chart API for QR generation (as a fallback)
+      // Use Google Chart API for QR generation as a reliable fallback
       const qrDataString = typeof qrData === 'string' ? qrData : JSON.stringify(qrData);
       return `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(qrDataString)}&choe=UTF-8`;
     } catch (error) {
@@ -114,6 +114,7 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({
     // Attempt to generate a QR code with a different service if the provided one fails
     if (qrCodeUrl && !generatedQrUrl) {
       try {
+        // Create a simple fallback QR code with just the address
         const fallbackUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(paymentAddress)}&choe=UTF-8`;
         console.log("Attempting fallback QR generation with Google Charts API");
         setGeneratedQrUrl(fallbackUrl);

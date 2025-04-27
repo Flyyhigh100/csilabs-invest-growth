@@ -1,28 +1,20 @@
 
-// CORS headers for browser requests
+// CORS headers for cross-origin requests
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Max-Age': '86400'
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS'
 };
 
 /**
  * Create a standardized error response
  */
-export function createErrorResponse(
-  message: string, 
-  status: number = 400, 
-  details: any = null
-): Response {
-  console.error(`Error response: ${message}`, details || '');
-  
+export function createErrorResponse(message: string, status: number = 400, details: any = null) {
   return new Response(
     JSON.stringify({
+      error: message,
       success: false,
-      message,
-      details: details || undefined,
-      timestamp: new Date().toISOString()
+      details: details
     }),
     {
       status,
@@ -37,12 +29,11 @@ export function createErrorResponse(
 /**
  * Create a standardized success response
  */
-export function createSuccessResponse(data: any, status: number = 200): Response {
+export function createSuccessResponse(data: any, status: number = 200) {
   return new Response(
     JSON.stringify({
-      success: true,
       ...data,
-      timestamp: new Date().toISOString()
+      success: true
     }),
     {
       status,
