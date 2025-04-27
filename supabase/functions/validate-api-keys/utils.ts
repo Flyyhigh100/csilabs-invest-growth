@@ -48,6 +48,7 @@ export function toHex(buffer: ArrayBuffer): string {
 export async function generateHmacSignature(message: string, privateKey: string): Promise<string> {
   try {
     console.log(`Generating HMAC signature for message with length: ${message.length}`);
+    console.log(`Message content: ${message}`);
     
     // Use TextEncoder to convert strings to Uint8Arrays
     const encoder = new TextEncoder();
@@ -74,5 +75,38 @@ export async function generateHmacSignature(message: string, privateKey: string)
   } catch (error) {
     console.error('Error generating HMAC signature:', error);
     throw new Error(`HMAC generation failed: ${error.message}`);
+  }
+}
+
+// CoinPayments specific implementation following their API requirements exactly
+export async function generateCoinPaymentsHMAC(message: string, privateKey: string): Promise<string> {
+  try {
+    console.log(`[CoinPayments] Generating HMAC for message: ${message}`);
+    
+    // CoinPayments requires a specific HMAC generation process
+    const encoder = new TextEncoder();
+    const messageData = encoder.encode(message);
+    const keyData = encoder.encode(privateKey);
+    
+    // Import the key for HMAC with SHA-512
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw", 
+      keyData, 
+      { name: "HMAC", hash: "SHA-512" }, 
+      false, 
+      ["sign"]
+    );
+    
+    // Sign the message
+    const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
+    
+    // Convert to uppercase hex string as required by CoinPayments
+    const hmacHex = toHex(signature).toUpperCase();
+    console.log(`[CoinPayments] Generated HMAC signature (first 20 chars): ${hmacHex.substring(0, 20)}...`);
+    
+    return hmacHex;
+  } catch (error) {
+    console.error('[CoinPayments] HMAC generation error:', error);
+    throw new Error(`CoinPayments HMAC generation failed: ${error.message}`);
   }
 }

@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders, testHmacSignature, generateHmacSignature } from "./utils.ts";
+import { corsHeaders, testHmacSignature, generateCoinPaymentsHMAC } from "./utils.ts";
 
 async function validateDefinedFiKey() {
   try {
@@ -130,24 +130,20 @@ async function validateCoinPaymentsKeys() {
 
     // Attempt a simple API request to validate keys - using most basic 'rates' command
     try {
+      // Get the current Unix timestamp for the nonce
       const nonce = Math.floor(Date.now() / 1000).toString();
       
-      // Use a simple 'rates' command which is less likely to have permission issues
-      const params = new URLSearchParams();
-      params.append('cmd', 'rates');
-      params.append('key', publicKey);
-      params.append('format', 'json');
-      params.append('nonce', nonce);
-      params.append('version', '1');
+      // Instead of using URLSearchParams, create a POST body directly as a string
+      // This ensures the parameters are in a consistent order for signature generation
+      const postParams = `version=1&cmd=rates&key=${publicKey}&format=json&nonce=${nonce}`;
       
-      // Get the message payload as string
-      const message = params.toString();
-      console.log('Testing CoinPayments API with request payload:', message);
+      console.log('[CoinPayments] API request parameters:', postParams);
       
-      // Generate HMAC signature using our improved function
-      const hmac = await generateHmacSignature(message, privateKey);
+      // Generate the HMAC signature using our specialized function
+      const hmac = await generateCoinPaymentsHMAC(postParams, privateKey);
       
-      console.log('Making API request to CoinPayments');
+      console.log('[CoinPayments] Making API request to CoinPayments');
+      console.log('[CoinPayments] HMAC signature:', hmac);
       
       // Make API request
       const response = await fetch('https://www.coinpayments.net/api.php', {
@@ -156,12 +152,22 @@ async function validateCoinPaymentsKeys() {
           'Content-Type': 'application/x-www-form-urlencoded',
           'HMAC': hmac
         },
-        body: message
+        body: postParams
       });
+      
+      // Check response status
+      if (!response.ok) {
+        console.error('[CoinPayments] HTTP error:', response.status, response.statusText);
+        return {
+          isValid: false,
+          details: `HTTP Error: ${response.status} ${response.statusText}`,
+          service: 'coinpayments'
+        };
+      }
       
       // Parse response
       const data = await response.json();
-      console.log('CoinPayments API response:', JSON.stringify(data).substring(0, 200) + '...');
+      console.log('[CoinPayments] API response:', JSON.stringify(data).substring(0, 200) + '...');
       
       if (data.error === 'ok') {
         return {
@@ -184,7 +190,7 @@ async function validateCoinPaymentsKeys() {
         };
       }
     } catch (apiError) {
-      console.error('Error testing CoinPayments API:', apiError);
+      console.error('[CoinPayments] Error testing API:', apiError);
       return {
         isValid: false,
         details: `Error testing API connection: ${apiError.message}`,
@@ -194,7 +200,7 @@ async function validateCoinPaymentsKeys() {
     }
     
   } catch (error) {
-    console.error('Error validating CoinPayments keys:', error);
+    console.error('[CoinPayments] Error validating keys:', error);
     return { 
       isValid: false,
       details: `Exception: ${error.message}`,
