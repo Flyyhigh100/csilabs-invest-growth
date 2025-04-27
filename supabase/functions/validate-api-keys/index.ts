@@ -132,23 +132,40 @@ async function validateCoinPaymentsKeys() {
 
     // Attempt a simple API request to validate keys
     try {
-      // Generate signature components
+      // Use the most simple command possible to minimize potential issues
       const nonce = Math.floor(Date.now() / 1000).toString();
-      const message = `version=1&key=${publicKey}&format=json&nonce=${nonce}&cmd=get_basic_info`;
+      const cmd = 'get_basic_info';
       
-      // Create HMAC signature
+      // Create query parameters in alphabetical order as recommended by CoinPayments
+      const params = new URLSearchParams();
+      params.append('cmd', cmd);
+      params.append('format', 'json');
+      params.append('key', publicKey);
+      params.append('nonce', nonce);
+      params.append('version', '1');
+      
+      // Get the request payload
+      const message = params.toString();
+      
+      console.log('Testing CoinPayments API with request data:', message);
+      
+      // Create HMAC signature with improved method
       const encoder = new TextEncoder();
-      const key = encoder.encode(privateKey);
+      const privateKeyData = encoder.encode(privateKey);
       const messageData = encoder.encode(message);
+      
+      // Import the key for HMAC
       const cryptoKey = await crypto.subtle.importKey(
-        "raw", key, { name: "HMAC", hash: "SHA-512" }, false, ["sign"]
+        "raw", privateKeyData, { name: "HMAC", hash: "SHA-512" }, false, ["sign"]
       );
+      
+      // Sign the message
       const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
       const hmac = Array.from(new Uint8Array(signature))
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
       
-      console.log('Testing CoinPayments API with simple request...');
+      console.log('Generated HMAC signature:', hmac.substring(0, 20) + '...');
       
       // Make a simple API request to validate keys
       const response = await fetch('https://www.coinpayments.net/api.php', {
