@@ -27,11 +27,11 @@ async function validateCoinPaymentsKeys() {
       ipnSecretPresent: !!ipnSecret
     });
     
-    // Validate key formats
-    const isPublicKeyValid = publicKey.startsWith('');
-    const isPrivateKeyValid = privateKey.length >= 16;
+    // Improved validation of CoinPayments API keys
+    const isPublicKeyValid = publicKey.length >= 40; // CoinPayments public keys are typically long
+    const isPrivateKeyValid = privateKey.length >= 40; // CoinPayments private keys are typically long
     
-    // Simple validation to check if keys have proper structure
+    // Basic format validation
     if (!isPublicKeyValid || !isPrivateKeyValid) {
       return {
         isValid: false,
@@ -43,18 +43,69 @@ async function validateCoinPaymentsKeys() {
         }
       };
     }
-    
-    // Additional test to verify keys (you might want to add a real API call test)
-    return {
-      isValid: true,
-      details: 'CoinPayments API keys are configured correctly',
-      service: 'coinpayments',
-      publicKeyInfo: {
-        length: publicKey.length,
-        prefix: publicKey.substring(0, 3) + '...',
-        suffix: '...' + publicKey.substring(publicKey.length - 3)
+
+    // Attempt a simple API request to validate keys
+    try {
+      // Generate signature components
+      const nonce = Math.floor(Date.now() / 1000).toString();
+      const message = `version=1&key=${publicKey}&format=json&nonce=${nonce}&cmd=get_basic_info`;
+      
+      // Create HMAC signature
+      const encoder = new TextEncoder();
+      const key = encoder.encode(privateKey);
+      const messageData = encoder.encode(message);
+      const cryptoKey = await crypto.subtle.importKey(
+        "raw", key, { name: "HMAC", hash: "SHA-512" }, false, ["sign"]
+      );
+      const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
+      const hmac = Array.from(new Uint8Array(signature))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+      
+      console.log('Testing CoinPayments API with simple request...');
+      
+      // Make a simple API request to validate keys
+      const response = await fetch('https://www.coinpayments.net/api.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'HMAC': hmac
+        },
+        body: message
+      });
+      
+      const data = await response.json();
+      console.log('CoinPayments API test response:', JSON.stringify(data).substring(0, 200) + '...');
+      
+      if (data.error === 'ok') {
+        return {
+          isValid: true,
+          details: 'CoinPayments API keys are valid and working correctly',
+          service: 'coinpayments',
+          response: {
+            success: true,
+            username: data.result?.username || 'Not available'
+          }
+        };
+      } else {
+        return {
+          isValid: false,
+          details: `API response error: ${data.error}`,
+          service: 'coinpayments',
+          response: {
+            error: data.error
+          }
+        };
       }
-    };
+    } catch (apiError) {
+      console.error('Error testing CoinPayments API:', apiError);
+      return {
+        isValid: false,
+        details: `Error testing API connection: ${apiError.message}`,
+        service: 'coinpayments',
+        error: apiError.message
+      };
+    }
     
   } catch (error) {
     console.error('Error validating CoinPayments keys:', error);
@@ -92,4 +143,3 @@ serve(async (req) => {
     );
   }
 });
-
