@@ -1,6 +1,82 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./utils.ts";
+import { testHmacSignature } from "./utils.ts";
+
+async function validateDefinedFiKey() {
+  try {
+    const apiKey = Deno.env.get('DEFINED_API_KEY');
+    
+    if (!apiKey) {
+      return { 
+        isValid: false, 
+        details: 'API key not configured',
+        service: 'defined.fi',
+      };
+    }
+    
+    // Check key format and length
+    if (apiKey.length < 30) {
+      return {
+        isValid: false,
+        details: 'API key appears to be invalid (incorrect format or length)',
+        service: 'defined.fi',
+      };
+    }
+
+    // Attempt a simple API request to validate key
+    try {
+      const response = await fetch('https://api.defined.fi/api/v1/healthcheck', {
+        method: 'GET',
+        headers: {
+          'X-API-Key': apiKey,
+          'Content-Type': 'application/json'
+        },
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        return {
+          isValid: true,
+          details: 'Defined.fi API key is valid and working correctly',
+          service: 'defined.fi',
+          response: {
+            success: true,
+            status: response.status,
+            data: data
+          }
+        };
+      } else {
+        return {
+          isValid: false,
+          details: `API response error: ${response.status} ${response.statusText}`,
+          service: 'defined.fi',
+          response: {
+            error: data
+          }
+        };
+      }
+    } catch (apiError) {
+      console.error('Error testing Defined.fi API:', apiError);
+      return {
+        isValid: false,
+        details: `Error testing API connection: ${apiError.message}`,
+        service: 'defined.fi',
+        error: apiError.message
+      };
+    }
+    
+  } catch (error) {
+    console.error('Error validating Defined.fi key:', error);
+    return { 
+      isValid: false,
+      details: `Exception: ${error.message}`,
+      service: 'defined.fi',
+      exceptionDetails: error.stack || 'No stack trace available',
+    };
+  }
+}
 
 async function validateCoinPaymentsKeys() {
   try {
@@ -41,6 +117,16 @@ async function validateCoinPaymentsKeys() {
           publicKeyValid: isPublicKeyValid,
           privateKeyValid: isPrivateKeyValid
         }
+      };
+    }
+
+    // Test HMAC signature generation
+    const hmacValid = await testHmacSignature(privateKey);
+    if (!hmacValid) {
+      return {
+        isValid: false,
+        details: 'Private key failed HMAC signature test',
+        service: 'coinpayments'
       };
     }
 
@@ -125,7 +211,21 @@ serve(async (req) => {
   }
 
   try {
-    const result = await validateCoinPaymentsKeys();
+    // Get the service to validate from the request body
+    const requestBody = await req.json();
+    const service = requestBody?.service || 'coinpayments'; // Default to CoinPayments if not specified
+    
+    console.log(`Validating API keys for service: ${service}`);
+    
+    let result;
+    
+    // Determine which service to validate
+    if (service === 'defined.fi') {
+      result = await validateDefinedFiKey();
+    } else {
+      // Default to CoinPayments
+      result = await validateCoinPaymentsKeys();
+    }
     
     return new Response(
       JSON.stringify(result),

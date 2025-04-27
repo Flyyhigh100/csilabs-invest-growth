@@ -8,7 +8,8 @@ import {
   ShieldCheckIcon,
   CreditCardIcon,
   SettingsIcon,
-  BellIcon
+  BellIcon,
+  WrenchIcon
 } from 'lucide-react';
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
@@ -41,9 +42,15 @@ const Sidebar = ({ className, ...props }: SidebarProps) => {
       icon: <BellIcon className="w-4 h-4 mr-3" />,
     },
     {
-      title: 'Settings',
+      title: 'API Settings',
       href: '/admin/settings',
       icon: <SettingsIcon className="w-4 h-4 mr-3" />,
+      highlight: true,
+    },
+    {
+      title: 'Transaction Tools',
+      href: '/admin/transaction-tools',
+      icon: <WrenchIcon className="w-4 h-4 mr-3" />,
     },
   ];
 
@@ -61,7 +68,9 @@ const Sidebar = ({ className, ...props }: SidebarProps) => {
               "flex items-center px-4 py-3 text-sm rounded-lg transition",
               isActive
                 ? "bg-primary/10 text-primary font-medium"
-                : "text-gray-600 hover:text-primary hover:bg-primary/5"
+                : link.highlight 
+                  ? "text-green-600 hover:text-green-700 hover:bg-green-50 font-medium"
+                  : "text-gray-600 hover:text-primary hover:bg-primary/5"
             )
           }
         >
