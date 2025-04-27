@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { KycVerificationData } from '@/hooks/kyc/types';
 import { toast } from 'sonner';
 import { useAvailableCurrencies } from '@/hooks/payments/useAvailableCurrencies';
 import { Spinner } from "@/components/ui/spinner";
+import { validateCryptoAmount } from '@/hooks/payments/crypto/validationUtils';
 
 interface CryptoPaymentTabProps {
   amount: number;
@@ -63,6 +63,16 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
     if (isKycNeeded) {
       toast.error("KYC Verification Required", {
         description: "For purchases over $3,000, you need to complete KYC verification first.",
+        duration: 5000,
+      });
+      return;
+    }
+
+    // Validate minimum amount
+    const validation = validateCryptoAmount(amount, selectedCurrency);
+    if (!validation.isValid) {
+      toast.error("Amount Too Low", {
+        description: validation.message,
         duration: 5000,
       });
       return;

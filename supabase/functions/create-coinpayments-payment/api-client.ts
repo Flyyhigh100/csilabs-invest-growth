@@ -80,8 +80,9 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
     }
     
     // Build query parameters with RFC 3986 compliant encoding
-    const nonce = generateNonce();
-    console.log('Generated nonce:', nonce);
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const nonce = timestamp; // CoinPayments prefers simple timestamp nonce
+    console.log('Using timestamp as nonce:', nonce);
     
     const queryParams = new URLSearchParams({
       cmd: command,
@@ -118,6 +119,10 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
     console.log(`CoinPayments API response for ${command}: ${JSON.stringify(data).substring(0, 300)}...`);
     
     if (data.error !== "ok") {
+      // Check for specific error cases
+      if (data.error.includes("Amount too small")) {
+        throw new Error("Transaction amount is too low to cover network fees");
+      }
       console.error(`CoinPayments API error: ${data.error}`);
       throw new Error(`CoinPayments API error: ${data.error}`);
     }

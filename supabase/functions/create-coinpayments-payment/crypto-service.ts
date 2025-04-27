@@ -30,6 +30,14 @@ export async function createCryptoPayment(
     if (!amount || amount <= 0) {
       return { success: false, message: "Invalid amount" };
     }
+
+    // Add minimum amount validation
+    if (amount < 10) {
+      return { 
+        success: false, 
+        message: `Minimum payment amount is $10 USD to cover network fees for ${currency}` 
+      };
+    }
     
     if (!walletAddress) {
       return { success: false, message: "Missing wallet address" };
@@ -85,11 +93,18 @@ export async function createCryptoPayment(
       };
     } catch (apiError) {
       console.error("CoinPayments API call failed:", apiError);
-      // If mock data is allowed, we'll get mock data from the api-client
-      // Otherwise it will have thrown an error already
+      
+      // Format user-friendly error message
+      let errorMessage = "Failed to create payment";
+      if (apiError instanceof Error) {
+        if (apiError.message.includes("Amount too small") || apiError.message.includes("network fees")) {
+          errorMessage = `Minimum payment amount required for ${currency} to cover network fees`;
+        }
+      }
+      
       return { 
         success: false, 
-        message: apiError instanceof Error ? apiError.message : "Unknown error creating payment",
+        message: errorMessage,
         debug: { error: apiError } 
       };
     }
