@@ -1,39 +1,32 @@
 
+import { PRICE_CACHE_DURATION, FORCE_REFRESH_CACHE } from '../config';
+import { isValidPrice, isValidPriceChange } from './priceValidation';
+
 // Cache mechanism for current price
 let cachedCurrentPrice: { price: number; timestamp: number } | null = null;
-
-// Import cache duration from config to maintain single source of truth
-import { PRICE_CACHE_DURATION } from '../config';
 
 export { PRICE_CACHE_DURATION };
 
 export const getCachedPrice = () => cachedCurrentPrice;
 
 export const setCachedPrice = (price: number) => {
-  if (!isValidPriceChange(price)) {
-    console.warn('Suspicious price change detected:', price);
-    return; // Don't cache suspicious price changes
+  // Don't cache invalid prices
+  if (!isValidPrice(price)) {
+    console.warn('Attempted to cache invalid price:', price);
+    return false;
+  }
+  
+  // Check for suspicious price changes
+  if (cachedCurrentPrice?.price) {
+    if (!isValidPriceChange(price, cachedCurrentPrice.price)) {
+      console.warn('Suspicious price change rejected');
+      return false;
+    }
   }
   
   console.log('Caching new price:', price, 'at:', new Date().toISOString());
   cachedCurrentPrice = { price, timestamp: Date.now() };
-};
-
-// Validate price changes to prevent caching obviously wrong values
-const isValidPriceChange = (newPrice: number): boolean => {
-  if (!cachedCurrentPrice) return true; // Accept first price
-  
-  const priceChange = Math.abs(newPrice - cachedCurrentPrice.price);
-  const changePercentage = (priceChange / cachedCurrentPrice.price) * 100;
-  
-  // Log significant price changes
-  if (changePercentage > 5) {
-    console.log(`Significant price change detected: ${changePercentage.toFixed(2)}%`);
-    console.log(`Old price: ${cachedCurrentPrice.price}, New price: ${newPrice}`);
-  }
-  
-  // Reject extreme price changes (>50%) and invalid prices
-  return changePercentage <= 50 && newPrice > 0;
+  return true;
 };
 
 export const getTimeUntilNextPriceRefresh = (): number => {
@@ -47,6 +40,14 @@ export const getTimeUntilNextPriceRefresh = (): number => {
 
 export const getPriceLastUpdatedTime = (): number | null => {
   return cachedCurrentPrice ? cachedCurrentPrice.timestamp : null;
+};
+
+export const shouldRefreshPrice = (): boolean => {
+  if (FORCE_REFRESH_CACHE) return true;
+  if (!cachedCurrentPrice) return true;
+  
+  const elapsed = Date.now() - cachedCurrentPrice.timestamp;
+  return elapsed >= PRICE_CACHE_DURATION;
 };
 
 export const invalidateCache = () => {
