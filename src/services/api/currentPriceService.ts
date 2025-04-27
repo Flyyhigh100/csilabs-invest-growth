@@ -1,5 +1,6 @@
 
 import { fetchDexScreenerPrice } from './dexScreenerPriceService';
+import { fetchDefinedPrice } from './definedPriceService';
 import { ENABLE_LOGGING } from './config';
 import { 
   getCachedPrice, 
@@ -21,18 +22,34 @@ export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Pro
     }
     
     if (ENABLE_LOGGING) {
-      console.log('Fetching current token price from DexScreener, force refresh:', forceRefresh);
+      console.log('Fetching current token price from Defined.fi, force refresh:', forceRefresh);
     }
     
-    const price = await fetchDexScreenerPrice();
-    
-    // Attempt to cache the new price
-    const cached = setCachedPrice(price);
-    if (!cached && ENABLE_LOGGING) {
-      console.warn('Price was fetched but not cached due to validation failure');
+    // First try Defined.fi API
+    try {
+      const price = await fetchDefinedPrice();
+      
+      // Attempt to cache the new price
+      const cached = setCachedPrice(price);
+      if (!cached && ENABLE_LOGGING) {
+        console.warn('Price was fetched but not cached due to validation failure');
+      }
+      
+      return price;
+    } catch (definedError) {
+      console.error('Error fetching from Defined.fi, falling back to DexScreener:', definedError);
+      
+      // Fall back to DexScreener if Defined.fi fails
+      const price = await fetchDexScreenerPrice();
+      
+      // Attempt to cache the new price
+      const cached = setCachedPrice(price);
+      if (!cached && ENABLE_LOGGING) {
+        console.warn('Price was fetched but not cached due to validation failure');
+      }
+      
+      return price;
     }
-    
-    return price;
   } catch (error) {
     console.error('Error in fetchCurrentTokenPrice:', error);
     

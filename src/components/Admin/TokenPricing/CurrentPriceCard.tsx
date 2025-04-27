@@ -70,7 +70,7 @@ const CurrentPriceCard: React.FC<CurrentPriceCardProps> = ({
             </div>
             <div className="flex justify-between">
               <span>Cache duration:</span>
-              <span className="font-medium">30 seconds</span>
+              <span className="font-medium">60 seconds</span>
             </div>
           </AlertDescription>
         </Alert>

@@ -13,7 +13,7 @@ const PriceDebugger = () => {
   const { currentPrice, error, lastUpdated, timeUntilNextUpdate, refreshPrice } = useTokenPrice();
   
   const isDemoData = error !== null;
-  const apiStatus = useUniswapApiStatus();
+  const apiStatus = useDefinedApiStatus();
   
   return (
     <Card>
@@ -64,8 +64,9 @@ const PriceDebugger = () => {
               <div className="space-y-1">
                 <p><strong>Token Address:</strong> {TOKEN_ADDRESS}</p>
                 <p><strong>Chain ID:</strong> {CHAIN_ID}</p>
-                <p><strong>Cache Duration:</strong> {Math.ceil(timeUntilNextUpdate / 1000)}s</p>
-                <p><strong>Data Source:</strong> Uniswap V2 Subgraph</p>
+                <p><strong>Cache Duration:</strong> 60s</p>
+                <p><strong>Primary Data Source:</strong> Defined.fi API</p>
+                <p><strong>Fallback Source:</strong> DexScreener</p>
               </div>
             </AlertDescription>
           </Alert>
@@ -77,7 +78,7 @@ const PriceDebugger = () => {
                 Error Details
               </h4>
               <p className="text-xs text-red-600">{error.message}</p>
-              <p className="text-xs text-red-500 mt-2">Check Uniswap connection in the Diagnostics tab</p>
+              <p className="text-xs text-red-500 mt-2">Check API connection in the Diagnostics tab</p>
             </div>
           )}
         </div>
@@ -86,23 +87,16 @@ const PriceDebugger = () => {
   );
 };
 
-// Custom hook to check Uniswap API status
-function useUniswapApiStatus() {
+// Custom hook to check Defined.fi API status
+function useDefinedApiStatus() {
   const [isConnected, setIsConnected] = React.useState<boolean>(false);
   
   React.useEffect(() => {
     const checkApiStatus = async () => {
       try {
-        const response = await fetch(UNISWAP_SUBGRAPH_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query: `{ _meta { block { number } } }`
-          })
-        });
-        
-        const data = await response.json();
-        setIsConnected(response.ok && !!data?.data?._meta);
+        // Just attempt to fetch the price as a connectivity test
+        await fetch('https://api.defined.fi/api/v0/healthcheck');
+        setIsConnected(true);
       } catch (error) {
         console.error('Error checking API status:', error);
         setIsConnected(false);
