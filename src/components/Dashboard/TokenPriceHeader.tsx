@@ -75,7 +75,7 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
         </Button>
         <div className="text-xs text-gray-500">
           <span>Last updated: {formattedLastUpdated}</span>
-          <span className="ml-2 text-cbis-blue">via Uniswap V3 (Polygon)</span>
+          <span className="ml-2 text-cbis-blue">via DexScreener (Polygon)</span>
         </div>
       </div>
     </Card>
@@ -83,4 +83,3 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
 };
 
 export default TokenPriceHeader;
-

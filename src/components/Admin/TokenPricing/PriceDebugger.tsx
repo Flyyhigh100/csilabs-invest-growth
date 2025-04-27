@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTokenPrice } from '@/context/TokenPriceContext';
-import { TOKEN_ADDRESS, CHAIN_ID, UNISWAP_SUBGRAPH_URL } from '@/services/api/config';
+import { TOKEN_ADDRESS, CHAIN_ID } from '@/services/api/config';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -13,7 +13,7 @@ const PriceDebugger = () => {
   const { currentPrice, error, lastUpdated, timeUntilNextUpdate, refreshPrice } = useTokenPrice();
   
   const isDemoData = error !== null;
-  const apiStatus = useDefinedApiStatus();
+  const apiStatus = useDexScreenerApiStatus();
   
   return (
     <Card>
@@ -65,8 +65,7 @@ const PriceDebugger = () => {
                 <p><strong>Token Address:</strong> {TOKEN_ADDRESS}</p>
                 <p><strong>Chain ID:</strong> {CHAIN_ID}</p>
                 <p><strong>Cache Duration:</strong> 60s</p>
-                <p><strong>Primary Data Source:</strong> Defined.fi API</p>
-                <p><strong>Fallback Source:</strong> DexScreener</p>
+                <p><strong>Primary Data Source:</strong> DexScreener API</p>
               </div>
             </AlertDescription>
           </Alert>
@@ -87,15 +86,15 @@ const PriceDebugger = () => {
   );
 };
 
-// Custom hook to check Defined.fi API status
-function useDefinedApiStatus() {
+// Custom hook to check DexScreener API status
+function useDexScreenerApiStatus() {
   const [isConnected, setIsConnected] = React.useState<boolean>(false);
   
   React.useEffect(() => {
     const checkApiStatus = async () => {
       try {
-        // Just attempt to fetch the price as a connectivity test
-        await fetch('https://api.defined.fi/api/v0/healthcheck');
+        // Attempt to fetch a price as a connectivity test
+        await fetch('https://api.dexscreener.com/latest/dex/tokens/0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f4');
         setIsConnected(true);
       } catch (error) {
         console.error('Error checking API status:', error);

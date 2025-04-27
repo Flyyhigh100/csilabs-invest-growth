@@ -4,7 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
-import { fetchDefinedPrice } from '@/services/api/definedPriceService';
+import { fetchDexScreenerPrice } from '@/services/api/dexScreenerPriceService';
 
 const APIKeyValidator: React.FC = () => {
   const [isValid, setIsValid] = useState<boolean | null>(null);
@@ -15,10 +15,10 @@ const APIKeyValidator: React.FC = () => {
     setIsChecking(true);
     
     try {
-      await fetchDefinedPrice();
+      await fetchDexScreenerPrice();
       setIsValid(true);
     } catch (error) {
-      console.error('API key validation error:', error);
+      console.error('API validation error:', error);
       setIsValid(false);
     } finally {
       setIsChecking(false);
@@ -34,7 +34,7 @@ const APIKeyValidator: React.FC = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          API Key Configuration
+          API Configuration
           {isValid !== null && (
             <Badge variant={isValid ? "success" : "destructive"}>
               {isValid ? 'Valid' : 'Invalid'}
@@ -54,13 +54,13 @@ const APIKeyValidator: React.FC = () => {
             )}
             
             <div>
-              <h4 className="text-sm font-medium">Defined.fi API Key</h4>
+              <h4 className="text-sm font-medium">DexScreener API</h4>
               <p className="text-xs text-gray-500">
                 {isValid === true
-                  ? 'API key is valid and working correctly'
+                  ? 'API connection is working correctly'
                   : isValid === false
-                  ? 'API key validation failed, check environment variables'
-                  : 'Checking API key...'}
+                  ? 'API validation failed, check network connectivity'
+                  : 'Checking API connection...'}
               </p>
               {lastChecked && (
                 <p className="text-xs text-gray-400 mt-1">
@@ -87,7 +87,7 @@ const APIKeyValidator: React.FC = () => {
           ) : (
             <>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Validate API Key
+              Validate Connection
             </>
           )}
         </Button>
