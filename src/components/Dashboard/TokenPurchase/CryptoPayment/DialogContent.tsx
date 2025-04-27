@@ -92,8 +92,8 @@ const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
         <StatusCheckSection statusUrl={paymentDetails.statusUrl} />
       )}
       
-      {/* Add an info banner for test mode */}
-      <Alert variant="info" className="bg-blue-50 border-blue-200 text-blue-800">
+      {/* Change variant from "info" to "default" */}
+      <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-800">
         <AlertDescription>
           <strong>Payment Testing Info:</strong> You can visit the Transactions page to check payment status or use the link above to track your payment on CoinPayments.
         </AlertDescription>
