@@ -1,9 +1,6 @@
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
-/**
- * Process transaction status data from CoinPayments API and update our database
- */
 export async function processTransactionStatus(
   supabase: SupabaseClient,
   transaction: any,
@@ -24,14 +21,14 @@ export async function processTransactionStatus(
     
     // Extract status data from the CoinPayments API response
     const result = statusData.result;
-    console.log(`Status data result:`, JSON.stringify(result).substring(0, 200) + '...');
+    console.log(`Status data result:`, JSON.stringify(result));
     
     // Map CoinPayments status to our internal status
     let newStatus = mapCoinPaymentsStatus(result.status);
     const oldStatus = transaction.status;
     
-    // If the status hasn't changed, return early with updated=false
-    if (newStatus === oldStatus) {
+    // If the status hasn't changed, return early unless we're forcing an update
+    if (newStatus === oldStatus && !storeExternalIds) {
       console.log(`Transaction ${transaction.id} status unchanged: ${oldStatus}`);
       return {
         success: true,
@@ -51,11 +48,22 @@ export async function processTransactionStatus(
       updated_at: new Date().toISOString()
     };
     
+    // Add completion data if the transaction is completed
+    if (newStatus === 'completed' && !transaction.completed_at) {
+      updateData.completed_at = new Date().toISOString();
+      
+      // Store blockchain transaction ID if available
+      if (result.send_txid) {
+        updateData.blockchain_tx_id = result.send_txid;
+        console.log(`Setting blockchain transaction ID: ${result.send_txid}`);
+      }
+    }
+    
     // Store external transaction data if requested
     if (storeExternalIds && result.txn_id) {
       updateData.external_data = result;
       updateData.external_status = result.status;
-      updateData.external_status_text = mapCoinPaymentsStatusToText(result.status);
+      updateData.external_status_text = getStatusDescription(result.status);
     }
     
     // Update the transaction in the database
@@ -83,7 +91,8 @@ export async function processTransactionStatus(
       updated: true,
       transaction: updatedTransaction,
       newStatus: newStatus,
-      previousStatus: oldStatus
+      previousStatus: oldStatus,
+      blockchain_tx_id: updateData.blockchain_tx_id
     };
   } catch (error) {
     console.error('Error processing transaction status:', error);
@@ -92,35 +101,5 @@ export async function processTransactionStatus(
       message: `Exception: ${error.message || 'Unknown error'}`,
       updated: false
     };
-  }
-}
-
-/**
- * Maps CoinPayments numeric status to our internal status string
- */
-function mapCoinPaymentsStatus(statusCode: number): string {
-  switch (statusCode) {
-    case -1: return 'cancelled';    // Cancelled / Timed Out
-    case 0:  return 'pending';      // Waiting for buyer funds
-    case 1:  return 'pending';      // Funds received, waiting for confirmation
-    case 2:  return 'completed';    // Confirmed and completed
-    case 3:  return 'completed';    // Complete - Sent to Receiver
-    case 100: return 'completed';   // Complete
-    default: return 'pending';      // Default to pending for unknown status
-  }
-}
-
-/**
- * Maps CoinPayments numeric status codes to readable text
- */
-function mapCoinPaymentsStatusToText(statusCode: number): string {
-  switch (statusCode) {
-    case -1: return 'Cancelled / Timed Out';
-    case 0:  return 'Waiting for buyer to send funds';
-    case 1:  return 'Funds received, waiting for confirmations';
-    case 2:  return 'Confirmed and completed';
-    case 3:  return 'Complete - Funds sent to receiver';
-    case 100: return 'Complete';
-    default: return `Unknown status (${statusCode})`;
   }
 }
