@@ -33,9 +33,6 @@ api_url = "http://localhost"
 [inbucket]
 # Port to use for the email testing server web interface.
 port = 54324
-# Uncomment to expose additional ports for testing
-# smtp_port = 54325
-# pop3_port = 54326
 
 [storage]
 # The maximum file size allowed (e.g. "5MB", "500KB").
@@ -50,10 +47,3 @@ verify_jwt = true
 USE_MOCK_DATA = "false"
 ALLOW_MOCK_FALLBACK = "true"
 COINPAYMENTS_IPN_URL = "https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/coinpayments-ipn-webhook"
-
-[functions.check-coinpayments-status]
-verify_jwt = true
-
-[functions.coinpayments-ipn-webhook]
-verify_jwt = false
-

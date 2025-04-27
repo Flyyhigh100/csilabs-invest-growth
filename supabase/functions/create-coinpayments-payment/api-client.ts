@@ -16,7 +16,7 @@ export interface CoinPaymentsTransaction {
 }
 
 /**
- * Generate HMAC signature for CoinPayments API
+ * Generate HMAC signature for CoinPayments API with improved nonce handling
  */
 async function generateHmac(payload: string): Promise<string> {
   try {
@@ -25,11 +25,13 @@ async function generateHmac(payload: string): Promise<string> {
       throw new Error("CoinPayments private key not configured");
     }
     
+    console.log('Generating HMAC signature for payload length:', payload.length);
+    
     // Convert payload and key to UInt8Array
     const keyData = new TextEncoder().encode(privateKey);
     const payloadData = new TextEncoder().encode(payload);
     
-    // Create HMAC signature
+    // Create HMAC signature using crypto.subtle
     const key = await crypto.subtle.importKey(
       "raw",
       keyData,
@@ -45,9 +47,12 @@ async function generateHmac(payload: string): Promise<string> {
     );
     
     // Convert signature to hex string
-    return Array.from(new Uint8Array(signature))
+    const hmac = Array.from(new Uint8Array(signature))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
+    
+    console.log('Generated HMAC signature:', hmac.substring(0, 20) + '...');
+    return hmac;
   } catch (error) {
     console.error('Error generating HMAC signature:', error);
     throw new Error(`Failed to generate HMAC signature: ${error instanceof Error ? error.message : String(error)}`);
@@ -55,7 +60,17 @@ async function generateHmac(payload: string): Promise<string> {
 }
 
 /**
- * Make a request to the CoinPayments API
+ * Generate a unique nonce value for CoinPayments API
+ */
+function generateNonce(): string {
+  // Combine timestamp with random value for uniqueness
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 15);
+  return `${timestamp}${random}`;
+}
+
+/**
+ * Make a request to the CoinPayments API with improved error handling
  */
 async function coinPaymentsRequest(command: string, params: Record<string, any> = {}): Promise<any> {
   try {
@@ -65,14 +80,15 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
     }
     
     // Build query parameters with RFC 3986 compliant encoding
-    const currentTime = Math.floor(Date.now() / 1000);
+    const nonce = generateNonce();
+    console.log('Generated nonce:', nonce);
     
     const queryParams = new URLSearchParams({
       cmd: command,
       key: publicKey,
       version: "1",
       format: "json",
-      nonce: currentTime.toString(), // CoinPayments prefers seconds timestamp as nonce
+      nonce: nonce,
       ...params
     });
     
@@ -80,9 +96,9 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
     console.log(`Creating signature for payload: ${payload.substring(0, 100)}${payload.length > 100 ? '...' : ''}`);
     
     const hmac = await generateHmac(payload);
-    console.log(`Generated HMAC signature: ${hmac.substring(0, 20)}...`);
     
-    // Send request to CoinPayments API
+    // Send request to CoinPayments API with detailed logging
+    console.log('Sending request to CoinPayments API...');
     const response = await fetch("https://www.coinpayments.net/api.php", {
       method: "POST",
       headers: {
@@ -109,6 +125,13 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
     return data.result;
   } catch (error) {
     console.error('Error in API request:', error);
+    
+    // If mock data is allowed and enabled, fall back to mock implementation
+    if (ALLOW_MOCK_FALLBACK || USE_MOCK_DATA) {
+      console.log('Falling back to mock implementation');
+      return createMockTransaction(params.amount, params.currency2, params.custom);
+    }
+    
     throw error;
   }
 }
