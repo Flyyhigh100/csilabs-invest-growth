@@ -31,11 +31,11 @@ export async function createCryptoPayment(
       return { success: false, message: "Invalid amount" };
     }
 
-    // Add minimum amount validation
-    if (amount < 10) {
+    // Update minimum amount validation
+    if (amount < 2) {
       return { 
         success: false, 
-        message: `Minimum payment amount is $10 USD to cover network fees for ${currency}` 
+        message: `Minimum payment amount is $2 USD to cover network fees for ${currency}` 
       };
     }
     

@@ -5,19 +5,19 @@ interface MinimumAmounts {
 
 // Minimum amounts in USD for each currency to cover network fees
 const MINIMUM_AMOUNTS: MinimumAmounts = {
-  'BTC': 10,
-  'ETH': 10,
-  'USDT': 10,
-  'USDC': 10,
-  'BNB.BSC': 10,
-  'LTC': 10,
-  'DOGE': 10,
-  'TRX': 10,
-  'MATIC': 10
+  'BTC': 2,
+  'ETH': 2,
+  'USDT': 2,
+  'USDC': 2,
+  'BNB.BSC': 2,
+  'LTC': 2,
+  'DOGE': 2,
+  'TRX': 2,
+  'MATIC': 2
 };
 
 export function validateCryptoAmount(amount: number, currency: string): { isValid: boolean; message?: string } {
-  const minAmount = MINIMUM_AMOUNTS[currency] || 10; // Default to $10 if currency not listed
+  const minAmount = MINIMUM_AMOUNTS[currency] || 2; // Default to $2 if currency not listed
   
   if (amount < minAmount) {
     return {
