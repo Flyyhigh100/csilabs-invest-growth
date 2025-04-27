@@ -1,4 +1,3 @@
-
 // Mock implementation for local testing
 const USE_MOCK_DATA = Deno.env.get("USE_MOCK_DATA") === "true";
 const ALLOW_MOCK_FALLBACK = Deno.env.get("ALLOW_MOCK_FALLBACK") === "true";
@@ -62,10 +61,15 @@ async function generateHmac(payload: string): Promise<string> {
 
 /**
  * Generate a unique nonce value for CoinPayments API with full millisecond precision
+ * and random suffix to avoid collisions
  */
 function generateNonce(): string {
-  // Return a simple millisecond timestamp as nonce per CoinPayments documentation
-  return Date.now().toString();
+  // Use a millisecond timestamp + random suffix for better uniqueness
+  const timestamp = Date.now();
+  const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  const nonce = `${timestamp}${randomSuffix}`;
+  console.log(`Generated unique nonce: ${nonce}`);
+  return nonce;
 }
 
 /**
@@ -80,7 +84,7 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
     
     // Build query parameters with updated nonce
     const nonce = generateNonce();
-    console.log('Using millisecond timestamp as nonce:', nonce);
+    console.log(`Using unique nonce: ${nonce}`);
     
     const queryParams = new URLSearchParams({
       cmd: command,

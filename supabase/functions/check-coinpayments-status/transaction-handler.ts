@@ -1,5 +1,6 @@
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
+import { mapCoinPaymentsStatus, getStatusDescription } from "../coinpayments-ipn-webhook/status-mapper.ts";
 
 export async function processTransactionStatus(
   supabase: SupabaseClient,
@@ -23,9 +24,13 @@ export async function processTransactionStatus(
     const result = statusData.result;
     console.log(`Status data result:`, JSON.stringify(result));
     
-    // Map CoinPayments status to our internal status
+    // Map CoinPayments status to our internal status using the consistent mapper
     let newStatus = mapCoinPaymentsStatus(result.status);
     const oldStatus = transaction.status;
+    
+    // Log status information for debugging
+    console.log(`CoinPayments status code: ${result.status}, mapped to: ${newStatus}`);
+    console.log(`Current transaction status: ${oldStatus}`);
     
     // If the status hasn't changed, return early unless we're forcing an update
     if (newStatus === oldStatus && !storeExternalIds) {
@@ -48,8 +53,8 @@ export async function processTransactionStatus(
       updated_at: new Date().toISOString()
     };
     
-    // Add completion data if the transaction is completed
-    if (newStatus === 'completed' && !transaction.completed_at) {
+    // Add completion data if the transaction is completed or confirmed
+    if ((newStatus === 'completed' || newStatus === 'confirmed') && !transaction.completed_at) {
       updateData.completed_at = new Date().toISOString();
       
       // Store blockchain transaction ID if available

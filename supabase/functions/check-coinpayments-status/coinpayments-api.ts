@@ -29,10 +29,14 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<any> 
       requestData.append('txid', txnId);
       requestData.append('full', '1');
       
-      // Add timestamp for request
-      const requestTime = Math.floor(Date.now() / 1000).toString();
+      // Create a unique nonce using millisecond precision timestamp + random suffix
+      const timestamp = Date.now();
+      const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      const nonce = `${timestamp}${randomSuffix}`;
+      console.log(`Using nonce: ${nonce} for transaction ${txnId}`);
+      
       requestData.append('format', 'json');
-      requestData.append('nonce', requestTime);
+      requestData.append('nonce', nonce);
       
       // Create HMAC signature using native crypto
       const encoder = new TextEncoder();
@@ -50,7 +54,7 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<any> 
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
       
-      console.log(`Making API request to CoinPayments for transaction ${txnId}`);
+      console.log(`Making API request to CoinPayments for transaction ${txnId} with nonce ${nonce}`);
       
       // Make the API request
       const response = await fetch('https://www.coinpayments.net/api.php', {

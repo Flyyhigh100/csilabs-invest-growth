@@ -13,10 +13,12 @@ export function mapCoinPaymentsStatus(statusCode: number): string {
     return 'failed';
   } else if (statusCode === 0) {
     return 'pending';
-  } else if (statusCode === 1 || statusCode >= 100) {
-    return 'completed';
-  } else if (statusCode >= 2) {
-    return 'completed'; // Any confirmation should mark as completed
+  } else if (statusCode === 1) {
+    return 'confirmed'; // Received payment but still processing
+  } else if (statusCode >= 2 && statusCode < 100) {
+    return 'confirmed'; // Got confirmations, almost done
+  } else if (statusCode >= 100) {
+    return 'completed'; // Fully completed
   } else {
     console.warn(`Unknown CoinPayments status code: ${statusCode}, falling back to 'pending'`);
     return 'pending';
@@ -34,9 +36,15 @@ export function getStatusDescription(statusCode: number): string {
       return 'Waiting for payment';
     case 1:
       return 'Payment received';
+    case 2:
+      return 'Payment confirmed';
     case 100:
       return 'Payment complete';
     default:
-      return statusCode >= 2 ? `Payment confirmed (${statusCode} confirmations)` : 'Unknown status';
+      return statusCode > 2 && statusCode < 100 
+        ? `Payment confirmed (${statusCode} confirmations)` 
+        : statusCode >= 100 
+          ? 'Payment complete' 
+          : 'Unknown status';
   }
 }
