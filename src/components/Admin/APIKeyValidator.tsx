@@ -82,69 +82,6 @@ const APIKeyValidator = () => {
     }
   };
 
-  const validateStripeKeys = async () => {
-    setIsValidating(true);
-    
-    try {
-      toast.info("Validating Stripe API keys...");
-      
-      const { data, error } = await supabase.functions.invoke('validate-api-keys', {
-        body: {
-          service: 'stripe'
-        }
-      });
-      
-      if (error) {
-        console.error("Error validating Stripe API keys:", error);
-        setResults(prev => [...prev, {
-          isValid: false,
-          details: `Function error: ${error.message || "Unknown error"}`,
-          service: 'stripe'
-        }]);
-        toast.error("Stripe API key validation failed");
-        return;
-      }
-      
-      // Ensure we have valid data before setting results
-      if (data) {
-        setResults(prev => [...prev, {
-          isValid: !!data.isValid,
-          details: data.details || "No details provided",
-          rawResponse: data,
-          service: data.service || 'stripe'
-        }]);
-        
-        if (data.isValid) {
-          toast.success(`${data.service || 'Stripe'} API keys valid`, {
-            description: data.details
-          });
-        } else {
-          toast.error(`${data.service || 'Stripe'} API keys invalid`, {
-            description: data.details
-          });
-        }
-      } else {
-        // Handle case when no data is returned
-        setResults(prev => [...prev, {
-          isValid: false,
-          details: "No validation result returned",
-          service: 'stripe'
-        }]);
-        toast.error("Stripe API key validation failed - no data returned");
-      }
-    } catch (err: any) {
-      console.error("Exception during validation:", err);
-      setResults(prev => [...prev, {
-        isValid: false,
-        details: `Exception: ${err.message || "Unknown error"}`,
-        service: 'stripe'
-      }]);
-      toast.error("Stripe API key validation failed");
-    } finally {
-      setIsValidating(false);
-    }
-  };
-
   const toggleDetails = (service: string) => {
     setShowDetails(prev => ({
       ...prev,
@@ -155,15 +92,14 @@ const APIKeyValidator = () => {
   return (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle>API Key Validator</CardTitle>
+        <CardTitle>CoinPayments API Key Validator</CardTitle>
         <CardDescription>
-          Check if your API keys are properly configured and working
+          Check if your CoinPayments API keys are properly configured and working
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {results.map((result, index) => {
-            // Make sure we have a valid service string before using it
             const serviceName = result.service || 'unknown';
             
             return (
@@ -204,7 +140,7 @@ const APIKeyValidator = () => {
           {results.length === 0 && !isValidating && (
             <div className="flex items-center gap-2 text-gray-500 text-sm">
               <AlertCircle className="h-4 w-4" />
-              <span>No validation results yet. Click one of the buttons below to check your API keys.</span>
+              <span>No validation results yet. Click the button below to check your CoinPayments API keys.</span>
             </div>
           )}
           
@@ -216,21 +152,14 @@ const APIKeyValidator = () => {
           )}
         </div>
       </CardContent>
-      <CardFooter className="flex flex-wrap gap-4">
+      <CardFooter>
         <Button
           onClick={validateCoinPaymentsKeys}
           disabled={isValidating}
+          className="w-full"
         >
           {isValidating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Validate CoinPayments API Keys
-        </Button>
-        <Button
-          onClick={validateStripeKeys}
-          disabled={isValidating}
-          variant="outline"
-        >
-          {isValidating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Validate Stripe API Keys
         </Button>
       </CardFooter>
     </Card>
