@@ -1,6 +1,6 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { fetchCurrentTokenPrice } from '@/services/tokenDataService';
+import { fetchCurrentTokenPrice } from '@/services/api/priceService';
 import { toast } from "@/components/ui/use-toast";
 
 export const useCurrentPrice = () => {
@@ -20,8 +20,8 @@ export const useCurrentPrice = () => {
         throw error;
       }
     },
-    staleTime: 1 * 60 * 1000, // 1 minute
-    refetchInterval: 1 * 60 * 1000, // Refresh every minute
+    staleTime: 60 * 1000, // 1 minute
+    refetchInterval: 60 * 1000, // Refresh every minute
     refetchOnWindowFocus: true,
     retry: 3,
   });

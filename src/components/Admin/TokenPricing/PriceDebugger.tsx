@@ -7,7 +7,6 @@ import { TOKEN_ADDRESS, CHAIN_ID } from '@/services/api/config';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from '@/integrations/supabase/client';
 
 const PriceDebugger = () => {
   const { currentPrice, error, lastUpdated, timeUntilNextUpdate, refreshPrice } = useTokenPrice();
@@ -94,7 +93,7 @@ function useDexScreenerApiStatus() {
     const checkApiStatus = async () => {
       try {
         // Attempt to fetch a price as a connectivity test
-        await fetch('https://api.dexscreener.com/latest/dex/tokens/0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f4');
+        await fetch('https://api.dexscreener.com/latest/dex/pairs/polygon/0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f4');
         setIsConnected(true);
       } catch (error) {
         console.error('Error checking API status:', error);

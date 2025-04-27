@@ -43,6 +43,7 @@ export const TokenPriceProvider = ({
     try {
       setIsLoading(true);
       const price = await fetchCurrentTokenPrice(showToast);
+      console.log('TokenPriceContext received price:', price);
       setCurrentPrice(price);
       setLastUpdated(new Date());
       
@@ -69,9 +70,7 @@ export const TokenPriceProvider = ({
   
   useEffect(() => {
     fetchPrice();
-  }, []);
-  
-  useEffect(() => {
+    
     const intervalId = setInterval(() => {
       fetchPrice();
     }, refreshInterval);

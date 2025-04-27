@@ -20,6 +20,8 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
     error 
   } = useTokenPrice();
   
+  console.log('TokenPriceHeader rendering with price:', currentPrice, 'loading:', isLoading);
+  
   const formattedLastUpdated = lastUpdated 
     ? lastUpdated.toLocaleTimeString() 
     : 'Not yet updated';
