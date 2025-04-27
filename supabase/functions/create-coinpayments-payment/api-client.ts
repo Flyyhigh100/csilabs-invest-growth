@@ -1,3 +1,4 @@
+
 // Mock implementation for local testing
 const USE_MOCK_DATA = Deno.env.get("USE_MOCK_DATA") === "true";
 const ALLOW_MOCK_FALLBACK = Deno.env.get("ALLOW_MOCK_FALLBACK") === "true";
@@ -16,7 +17,7 @@ export interface CoinPaymentsTransaction {
 }
 
 /**
- * Generate HMAC signature for CoinPayments API with improved nonce handling
+ * Generate HMAC signature for CoinPayments API with improved millisecond precision nonce
  */
 async function generateHmac(payload: string): Promise<string> {
   try {
@@ -49,7 +50,7 @@ async function generateHmac(payload: string): Promise<string> {
     // Convert signature to hex string
     const hmac = Array.from(new Uint8Array(signature))
       .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+      .join('').toUpperCase();
     
     console.log('Generated HMAC signature:', hmac.substring(0, 20) + '...');
     return hmac;
@@ -60,17 +61,15 @@ async function generateHmac(payload: string): Promise<string> {
 }
 
 /**
- * Generate a unique nonce value for CoinPayments API
+ * Generate a unique nonce value for CoinPayments API with full millisecond precision
  */
 function generateNonce(): string {
-  // Combine timestamp with random value for uniqueness
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 15);
-  return `${timestamp}${random}`;
+  // Return a simple millisecond timestamp as nonce per CoinPayments documentation
+  return Date.now().toString();
 }
 
 /**
- * Make a request to the CoinPayments API with improved error handling
+ * Make a request to the CoinPayments API with improved error handling and nonce generation
  */
 async function coinPaymentsRequest(command: string, params: Record<string, any> = {}): Promise<any> {
   try {
@@ -79,10 +78,9 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
       throw new Error("CoinPayments public key not configured");
     }
     
-    // Build query parameters with RFC 3986 compliant encoding
-    const timestamp = Math.floor(Date.now() / 1000).toString();
-    const nonce = timestamp; // CoinPayments prefers simple timestamp nonce
-    console.log('Using timestamp as nonce:', nonce);
+    // Build query parameters with updated nonce
+    const nonce = generateNonce();
+    console.log('Using millisecond timestamp as nonce:', nonce);
     
     const queryParams = new URLSearchParams({
       cmd: command,
@@ -109,13 +107,22 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
       body: payload
     });
     
+    // Better HTTP error handling
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`CoinPayments API HTTP error: ${response.status} ${response.statusText}`, errorText);
       throw new Error(`CoinPayments API HTTP error: ${response.status} ${response.statusText}`);
     }
     
-    const data = await response.json();
+    // Parse and validate API response
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      console.error('Error parsing API response:', parseError);
+      throw new Error(`Could not parse CoinPayments API response: ${parseError.message}`);
+    }
+    
     console.log(`CoinPayments API response for ${command}: ${JSON.stringify(data).substring(0, 300)}...`);
     
     if (data.error !== "ok") {
@@ -142,7 +149,7 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
 }
 
 /**
- * Create a transaction with the CoinPayments API using real API
+ * Create a transaction with the CoinPayments API with improved validation
  */
 async function createRealCoinPaymentsTransaction(
   amount: number,
@@ -153,6 +160,19 @@ async function createRealCoinPaymentsTransaction(
   autoConfirm: boolean = true
 ): Promise<CoinPaymentsTransaction> {
   try {
+    // Additional validation
+    if (!amount || amount <= 0) {
+      throw new Error("Invalid amount: Must be greater than 0");
+    }
+    
+    if (!currency) {
+      throw new Error("Currency must be specified");
+    }
+    
+    if (!walletAddress) {
+      throw new Error("Wallet address must be provided");
+    }
+    
     const params: Record<string, any> = {
       amount: amount.toString(),
       currency1: "USD", // Currency being converted from
@@ -258,7 +278,7 @@ function createMockTransaction(
 }
 
 /**
- * Main function to create a CoinPayments transaction
+ * Main function to create a CoinPayments transaction with improved validations
  */
 export async function createCoinPaymentsTransaction(
   amount: number,
@@ -266,6 +286,19 @@ export async function createCoinPaymentsTransaction(
   itemNumber: string,
   walletAddress: string
 ): Promise<CoinPaymentsTransaction> {
+  // Validate required parameters
+  if (!amount || amount <= 0) {
+    throw new Error("Invalid amount: Must be greater than 0");
+  }
+  
+  if (!currency) {
+    throw new Error("Currency must be specified");
+  }
+  
+  if (!walletAddress) {
+    throw new Error("Wallet address must be provided");
+  }
+  
   // Use mock data if enabled via environment variable
   if (USE_MOCK_DATA) {
     console.log(`Using mock data for CoinPayments transaction (amount: ${amount} ${currency})`);

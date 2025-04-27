@@ -40,7 +40,7 @@ export async function testHmacSignature(privateKey: string): Promise<boolean> {
   }
 }
 
-// Generate HMAC signature for CoinPayments API
+// Generate HMAC signature for CoinPayments API with improved implementation
 export async function generateCoinPaymentsHMAC(encodedParams: string, privateKey: string): Promise<string> {
   try {
     console.log('[CoinPayments] Generating HMAC signature for params:', encodedParams);
@@ -70,8 +70,12 @@ export async function generateCoinPaymentsHMAC(encodedParams: string, privateKey
     );
     
     // Convert to uppercase hex string as required by CoinPayments
-    const hmacHex = toHex(signature).toUpperCase();
-    console.log(`[CoinPayments] Generated HMAC signature (first 32 chars): ${hmacHex.substring(0, 32)}...`);
+    const hmacHex = Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+      .toUpperCase();
+    
+    console.log('[CoinPayments] Generated HMAC signature (first 32 chars):', hmacHex.substring(0, 32) + '...');
     
     return hmacHex;
   } catch (error) {

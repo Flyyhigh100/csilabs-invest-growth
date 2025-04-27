@@ -1,3 +1,4 @@
+
 import { createCoinPaymentsTransaction, CoinPaymentsTransaction } from './api-client.ts';
 
 interface CryptoPaymentResponse {
@@ -16,7 +17,7 @@ interface CryptoPaymentResponse {
 }
 
 /**
- * Create a new crypto payment transaction
+ * Create a new crypto payment transaction with improved validation and error handling
  */
 export async function createCryptoPayment(
   amount: number, 
@@ -27,8 +28,9 @@ export async function createCryptoPayment(
   try {
     console.log(`Creating crypto payment: $${amount} in ${currency} for wallet ${walletAddress}`);
     
-    if (!amount || amount <= 0) {
-      return { success: false, message: "Invalid amount" };
+    // Thorough input validation
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return { success: false, message: "Invalid amount: must be a positive number" };
     }
 
     // Update minimum amount validation
@@ -39,8 +41,12 @@ export async function createCryptoPayment(
       };
     }
     
-    if (!walletAddress) {
-      return { success: false, message: "Missing wallet address" };
+    if (!walletAddress || walletAddress.trim() === '') {
+      return { success: false, message: "Missing or empty wallet address" };
+    }
+
+    if (!currency || currency.trim() === '') {
+      return { success: false, message: "Missing or empty currency code" };
     }
 
     // Check if we have API keys configured
@@ -63,7 +69,7 @@ export async function createCryptoPayment(
     const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
     
     // Calculate token amount if token price is provided
-    const tokenAmount = tokenPrice ? amount / tokenPrice : amount;
+    const tokenAmount = tokenPrice && tokenPrice > 0 ? amount / tokenPrice : amount;
     
     console.log(`Creating CoinPayments transaction for $${amount} in ${currency}`);
     try {
@@ -94,18 +100,46 @@ export async function createCryptoPayment(
     } catch (apiError) {
       console.error("CoinPayments API call failed:", apiError);
       
-      // Format user-friendly error message
+      // Improved error message formatting for user-friendly display
       let errorMessage = "Failed to create payment";
+      let errorDetails = {};
+      
       if (apiError instanceof Error) {
+        errorMessage = apiError.message;
+        errorDetails = { 
+          errorType: 'API Error',
+          message: apiError.message,
+          stack: apiError.stack
+        };
+        
         if (apiError.message.includes("Amount too small") || apiError.message.includes("network fees")) {
           errorMessage = `Minimum payment amount required for ${currency} to cover network fees`;
+        } else if (apiError.message.includes("nonce")) {
+          errorMessage = "API authentication error: Invalid nonce";
+          errorDetails = { 
+            ...errorDetails,
+            suggestion: "This may be due to a timestamp synchronization issue with the API server"
+          };
+        } else if (apiError.message.includes("HMAC")) {
+          errorMessage = "API authentication error: Invalid HMAC signature";
+          errorDetails = { 
+            ...errorDetails,
+            suggestion: "This may be due to incorrect API keys or a payload formatting issue"
+          };
         }
       }
       
       return { 
         success: false, 
         message: errorMessage,
-        debug: { error: apiError } 
+        debug: { 
+          error: errorDetails,
+          params: {
+            amount,
+            currency,
+            walletAddress: walletAddress.substring(0, 10) + '...' // Partial for security
+          }
+        } 
       };
     }
   } catch (error) {
@@ -113,7 +147,10 @@ export async function createCryptoPayment(
     return {
       success: false,
       message: error instanceof Error ? error.message : "Unknown error creating payment",
-      debug: { error }
+      debug: { 
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+        stack: error instanceof Error ? error.stack : undefined
+      }
     };
   }
 }
