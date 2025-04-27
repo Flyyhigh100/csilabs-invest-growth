@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, testHmacSignature, generateCoinPaymentsHMAC } from "./utils.ts";
 
@@ -14,7 +13,6 @@ async function validateDefinedFiKey() {
       };
     }
     
-    // Check key format and length
     if (apiKey.length < 30) {
       return {
         isValid: false,
@@ -23,7 +21,6 @@ async function validateDefinedFiKey() {
       };
     }
 
-    // Attempt a simple API request to validate key
     try {
       const response = await fetch('https://api.defined.fi/api/v1/healthcheck', {
         method: 'GET',
@@ -79,9 +76,9 @@ async function validateDefinedFiKey() {
 
 async function validateCoinPaymentsKeys() {
   try {
-    const publicKey = Deno.env.get('COINPAYMENTS_PUBLIC_KEY');
-    const privateKey = Deno.env.get('COINPAYMENTS_PRIVATE_KEY');
-    const ipnSecret = Deno.env.get('COINPAYMENTS_IPN_SECRET');
+    const publicKey = Deno.env.get('COINPAYMENTS_PUBLIC_KEY')?.trim();
+    const privateKey = Deno.env.get('COINPAYMENTS_PRIVATE_KEY')?.trim();
+    const ipnSecret = Deno.env.get('COINPAYMENTS_IPN_SECRET')?.trim();
     
     if (!publicKey || !privateKey) {
       return { 
@@ -102,9 +99,8 @@ async function validateCoinPaymentsKeys() {
       ipnSecretPresent: !!ipnSecret
     });
     
-    // Basic validation of CoinPayments API keys format
-    const isPublicKeyValid = publicKey.length >= 40; // CoinPayments public keys are typically long
-    const isPrivateKeyValid = privateKey.length >= 40; // CoinPayments private keys are typically long
+    const isPublicKeyValid = publicKey.length >= 40;
+    const isPrivateKeyValid = privateKey.length >= 40;
     
     if (!isPublicKeyValid || !isPrivateKeyValid) {
       return {
@@ -118,7 +114,6 @@ async function validateCoinPaymentsKeys() {
       };
     }
 
-    // Test HMAC signature generation
     const hmacValid = await testHmacSignature(privateKey);
     if (!hmacValid) {
       return {
@@ -128,44 +123,31 @@ async function validateCoinPaymentsKeys() {
       };
     }
 
-    // Attempt a simple API request to validate keys - using most basic 'rates' command
     try {
-      // Get the current Unix timestamp for the nonce
-      const nonce = Math.floor(Date.now() / 1000).toString();
+      const params = {
+        version: '1',
+        cmd: 'get_basic_info',
+        key: publicKey,
+        format: 'json',
+        nonce: Math.floor(Date.now() / 1000).toString()
+      };
       
-      // Instead of using URLSearchParams, create a POST body directly as a string
-      // This ensures the parameters are in a consistent order for signature generation
-      const postParams = `version=1&cmd=rates&key=${publicKey}&format=json&nonce=${nonce}`;
+      const encodedParams = new URLSearchParams(params).toString();
+      console.log('[CoinPayments] Request parameters:', encodedParams);
       
-      console.log('[CoinPayments] API request parameters:', postParams);
+      const hmac = await generateCoinPaymentsHMAC(encodedParams, privateKey);
       
-      // Generate the HMAC signature using our specialized function
-      const hmac = await generateCoinPaymentsHMAC(postParams, privateKey);
+      console.log('[CoinPayments] Making API request with generated HMAC');
       
-      console.log('[CoinPayments] Making API request to CoinPayments');
-      console.log('[CoinPayments] HMAC signature:', hmac);
-      
-      // Make API request
       const response = await fetch('https://www.coinpayments.net/api.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'HMAC': hmac
         },
-        body: postParams
+        body: encodedParams
       });
       
-      // Check response status
-      if (!response.ok) {
-        console.error('[CoinPayments] HTTP error:', response.status, response.statusText);
-        return {
-          isValid: false,
-          details: `HTTP Error: ${response.status} ${response.statusText}`,
-          service: 'coinpayments'
-        };
-      }
-      
-      // Parse response
       const data = await response.json();
       console.log('[CoinPayments] API response:', JSON.stringify(data).substring(0, 200) + '...');
       
@@ -176,7 +158,7 @@ async function validateCoinPaymentsKeys() {
           service: 'coinpayments',
           response: {
             success: true,
-            currencies: Object.keys(data.result).length
+            data: data.result
           }
         };
       } else {
@@ -211,25 +193,21 @@ async function validateCoinPaymentsKeys() {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get the service to validate from the request body
     const requestBody = await req.json();
-    const service = requestBody?.service || 'coinpayments'; // Default to CoinPayments if not specified
+    const service = requestBody?.service || 'coinpayments';
     
     console.log(`Validating API keys for service: ${service}`);
     
     let result;
     
-    // Determine which service to validate
     if (service === 'defined.fi') {
       result = await validateDefinedFiKey();
     } else {
-      // Default to CoinPayments
       result = await validateCoinPaymentsKeys();
     }
     
