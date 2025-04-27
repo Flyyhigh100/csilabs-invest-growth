@@ -1,6 +1,5 @@
 
 import { fetchDexScreenerPrice } from './dexScreenerPriceService';
-import { fetchTokenPriceHistory } from './historicalPriceService';
 import { ENABLE_LOGGING } from './config';
 import { 
   getCachedPrice, 
@@ -25,33 +24,18 @@ export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Pro
       console.log('Fetching current token price from DexScreener, force refresh:', forceRefresh);
     }
     
-    try {
-      // First try real-time price
-      const price = await fetchDexScreenerPrice();
-      const cached = setCachedPrice(price);
-      if (cached) {
-        return price;
-      }
-    } catch (error) {
-      console.log('Real-time price fetch failed, trying historical price fallback');
+    const price = await fetchDexScreenerPrice();
+    const cached = setCachedPrice(price);
+    
+    if (!cached && ENABLE_LOGGING) {
+      console.warn('Price was fetched but not cached due to validation failure');
     }
     
-    // Fallback to latest historical price if real-time fails
-    const historicalData = await fetchTokenPriceHistory();
-    if (historicalData.length > 0) {
-      const latestPrice = historicalData[historicalData.length - 1].price;
-      console.log('Using historical price as fallback:', latestPrice);
-      const cached = setCachedPrice(latestPrice);
-      if (cached) {
-        return latestPrice;
-      }
-    }
-    
-    throw new Error('Could not fetch price from any source');
+    return price;
   } catch (error) {
     console.error('Error in fetchCurrentTokenPrice:', error);
     
-    // Return cached price as final fallback if available
+    // Return cached price as fallback if available
     const cached = getCachedPrice();
     if (cached) {
       console.log('Using cached price as fallback after error');

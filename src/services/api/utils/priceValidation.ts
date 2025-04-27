@@ -1,11 +1,6 @@
 
 import { MAX_PRICE_CHANGE_PERCENTAGE, MIN_VALID_PRICE } from '../config';
 
-/**
- * Validates if a price value is valid
- * @param price The price to validate
- * @returns boolean indicating if price is valid
- */
 export function isValidPrice(price: number | string | null | undefined): boolean {
   // Convert to number if string
   const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
@@ -15,7 +10,8 @@ export function isValidPrice(price: number | string | null | undefined): boolean
     numericPrice === null ||
     numericPrice === undefined ||
     isNaN(Number(numericPrice)) ||
-    numericPrice < MIN_VALID_PRICE
+    numericPrice < MIN_VALID_PRICE ||
+    numericPrice > 2 // Maximum reasonable price threshold
   ) {
     console.warn('Invalid price detected:', numericPrice);
     return false;
@@ -24,9 +20,6 @@ export function isValidPrice(price: number | string | null | undefined): boolean
   return true;
 }
 
-/**
- * Validates if a price change is within acceptable limits
- */
 export function isValidPriceChange(newPrice: number, oldPrice: number): boolean {
   if (!isValidPrice(newPrice) || !isValidPrice(oldPrice)) return false;
   
