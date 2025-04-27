@@ -1,6 +1,6 @@
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
-import { mapCoinPaymentsStatus, getStatusDescription } from "../coinpayments-ipn-webhook/status-mapper.ts";
+import { mapCoinPaymentsStatus, getStatusDescription } from "./status-mapper.ts";
 
 export async function processTransactionStatus(
   supabase: SupabaseClient,

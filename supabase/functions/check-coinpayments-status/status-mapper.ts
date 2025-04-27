@@ -1,39 +1,50 @@
 
-/**
- * Maps CoinPayments status codes to our application status values
- */
+// Map CoinPayments numeric status codes to our internal status strings
 export function mapCoinPaymentsStatus(statusCode: number): string {
-  if (statusCode === 100 || statusCode === 2) {
-    // 100 = Complete, 2 = Confirmed
-    return 'completed';
-  } else if (statusCode === 1) {
-    // 1 = Pending
-    return 'confirmed'; 
-  } else if (statusCode < 0) {
-    // Negative values = Error/canceled
+  // CoinPayments Status Codes:
+  // -2 = Refunded/Cancelled
+  // -1 = Cancelled or Timed Out
+  // 0 = Pending
+  // 1 = Payment received (should be completed)
+  // 2+ = Confirmed (# is the number of confirmations)
+  // 100+ = Completed (fully confirmed per coin requirements)
+  
+  if (statusCode < 0) {
     return 'failed';
+  } else if (statusCode === 0) {
+    return 'pending';
+  } else if (statusCode === 1) {
+    return 'confirmed'; // Received payment but still processing
+  } else if (statusCode >= 2 && statusCode < 100) {
+    return 'confirmed'; // Got confirmations, almost done
+  } else if (statusCode >= 100) {
+    return 'completed'; // Fully completed
   } else {
-    // Default to pending for any other status
+    console.warn(`Unknown CoinPayments status code: ${statusCode}, falling back to 'pending'`);
     return 'pending';
   }
 }
 
-/**
- * Gets a user-friendly description for a status code
- */
+// Get a human-readable description for the status
 export function getStatusDescription(statusCode: number): string {
   switch (statusCode) {
+    case -2:
+      return 'Transaction refunded';
     case -1:
-      return 'Cancelled / Timed Out';
+      return 'Transaction cancelled';
     case 0:
-      return 'Waiting for buyer funds';
+      return 'Waiting for payment';
     case 1:
-      return 'Funds received and confirmed, sending to you shortly';
+      return 'Payment received';
     case 2:
-      return 'Funds confirmed, processing payment';
+      return 'Payment confirmed';
     case 100:
       return 'Payment complete';
     default:
-      return `Status code: ${statusCode}`;
+      return statusCode > 2 && statusCode < 100 
+        ? `Payment confirmed (${statusCode} confirmations)` 
+        : statusCode >= 100 
+          ? 'Payment complete' 
+          : 'Unknown status';
   }
 }
