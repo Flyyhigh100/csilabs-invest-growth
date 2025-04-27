@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "./utils.ts";
-import { testHmacSignature } from "./utils.ts";
+import { corsHeaders, testHmacSignature, generateHmacSignature } from "./utils.ts";
 
 async function validateDefinedFiKey() {
   try {
@@ -103,11 +102,10 @@ async function validateCoinPaymentsKeys() {
       ipnSecretPresent: !!ipnSecret
     });
     
-    // Improved validation of CoinPayments API keys
+    // Basic validation of CoinPayments API keys format
     const isPublicKeyValid = publicKey.length >= 40; // CoinPayments public keys are typically long
     const isPrivateKeyValid = privateKey.length >= 40; // CoinPayments private keys are typically long
     
-    // Basic format validation
     if (!isPublicKeyValid || !isPrivateKeyValid) {
       return {
         isValid: false,
@@ -130,44 +128,28 @@ async function validateCoinPaymentsKeys() {
       };
     }
 
-    // Attempt a simple API request to validate keys
+    // Attempt a simple API request to validate keys - using most basic 'rates' command
     try {
-      // Use the most simple command possible to minimize potential issues
       const nonce = Math.floor(Date.now() / 1000).toString();
-      const cmd = 'get_basic_info';
       
-      // Create query parameters in alphabetical order as recommended by CoinPayments
+      // Use a simple 'rates' command which is less likely to have permission issues
       const params = new URLSearchParams();
-      params.append('cmd', cmd);
-      params.append('format', 'json');
+      params.append('cmd', 'rates');
       params.append('key', publicKey);
+      params.append('format', 'json');
       params.append('nonce', nonce);
       params.append('version', '1');
       
-      // Get the request payload
+      // Get the message payload as string
       const message = params.toString();
+      console.log('Testing CoinPayments API with request payload:', message);
       
-      console.log('Testing CoinPayments API with request data:', message);
+      // Generate HMAC signature using our improved function
+      const hmac = await generateHmacSignature(message, privateKey);
       
-      // Create HMAC signature with improved method
-      const encoder = new TextEncoder();
-      const privateKeyData = encoder.encode(privateKey);
-      const messageData = encoder.encode(message);
+      console.log('Making API request to CoinPayments');
       
-      // Import the key for HMAC
-      const cryptoKey = await crypto.subtle.importKey(
-        "raw", privateKeyData, { name: "HMAC", hash: "SHA-512" }, false, ["sign"]
-      );
-      
-      // Sign the message
-      const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
-      const hmac = Array.from(new Uint8Array(signature))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-      
-      console.log('Generated HMAC signature:', hmac.substring(0, 20) + '...');
-      
-      // Make a simple API request to validate keys
+      // Make API request
       const response = await fetch('https://www.coinpayments.net/api.php', {
         method: 'POST',
         headers: {
@@ -177,8 +159,9 @@ async function validateCoinPaymentsKeys() {
         body: message
       });
       
+      // Parse response
       const data = await response.json();
-      console.log('CoinPayments API test response:', JSON.stringify(data).substring(0, 200) + '...');
+      console.log('CoinPayments API response:', JSON.stringify(data).substring(0, 200) + '...');
       
       if (data.error === 'ok') {
         return {
@@ -187,7 +170,7 @@ async function validateCoinPaymentsKeys() {
           service: 'coinpayments',
           response: {
             success: true,
-            username: data.result?.username || 'Not available'
+            currencies: Object.keys(data.result).length
           }
         };
       } else {

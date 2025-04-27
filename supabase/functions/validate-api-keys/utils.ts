@@ -36,3 +36,43 @@ export async function testHmacSignature(privateKey: string): Promise<boolean> {
     return false;
   }
 }
+
+// Convert string to hexadecimal string
+export function toHex(buffer: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+// More reliable HMAC generation specifically for CoinPayments
+export async function generateHmacSignature(message: string, privateKey: string): Promise<string> {
+  try {
+    console.log(`Generating HMAC signature for message with length: ${message.length}`);
+    
+    // Use TextEncoder to convert strings to Uint8Arrays
+    const encoder = new TextEncoder();
+    const messageData = encoder.encode(message);
+    const keyData = encoder.encode(privateKey);
+    
+    // Import the key for HMAC
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw", 
+      keyData, 
+      { name: "HMAC", hash: "SHA-512" }, 
+      false, 
+      ["sign"]
+    );
+    
+    // Sign the message
+    const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
+    
+    // Convert to hex string
+    const hmacHex = toHex(signature);
+    console.log(`Generated signature (first 20 chars): ${hmacHex.substring(0, 20)}...`);
+    
+    return hmacHex;
+  } catch (error) {
+    console.error('Error generating HMAC signature:', error);
+    throw new Error(`HMAC generation failed: ${error.message}`);
+  }
+}
