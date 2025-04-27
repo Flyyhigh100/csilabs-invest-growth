@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +11,7 @@ interface APIKeyValidationResult {
   details: string;
   rawResponse?: any;
   service: string;
+  debugInfo?: Record<string, any>;
 }
 
 const APIKeyValidator = () => {
@@ -24,33 +24,44 @@ const APIKeyValidator = () => {
     setResults([]);
     
     try {
-      toast.info(`Validating ${service === 'defined.fi' ? 'Defined.fi' : 'CoinPayments'} API keys...`);
+      toast.info(`Validating ${service === 'defined.fi' ? 'Defined.fi' : 'CoinPayments'} API keys...`, {
+        description: 'Attempting to connect and verify API credentials'
+      });
       
       const { data, error } = await supabase.functions.invoke('validate-api-keys', {
         body: {
-          service: service
+          service: service,
+          debug: true
         }
       });
       
       if (error) {
         console.error("Error validating API keys:", error);
-        setResults([{
+        const errorResult: APIKeyValidationResult = {
           isValid: false,
-          details: `Function error: ${error.message || "Unknown error"}`,
-          service: service
-        }]);
-        toast.error("API key validation failed");
+          details: `Function invocation error: ${error.message || "Unknown error"}`,
+          service: service,
+          debugInfo: {
+            errorObject: error
+          }
+        };
+        setResults([errorResult]);
+        toast.error("API key validation failed", {
+          description: errorResult.details
+        });
         return;
       }
       
-      // Ensure we have valid data before setting results
       if (data) {
-        setResults([{
+        const validationResult: APIKeyValidationResult = {
           isValid: !!data.isValid,
           details: data.details || "No details provided",
           rawResponse: data,
-          service: data.service || service
-        }]);
+          service: data.service || service,
+          debugInfo: data.debugInfo || {}
+        };
+        
+        setResults([validationResult]);
         
         if (data.isValid) {
           toast.success(`${data.service || service} API keys valid`, {
@@ -62,22 +73,28 @@ const APIKeyValidator = () => {
           });
         }
       } else {
-        // Handle case when no data is returned
-        setResults([{
+        const noDataResult: APIKeyValidationResult = {
           isValid: false,
           details: "No validation result returned",
           service: service
-        }]);
+        };
+        setResults([noDataResult]);
         toast.error("API key validation failed - no data returned");
       }
     } catch (err: any) {
       console.error("Exception during validation:", err);
-      setResults([{
+      const exceptionResult: APIKeyValidationResult = {
         isValid: false,
         details: `Exception: ${err.message || "Unknown error"}`,
-        service: service
-      }]);
-      toast.error("API key validation failed");
+        service: service,
+        debugInfo: {
+          stack: err.stack
+        }
+      };
+      setResults([exceptionResult]);
+      toast.error("API key validation failed", {
+        description: exceptionResult.details
+      });
     } finally {
       setIsValidating(false);
     }
@@ -110,45 +127,47 @@ const APIKeyValidator = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {results.map((result, index) => {
-                if (result.service !== 'coinpayments') return null;
-                
-                const serviceName = result.service || 'unknown';
-                
-                return (
-                  <div key={index} className={`p-4 rounded-md ${result.isValid ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        {result.isValid ? 
-                          <CheckCircle className="h-5 w-5 text-green-600" /> : 
-                          <XCircle className="h-5 w-5 text-red-600" />
-                        }
-                        <span className="font-medium">
-                          {serviceName ? serviceName.charAt(0).toUpperCase() + serviceName.slice(1) : 'Unknown Service'}
-                        </span>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => toggleDetails(serviceName)}
-                      >
-                        {showDetails[serviceName] ? 'Hide Details' : 'Show Details'}
-                      </Button>
+              {results.map((result, index) => (
+                <div key={index} className={`p-4 rounded-md ${result.isValid ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      {result.isValid ? 
+                        <CheckCircle className="h-5 w-5 text-green-600" /> : 
+                        <XCircle className="h-5 w-5 text-red-600" />
+                      }
+                      <span className="font-medium">
+                        {result.service ? result.service.charAt(0).toUpperCase() + result.service.slice(1) : 'Unknown Service'}
+                      </span>
                     </div>
-                    
-                    {showDetails[serviceName] && (
-                      <div className="mt-3 text-sm bg-white p-3 rounded border">
-                        <p className="mb-2">{result.details}</p>
-                        {result.rawResponse && (
-                          <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto max-h-40">
-                            {JSON.stringify(result.rawResponse, null, 2)}
-                          </pre>
-                        )}
-                      </div>
-                    )}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => toggleDetails(result.service)}
+                    >
+                      {showDetails[result.service] ? 'Hide Details' : 'Show Details'}
+                    </Button>
                   </div>
-                );
-              })}
+                  
+                  {showDetails[result.service] && (
+                    <div className="mt-3 text-sm bg-white p-3 rounded border">
+                      <p className="mb-2">{result.details}</p>
+                      {result.rawResponse && (
+                        <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto max-h-40">
+                          {JSON.stringify(result.rawResponse, null, 2)}
+                        </pre>
+                      )}
+                      {result.debugInfo && (
+                        <div className="mt-2 bg-blue-50 p-2 rounded">
+                          <p className="font-medium text-blue-700">Debug Information:</p>
+                          <pre className="text-xs text-blue-800 overflow-auto max-h-40">
+                            {JSON.stringify(result.debugInfo, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
               
               {(results.length === 0 || !results.some(r => r.service === 'coinpayments')) && !isValidating && (
                 <div className="flex items-center gap-2 text-gray-500 text-sm">
@@ -188,43 +207,45 @@ const APIKeyValidator = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {results.map((result, index) => {
-                if (result.service !== 'defined.fi') return null;
-                
-                const serviceName = 'Defined.fi';
-                
-                return (
-                  <div key={index} className={`p-4 rounded-md ${result.isValid ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        {result.isValid ? 
-                          <CheckCircle className="h-5 w-5 text-green-600" /> : 
-                          <XCircle className="h-5 w-5 text-red-600" />
-                        }
-                        <span className="font-medium">{serviceName}</span>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => toggleDetails('defined.fi')}
-                      >
-                        {showDetails['defined.fi'] ? 'Hide Details' : 'Show Details'}
-                      </Button>
+              {results.map((result, index) => (
+                <div key={index} className={`p-4 rounded-md ${result.isValid ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      {result.isValid ? 
+                        <CheckCircle className="h-5 w-5 text-green-600" /> : 
+                        <XCircle className="h-5 w-5 text-red-600" />
+                      }
+                      <span className="font-medium">{result.service || 'Defined.fi'}</span>
                     </div>
-                    
-                    {showDetails['defined.fi'] && (
-                      <div className="mt-3 text-sm bg-white p-3 rounded border">
-                        <p className="mb-2">{result.details}</p>
-                        {result.rawResponse && (
-                          <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto max-h-40">
-                            {JSON.stringify(result.rawResponse, null, 2)}
-                          </pre>
-                        )}
-                      </div>
-                    )}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => toggleDetails('defined.fi')}
+                    >
+                      {showDetails['defined.fi'] ? 'Hide Details' : 'Show Details'}
+                    </Button>
                   </div>
-                );
-              })}
+                  
+                  {showDetails['defined.fi'] && (
+                    <div className="mt-3 text-sm bg-white p-3 rounded border">
+                      <p className="mb-2">{result.details}</p>
+                      {result.rawResponse && (
+                        <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto max-h-40">
+                          {JSON.stringify(result.rawResponse, null, 2)}
+                        </pre>
+                      )}
+                      {result.debugInfo && (
+                        <div className="mt-2 bg-blue-50 p-2 rounded">
+                          <p className="font-medium text-blue-700">Debug Information:</p>
+                          <pre className="text-xs text-blue-800 overflow-auto max-h-40">
+                            {JSON.stringify(result.debugInfo, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
               
               {(results.length === 0 || !results.some(r => r.service === 'defined.fi')) && !isValidating && (
                 <div className="flex items-center gap-2 text-gray-500 text-sm">

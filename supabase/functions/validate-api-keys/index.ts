@@ -74,30 +74,29 @@ async function validateDefinedFiKey() {
   }
 }
 
-async function validateCoinPaymentsKeys() {
+async function validateCoinPaymentsKeys(debug: boolean = false) {
   try {
     const publicKey = Deno.env.get('COINPAYMENTS_PUBLIC_KEY')?.trim();
     const privateKey = Deno.env.get('COINPAYMENTS_PRIVATE_KEY')?.trim();
     const ipnSecret = Deno.env.get('COINPAYMENTS_IPN_SECRET')?.trim();
+    
+    console.log('API key validation debug info:', {
+      publicKeyLength: publicKey?.length || 0,
+      privateKeyLength: privateKey?.length || 0,
+      ipnSecretPresent: !!ipnSecret
+    });
     
     if (!publicKey || !privateKey) {
       return { 
         isValid: false, 
         details: 'Missing API keys',
         service: 'coinpayments',
-        missing: {
-          publicKey: !publicKey,
-          privateKey: !privateKey,
-          ipnSecret: !ipnSecret
+        debugInfo: {
+          publicKeyMissing: !publicKey,
+          privateKeyMissing: !privateKey
         }
       };
     }
-    
-    console.log('API key info', { 
-      publicKeyLength: publicKey.length, 
-      privateKeyLength: privateKey.length,
-      ipnSecretPresent: !!ipnSecret
-    });
     
     const isPublicKeyValid = publicKey.length >= 40;
     const isPrivateKeyValid = privateKey.length >= 40;
@@ -107,19 +106,10 @@ async function validateCoinPaymentsKeys() {
         isValid: false,
         details: 'API keys appear to be invalid (incorrect format or length)',
         service: 'coinpayments',
-        keyCheck: {
+        debugInfo: {
           publicKeyValid: isPublicKeyValid,
           privateKeyValid: isPrivateKeyValid
         }
-      };
-    }
-
-    const hmacValid = await testHmacSignature(privateKey);
-    if (!hmacValid) {
-      return {
-        isValid: false,
-        details: 'Private key failed HMAC signature test',
-        service: 'coinpayments'
       };
     }
 
@@ -133,13 +123,12 @@ async function validateCoinPaymentsKeys() {
       };
       
       const encodedParams = new URLSearchParams(params).toString();
-      console.log('[CoinPayments] Request parameters:', encodedParams);
+      console.log('Encoded parameters:', encodedParams);
       
       const hmac = await generateCoinPaymentsHMAC(encodedParams, privateKey);
+      console.log('Generated HMAC:', hmac);
       
-      console.log('[CoinPayments] Making API request with generated HMAC');
-      
-      const response = await fetch('https://www.coinpayments.net/api.php', {
+      const apiResponse = await fetch('https://www.coinpayments.net/api.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -148,46 +137,63 @@ async function validateCoinPaymentsKeys() {
         body: encodedParams
       });
       
-      const data = await response.json();
-      console.log('[CoinPayments] API response:', JSON.stringify(data).substring(0, 200) + '...');
+      const responseText = await apiResponse.text();
+      console.log('Raw API response:', responseText);
       
-      if (data.error === 'ok') {
+      let parsedResponse;
+      try {
+        parsedResponse = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse API response:', parseError);
+      }
+      
+      if (parsedResponse && parsedResponse.error === 'ok') {
         return {
           isValid: true,
           details: 'CoinPayments API keys are valid and working correctly',
           service: 'coinpayments',
-          response: {
-            success: true,
-            data: data.result
-          }
+          debugInfo: debug ? { 
+            rawResponse: parsedResponse,
+            hmac: hmac,
+            encodedParams: encodedParams
+          } : undefined
         };
       } else {
         return {
           isValid: false,
-          details: `API response error: ${data.error}`,
+          details: `API response error: ${responseText}`,
           service: 'coinpayments',
-          response: {
-            error: data.error
+          debugInfo: {
+            rawResponse: parsedResponse,
+            hmac: hmac,
+            encodedParams: encodedParams,
+            responseStatus: apiResponse.status
           }
         };
       }
     } catch (apiError) {
-      console.error('[CoinPayments] Error testing API:', apiError);
+      console.error('Error testing CoinPayments API:', apiError);
       return {
         isValid: false,
         details: `Error testing API connection: ${apiError.message}`,
         service: 'coinpayments',
-        error: apiError.message
+        debugInfo: {
+          errorMessage: apiError.message,
+          errorStack: apiError.stack
+        }
       };
     }
     
   } catch (error) {
-    console.error('[CoinPayments] Error validating keys:', error);
+    console.error('Unhandled error in CoinPayments key validation:', error);
     return { 
       isValid: false,
       details: `Exception: ${error.message}`,
       service: 'coinpayments',
-      exceptionDetails: error.stack || 'No stack trace available',
+      debugInfo: {
+        errorMessage: error.message,
+        errorStack: error.stack
+      }
     };
   }
 }
@@ -200,6 +206,7 @@ serve(async (req) => {
   try {
     const requestBody = await req.json();
     const service = requestBody?.service || 'coinpayments';
+    const debug = requestBody?.debug || false;
     
     console.log(`Validating API keys for service: ${service}`);
     
@@ -208,7 +215,7 @@ serve(async (req) => {
     if (service === 'defined.fi') {
       result = await validateDefinedFiKey();
     } else {
-      result = await validateCoinPaymentsKeys();
+      result = await validateCoinPaymentsKeys(debug);
     }
     
     return new Response(
