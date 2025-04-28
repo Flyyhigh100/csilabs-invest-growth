@@ -24,19 +24,17 @@ export const START_DATE = Math.floor(new Date('2021-10-26').getTime() / 1000);
 export const END_DATE = Math.floor(new Date().getTime() / 1000);
 export const DAYS_TO_INCLUDE = 90;
 
-// Cache settings
+// Cache settings 
 export const PRICE_CACHE_DURATION = 10000; // 10 seconds to match polling interval
-export const FORCE_REFRESH_CACHE = false;
-export const STABLE_PRICE_THRESHOLD = 0.0001; // 0.01% change threshold for stable price
+export const ENABLE_LOGGING = true;
 
 // Validation thresholds
 export const MAX_PRICE_CHANGE_PERCENTAGE = 50; // Maximum allowed price change (50%)
 export const MIN_VALID_PRICE = 0.00001; // Minimum valid price
 export const MAX_VALID_PRICE = 2; // Maximum valid price
 
-// For logging
-export const ENABLE_LOGGING = true;
-
 // Max retries for API calls
 export const MAX_RETRIES = 3;
 export const RETRY_DELAY = 1000; // Base delay in ms for exponential backoff
+export const FORCE_REFRESH_CACHE = false;
+export const STABLE_PRICE_THRESHOLD = 0.0001;
