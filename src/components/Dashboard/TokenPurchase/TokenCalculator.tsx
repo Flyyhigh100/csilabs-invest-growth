@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, RefreshCw } from 'lucide-react';
@@ -36,17 +35,18 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
   const [tokenAmount, setTokenAmount] = useState<number>(0);
   const [refreshCountdown, setRefreshCountdown] = useState<number>(0);
   
-  // Update token amount when price or USD amount changes
+  const handleAmountChange = useCallback((newAmount: number) => {
+    onChange(newAmount);
+  }, [onChange]);
+  
   useEffect(() => {
     setTokenAmount(convertUsdToTokens(amount));
   }, [amount, currentPrice, convertUsdToTokens]);
   
-  // Update countdown timer
   useEffect(() => {
     setRefreshCountdown(Math.floor(timeUntilNextUpdate / 1000));
   }, [timeUntilNextUpdate]);
   
-  // Format the last updated time
   const formattedLastUpdated = lastUpdated 
     ? lastUpdated.toLocaleTimeString() 
     : 'Not yet updated';
@@ -77,7 +77,7 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
       
       <PurchaseAmountInput 
         amount={amount} 
-        onChange={onChange} 
+        onChange={handleAmountChange} 
         disabled={disabled}
       />
       
