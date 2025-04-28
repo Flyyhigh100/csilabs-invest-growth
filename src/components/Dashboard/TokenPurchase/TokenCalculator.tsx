@@ -20,6 +20,10 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
   const { currentPrice } = useTokenPrice();
   const tokenAmount = currentPrice ? amount / currentPrice : 0;
   const isExceedingLimit = tokenAmount > 10000;
+  const formattedTokenAmount = tokenAmount.toLocaleString(undefined, { 
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2
+  });
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newAmount = parseFloat(e.target.value) || 0;
@@ -38,7 +42,7 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
             id="amount"
             min="0"
             step="1"
-            value={amount}
+            value={amount || ''}
             onChange={handleAmountChange}
             disabled={disabled}
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-cbis-blue focus:ring-cbis-blue sm:text-sm"
@@ -48,7 +52,7 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
 
       {currentPrice && (
         <div className="text-sm text-gray-600">
-          Estimated tokens: {tokenAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} CSL
+          Estimated tokens: {formattedTokenAmount} CSL
         </div>
       )}
 

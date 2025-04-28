@@ -7,7 +7,7 @@ import { PaymentValidationOptions } from './types';
 export const usePaymentValidation = (walletAddress: string | null) => {
   const [kycRequired, setKycRequired] = useState<boolean>(false);
 
-  // Check if KYC is required based on amount (now $10,000)
+  // Check if KYC is required based on amount ($10,000)
   const requiresKyc = (amount: number): boolean => {
     return amount >= 10000;
   };
@@ -19,7 +19,7 @@ export const usePaymentValidation = (walletAddress: string | null) => {
   ): boolean => {
     const { isCrypto = false, skipKycCheck = false, tokenPrice = 1 } = options;
     
-    // Validate amount
+    // Validate amount is present
     if (!amount || amount <= 0) {
       toast.error("Invalid Amount", {
         description: "Please enter a valid amount to continue.",
@@ -28,10 +28,12 @@ export const usePaymentValidation = (walletAddress: string | null) => {
       return false;
     }
 
-    // Check maximum purchase limit (10,000 tokens)
+    // Calculate token amount based on current price
     const tokenAmount = tokenPrice ? amount / tokenPrice : amount;
+
+    // Check maximum token limit (10,000 tokens)
     if (tokenAmount > 10000) {
-      toast.error("Maximum Purchase Limit Exceeded", {
+      toast.error("Maximum Token Limit Exceeded", {
         description: "Maximum purchase limit is 10,000 tokens per transaction.",
         duration: 5000,
       });
@@ -45,7 +47,6 @@ export const usePaymentValidation = (walletAddress: string | null) => {
         duration: 5000,
       });
       
-      // Scroll to wallet section
       setTimeout(() => {
         document.getElementById('wallet-address-section')?.scrollIntoView({ 
           behavior: 'smooth',
@@ -56,12 +57,14 @@ export const usePaymentValidation = (walletAddress: string | null) => {
       return false;
     }
     
-    // Check if KYC is required for this amount (if not skipped)
-    if (!skipKycCheck) {
-      const needsKyc = requiresKyc(amount);
-      setKycRequired(needsKyc);
+    // Check if KYC is required for crypto payments over $10,000
+    if (isCrypto && !skipKycCheck && requiresKyc(amount)) {
+      console.log('KYC required for amount:', amount);
+      setKycRequired(true);
+      return false;
     }
     
+    setKycRequired(false);
     return true;
   };
 
