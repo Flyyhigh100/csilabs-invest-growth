@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PriceChart, VolumeChart } from './TokenCharts';
 import TokenInfo from './TokenInfo';
 import { TokenInfo as TokenInfoType } from '@/types/token';
-import DexToolsChart from '@/components/TokenPricing/DexToolsChart';
 
 interface TokenCardProps {
   isLoaded: boolean;
@@ -43,8 +42,27 @@ const TokenCard: React.FC<TokenCardProps> = ({
               )}
             </div>
             
-            <div className="h-[400px] mb-6">
-              <DexToolsChart />
+            <div className="mb-6">
+              <Tabs defaultValue="price" className="w-full">
+                <TabsList className="grid grid-cols-2 mb-2">
+                  <TabsTrigger value="price">Price</TabsTrigger>
+                  <TabsTrigger value="volume">Volume</TabsTrigger>
+                </TabsList>
+                <TabsContent value="price" className="mt-0">
+                  <PriceChart 
+                    priceData={priceData} 
+                    isLoading={isLoading} 
+                    hasError={hasError} 
+                  />
+                </TabsContent>
+                <TabsContent value="volume" className="mt-0">
+                  <VolumeChart 
+                    volumeData={volumeData} 
+                    isLoading={isLoading} 
+                    hasError={hasError} 
+                  />
+                </TabsContent>
+              </Tabs>
             </div>
             
             <TokenInfo tokenInfo={tokenInfo} isLoading={isLoading} />

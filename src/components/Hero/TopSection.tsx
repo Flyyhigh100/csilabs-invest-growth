@@ -11,7 +11,7 @@ const TopSection: React.FC = () => {
           <div className="w-full h-[500px] rounded-xl overflow-hidden">
             <AspectRatio ratio={16/9} className="bg-white">
               <img
-                src="/lovable-uploads/56796b31-15aa-467c-a025-18f6398e910e.png"
+                src="/lovable-uploads/bca839f6-9a6c-42b5-b953-f418f1ece797.png"
                 alt="CSi Labs Laboratory"
                 className="object-cover w-full h-full"
               />
