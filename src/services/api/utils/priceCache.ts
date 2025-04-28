@@ -38,3 +38,23 @@ export const shouldRefreshPrice = (): boolean => {
   const elapsed = Date.now() - cachedCurrentPrice.timestamp;
   return elapsed >= PRICE_CACHE_DURATION;
 };
+
+/**
+ * Gets the time in milliseconds until the next price refresh is needed
+ */
+export const getTimeUntilNextPriceRefresh = (): number => {
+  if (!cachedCurrentPrice) return 0;
+  
+  const elapsed = Date.now() - cachedCurrentPrice.timestamp;
+  const remaining = PRICE_CACHE_DURATION - elapsed;
+  
+  return remaining > 0 ? remaining : 0;
+};
+
+/**
+ * Gets the timestamp when the price was last updated
+ */
+export const getPriceLastUpdatedTime = (): Date | null => {
+  if (!cachedCurrentPrice) return null;
+  return new Date(cachedCurrentPrice.timestamp);
+};
