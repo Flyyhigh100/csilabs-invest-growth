@@ -4,6 +4,7 @@ import AdminLayout from '@/components/Admin/Layout';
 import TokenPriceChart from '@/components/Admin/TokenPricing/TokenPriceChart';
 import CurrentPriceCard from '@/components/Admin/TokenPricing/CurrentPriceCard';
 import { useTokenData } from '@/hooks/useTokenData';
+import { TokenPriceProvider } from '@/context/TokenPriceContext';
 
 const TokenPricingPage = () => {
   const { 
@@ -21,21 +22,23 @@ const TokenPricingPage = () => {
     
   return (
     <AdminLayout title="Token Pricing">
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
-        <TokenPriceChart 
-          priceData={priceData} 
-          isHistoryLoading={isLoading}
-          refreshAllData={refreshAllData}
-        />
-        
-        <CurrentPriceCard 
-          currentPrice={currentPrice}
-          isPriceLoading={isLoading}
-          refreshPrice={refreshAllData}
-          formattedLastUpdated={formattedLastUpdated}
-          secondsUntilRefresh={secondsUntilRefresh}
-        />
-      </div>
+      <TokenPriceProvider>
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+          <TokenPriceChart 
+            priceData={priceData} 
+            isHistoryLoading={isLoading}
+            refreshAllData={refreshAllData}
+          />
+          
+          <CurrentPriceCard 
+            currentPrice={currentPrice}
+            isPriceLoading={isLoading}
+            refreshPrice={refreshAllData}
+            formattedLastUpdated={formattedLastUpdated}
+            secondsUntilRefresh={secondsUntilRefresh}
+          />
+        </div>
+      </TokenPriceProvider>
     </AdminLayout>
   );
 };

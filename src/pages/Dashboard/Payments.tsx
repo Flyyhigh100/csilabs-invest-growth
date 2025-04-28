@@ -8,7 +8,7 @@ import KycStatusAlerts from '@/components/Dashboard/KycStatusAlerts';
 import { WalletSection, TokenPurchaseSection } from '@/components/Dashboard/Payments/PaymentSections';
 import { PaymentStatusCheck } from '@/components/Dashboard/Payments/StatusChecks';
 import { useWalletAddress } from '@/components/Dashboard/Payments/useWalletAddress';
-import TokenPriceHeader from '@/components/Dashboard/TokenPriceHeader';
+import TokenPriceHeaderWithProvider from '@/components/Dashboard/TokenPriceHeaderWithProvider';
 
 const Payments = () => {
   const { kycData } = useKycVerification();
@@ -28,7 +28,7 @@ const Payments = () => {
         <KycWarning />
       ) : (
         <>
-          <TokenPriceHeader className="mb-6" />
+          <TokenPriceHeaderWithProvider className="mb-6" />
           
           <PaymentInfoCard 
             showInfoCard={showInfoCard} 
