@@ -55,7 +55,7 @@ const TokenDetails: React.FC = () => {
                 <TrendingUp className="h-6 w-6 text-cbis-blue" />
               </div>
               <h3 className="text-xl font-semibold mb-3 text-cbis-dark">Project Potential</h3>
-              <p className="text-gray-600 mb-4">The CSi Labs token is designed for potential public trading on upper markets through future offerings based on the growth of our Lab Series funding, FDA research, and drug development success.</p>
+              <p className="text-gray-600 mb-4">The CSi Labs token ecosystem is designed for potential public trading on upper markets through future offerings based on the growth of our Lab Series funding, FDA research, and drug development success.</p>
               <div className="mt-auto">
                 <ul className="space-y-2">
                   <li className="flex items-start">
