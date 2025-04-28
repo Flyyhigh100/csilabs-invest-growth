@@ -2,8 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import HeroContent from './HeroContent';
 import TokenCard from './TokenCard';
-import TopSection from './TopSection';
 import { useTokenData } from '@/hooks/useTokenData';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
+import DexToolsChart from '@/components/TokenPricing/DexToolsChart';
 
 const Hero: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -15,7 +16,27 @@ const Hero: React.FC = () => {
 
   return (
     <>
-      <TopSection />
+      {/* Top Section with Image and Chart */}
+      <div className="w-full bg-gradient-to-b from-gray-50 to-white">
+        <div className="container-custom py-8">
+          <div className="grid lg:grid-cols-2 gap-8 items-center">
+            <div className="w-full h-[500px] rounded-xl overflow-hidden shadow-lg">
+              <AspectRatio ratio={16/9} className="bg-white">
+                <img
+                  src="/lovable-uploads/bca839f6-9a6c-42b5-b953-f418f1ece797.png"
+                  alt="CSi Labs Laboratory"
+                  className="object-cover w-full h-full"
+                />
+              </AspectRatio>
+            </div>
+            <div className="w-full h-[500px]">
+              <DexToolsChart />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Hero Content Section */}
       <div className="relative min-h-[80vh] flex items-center bg-gradient-to-b from-white to-gray-50 overflow-hidden">
         {/* Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
