@@ -1,38 +1,44 @@
-import { Transaction } from '@/types/transactions';
-import { toast } from 'sonner';
 
-/**
- * Show appropriate status messages based on transaction status
- */
+import { toast } from 'sonner';
+import { showSmartNotification } from '@/utils/notification/smartNotifications';
+import { Transaction } from '@/types/transactions';
+
 export function showStatusMessage(status: string, externalStatusText?: string): void {
   console.log(`Showing status message for: ${status}, external text: ${externalStatusText || 'none'}`);
   
   if (status === 'completed') {
-    toast.success('Payment completed!', {
-      description: 'Your crypto payment has been confirmed. Your tokens will be sent to your wallet shortly.'
-    });
+    showSmartNotification(
+      'Payment completed!',
+      'Your crypto payment has been confirmed. Your tokens will be sent to your wallet shortly.',
+      { type: 'payment', priority: 'high' }
+    );
   } else if (status === 'confirmed') {
-    toast.success('Payment received!', {
-      description: 'Your payment has been received and is being processed. Your tokens will be sent to your wallet soon.'
-    });
+    showSmartNotification(
+      'Payment received!',
+      'Your payment has been received and is being processed. Your tokens will be sent to your wallet soon.',
+      { type: 'payment', priority: 'high' }
+    );
   } else if (status === 'failed') {
-    toast.error('Payment failed', {
-      description: 'Your crypto payment transaction has failed or was canceled.'
-    });
+    showSmartNotification(
+      'Payment failed',
+      'Your crypto payment transaction has failed or was canceled.',
+      { type: 'payment', priority: 'high' }
+    );
   } else if (status === 'pending' && externalStatusText) {
-    toast.info(`Payment status: ${externalStatusText}`, {
-      description: 'Status from payment provider. The system will update automatically when completed.'
-    });
+    showSmartNotification(
+      'Payment status update',
+      `Status: ${externalStatusText}`,
+      { type: 'status', priority: 'low', duration: 3000 }
+    );
   } else if (status === 'pending') {
-    toast.info('Payment still pending', {
-      description: 'Your payment is still being processed. Please check back later.'
-    });
+    showSmartNotification(
+      'Payment pending',
+      'Your payment is still being processed. Please check back later.',
+      { type: 'status', priority: 'low', duration: 3000 }
+    );
   }
 }
 
-/**
- * Update transaction status and show appropriate notifications
- */
 export function handleTransactionUpdate(
   transaction: Transaction, 
   updatedStatus: string, 
@@ -44,7 +50,10 @@ export function handleTransactionUpdate(
   if (wasUpdated && transaction.status !== updatedStatus) {
     showStatusMessage(updatedStatus, externalStatusText);
   } else if (transaction.status === 'pending') {
-    showStatusMessage('pending', externalStatusText);
+    // Only show pending messages occasionally to avoid spam
+    if (Math.random() < 0.3) { // Show roughly 30% of pending updates
+      showStatusMessage('pending', externalStatusText);
+    }
   } else if (transaction.status === 'confirmed' && externalStatusText) {
     showStatusMessage('confirmed', externalStatusText);
   }

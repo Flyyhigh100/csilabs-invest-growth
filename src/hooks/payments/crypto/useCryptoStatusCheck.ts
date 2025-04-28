@@ -1,26 +1,26 @@
-
 import { useState, useCallback } from 'react';
 import { Transaction } from '@/types/transactions';
 import { checkTransactionStatus, forceUpdateTransaction } from './cryptoStatusService';
 import { getPendingTransactions } from './transactionRepository';
 import { toast } from 'sonner';
 import { CryptoStatusCheckResult } from './types';
+import { showSmartNotification } from '@/utils/notification/smartNotifications';
 
 export function useCryptoStatusCheck() {
   const [isChecking, setIsChecking] = useState(false);
   const [lastCheckResult, setLastCheckResult] = useState<CryptoStatusCheckResult | null>(null);
 
-  /**
-   * Check transaction status with the payment provider
-   */
   const checkStatus = useCallback(async (transaction: Transaction): Promise<Transaction | null> => {
     if (!transaction || !transaction.id) {
-      toast.error('Invalid transaction');
+      showSmartNotification(
+        'Invalid transaction',
+        'Transaction details are missing',
+        { type: 'error', priority: 'high' }
+      );
       return null;
     }
     
     if (isChecking) {
-      toast.info('Already checking status...');
       return null;
     }
     
@@ -46,9 +46,6 @@ export function useCryptoStatusCheck() {
     }
   }, [isChecking]);
 
-  /**
-   * Force update transaction status with the payment provider
-   */
   const forceUpdate = useCallback(async (transaction: Transaction): Promise<Transaction | null> => {
     if (!transaction || !transaction.id) {
       toast.error('Invalid transaction');
@@ -82,9 +79,6 @@ export function useCryptoStatusCheck() {
     }
   }, [isChecking]);
 
-  /**
-   * Get all pending transactions and check their status
-   */
   const checkAllPendingTransactions = useCallback(async (): Promise<Transaction[]> => {
     try {
       setIsChecking(true);
@@ -99,7 +93,6 @@ export function useCryptoStatusCheck() {
       
       const updatedTransactions: Transaction[] = [];
       
-      // Check each transaction sequentially to avoid rate limits
       for (const transaction of pendingTransactions) {
         try {
           const updatedTransaction = await checkTransactionStatus(transaction);
@@ -107,7 +100,6 @@ export function useCryptoStatusCheck() {
             updatedTransactions.push(updatedTransaction);
           }
           
-          // Small delay to prevent rate limiting
           await new Promise(resolve => setTimeout(resolve, 500));
         } catch (err) {
           console.error(`Error checking transaction ${transaction.id}:`, err);
@@ -125,9 +117,6 @@ export function useCryptoStatusCheck() {
     }
   }, []);
 
-  /**
-   * Refresh all pending transactions - this is the method required by RefreshCryptoTransactionsButton
-   */
   const refreshAllPendingTransactions = useCallback(async (forceUpdateAll: boolean = false): Promise<boolean> => {
     try {
       setIsChecking(true);
@@ -142,7 +131,6 @@ export function useCryptoStatusCheck() {
       
       const updatedTransactions: Transaction[] = [];
       
-      // Process each transaction sequentially to avoid rate limits
       for (const transaction of pendingTransactions) {
         try {
           const updatedTransaction = forceUpdateAll 
@@ -153,7 +141,6 @@ export function useCryptoStatusCheck() {
             updatedTransactions.push(updatedTransaction);
           }
           
-          // Small delay to prevent rate limiting
           await new Promise(resolve => setTimeout(resolve, 500));
         } catch (err) {
           console.error(`Error processing transaction ${transaction.id}:`, err);
