@@ -21,11 +21,11 @@ const Hero: React.FC = () => {
         <div className="container-custom py-8">
           <div className="grid lg:grid-cols-2 gap-8 items-center">
             <div className="w-full h-[500px] rounded-xl overflow-hidden shadow-lg">
-              <AspectRatio ratio={16/9} className="bg-white">
+              <AspectRatio ratio={16/9} className="bg-black">
                 <img
-                  src="/lovable-uploads/bca839f6-9a6c-42b5-b953-f418f1ece797.png"
-                  alt="CSi Labs Laboratory"
-                  className="object-cover w-full h-full"
+                  src="/lovable-uploads/1bc16e31-2762-4b6d-a450-8c58910fee52.png"
+                  alt="Cancer Treatment Information"
+                  className="object-contain w-full h-full"
                 />
               </AspectRatio>
             </div>
