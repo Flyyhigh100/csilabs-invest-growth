@@ -17,38 +17,8 @@ const Hero: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const fetchImage = async () => {
-      try {
-        // Convert the base64 image to a blob inside the async function
-        const base64Response = await fetch('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
-        const imageBlob = await base64Response.blob();
-        
-        const { data: storageData, error: storageError } = await supabase.storage
-          .from('hero-images')
-          .upload('hero-image.png', imageBlob, {
-            cacheControl: '3600',
-            upsert: true,
-          });
-
-        if (storageError) {
-          console.error('Error uploading image:', storageError);
-          setImageError(true);
-          return;
-        }
-
-        const { data } = supabase.storage
-          .from('hero-images')
-          .getPublicUrl('hero-image.png');
-
-        setImageUrl(data.publicUrl);
-      } catch (error) {
-        console.error('Error handling image:', error);
-        setImageError(true);
-      }
-    };
-    
-    // Call the async function
-    fetchImage();
+    // Set the image URL directly instead of uploading to Supabase
+    setImageUrl('public/lovable-uploads/b697a9a0-ce80-475e-a65e-fb9b15b43eb8.png');
   }, []);
 
   return (
@@ -71,7 +41,7 @@ const Hero: React.FC = () => {
               ) : (
                 <img 
                   src={imageUrl || '/placeholder.svg'}
-                  alt="Cancer Treatment Research" 
+                  alt="Cannabis Science Cancer Treatment Research" 
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
