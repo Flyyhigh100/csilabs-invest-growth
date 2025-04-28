@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useTokenPrice } from '@/context/TokenPriceContext';
 import { Card } from "@/components/ui/card";
@@ -16,7 +17,8 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
     isLoading, 
     lastUpdated, 
     refreshPrice,
-    error 
+    error,
+    dataSource 
   } = useTokenPrice();
   
   console.log('TokenPriceHeader rendering with price:', currentPrice, 'loading:', isLoading);
@@ -27,6 +29,28 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
 
   const isFallbackData = error !== null;
 
+  // Determine source badge color
+  const getSourceBadgeVariant = () => {
+    switch(dataSource) {
+      case 'on-chain': return "success";
+      case 'defined.fi': return "default";
+      case 'dexscreener': return "secondary";
+      case 'cache': return "outline";
+      default: return "secondary";
+    }
+  };
+
+  // Format the data source name for display
+  const getSourceDisplayName = () => {
+    switch(dataSource) {
+      case 'on-chain': return "Uniswap V3 (on-chain)";
+      case 'defined.fi': return "Defined.fi API";
+      case 'dexscreener': return "DexScreener API";
+      case 'cache': return "Cached Data";
+      default: return "Unknown Source";
+    }
+  };
+
   return (
     <Card className={`flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-blue-100 ${className}`}>
       <div className="flex items-center space-x-3">
@@ -35,6 +59,11 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
           <div>
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium text-gray-600">Current CSi Token Price</p>
+              {dataSource && (
+                <Badge variant={getSourceBadgeVariant()} className="text-xs">
+                  {getSourceDisplayName()}
+                </Badge>
+              )}
               {isFallbackData && (
                 <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
                   Historical Data
@@ -76,7 +105,7 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
         </Button>
         <div className="text-xs text-gray-500">
           <span>Last updated: {formattedLastUpdated}</span>
-          <span className="ml-2 text-cbis-blue">via DexScreener (Polygon)</span>
+          <span className="ml-2 text-cbis-blue">via {getSourceDisplayName()}</span>
         </div>
       </div>
     </Card>

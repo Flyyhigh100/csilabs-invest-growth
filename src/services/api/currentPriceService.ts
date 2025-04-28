@@ -1,6 +1,7 @@
 
 import { fetchDexScreenerPrice } from './dexScreenerPriceService';
 import { fetchDefinedPrice } from './definedPriceService';
+import { fetchOnchainTwap } from './twapPriceService';
 import { getCachedPrice, setCachedPrice, shouldRefreshPrice } from './utils/priceCache';
 import { ENABLE_LOGGING } from './config';
 
@@ -18,21 +19,33 @@ export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Pro
     }
     
     if (ENABLE_LOGGING) {
-      console.log('Fetching current token price (DexScreener), force refresh:', forceRefresh);
+      console.log('Fetching current token price, force refresh:', forceRefresh);
     }
     
-    // First try fetching from Defined.fi
+    // Primary source: On-chain TWAP
     try {
-      const definedPrice = await fetchDefinedPrice();
-      setCachedPrice(definedPrice);
-      return definedPrice;
-    } catch (definedError) {
-      console.warn('Failed to fetch from Defined.fi, falling back to DexScreener:', definedError);
+      const twapPrice = await fetchOnchainTwap();
+      if (ENABLE_LOGGING) {
+        console.log('Successfully fetched on-chain TWAP price:', twapPrice);
+      }
+      setCachedPrice(twapPrice);
+      return twapPrice;
+    } catch (twapError) {
+      console.warn('Failed to fetch on-chain TWAP price, falling back to Defined.fi:', twapError);
       
-      // Fallback to DexScreener
-      const dexScreenerPrice = await fetchDexScreenerPrice();
-      setCachedPrice(dexScreenerPrice);
-      return dexScreenerPrice;
+      // First fallback: Defined.fi
+      try {
+        const definedPrice = await fetchDefinedPrice();
+        setCachedPrice(definedPrice);
+        return definedPrice;
+      } catch (definedError) {
+        console.warn('Failed to fetch from Defined.fi, falling back to DexScreener:', definedError);
+        
+        // Second fallback: DexScreener
+        const dexScreenerPrice = await fetchDexScreenerPrice();
+        setCachedPrice(dexScreenerPrice);
+        return dexScreenerPrice;
+      }
     }
   } catch (error) {
     console.error('Error in fetchCurrentTokenPrice:', error);
