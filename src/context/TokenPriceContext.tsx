@@ -1,4 +1,3 @@
-
 import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { fetchCurrentTokenPrice } from '@/services/api/priceService';
 import { toast } from 'sonner';
@@ -32,7 +31,7 @@ interface TokenPriceProviderProps {
 
 export const TokenPriceProvider = ({ 
   children,
-  refreshInterval = 10000 
+  refreshInterval = 60000 
 }: TokenPriceProviderProps) => {
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
