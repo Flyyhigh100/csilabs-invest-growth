@@ -165,7 +165,7 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
       )}
       
       {isFallbackMode && (
-        <Alert variant="warning" className="bg-amber-50 border-amber-200">
+        <Alert variant="default" className="bg-amber-50 border-amber-200">
           <AlertCircle className="h-4 w-4 text-amber-500" />
           <AlertDescription className="text-amber-700">
             Using limited currency options due to connection issues with the payment provider.
