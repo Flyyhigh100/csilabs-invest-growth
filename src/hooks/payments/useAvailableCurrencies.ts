@@ -10,10 +10,11 @@ export interface CryptoCurrency {
   rate_btc: string;
   status: string;
   accepted: number;
+  fallbackMode?: boolean; // Flag indicating if this is fallback data
 }
 
 export const useAvailableCurrencies = () => {
-  const [currencies, setCurrencies] = useState<CryptoCurrency[]>([]);
+  const [currencies, setCurrencies] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,56 +23,79 @@ export const useAvailableCurrencies = () => {
     setError(null);
     
     try {
-      const { data, error } = await supabase.functions.invoke('get-coinpayments-currencies');
+      console.log('Fetching available currencies from edge function');
       
-      if (error) {
-        console.error("Error fetching currencies:", error);
-        setError(error.message || 'Failed to fetch currencies');
+      const { data, error: fetchError } = await supabase.functions.invoke('get-coinpayments-currencies');
+      
+      if (fetchError) {
+        console.error("Error fetching currencies:", fetchError);
+        setError(fetchError.message || 'Failed to fetch currencies');
         toast.error("Failed to load payment options", {
-          description: "Using default options instead. Please try again later."
+          description: "Please try refreshing or try again later."
         });
         
-        // Fall back to default currencies if API fails
-        setCurrencies([
-          { code: 'USDT', name: 'Tether (USDT)', is_fiat: 0, rate_btc: '0.0', status: 'online', accepted: 1 },
-          { code: 'BTC', name: 'Bitcoin (BTC)', is_fiat: 0, rate_btc: '0.0', status: 'online', accepted: 1 },
-          { code: 'ETH', name: 'Ethereum (ETH)', is_fiat: 0, rate_btc: '0.0', status: 'online', accepted: 1 },
-          { code: 'BNB', name: 'Binance Coin (BNB)', is_fiat: 0, rate_btc: '0.0', status: 'online', accepted: 1 }
-        ]);
+        // Clear currencies to show problem state
+        setCurrencies({});
         return;
       }
       
       if (!data?.currencies) {
+        console.error("No currency data received:", data);
         setError('No currency data received');
+        setCurrencies({});
         return;
       }
       
-      // Transform the data into an array format for easier use in UI
-      const currenciesArray = Object.entries(data.currencies).map(([code, details]: [string, any]) => ({
-        code,
-        name: `${details.name} (${code})`,
-        ...details
-      }));
+      console.log(`Received ${Object.keys(data.currencies).length} currencies from API`);
+      
+      // Check if we're using fallback data
+      const isFallbackData = data.status === 'fallback';
+      if (isFallbackData) {
+        console.warn("Using fallback currency data due to API issues");
+        
+        // Mark currencies as fallback mode
+        const fallbackCurrencies = Object.entries(data.currencies).reduce((acc, [code, details]: [string, any]) => {
+          acc[code] = {
+            ...details,
+            fallbackMode: true
+          };
+          return acc;
+        }, {} as Record<string, any>);
+        
+        setCurrencies(fallbackCurrencies);
+        return;
+      }
+      
+      // Transform the data into a format for easier use in UI
+      const transformedCurrencies = Object.entries(data.currencies).reduce((acc, [code, details]: [string, any]) => {
+        acc[code] = {
+          code,
+          name: `${details.name || code} (${code})`,
+          ...details
+        };
+        return acc;
+      }, {} as Record<string, any>);
       
       // Sort currencies: USDT first, then alphabetically
-      const sortedCurrencies = currenciesArray.sort((a, b) => {
-        if (a.code === 'USDT') return -1;
-        if (b.code === 'USDT') return 1;
-        return a.name.localeCompare(b.name);
-      });
+      const sortedCurrencies = Object.fromEntries(
+        Object.entries(transformedCurrencies).sort(([codeA], [codeB]) => {
+          if (codeA === 'USDT') return -1;
+          if (codeB === 'USDT') return 1;
+          return codeA.localeCompare(codeB);
+        })
+      );
       
       setCurrencies(sortedCurrencies);
     } catch (err) {
       console.error("Exception fetching currencies:", err);
       setError((err as Error).message || 'Unexpected error occurred');
       
-      // Fall back to default currencies
-      setCurrencies([
-        { code: 'USDT', name: 'Tether (USDT)', is_fiat: 0, rate_btc: '0.0', status: 'online', accepted: 1 },
-        { code: 'BTC', name: 'Bitcoin (BTC)', is_fiat: 0, rate_btc: '0.0', status: 'online', accepted: 1 },
-        { code: 'ETH', name: 'Ethereum (ETH)', is_fiat: 0, rate_btc: '0.0', status: 'online', accepted: 1 },
-        { code: 'BNB', name: 'Binance Coin (BNB)', is_fiat: 0, rate_btc: '0.0', status: 'online', accepted: 1 }
-      ]);
+      // Clear currencies to show problem state
+      setCurrencies({});
+      
+      toast.error("Failed to load payment options", {
+        description: "Please try again later or contact support."
+      });
     } finally {
       setIsLoading(false);
     }

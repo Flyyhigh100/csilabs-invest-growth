@@ -1,7 +1,8 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Wallet, AlertTriangle, CheckCircle, Info, RefreshCw } from 'lucide-react';
+import { Wallet, AlertTriangle, CheckCircle, Info, RefreshCw, AlertCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KycVerificationData } from '@/hooks/kyc/types';
 import { toast } from 'sonner';
@@ -31,14 +32,44 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
   isWalletMissing,
   kycData
 }) => {
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { currencies, isLoading, error, refreshCurrencies } = useAvailableCurrencies();
   
   const hasCurrencies = currencies && Object.keys(currencies).length > 0;
+  const isFallbackMode = currencies && currencies.USDT && currencies.USDT.fallbackMode === true;
   
+  // Handle refresh with a debounce mechanism to prevent API abuse
+  const handleRefreshClick = async () => {
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
+    toast.info("Refreshing available currencies...");
+    
+    try {
+      await refreshCurrencies();
+      toast.success("Available currencies updated");
+    } catch (refreshError) {
+      toast.error("Failed to refresh currencies", {
+        description: "Please try again later."
+      });
+    } finally {
+      // Prevent multiple rapid refreshes
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 3000);
+    }
+  };
+  
+  // Update selected currency when currencies change
   React.useEffect(() => {
     if (!isLoading && hasCurrencies) {
       const currencyCodes = Object.keys(currencies);
-      if (!currencyCodes.includes(selectedCurrency)) {
+      
+      // Always prefer USDT if available
+      if (currencyCodes.includes('USDT')) {
+        setSelectedCurrency('USDT');
+      } else if (!currencyCodes.includes(selectedCurrency) && currencyCodes.length > 0) {
+        // Fallback to first currency if current selection is unavailable
         setSelectedCurrency(currencyCodes[0]);
       }
     }
@@ -81,6 +112,35 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
     handleCoinPaymentWithCurrency();
   };
 
+  const renderCurrencyOptions = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center p-4">
+          <Spinner className="h-4 w-4 mr-2" />
+          <span>Loading available currencies...</span>
+        </div>
+      );
+    } 
+    
+    if (!hasCurrencies) {
+      return (
+        <div className="p-4 text-red-500 text-center">
+          {error || "No currencies available"}
+        </div>
+      );
+    }
+    
+    return Object.entries(currencies).map(([code, data]) => (
+      <SelectItem 
+        key={code} 
+        value={code} 
+        className="hover:bg-blue-50"
+      >
+        {data.name || code}
+      </SelectItem>
+    ));
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3 mb-4">
@@ -104,6 +164,15 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
         </Alert>
       )}
       
+      {isFallbackMode && (
+        <Alert variant="warning" className="bg-amber-50 border-amber-200">
+          <AlertCircle className="h-4 w-4 text-amber-500" />
+          <AlertDescription className="text-amber-700">
+            Using limited currency options due to connection issues with the payment provider.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {isWalletMissing && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
           <div className="flex gap-2 items-center">
@@ -121,11 +190,11 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={refreshCurrencies} 
-            disabled={isLoading || isProcessing}
+            onClick={handleRefreshClick} 
+            disabled={isLoading || isProcessing || isRefreshing}
             className="text-xs flex items-center gap-1"
           >
-            {isLoading ? <Spinner className="h-3 w-3" /> : <RefreshCw className="h-3 w-3" />}
+            {(isLoading || isRefreshing) ? <Spinner className="h-3 w-3" /> : <RefreshCw className="h-3 w-3" />}
             Refresh
           </Button>
         </div>
@@ -142,26 +211,7 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
             <SelectValue placeholder={isLoading ? "Loading currencies..." : "Select cryptocurrency"} />
           </SelectTrigger>
           <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
-            {isLoading ? (
-              <div className="flex items-center justify-center p-4">
-                <Spinner className="h-4 w-4 mr-2" />
-                <span>Loading available currencies...</span>
-              </div>
-            ) : hasCurrencies ? (
-              Object.entries(currencies).map(([code, data]) => (
-                <SelectItem 
-                  key={code} 
-                  value={code} 
-                  className="hover:bg-blue-50"
-                >
-                  {data.name || code}
-                </SelectItem>
-              ))
-            ) : (
-              <div className="p-4 text-red-500 text-center">
-                {error || "No currencies available"}
-              </div>
-            )}
+            {renderCurrencyOptions()}
           </SelectContent>
         </Select>
       </div>
