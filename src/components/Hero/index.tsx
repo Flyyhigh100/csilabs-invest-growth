@@ -19,6 +19,10 @@ const Hero: React.FC = () => {
   useEffect(() => {
     const fetchImage = async () => {
       try {
+        // Convert the base64 image to a blob inside the async function
+        const base64Response = await fetch('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+        const imageBlob = await base64Response.blob();
+        
         const { data: storageData, error: storageError } = await supabase.storage
           .from('hero-images')
           .upload('hero-image.png', imageBlob, {
@@ -42,11 +46,8 @@ const Hero: React.FC = () => {
         setImageError(true);
       }
     };
-
-    // Convert the base64 image to a blob
-    const base64Response = await fetch('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...');
-    const imageBlob = await base64Response.blob();
     
+    // Call the async function
     fetchImage();
   }, []);
 
