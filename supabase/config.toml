@@ -1,11 +1,8 @@
 
-# This is the Supabase configuration file. It contains the project ID and function settings.
 project_id = "hrhvliqkmetcdphnetxb"
 
 [api]
-# Port that the API server will listen on
 port = 54321
-# OpenAPI specification file
 openapi_file = "api/openapi.json"
 
 [functions]
@@ -15,4 +12,5 @@ verify_jwt = true
 verify_jwt = true
 [functions.stripe-webhooks]
 verify_jwt = false
-
+[functions.get-coinpayments-currencies]
+verify_jwt = true

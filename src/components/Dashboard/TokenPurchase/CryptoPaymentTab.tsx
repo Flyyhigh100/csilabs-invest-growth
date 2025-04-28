@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useAvailableCurrencies } from '@/hooks/payments/useAvailableCurrencies';
 import { Spinner } from "@/components/ui/spinner";
 import { validateCryptoAmount } from '@/hooks/payments/crypto/validationUtils';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface CryptoPaymentTabProps {
   amount: number;
@@ -32,15 +33,16 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
 }) => {
   const { currencies, isLoading, error, refreshCurrencies } = useAvailableCurrencies();
   
-  // If the selected currency isn't in the list anymore, default to USDT
+  const hasCurrencies = currencies && Object.keys(currencies).length > 0;
+  
   React.useEffect(() => {
-    if (!isLoading && currencies.length > 0) {
-      const currencyCodes = currencies.map(c => c.code);
+    if (!isLoading && hasCurrencies) {
+      const currencyCodes = Object.keys(currencies);
       if (!currencyCodes.includes(selectedCurrency)) {
-        setSelectedCurrency(currencyCodes[0] || 'USDT');
+        setSelectedCurrency(currencyCodes[0]);
       }
     }
-  }, [currencies, selectedCurrency, setSelectedCurrency, isLoading]);
+  }, [currencies, selectedCurrency, setSelectedCurrency, isLoading, hasCurrencies]);
 
   const handlePaymentClick = () => {
     if (isWalletMissing) {
@@ -49,7 +51,6 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
         duration: 5000,
       });
       
-      // Scroll to wallet section
       setTimeout(() => {
         document.getElementById('wallet-address-section')?.scrollIntoView({ 
           behavior: 'smooth',
@@ -68,7 +69,6 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
       return;
     }
 
-    // Validate minimum amount
     const validation = validateCryptoAmount(amount, selectedCurrency);
     if (!validation.isValid) {
       toast.error("Amount Too Low", {
@@ -94,6 +94,15 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
           </p>
         </div>
       </div>
+      
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Unable to load payment options. Please try again later or contact support.
+          </AlertDescription>
+        </Alert>
+      )}
       
       {isWalletMissing && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
@@ -121,8 +130,15 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
           </Button>
         </div>
         
-        <Select value={selectedCurrency} onValueChange={setSelectedCurrency} disabled={isProcessing || isLoading}>
-          <SelectTrigger id="crypto-currency" className="mt-2 border border-gray-200 bg-white focus:ring-2 focus:ring-cbis-blue focus:border-cbis-blue transition-all">
+        <Select 
+          value={selectedCurrency} 
+          onValueChange={setSelectedCurrency} 
+          disabled={isProcessing || isLoading || !hasCurrencies}
+        >
+          <SelectTrigger 
+            id="crypto-currency" 
+            className="mt-2 border border-gray-200 bg-white focus:ring-2 focus:ring-cbis-blue focus:border-cbis-blue transition-all"
+          >
             <SelectValue placeholder={isLoading ? "Loading currencies..." : "Select cryptocurrency"} />
           </SelectTrigger>
           <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
@@ -131,14 +147,14 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
                 <Spinner className="h-4 w-4 mr-2" />
                 <span>Loading available currencies...</span>
               </div>
-            ) : currencies.length > 0 ? (
-              currencies.map(currency => (
+            ) : hasCurrencies ? (
+              Object.entries(currencies).map(([code, data]) => (
                 <SelectItem 
-                  key={currency.code} 
-                  value={currency.code} 
+                  key={code} 
+                  value={code} 
                   className="hover:bg-blue-50"
                 >
-                  {currency.name}
+                  {data.name || code}
                 </SelectItem>
               ))
             ) : (
@@ -157,7 +173,7 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
         </div>
         <Button 
           onClick={handlePaymentClick} 
-          disabled={isProcessing || isLoading || currencies.length === 0}
+          disabled={isProcessing || isLoading || !hasCurrencies}
           className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white py-2 px-4 sm:w-auto w-full"
         >
           {isLoading ? (
