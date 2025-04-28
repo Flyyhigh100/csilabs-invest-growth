@@ -3,13 +3,51 @@ import React, { useEffect, useState } from 'react';
 import HeroContent from './HeroContent';
 import TokenCard from './TokenCard';
 import { useTokenData } from '@/hooks/useTokenData';
+import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Hero: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
   const { priceData, volumeData, currentPrice, tokenInfo, isLoading, hasError } = useTokenData();
 
   useEffect(() => {
     setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    const fetchImage = async () => {
+      try {
+        const { data: storageData, error: storageError } = await supabase.storage
+          .from('hero-images')
+          .upload('hero-image.png', imageBlob, {
+            cacheControl: '3600',
+            upsert: true,
+          });
+
+        if (storageError) {
+          console.error('Error uploading image:', storageError);
+          setImageError(true);
+          return;
+        }
+
+        const { data } = supabase.storage
+          .from('hero-images')
+          .getPublicUrl('hero-image.png');
+
+        setImageUrl(data.publicUrl);
+      } catch (error) {
+        console.error('Error handling image:', error);
+        setImageError(true);
+      }
+    };
+
+    // Convert the base64 image to a blob
+    const base64Response = await fetch('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...');
+    const imageBlob = await base64Response.blob();
+    
+    fetchImage();
   }, []);
 
   return (
@@ -27,17 +65,21 @@ const Hero: React.FC = () => {
           {/* Left Column: Cancer Treatment Image */}
           <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white">
             <div className="w-full h-[500px] bg-gray-100 flex items-center justify-center">
-              <img 
-                src="/lovable-uploads/086dac73-eb0c-4ec7-a603-095811fb855a.png"
-                alt="Cancer Treatment Research" 
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  // Fallback if the image doesn't load
-                  const target = e.target as HTMLImageElement;
-                  target.onerror = null;
-                  target.src = '/placeholder.svg';
-                }}
-              />
+              {!imageUrl && !imageError ? (
+                <Skeleton className="w-full h-full" />
+              ) : (
+                <img 
+                  src={imageUrl || '/placeholder.svg'}
+                  alt="Cancer Treatment Research" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.onerror = null;
+                    target.src = '/placeholder.svg';
+                    setImageError(true);
+                  }}
+                />
+              )}
             </div>
           </div>
 
