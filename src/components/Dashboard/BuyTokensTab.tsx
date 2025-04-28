@@ -10,7 +10,7 @@ import WalletRequiredAlert from './WalletRequiredAlert';
 import ProcessingIndicator from './ProcessingIndicator';
 import CryptoPaymentDialog from './TokenPurchase/CryptoPaymentDialog';
 import TokenCalculator from './TokenPurchase/TokenCalculator';
-import PaymentTabs from './TokenPurchase/PaymentTabs';
+import PaymentOptions from './TokenPurchase/PaymentOptions';
 import WalletMissingContent from './TokenPurchase/WalletMissingContent';
 import PurchaseGuide from './TokenPurchase/PurchaseGuide';
 import { TokenPriceProvider, useTokenPrice } from '@/context/TokenPriceContext';
@@ -80,7 +80,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
             <div className="mt-6">
               <h3 className="text-base font-medium mb-4 text-gray-700">Select Payment Method</h3>
               
-              <PaymentTabs 
+              <PaymentOptions 
                 amount={amount}
                 selectedCurrency={selectedCurrency}
                 setSelectedCurrency={setSelectedCurrency}
