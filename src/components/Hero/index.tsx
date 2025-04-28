@@ -27,7 +27,7 @@ const Hero: React.FC = () => {
           {/* Left Column: Cancer Treatment Image */}
           <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white">
             <img 
-              src="/lovable-uploads/9f44a7e4-beff-4e74-acf9-004f3265bccd.png"
+              src="/2cc5a428-e17e-4a00-9ca8-f261375f4d7d.png"
               alt="Cancer Treatment Research" 
               className="w-full h-[500px] object-cover"
             />
