@@ -26,24 +26,22 @@ const Hero: React.FC = () => {
       <div className="container-custom relative z-10 pt-20">
         <div className={`grid md:grid-cols-2 gap-6 mb-12 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
           {/* Left Column: Cancer Treatment Image */}
-          <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white h-[500px]">
-            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-              {!isLoaded ? (
-                <Skeleton className="w-full h-full" />
-              ) : (
-                <img 
-                  src="/rawwhiteonepagepng.png"
-                  alt="Cannabis Science Cancer Treatment Research" 
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.onerror = null;
-                    target.src = '/placeholder.svg';
-                    setImageError(true);
-                  }}
-                />
-              )}
-            </div>
+          <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white h-[500px] flex items-center justify-center">
+            {!isLoaded ? (
+              <Skeleton className="w-full h-full" />
+            ) : (
+              <img 
+                src="/rawwhiteonepagepng.png"
+                alt="Cannabis Science Cancer Treatment Research" 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = '/placeholder.svg';
+                  setImageError(true);
+                }}
+              />
+            )}
           </div>
 
           {/* Right Column: Token Card */}
@@ -66,4 +64,3 @@ const Hero: React.FC = () => {
 };
 
 export default Hero;
-
