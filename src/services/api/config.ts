@@ -1,3 +1,4 @@
+
 /**
  * API Configuration for Token Data
  */
@@ -31,7 +32,7 @@ export const ENABLE_LOGGING = true;
 // Validation thresholds
 export const MAX_PRICE_CHANGE_PERCENTAGE = 50; // Maximum allowed price change (50%)
 export const MIN_VALID_PRICE = 0.00001; // Minimum valid price
-export const MAX_VALID_PRICE = 2; // Maximum valid price
+export const MAX_VALID_PRICE = 1000; // Maximum valid price - increased from 2 to 1000
 
 // Max retries for API calls
 export const MAX_RETRIES = 3;
