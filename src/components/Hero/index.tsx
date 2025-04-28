@@ -28,7 +28,7 @@ const Hero: React.FC = () => {
           <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white">
             <div className="w-full h-[500px] bg-gray-100 flex items-center justify-center">
               <img 
-                src="/photo-1488590528505-98d2b5aba04b"
+                src="/lovable-uploads/086dac73-eb0c-4ec7-a603-095811fb855a.png"
                 alt="Cancer Treatment Research" 
                 className="w-full h-full object-cover"
                 onError={(e) => {
