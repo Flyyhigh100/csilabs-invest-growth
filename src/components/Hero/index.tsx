@@ -17,8 +17,8 @@ const Hero: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Set the image URL directly instead of uploading to Supabase
-    setImageUrl('public/lovable-uploads/b697a9a0-ce80-475e-a65e-fb9b15b43eb8.png');
+    // Set the image URL directly to the newly uploaded image
+    setImageUrl('public/lovable-uploads/a6a43379-47a6-41cb-ba9b-9f5dfa312430.png');
   }, []);
 
   return (
