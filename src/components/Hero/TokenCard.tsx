@@ -29,18 +29,18 @@ const TokenCard: React.FC<TokenCardProps> = ({
     : 'Loading...';
 
   return (
-    <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white h-[500px]">
-      <div className="h-full rounded-xl overflow-hidden bg-gradient-to-br from-cbis-blue/10 to-cbis-teal/10">
-        <div className="h-full p-4 sm:p-6 md:p-8 flex flex-col">
-          <div className="text-center mb-4">
-            <div className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent mb-2">$CSi-EDP/Labs</div>
+    <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white">
+      <div className="rounded-xl overflow-hidden bg-gradient-to-br from-cbis-blue/10 to-cbis-teal/10">
+        <div className="p-4 sm:p-6 md:p-8">
+          <div className="text-center mb-6">
+            <div className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent mb-3">$CSi-EDP/Labs</div>
             <p className="text-cbis-dark">CSi Labs Token (CSL)</p>
             {currentPrice && (
-              <p className="text-lg font-medium mt-1">{formattedCurrentPrice}</p>
+              <p className="text-lg font-medium mt-2">{formattedCurrentPrice}</p>
             )}
           </div>
           
-          <div className="flex-grow">
+          <div className="h-[400px] mb-6">
             <DexToolsChart />
           </div>
           

@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const DexToolsChart: React.FC = () => {
   return (
-    <Card className="w-full h-full overflow-hidden">
+    <Card className="w-full h-[500px] overflow-hidden">
       <CardContent className="p-0 h-full">
         <iframe
           title="DexTools Chart"
