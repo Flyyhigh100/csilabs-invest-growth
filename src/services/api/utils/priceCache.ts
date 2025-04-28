@@ -2,10 +2,26 @@
 import { PRICE_CACHE_DURATION, FORCE_REFRESH_CACHE } from '../config';
 import { isValidPrice, isValidPriceChange } from './priceValidation';
 
-// Cache mechanism for current price
-let cachedCurrentPrice: { price: number; timestamp: number } | null = null;
+interface CachedPrice {
+  price: number;
+  timestamp: number;
+}
 
-export { PRICE_CACHE_DURATION };
+// Cache mechanism for current price
+let cachedCurrentPrice: CachedPrice | null = null;
+
+// Load initial price from localStorage if available
+try {
+  const storedPrice = localStorage.getItem('lastValidPrice');
+  if (storedPrice) {
+    const parsed = JSON.parse(storedPrice);
+    if (isValidPrice(parsed.price)) {
+      cachedCurrentPrice = parsed;
+    }
+  }
+} catch (error) {
+  console.warn('Failed to load cached price from localStorage:', error);
+}
 
 export const getCachedPrice = () => cachedCurrentPrice;
 
@@ -16,16 +32,28 @@ export const setCachedPrice = (price: number) => {
     return false;
   }
   
-  // Check for suspicious price changes
+  // Check for suspicious price changes if we have a cached price
   if (cachedCurrentPrice?.price) {
     if (!isValidPriceChange(price, cachedCurrentPrice.price)) {
-      console.warn('Suspicious price change rejected');
+      console.warn('Suspicious price change rejected:', {
+        oldPrice: cachedCurrentPrice.price,
+        newPrice: price
+      });
       return false;
     }
   }
   
-  console.log('Caching new price:', price, 'at:', new Date().toISOString());
-  cachedCurrentPrice = { price, timestamp: Date.now() };
+  const timestamp = Date.now();
+  cachedCurrentPrice = { price, timestamp };
+  
+  // Also store in localStorage for persistence
+  try {
+    localStorage.setItem('lastValidPrice', JSON.stringify(cachedCurrentPrice));
+  } catch (error) {
+    console.warn('Failed to persist price to localStorage:', error);
+  }
+  
+  console.log('Cached new price:', price, 'at:', new Date(timestamp).toISOString());
   return true;
 };
 
@@ -50,7 +78,3 @@ export const shouldRefreshPrice = (): boolean => {
   return elapsed >= PRICE_CACHE_DURATION;
 };
 
-export const invalidateCache = () => {
-  console.log('Invalidating price cache at:', new Date().toISOString());
-  cachedCurrentPrice = null;
-};

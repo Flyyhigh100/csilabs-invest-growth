@@ -1,4 +1,3 @@
-
 /**
  * API Configuration for Token Data
  */
@@ -26,12 +25,14 @@ export const END_DATE = Math.floor(new Date().getTime() / 1000);
 export const DAYS_TO_INCLUDE = 90;
 
 // Cache settings
-export const PRICE_CACHE_DURATION = 60000; // 60 seconds
+export const PRICE_CACHE_DURATION = 10000; // 10 seconds to match polling interval
 export const FORCE_REFRESH_CACHE = false;
+export const STABLE_PRICE_THRESHOLD = 0.0001; // 0.01% change threshold for stable price
 
 // Validation thresholds
 export const MAX_PRICE_CHANGE_PERCENTAGE = 50; // Maximum allowed price change (50%)
 export const MIN_VALID_PRICE = 0.00001; // Minimum valid price
+export const MAX_VALID_PRICE = 2; // Maximum valid price
 
 // For logging
 export const ENABLE_LOGGING = true;

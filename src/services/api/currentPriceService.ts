@@ -25,10 +25,16 @@ export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Pro
     }
     
     const price = await fetchDexScreenerPrice();
+    
+    // Only update cache if we get a valid new price
     const cached = setCachedPrice(price);
     
     if (!cached && ENABLE_LOGGING) {
-      console.warn('Price was fetched but not cached due to validation failure');
+      console.warn('Price was fetched but failed validation, using last known good price');
+      const lastKnown = getCachedPrice();
+      if (lastKnown) {
+        return lastKnown.price;
+      }
     }
     
     return price;
@@ -45,3 +51,4 @@ export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Pro
     throw error;
   }
 };
+

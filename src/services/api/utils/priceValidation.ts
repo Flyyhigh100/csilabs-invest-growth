@@ -1,5 +1,5 @@
 
-import { MAX_PRICE_CHANGE_PERCENTAGE, MIN_VALID_PRICE } from '../config';
+import { MAX_PRICE_CHANGE_PERCENTAGE, MIN_VALID_PRICE, MAX_VALID_PRICE } from '../config';
 
 export function isValidPrice(price: number | string | null | undefined): boolean {
   // Convert to number if string
@@ -11,7 +11,7 @@ export function isValidPrice(price: number | string | null | undefined): boolean
     numericPrice === undefined ||
     isNaN(Number(numericPrice)) ||
     numericPrice < MIN_VALID_PRICE ||
-    numericPrice > 2 // Maximum reasonable price threshold
+    numericPrice > MAX_VALID_PRICE
   ) {
     console.warn('Invalid price detected:', numericPrice);
     return false;
@@ -26,7 +26,22 @@ export function isValidPriceChange(newPrice: number, oldPrice: number): boolean 
   const priceChange = Math.abs(newPrice - oldPrice);
   const changePercentage = (priceChange / oldPrice) * 100;
   
-  if (changePercentage > MAX_PRICE_CHANGE_PERCENTAGE) {
+  // Get time since last update from localStorage
+  let lastUpdateTime = 0;
+  try {
+    const stored = localStorage.getItem('lastValidPrice');
+    if (stored) {
+      lastUpdateTime = JSON.parse(stored).timestamp;
+    }
+  } catch (error) {
+    console.warn('Error reading last update time:', error);
+  }
+  
+  // Adjust validation based on time since last update
+  const hoursSinceUpdate = (Date.now() - lastUpdateTime) / (1000 * 60 * 60);
+  const adjustedThreshold = MAX_PRICE_CHANGE_PERCENTAGE * Math.min(hoursSinceUpdate / 24, 2);
+  
+  if (changePercentage > adjustedThreshold) {
     console.warn(`Suspicious price change detected: ${changePercentage.toFixed(2)}%`);
     console.warn(`Old price: ${oldPrice}, New price: ${newPrice}`);
     return false;
@@ -34,3 +49,4 @@ export function isValidPriceChange(newPrice: number, oldPrice: number): boolean 
   
   return true;
 }
+
