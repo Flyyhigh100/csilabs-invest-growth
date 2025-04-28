@@ -1,134 +1,65 @@
-import React, { useState, useEffect, useCallback } from 'react';
+
+import React from 'react';
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { HelpCircle, RefreshCw } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import PurchaseAmountInput from '../PurchaseAmountInput';
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from 'lucide-react';
 import { useTokenPrice } from '@/context/TokenPriceContext';
-import { Spinner } from "@/components/ui/spinner";
 
 interface TokenCalculatorProps {
   amount: number;
   onChange: (amount: number) => void;
-  disabled: boolean;
+  disabled?: boolean;
 }
 
 const TokenCalculator: React.FC<TokenCalculatorProps> = ({
   amount,
   onChange,
-  disabled
+  disabled = false
 }) => {
-  const { 
-    currentPrice, 
-    isLoading, 
-    lastUpdated, 
-    timeUntilNextUpdate,
-    refreshPrice,
-    convertUsdToTokens
-  } = useTokenPrice();
-  
-  const [tokenAmount, setTokenAmount] = useState<number>(0);
-  const [refreshCountdown, setRefreshCountdown] = useState<number>(0);
-  
-  const handleAmountChange = useCallback((newAmount: number) => {
+  const { currentPrice } = useTokenPrice();
+  const tokenAmount = currentPrice ? amount / currentPrice : 0;
+  const isExceedingLimit = tokenAmount > 10000;
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newAmount = parseFloat(e.target.value) || 0;
     onChange(newAmount);
-  }, [onChange]);
-  
-  useEffect(() => {
-    setTokenAmount(convertUsdToTokens(amount));
-  }, [amount, currentPrice, convertUsdToTokens]);
-  
-  useEffect(() => {
-    setRefreshCountdown(Math.floor(timeUntilNextUpdate / 1000));
-  }, [timeUntilNextUpdate]);
-  
-  const formattedLastUpdated = lastUpdated 
-    ? lastUpdated.toLocaleTimeString() 
-    : 'Not yet updated';
-  
-  const handleRefreshPrice = () => {
-    refreshPrice();
   };
-  
+
   return (
-    <div className="space-y-6 bg-blue-50 p-5 rounded-lg border border-blue-100">
-      <div className="flex items-center justify-between">
-        <Label className="text-xl font-bold text-gray-900" htmlFor="amount-input">
-          Purchase Amount (USD)
+    <div className="space-y-4">
+      <div>
+        <Label htmlFor="amount" className="text-sm font-medium text-gray-700">
+          Amount in USD ($)
         </Label>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full p-0">
-                <HelpCircle className="h-5 w-5 text-gray-500" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-xs">
-              <p className="text-sm">Enter the amount in USD you wish to invest. The number of tokens you'll receive is calculated based on the current token price.</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-      
-      <PurchaseAmountInput 
-        amount={amount} 
-        onChange={handleAmountChange} 
-        disabled={disabled}
-      />
-      
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-gray-700 font-medium">Current token price:</span>
-          <div className="flex items-center">
-            <span className="font-semibold text-cbis-blue mr-2">
-              {isLoading ? (
-                <Spinner className="h-4 w-4" />
-              ) : currentPrice ? (
-                `$${currentPrice.toFixed(5)} USD`
-              ) : (
-                'Loading...'
-              )}
-            </span>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRefreshPrice}
-              disabled={isLoading}
-              className="h-7 w-7 p-0 rounded-full"
-            >
-              <RefreshCw className="h-3 w-3" />
-            </Button>
-          </div>
-        </div>
-        
-        <div className="flex justify-between items-center text-base mb-2">
-          <span className="text-gray-700 font-medium">You will receive:</span>
-          <span className="font-bold text-cbis-blue text-xl">
-            {isLoading ? (
-              <Spinner className="h-5 w-5" />
-            ) : (
-              `${tokenAmount.toLocaleString(undefined, {
-                maximumFractionDigits: 5,
-                minimumFractionDigits: 2
-              })} CSi Tokens`
-            )}
-          </span>
-        </div>
-        
-        <div className="flex justify-between items-center text-xs text-gray-500 mt-3 pt-2 border-t border-gray-100">
-          <span>
-            Last updated: {formattedLastUpdated}
-          </span>
-          <span>
-            Next update in: {refreshCountdown}s
-          </span>
+        <div className="mt-1">
+          <Input
+            type="number"
+            id="amount"
+            min="0"
+            step="1"
+            value={amount}
+            onChange={handleAmountChange}
+            disabled={disabled}
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-cbis-blue focus:ring-cbis-blue sm:text-sm"
+          />
         </div>
       </div>
+
+      {currentPrice && (
+        <div className="text-sm text-gray-600">
+          Estimated tokens: {tokenAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} CSL
+        </div>
+      )}
+
+      {isExceedingLimit && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Maximum purchase limit is 10,000 tokens per transaction
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 };

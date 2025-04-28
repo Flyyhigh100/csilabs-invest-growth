@@ -7,10 +7,9 @@ import { PaymentValidationOptions } from './types';
 export const usePaymentValidation = (walletAddress: string | null) => {
   const [kycRequired, setKycRequired] = useState<boolean>(false);
 
-  // Check if KYC is required based on amount
+  // Check if KYC is required based on amount (now $10,000)
   const requiresKyc = (amount: number): boolean => {
-    // Logic to determine if KYC is required based on amount
-    return amount >= 3001;
+    return amount >= 10000;
   };
 
   // Validate if a payment request can proceed
@@ -18,12 +17,22 @@ export const usePaymentValidation = (walletAddress: string | null) => {
     amount: number, 
     options: PaymentValidationOptions = {}
   ): boolean => {
-    const { isCrypto = false, skipKycCheck = false } = options;
+    const { isCrypto = false, skipKycCheck = false, tokenPrice = 1 } = options;
     
     // Validate amount
     if (!amount || amount <= 0) {
       toast.error("Invalid Amount", {
         description: "Please enter a valid amount to continue.",
+        duration: 5000,
+      });
+      return false;
+    }
+
+    // Check maximum purchase limit (10,000 tokens)
+    const tokenAmount = tokenPrice ? amount / tokenPrice : amount;
+    if (tokenAmount > 10000) {
+      toast.error("Maximum Purchase Limit Exceeded", {
+        description: "Maximum purchase limit is 10,000 tokens per transaction.",
         duration: 5000,
       });
       return false;
@@ -51,18 +60,6 @@ export const usePaymentValidation = (walletAddress: string | null) => {
     if (!skipKycCheck) {
       const needsKyc = requiresKyc(amount);
       setKycRequired(needsKyc);
-      
-      // This is commented out for now as we're allowing payments without KYC in test mode
-      // But the logic is kept here for future implementation
-      /*
-      if (needsKyc && kycData?.status !== 'approved') {
-        toast.error("KYC Required", {
-          description: "For purchases over $3,000, you need to complete KYC verification first.",
-          duration: 5000,
-        });
-        return false;
-      }
-      */
     }
     
     return true;
@@ -70,7 +67,7 @@ export const usePaymentValidation = (walletAddress: string | null) => {
 
   return {
     validatePaymentRequest,
-    kycRequired: requiresKyc, // Export the function directly instead of the state
-    isKycRequired: kycRequired // Keep the state as well under a different name if needed
+    kycRequired: requiresKyc,
+    isKycRequired: kycRequired
   };
 };

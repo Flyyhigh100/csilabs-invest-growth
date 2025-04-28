@@ -47,7 +47,7 @@ export const KycRequirementAlert: React.FC<{
   const isKycPending = kycData?.status === 'pending';
   const isKycRejected = kycData?.status === 'rejected';
   
-  if (amount < 3001) return null;
+  if (amount < 10000) return null;
   
   if (isKycPending) {
     return (
@@ -55,7 +55,7 @@ export const KycRequirementAlert: React.FC<{
         <AlertTriangle className="h-5 w-5 text-amber-600" />
         <AlertTitle className="text-amber-800">KYC Verification In Progress</AlertTitle>
         <AlertDescription className="text-amber-700">
-          Your KYC verification is being reviewed. Crypto payments of $3,001 or more will be available once verification is approved.
+          Your KYC verification is being reviewed. Crypto payments of $10,000 or more will be available once verification is approved.
         </AlertDescription>
       </Alert>
     );
@@ -65,7 +65,7 @@ export const KycRequirementAlert: React.FC<{
         <AlertTriangle className="h-5 w-5 text-red-600" />
         <AlertTitle className="text-red-800">KYC Verification Rejected</AlertTitle>
         <AlertDescription className="text-red-700">
-          Your KYC verification was rejected. Please try again with valid documents to process crypto payments of $3,001 or more.
+          Your KYC verification was rejected. Please try again with valid documents to process crypto payments of $10,000 or more.
           <Button asChild variant="link" className="p-0 ml-2 text-red-700 font-medium">
             <Link to="/dashboard/kyc">Verify Now</Link>
           </Button>
@@ -78,7 +78,7 @@ export const KycRequirementAlert: React.FC<{
         <AlertTriangle className="h-5 w-5 text-amber-600" />
         <AlertTitle className="text-amber-800">KYC Verification Required</AlertTitle>
         <AlertDescription className="text-amber-700">
-          Crypto payments of $3,001 or more require KYC verification for regulatory compliance.
+          Crypto payments of $10,000 or more require KYC verification for regulatory compliance.
           <Button asChild variant="link" className="p-0 ml-2 text-amber-700 font-medium">
             <Link to="/dashboard/kyc">Verify Now</Link>
           </Button>

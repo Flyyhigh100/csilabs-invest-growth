@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,6 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
   const hasCurrencies = currencies && Object.keys(currencies).length > 0;
   const isFallbackMode = currencies && currencies.USDT && currencies.USDT.fallbackMode === true;
   
-  // Handle refresh with a debounce mechanism to prevent API abuse
   const handleRefreshClick = async () => {
     if (isRefreshing) return;
     
@@ -53,23 +51,19 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
         description: "Please try again later."
       });
     } finally {
-      // Prevent multiple rapid refreshes
       setTimeout(() => {
         setIsRefreshing(false);
       }, 3000);
     }
   };
   
-  // Update selected currency when currencies change
   React.useEffect(() => {
     if (!isLoading && hasCurrencies) {
       const currencyCodes = Object.keys(currencies);
       
-      // Always prefer USDT if available
       if (currencyCodes.includes('USDT')) {
         setSelectedCurrency('USDT');
       } else if (!currencyCodes.includes(selectedCurrency) && currencyCodes.length > 0) {
-        // Fallback to first currency if current selection is unavailable
         setSelectedCurrency(currencyCodes[0]);
       }
     }
@@ -94,7 +88,7 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
     
     if (isKycNeeded) {
       toast.error("KYC Verification Required", {
-        description: "For purchases over $3,000, you need to complete KYC verification first.",
+        description: "For purchases over $10,000, you need to complete KYC verification first.",
         duration: 5000,
       });
       return;
@@ -237,14 +231,14 @@ const CryptoPaymentTab: React.FC<CryptoPaymentTabProps> = ({
         </Button>
       </div>
       
-      {amount >= 3001 && kycData?.status !== 'approved' && (
+      {amount >= 10000 && kycData?.status !== 'approved' && (
         <div className="flex items-center gap-2 text-sm text-amber-600 mt-2">
           <AlertTriangle className="h-4 w-4" />
-          <span>KYC verification required for amounts $3,001 or more</span>
+          <span>KYC verification required for amounts $10,000 or more</span>
         </div>
       )}
       
-      {(amount < 3001 || kycData?.status === 'approved') && (
+      {(amount < 10000 || kycData?.status === 'approved') && (
         <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
           <CheckCircle className="h-4 w-4 text-green-500" />
           <span>Secure payment processing by CoinPayments</span>
