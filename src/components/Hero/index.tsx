@@ -26,11 +26,19 @@ const Hero: React.FC = () => {
         <div className={`grid md:grid-cols-2 gap-6 mb-12 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
           {/* Left Column: Cancer Treatment Image */}
           <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white">
-            <img 
-              src="/2cc5a428-e17e-4a00-9ca8-f261375f4d7d.png"
-              alt="Cancer Treatment Research" 
-              className="w-full h-[500px] object-cover"
-            />
+            <div className="w-full h-[500px] bg-gray-100 flex items-center justify-center">
+              <img 
+                src="/photo-1488590528505-98d2b5aba04b"
+                alt="Cancer Treatment Research" 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Fallback if the image doesn't load
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = '/placeholder.svg';
+                }}
+              />
+            </div>
           </div>
 
           {/* Right Column: Token Card */}
