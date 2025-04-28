@@ -1,24 +1,16 @@
-
 import React, { useEffect, useState } from 'react';
 import HeroContent from './HeroContent';
 import TokenCard from './TokenCard';
 import { useTokenData } from '@/hooks/useTokenData';
-import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const Hero: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
   const { priceData, volumeData, currentPrice, tokenInfo, isLoading, hasError } = useTokenData();
 
   useEffect(() => {
     setIsLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    // Set the image URL directly to the newly uploaded image
-    setImageUrl('public/lovable-uploads/a6a43379-47a6-41cb-ba9b-9f5dfa312430.png');
   }, []);
 
   return (
@@ -36,11 +28,11 @@ const Hero: React.FC = () => {
           {/* Left Column: Cancer Treatment Image */}
           <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white">
             <div className="w-full h-[500px] bg-gray-100 flex items-center justify-center">
-              {!imageUrl && !imageError ? (
+              {!isLoaded ? (
                 <Skeleton className="w-full h-full" />
               ) : (
                 <img 
-                  src={imageUrl || '/placeholder.svg'}
+                  src="/rawwhiteonepagepng.png"
                   alt="Cannabis Science Cancer Treatment Research" 
                   className="w-full h-full object-cover"
                   onError={(e) => {
