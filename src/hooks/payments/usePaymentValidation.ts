@@ -30,11 +30,17 @@ export const usePaymentValidation = (walletAddress: string | null) => {
 
     // Calculate token amount based on current price
     const tokenAmount = tokenPrice ? amount / tokenPrice : amount;
+    console.log('Validating payment:', { 
+      amount, 
+      tokenAmount, 
+      tokenPrice, 
+      isCrypto 
+    });
 
-    // Check maximum token limit (10,000 tokens)
+    // Check maximum token limit (10,000 tokens) regardless of payment method
     if (tokenAmount > 10000) {
       toast.error("Maximum Token Limit Exceeded", {
-        description: "Maximum purchase limit is 10,000 tokens per transaction.",
+        description: `Maximum purchase limit is 10,000 tokens per transaction (current calculation: ${tokenAmount.toFixed(2)} tokens).`,
         duration: 5000,
       });
       return false;
@@ -43,24 +49,24 @@ export const usePaymentValidation = (walletAddress: string | null) => {
     // Check if wallet address is required for crypto payments
     if (isCrypto && !walletAddress) {
       toast.error("Wallet Address Required", {
-        description: "You need to provide a wallet address to receive your tokens after purchase.",
+        description: "Please add a wallet address to receive your tokens after purchase.",
         duration: 5000,
       });
-      
-      setTimeout(() => {
-        document.getElementById('wallet-address-section')?.scrollIntoView({ 
-          behavior: 'smooth',
-          block: 'start'
-        });
-      }, 500);
-      
+      document.getElementById('wallet-address-section')?.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
       return false;
     }
     
     // Check if KYC is required for crypto payments over $10,000
     if (isCrypto && !skipKycCheck && requiresKyc(amount)) {
-      console.log('KYC required for amount:', amount);
+      console.log('KYC required for crypto payment amount:', amount);
       setKycRequired(true);
+      toast.error("KYC Required", {
+        description: "KYC verification is required for crypto payments of $10,000 or more.",
+        duration: 5000,
+      });
       return false;
     }
     

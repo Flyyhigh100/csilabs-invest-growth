@@ -23,12 +23,12 @@ const PaymentStatus: React.FC<PaymentStatusProps> = ({ amount, kycData }) => {
     );
   }
 
-  // Token limit warning
+  // Token limit warning - this is now based on actual token amount
   if (tokenAmount > 10000) {
     return (
       <div className="flex items-center gap-2 text-sm text-amber-600 mt-2">
         <AlertTriangle className="h-4 w-4" />
-        <span>Maximum purchase limit is 10,000 tokens per transaction</span>
+        <span>Maximum purchase limit is 10,000 tokens per transaction (current: {tokenAmount.toFixed(2)} tokens)</span>
       </div>
     );
   }

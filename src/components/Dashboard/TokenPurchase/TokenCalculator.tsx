@@ -53,6 +53,11 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
       {currentPrice && (
         <div className="text-sm text-gray-600">
           Estimated tokens: {formattedTokenAmount} CSL
+          {currentPrice && (
+            <div className="text-xs text-gray-500 mt-1">
+              Current price: ${currentPrice.toFixed(5)} per token
+            </div>
+          )}
         </div>
       )}
 
