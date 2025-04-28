@@ -40,4 +40,5 @@ export interface CryptoStatusCheckResult {
 export interface PaymentValidationOptions {
   isCrypto?: boolean;
   skipKycCheck?: boolean;
+  tokenPrice?: number; // Added the missing tokenPrice property
 }
