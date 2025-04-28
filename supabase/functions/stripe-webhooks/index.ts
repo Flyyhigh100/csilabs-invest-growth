@@ -11,8 +11,14 @@ const corsHeaders = {
 
 // Main entry point
 serve(async (req) => {
+  // Log incoming request
+  console.log("[WEBHOOK] Stripe webhook request received");
+  console.log("[WEBHOOK] Request method:", req.method);
+  console.log("[WEBHOOK] Request headers:", JSON.stringify(Object.fromEntries(req.headers)));
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("[WEBHOOK] Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -22,3 +28,4 @@ serve(async (req) => {
 
   return await handleStripeWebhook(req);
 });
+
