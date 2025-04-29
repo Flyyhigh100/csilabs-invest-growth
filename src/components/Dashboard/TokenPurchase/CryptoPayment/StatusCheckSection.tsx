@@ -1,33 +1,63 @@
 
 import React from 'react';
+import { ExternalLink, RefreshCw } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Info } from "lucide-react";
 
 interface StatusCheckSectionProps {
-  statusUrl: string;
+  checkStatusUrl: string;
 }
 
-const StatusCheckSection: React.FC<StatusCheckSectionProps> = ({ statusUrl }) => {
+const StatusCheckSection: React.FC<StatusCheckSectionProps> = ({ checkStatusUrl }) => {
+  const [isChecking, setIsChecking] = React.useState(false);
+  
+  const handleCheckStatus = () => {
+    setIsChecking(true);
+    
+    // Navigate to the status page
+    if (checkStatusUrl.startsWith('/')) {
+      window.location.href = checkStatusUrl;
+    } else {
+      window.open(checkStatusUrl, '_blank');
+    }
+    
+    // Reset state after a short delay
+    setTimeout(() => {
+      setIsChecking(false);
+    }, 2000);
+  };
+  
   return (
-    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-      <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-        <Info className="h-4 w-4 text-blue-500" />
-        Check Payment Status
-      </h3>
-      <p className="text-sm mb-3">
-        You can check the status of your payment on the CoinPayments website:
+    <div className="flex flex-col gap-2">
+      <h3 className="text-sm font-medium">Payment Status</h3>
+      <p className="text-sm text-gray-600">
+        You can check the status of your payment at any time:
       </p>
-      <Button asChild variant="outline" className="w-full">
-        <a 
-          href={statusUrl} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2"
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Button 
+          variant="outline" 
+          className="flex items-center gap-2 w-full sm:w-auto"
+          onClick={handleCheckStatus}
+          disabled={isChecking}
         >
-          View Payment Status
-          <ExternalLink className="h-4 w-4" />
-        </a>
-      </Button>
+          {isChecking ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          Check Payment Status
+        </Button>
+        
+        {checkStatusUrl.startsWith('http') && (
+          <Button
+            variant="outline"
+            className="flex items-center gap-2 w-full sm:w-auto"
+            onClick={() => window.open(checkStatusUrl, '_blank')}
+          >
+            <ExternalLink className="h-4 w-4" />
+            View on Payment Processor
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

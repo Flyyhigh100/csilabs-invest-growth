@@ -1,83 +1,68 @@
 
-import React, { useEffect, useState } from 'react';
-import { AlertCircle, Clock } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import React, { useState, useEffect } from 'react';
+import { Timer } from 'lucide-react';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface TimeRemainingAlertProps {
-  expiresAt: string | Date;
+  expiresAt: string;
 }
 
 const TimeRemainingAlert: React.FC<TimeRemainingAlertProps> = ({ expiresAt }) => {
-  const calculateTimeRemaining = () => {
-    try {
-      const now = new Date();
-      // Ensure expiration date is properly parsed regardless of format
-      let expiration: Date;
-      
-      if (typeof expiresAt === 'string') {
-        // Check if it's a numeric timestamp or a date string
-        if (/^\d+$/.test(expiresAt)) {
-          // Convert numeric string to number and interpret as milliseconds
-          expiration = new Date(parseInt(expiresAt));
-        } else {
-          // Try to parse the date string directly
-          expiration = new Date(expiresAt);
-        }
-      } else {
-        // It's already a Date object
-        expiration = expiresAt;
-      }
-      
-      // Check if the date is valid
-      if (isNaN(expiration.getTime())) {
-        console.error('Invalid expiration date:', expiresAt);
-        // Default to expired if invalid date
-        return { expired: true, minutes: 0, seconds: 0 };
-      }
-      
-      const diff = expiration.getTime() - now.getTime();
-      
-      if (diff <= 0) return { expired: true, minutes: 0, seconds: 0 };
-      
-      const minutes = Math.floor(diff / 1000 / 60);
-      const seconds = Math.floor((diff / 1000) % 60);
-      
-      return { expired: false, minutes, seconds };
-    } catch (error) {
-      console.error('Error calculating time remaining:', error, 'expiresAt:', expiresAt);
-      // Default to expired on error
-      return { expired: true, minutes: 0, seconds: 0 };
-    }
-  };
-  
-  const [timeRemaining, setTimeRemaining] = useState(calculateTimeRemaining());
+  const [minutesRemaining, setMinutesRemaining] = useState<number>(0);
   
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeRemaining(calculateTimeRemaining());
-    }, 1000);
+    const calculateTimeRemaining = () => {
+      try {
+        const expiryTime = new Date(expiresAt).getTime();
+        const now = new Date().getTime();
+        const diff = expiryTime - now;
+        
+        if (diff <= 0) {
+          setMinutesRemaining(0);
+          return;
+        }
+        
+        // Convert to minutes and round up
+        const minutes = Math.ceil(diff / (1000 * 60));
+        setMinutesRemaining(minutes);
+      } catch (e) {
+        console.error("Error calculating time remaining:", e);
+        setMinutesRemaining(0);
+      }
+    };
     
-    return () => clearInterval(timer);
+    // Calculate immediately
+    calculateTimeRemaining();
+    
+    // Then update every minute
+    const intervalId = setInterval(calculateTimeRemaining, 60000);
+    
+    return () => clearInterval(intervalId);
   }, [expiresAt]);
   
-  if (timeRemaining.expired) {
+  if (minutesRemaining <= 0) {
     return (
       <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Payment Expired</AlertTitle>
+        <Timer className="h-4 w-4" />
         <AlertDescription>
-          This payment request has expired. Please create a new payment.
+          This payment request has expired. Please create a new one.
         </AlertDescription>
       </Alert>
     );
   }
   
+  // Show warning when less than 10 minutes remain
+  const isUrgent = minutesRemaining <= 10;
+  
   return (
-    <Alert className="bg-amber-50 border-amber-200">
-      <Clock className="h-4 w-4 text-amber-500" />
-      <AlertTitle className="text-amber-700">Time Remaining</AlertTitle>
-      <AlertDescription className="text-amber-600">
-        This payment request will expire in {timeRemaining.minutes.toString().padStart(2, '0')}:{timeRemaining.seconds.toString().padStart(2, '0')} minutes
+    <Alert variant={isUrgent ? "warning" : "default"} className={isUrgent ? "bg-amber-50 border-amber-200" : ""}>
+      <Timer className={`h-4 w-4 ${isUrgent ? "text-amber-600" : ""}`} />
+      <AlertDescription className={isUrgent ? "text-amber-800" : ""}>
+        {minutesRemaining > 60 ? (
+          `Payment request valid for ${Math.floor(minutesRemaining / 60)} hours and ${minutesRemaining % 60} minutes`
+        ) : (
+          `Payment request valid for ${minutesRemaining} ${minutesRemaining === 1 ? 'minute' : 'minutes'}`
+        )}
       </AlertDescription>
     </Alert>
   );

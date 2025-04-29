@@ -8,4 +8,3 @@ export { default as InstructionsSection } from './InstructionsSection';
 export { default as StatusCheckSection } from './StatusCheckSection';
 export { default as DialogContent } from './DialogContent';
 export { DialogFooterActions } from './DialogFooterActions';
-// Remove the duplicate export of DialogFooterActions

@@ -1,77 +1,28 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { CryptoPaymentDetails } from '@/hooks/payments/types';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface InstructionsSectionProps {
-  paymentDetails: CryptoPaymentDetails | null;
-  instructions?: string;
+  instructions: string;
 }
 
-const InstructionsSection: React.FC<InstructionsSectionProps> = ({ 
-  paymentDetails, 
-  instructions 
-}) => {
-  // No payment details
-  if (!paymentDetails) return null;
-  
-  // Extract and format information from payment details
-  const currency = paymentDetails.currency || 'USDT';
-  
-  // Format crypto amount for display (ensure it shows the exact amount needed)
-  const cryptoAmount = paymentDetails.amount || '0';
-  const usdValue = paymentDetails.usdValue || 0;
-  
-  // For stablecoins like USDT, USDC that are pegged to USD, the amounts may be nearly the same
-  // But for other cryptocurrencies, they will be different based on exchange rates
-  const isStablecoin = ['USDT', 'USDC', 'DAI', 'BUSD'].includes(currency);
-  
-  // Use the passed instructions or fallback to default
-  const displayInstructions = instructions || 
-    paymentDetails.instructions || 
-    `Send exactly ${cryptoAmount} ${currency} to the address below to complete your purchase.`;
-  
+const InstructionsSection: React.FC<InstructionsSectionProps> = ({ instructions }) => {
   return (
-    <Card className="mb-6 border-gray-200">
-      <CardContent className="pt-6">
-        <div className="space-y-4">
-          <h3 className="font-medium text-base">Payment Instructions</h3>
-          
-          <div className="py-2 text-sm text-gray-700 space-y-4">
-            <p>
-              To complete your purchase, please send the following amount:
-            </p>
-            
-            <div className="flex flex-col space-y-1">
-              <div className="font-mono bg-gray-100 p-3 rounded-md border border-gray-300 flex flex-col">
-                <span className="text-xl font-semibold text-gray-800">{cryptoAmount} {currency}</span>
-                <span className="text-xs text-gray-600">≈ ${usdValue.toFixed(2)} USD</span>
-              </div>
-              
-              <p className="text-xs text-gray-500 mt-1">
-                Exchange rates are locked for 60 minutes. Please complete payment before expiry.
-              </p>
-            </div>
-            
-            {!isStablecoin && (
-              <Alert variant="default" className="bg-blue-50 text-blue-700 border-blue-200">
-                <AlertCircle className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-xs">
-                  The amount above has been converted from ${usdValue.toFixed(2)} USD to {cryptoAmount} {currency} 
-                  using current exchange rates.
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
-              {displayInstructions}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <h3 className="text-sm font-medium">Payment Instructions</h3>
+      
+      <div className="bg-white p-4 rounded border border-gray-200 text-sm">
+        <p>{instructions}</p>
+      </div>
+      
+      <Alert variant="warning" className="border-amber-200 bg-amber-50/50">
+        <AlertTriangle className="h-4 w-4 text-amber-600" />
+        <AlertDescription className="text-amber-800">
+          Do not send coins other than the specified currency. Doing so may result in permanent loss.
+        </AlertDescription>
+      </Alert>
+    </div>
   );
 };
 

@@ -4,22 +4,32 @@ import { Button } from "@/components/ui/button";
 import { Copy, CheckCircle, AlertCircle } from "lucide-react";
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { validateAddress, getNetworkName } from '@/hooks/payments/crypto/validationUtils';
 
 interface PaymentAddressSectionProps {
   paymentAddress: string;
+  currency?: string;
 }
 
-const PaymentAddressSection: React.FC<PaymentAddressSectionProps> = ({ paymentAddress }) => {
+const PaymentAddressSection: React.FC<PaymentAddressSectionProps> = ({ 
+  paymentAddress,
+  currency = 'USDT'
+}) => {
   const [copied, setCopied] = React.useState(false);
 
-  // Validate the payment address
-  const isValidAddress = React.useMemo(() => {
-    if (!paymentAddress) return false;
-    return /^0x[a-fA-F0-9]{40}$/.test(paymentAddress);
-  }, [paymentAddress]);
+  // Validate the payment address for the specific currency
+  const validationResult = React.useMemo(() => {
+    if (!paymentAddress) return { isValid: false, message: 'No payment address provided' };
+    return validateAddress(paymentAddress, currency);
+  }, [paymentAddress, currency]);
+
+  // Get appropriate network label based on currency
+  const networkLabel = React.useMemo(() => {
+    return getNetworkName(currency);
+  }, [currency]);
 
   const handleCopy = () => {
-    if (paymentAddress && isValidAddress) {
+    if (paymentAddress && validationResult.isValid) {
       navigator.clipboard.writeText(paymentAddress);
       setCopied(true);
       toast.success("Payment address copied to clipboard");
@@ -30,12 +40,12 @@ const PaymentAddressSection: React.FC<PaymentAddressSectionProps> = ({ paymentAd
     }
   };
 
-  if (!isValidAddress) {
+  if (!validationResult.isValid) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Invalid payment address format. Please contact support.
+          {validationResult.message || "Invalid payment address format. Please contact support or try another currency."}
         </AlertDescription>
       </Alert>
     );
@@ -43,7 +53,7 @@ const PaymentAddressSection: React.FC<PaymentAddressSectionProps> = ({ paymentAd
 
   return (
     <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-      <h3 className="text-sm font-medium mb-2">Payment Address (BEP-20)</h3>
+      <h3 className="text-sm font-medium mb-2">Payment Address ({networkLabel})</h3>
       <div className="flex items-center gap-2">
         <div className="bg-white p-3 rounded border border-gray-200 text-sm font-mono break-all w-full">
           {paymentAddress}
