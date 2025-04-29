@@ -24,23 +24,17 @@ const Hero: React.FC = () => {
       </div>
 
       <div className="container-custom relative z-10 pt-20">
-        {/* Main Hero Section: Text on left, Image on right */}
-        <div className={`grid md:grid-cols-2 gap-8 mb-12 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-          {/* Left Column: Hero Content */}
-          <div className="flex flex-col justify-center">
-            <HeroContent isLoaded={isLoaded} />
-          </div>
-          
-          {/* Right Column: Ray 2 Image */}
+        <div className={`grid md:grid-cols-2 gap-6 mb-12 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+          {/* Left Column: Cancer Treatment Image */}
           <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white">
-            <div className="w-full h-full flex items-center justify-center p-4">
+            <div className="w-full bg-gray-100 flex items-center justify-center p-4">
               {!isLoaded ? (
-                <Skeleton className="w-full aspect-video" />
+                <Skeleton className="w-full aspect-auto" />
               ) : (
                 <img 
-                  src="/Ray 2.jpg"
-                  alt="Dr. Raymond Dabney - CSi Labs" 
-                  className="w-full h-auto object-contain rounded-lg"
+                  src="/rawwhiteonepagepng.png"
+                  alt="Cannabis Science Cancer Treatment Research" 
+                  className="w-full h-auto object-contain"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.onerror = null;
@@ -51,10 +45,8 @@ const Hero: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
 
-        {/* Token Card Section (moved below the hero) */}
-        <div className={`transition-all duration-1000 delay-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+          {/* Right Column: Token Card */}
           <TokenCard 
             isLoaded={isLoaded}
             priceData={priceData}
@@ -65,6 +57,9 @@ const Hero: React.FC = () => {
             hasError={!!hasError}
           />
         </div>
+
+        {/* Bottom Section: Hero Content */}
+        <HeroContent isLoaded={isLoaded} />
       </div>
     </div>
   );

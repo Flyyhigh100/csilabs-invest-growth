@@ -29,7 +29,7 @@ const TokenCard: React.FC<TokenCardProps> = ({
     : 'Loading...';
 
   return (
-    <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white mb-12">
+    <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white">
       <div className="rounded-xl overflow-hidden bg-gradient-to-br from-cbis-blue/10 to-cbis-teal/10">
         <div className="p-4 sm:p-6 md:p-8">
           <div className="text-center mb-6">
