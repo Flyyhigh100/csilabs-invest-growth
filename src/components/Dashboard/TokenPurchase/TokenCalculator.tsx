@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -18,6 +18,11 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
   disabled = false
 }) => {
   const { currentPrice } = useTokenPrice();
+  
+  // Local state for input handling
+  const [inputValue, setInputValue] = useState<string>(amount.toString());
+  
+  // Calculate token amount
   const tokenAmount = currentPrice ? amount / currentPrice : 0;
   const isExceedingLimit = tokenAmount > 10000;
   const formattedTokenAmount = tokenAmount.toLocaleString(undefined, { 
@@ -25,9 +30,23 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
     minimumFractionDigits: 2
   });
 
+  // Sync local state with prop when it changes from outside
+  useEffect(() => {
+    setInputValue(amount.toString());
+  }, [amount]);
+
+  // Handle input changes with improved UX
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newAmount = parseFloat(e.target.value) || 0;
-    onChange(newAmount);
+    const newValue = e.target.value;
+    
+    // Always update the local state for continuous typing
+    setInputValue(newValue);
+    
+    // Only update parent state if value is a valid number
+    const numericValue = parseFloat(newValue);
+    if (!isNaN(numericValue)) {
+      onChange(numericValue);
+    }
   };
 
   return (
@@ -42,7 +61,7 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
             id="amount"
             min="0"
             step="1"
-            value={amount || ''}
+            value={inputValue}
             onChange={handleAmountChange}
             disabled={disabled}
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-cbis-blue focus:ring-cbis-blue sm:text-sm"

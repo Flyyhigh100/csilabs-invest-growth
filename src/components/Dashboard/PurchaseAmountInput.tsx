@@ -14,18 +14,21 @@ const PurchaseAmountInput: React.FC<PurchaseAmountInputProps> = ({
   onChange,
   disabled = false
 }) => {
-  const [localAmount, setLocalAmount] = useState<string>(amount.toString());
+  // Local state for input handling
+  const [inputValue, setInputValue] = useState<string>(amount.toString());
 
-  // Update local state when prop changes
+  // Sync local state with prop when it changes from outside
   useEffect(() => {
-    setLocalAmount(amount.toString());
+    setInputValue(amount.toString());
   }, [amount]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setLocalAmount(value);
     
-    // Only update parent if value is valid
+    // Always update the local state for continuous typing
+    setInputValue(value);
+    
+    // Only update parent state if value is a valid number
     const numericValue = parseFloat(value);
     if (!isNaN(numericValue)) {
       onChange(numericValue);
@@ -38,7 +41,7 @@ const PurchaseAmountInput: React.FC<PurchaseAmountInputProps> = ({
       <Input 
         id="amount" 
         type="number" 
-        value={localAmount} 
+        value={inputValue} 
         onChange={handleInputChange}
         min={10}
         className="mt-1" 
