@@ -1,10 +1,22 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from 'lucide-react';
 import { useTokenPrice } from '@/context/TokenPriceContext';
+
+// Utility function for debouncing
+const debounce = <T extends (...args: any[]) => any>(
+  fn: T,
+  delay: number
+): (...args: Parameters<T>) => void => {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  return function(this: any, ...args: Parameters<T>) {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn.apply(this, args), delay);
+  };
+};
 
 interface TokenCalculatorProps {
   amount: number;
@@ -21,6 +33,24 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
   
   // Local state for input handling
   const [inputValue, setInputValue] = useState<string>(amount.toString());
+  const [isValid, setIsValid] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  
+  // Create a debounced version of the onChange handler
+  const debouncedOnChange = useCallback(
+    debounce((value: number) => {
+      onChange(value);
+    }, 300),
+    [onChange]
+  );
+  
+  // Sync local state with prop when it changes from outside
+  useEffect(() => {
+    // Only update if the value is significantly different to avoid focus issues
+    if (Math.abs(parseFloat(inputValue) - amount) > 0.001 || isNaN(parseFloat(inputValue))) {
+      setInputValue(amount.toString());
+    }
+  }, [amount]);
   
   // Calculate token amount
   const tokenAmount = currentPrice ? amount / currentPrice : 0;
@@ -30,22 +60,48 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
     minimumFractionDigits: 2
   });
 
-  // Sync local state with prop when it changes from outside
-  useEffect(() => {
-    setInputValue(amount.toString());
-  }, [amount]);
-
-  // Handle input changes with improved UX
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle input changes for continuous typing
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     
     // Always update the local state for continuous typing
     setInputValue(newValue);
     
-    // Only update parent state if value is a valid number
+    // Validate the input
     const numericValue = parseFloat(newValue);
-    if (!isNaN(numericValue)) {
-      onChange(numericValue);
+    if (newValue === '') {
+      setIsValid(false);
+      setErrorMessage('Enter a valid dollar amount');
+    } else if (isNaN(numericValue)) {
+      setIsValid(false);
+      setErrorMessage('Enter a valid number');
+    } else if (numericValue < 0) {
+      setIsValid(false);
+      setErrorMessage('Amount cannot be negative');
+    } else {
+      setIsValid(true);
+      setErrorMessage('');
+      // Use debounced update for smooth typing experience
+      debouncedOnChange(numericValue);
+    }
+  };
+  
+  // Handle input blur for final validation
+  const handleInputBlur = () => {
+    // If empty or invalid on blur, reset to 0
+    if (inputValue === '' || isNaN(parseFloat(inputValue))) {
+      setInputValue('0');
+      setIsValid(true);
+      setErrorMessage('');
+      onChange(0);
+    }
+    // For valid input, ensure it's properly formatted
+    else {
+      const numericValue = parseFloat(inputValue);
+      if (numericValue >= 0) {
+        // Format the number on blur for consistency
+        setInputValue(numericValue.toString());
+      }
     }
   };
 
@@ -60,17 +116,26 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
             type="number"
             id="amount"
             min="0"
-            step="1"
+            step="0.01"
             value={inputValue}
-            onChange={handleAmountChange}
+            onChange={handleInputChange}
+            onBlur={handleInputBlur}
             disabled={disabled}
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-cbis-blue focus:ring-cbis-blue sm:text-sm"
+            aria-invalid={!isValid}
+            aria-describedby={!isValid ? "amount-error" : undefined}
+            placeholder="Enter amount"
           />
+          {!isValid && (
+            <p id="amount-error" className="text-sm text-red-500 mt-1" aria-live="polite">
+              {errorMessage}
+            </p>
+          )}
         </div>
       </div>
 
       {currentPrice && (
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-gray-600" aria-live="polite">
           Estimated tokens: {formattedTokenAmount} CSL
           {currentPrice && (
             <div className="text-xs text-gray-500 mt-1">
