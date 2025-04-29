@@ -1,14 +1,18 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+
 interface HeroContentProps {
   isLoaded: boolean;
 }
+
 const HeroContent: React.FC<HeroContentProps> = ({
   isLoaded
 }) => {
-  return <div className={`transition-all duration-1000 delay-100 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+  return (
+    <div className="flex flex-col justify-center h-full">
       <div className="inline-block px-3 py-1 mb-6 text-xs font-medium tracking-wider uppercase rounded-full text-cbis-blue bg-blue-50 border border-blue-100">
         Affordable Cancer Treatment
       </div>
@@ -30,6 +34,8 @@ const HeroContent: React.FC<HeroContentProps> = ({
           </Link>
         </Button>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default HeroContent;

@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 const Hero: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [heroImageError, setHeroImageError] = useState(false);
   const { priceData, volumeData, currentPrice, tokenInfo, isLoading, hasError } = useTokenData();
 
   useEffect(() => {
@@ -58,8 +59,32 @@ const Hero: React.FC = () => {
           />
         </div>
 
-        {/* Bottom Section: Hero Content */}
-        <HeroContent isLoaded={isLoaded} />
+        {/* Bottom Section: Hero Content with Image */}
+        <div className={`grid md:grid-cols-2 gap-8 mb-12 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+          {/* Left Column: Hero Content */}
+          <HeroContent isLoaded={isLoaded} />
+          
+          {/* Right Column: Dr. Ray Image */}
+          <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white">
+            <div className="w-full h-full bg-gray-100 flex items-center justify-center p-4">
+              {!isLoaded ? (
+                <Skeleton className="w-full aspect-auto" />
+              ) : (
+                <img 
+                  src="/Ray 2.jpg"
+                  alt="Dr. Ray - Cancer Research Expert" 
+                  className="w-full h-auto object-cover rounded-lg"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.onerror = null;
+                    target.src = '/placeholder.svg';
+                    setHeroImageError(true);
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
