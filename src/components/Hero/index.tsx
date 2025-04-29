@@ -71,7 +71,7 @@ const Hero: React.FC = () => {
                 <Skeleton className="w-full aspect-auto" />
               ) : (
                 <img 
-                  src="/Ray 2.jpg"
+                  src="/Ray 3.jpg"
                   alt="Dr. Ray - Cancer Research Expert" 
                   className="w-full h-auto object-cover rounded-lg"
                   onError={(e) => {
