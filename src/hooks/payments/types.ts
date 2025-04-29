@@ -29,3 +29,10 @@ export interface UsePaymentHandlersReturn {
   handleCryptoPayment: (amount: number, currentTokenPrice?: number) => Promise<boolean>;
   kycRequired: (amount: number) => boolean;
 }
+
+// Add the missing PaymentValidationOptions interface
+export interface PaymentValidationOptions {
+  isCrypto?: boolean;
+  skipKycCheck?: boolean;
+  tokenPrice?: number;
+}
