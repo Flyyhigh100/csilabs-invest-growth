@@ -5,7 +5,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import QRCodeDisplay from './QRCodeDisplay';
 import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
-import { detectAddressFormat, createQrCodeUriData } from '@/hooks/payments/crypto/validationUtils';
 
 interface QRCodeSectionProps {
   qrCodeUrl?: string;
@@ -26,13 +25,27 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({
   
   // Determine which address format is being used
   const addressFormat = useMemo(() => {
-    if (!paymentAddress) return { isValid: false, message: 'No payment address provided' };
-    return detectAddressFormat(paymentAddress);
+    if (!paymentAddress) return 'invalid';
+    
+    // Check for valid BEP-20/ERC-20 address format (ETH-like)
+    if (/^0x[a-fA-F0-9]{40}$/.test(paymentAddress)) {
+      return 'eth';
+    }
+    
+    // Check for valid Bitcoin address format (starting with 1, 3, or bc1)
+    if (/^(1|3|bc1)[a-zA-Z0-9]{25,42}$/.test(paymentAddress)) {
+      return 'btc';
+    }
+    
+    // Add more checks for other cryptocurrency address formats as needed
+    
+    // Return generic if no specific format identified but not invalid
+    return paymentAddress.length > 10 ? 'generic' : 'invalid';
   }, [paymentAddress]);
   
   // Determine which QR code URL to use
   const displayQrCodeUrl = useMemo(() => {
-    if (!addressFormat.isValid) {
+    if (addressFormat === 'invalid') {
       console.error("Invalid payment address format:", paymentAddress);
       return null;
     }
@@ -50,13 +63,35 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({
     
     // Generate QR code with payment data
     try {
-      console.log(`Generating QR code for ${addressFormat.format?.name} address: ${paymentAddress}`);
+      console.log(`Generating QR code for ${addressFormat} address: ${paymentAddress}`);
       
-      // Generate URI data based on detected format
-      const qrData = createQrCodeUriData(paymentAddress, amount, currency);
+      // Format data based on address type
+      let qrData: any;
+      
+      if (addressFormat === 'eth') {
+        qrData = {
+          address: paymentAddress,
+          network: currency.includes('BNB') || currency.includes('BSC') ? 'BSC' : 'ETH', 
+          type: 'address',
+          amount: amount || undefined
+        };
+      } else if (addressFormat === 'btc') {
+        // Bitcoin URI format
+        let uri = `bitcoin:${paymentAddress}`;
+        if (amount) uri += `?amount=${amount}`;
+        qrData = uri;
+      } else {
+        // Generic format
+        qrData = {
+          address: paymentAddress,
+          currency: currency,
+          amount: amount || undefined
+        };
+      }
       
       // Use Google Chart API for QR generation as a reliable fallback
-      return `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(qrData)}&choe=UTF-8`;
+      const qrDataString = typeof qrData === 'string' ? qrData : JSON.stringify(qrData);
+      return `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(qrDataString)}&choe=UTF-8`;
     } catch (error) {
       console.error("Error generating QR code:", error);
       return null;
@@ -98,12 +133,12 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({
       .catch(() => toast.error("Failed to copy address"));
   };
 
-  if (!addressFormat.isValid) {
+  if (addressFormat === 'invalid') {
     return (
       <Alert variant="destructive" className="mb-2">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          {addressFormat.message || "Invalid payment address format. Please contact support."}
+          Invalid payment address format. Please contact support.
         </AlertDescription>
       </Alert>
     );

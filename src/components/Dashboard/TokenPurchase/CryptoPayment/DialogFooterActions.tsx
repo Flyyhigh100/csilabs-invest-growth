@@ -1,36 +1,40 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
-import { ExternalLink } from 'lucide-react';
+import { RefreshCw } from "lucide-react";
 
 interface DialogFooterActionsProps {
-  statusUrl?: string;
   onClose: () => void;
+  onCheckStatus?: () => void;
+  isChecking?: boolean;
 }
 
-export const DialogFooterActions: React.FC<DialogFooterActionsProps> = ({
-  statusUrl,
-  onClose
+export const DialogFooterActions: React.FC<DialogFooterActionsProps> = ({ 
+  onClose,
+  onCheckStatus,
+  isChecking = false
 }) => {
   return (
-    <DialogFooter className="flex flex-col sm:flex-row gap-2">
-      {statusUrl && (
-        <Button 
-          variant="outline" 
-          onClick={() => window.open(statusUrl, '_blank')}
-          className="w-full sm:w-auto flex items-center"
-        >
-          <ExternalLink className="h-4 w-4 mr-2" />
-          Check Payment Status
-        </Button>
-      )}
-      <Button 
-        onClick={onClose} 
-        className="w-full sm:w-auto"
-      >
+    <div className="flex justify-between w-full">
+      <div>
+        {onCheckStatus && (
+          <Button 
+            variant="outline" 
+            onClick={onCheckStatus} 
+            disabled={isChecking}
+            className="mr-2"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isChecking ? 'animate-spin' : ''}`} />
+            {isChecking ? 'Checking...' : 'Check Payment Status'}
+          </Button>
+        )}
+      </div>
+      <Button onClick={onClose}>
         Close
       </Button>
-    </DialogFooter>
+    </div>
   );
 };
+
+// Add this line to export as default as well
+export default DialogFooterActions;
