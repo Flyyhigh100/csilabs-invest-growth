@@ -73,7 +73,10 @@ const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
         />
         
         <div className="space-y-4">
-          <PaymentAddressSection paymentAddress={paymentDetails.paymentAddress} />
+          <PaymentAddressSection 
+            paymentAddress={paymentDetails.paymentAddress} 
+            currency={paymentDetails.currency}
+          />
           
           {paymentDetails.externalTransactionId && (
             <TransactionIdSection transactionId={paymentDetails.externalTransactionId} />
@@ -92,7 +95,6 @@ const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
         <StatusCheckSection statusUrl={paymentDetails.statusUrl} />
       )}
       
-      {/* Change variant from "info" to "default" */}
       <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-800">
         <AlertDescription>
           <strong>Payment Testing Info:</strong> You can visit the Transactions page to check payment status or use the link above to track your payment on CoinPayments.
