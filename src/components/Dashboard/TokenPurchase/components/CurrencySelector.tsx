@@ -45,15 +45,18 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({
       );
     }
     
-    return Object.entries(currencies).map(([code, data]) => (
-      <SelectItem 
-        key={code} 
-        value={code} 
-        className="hover:bg-blue-50"
-      >
-        {data.name || code}
-      </SelectItem>
-    ));
+    // Filter out any currencies with empty codes
+    return Object.entries(currencies)
+      .filter(([code]) => code && code.trim() !== '')
+      .map(([code, data]) => (
+        <SelectItem 
+          key={code} 
+          value={code} 
+          className="hover:bg-blue-50"
+        >
+          {data.name || code}
+        </SelectItem>
+      ));
   };
 
   return (

@@ -19,6 +19,10 @@ import {
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 
+// Constants for filter values
+const ALL_STATUSES = "all_statuses";
+const ALL_PAYMENT_METHODS = "all_payment_methods";
+
 interface TransactionFiltersProps {
   onFilterChange: (filters: {
     searchQuery?: string;
@@ -53,8 +57,8 @@ const TransactionFilters: React.FC<TransactionFiltersProps> = ({
   const onSubmit = (data: any) => {
     const filters = {
       searchQuery: data.searchQuery,
-      status: data.status || undefined,
-      paymentMethod: data.paymentMethod || undefined,
+      status: data.status === ALL_STATUSES ? undefined : data.status,
+      paymentMethod: data.paymentMethod === ALL_PAYMENT_METHODS ? undefined : data.paymentMethod,
       minAmount: data.minAmount ? Number(data.minAmount) : undefined,
       maxAmount: data.maxAmount ? Number(data.maxAmount) : undefined,
       dateRange: (data.dateFrom || data.dateTo) ? {
@@ -85,7 +89,7 @@ const TransactionFilters: React.FC<TransactionFiltersProps> = ({
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Statuses</SelectItem>
+            <SelectItem value={ALL_STATUSES}>All Statuses</SelectItem>
             <SelectItem value="completed">Completed</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="failed">Failed</SelectItem>
@@ -100,7 +104,7 @@ const TransactionFilters: React.FC<TransactionFiltersProps> = ({
             <SelectValue placeholder="Payment Method" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Methods</SelectItem>
+            <SelectItem value={ALL_PAYMENT_METHODS}>All Methods</SelectItem>
             <SelectItem value="stripe">Stripe</SelectItem>
             <SelectItem value="coinpayments">Crypto</SelectItem>
             <SelectItem value="bank_transfer">Bank Transfer</SelectItem>

@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -37,6 +37,9 @@ const UserSelector: React.FC<UserSelectorProps> = ({
   const displayUsers = allUsers || users;
   const loading = isLoading || isLoadingUsers;
 
+  // Filter out any users with empty IDs
+  const validUsers = displayUsers.filter(user => user.id && user.id.trim() !== '');
+
   return (
     <div className="space-y-2">
       <Label htmlFor="user">User</Label>
@@ -50,13 +53,19 @@ const UserSelector: React.FC<UserSelectorProps> = ({
         </SelectTrigger>
         <SelectContent>
           <ScrollArea className="h-72">
-            {displayUsers.map(user => (
-              <SelectItem key={user.id} value={user.id}>
-                {user.email || (user as any).first_name && (user as any).last_name 
-                  ? `${(user as any).first_name || ''} ${(user as any).last_name || ''}`.trim() 
-                  : user.id}
-              </SelectItem>
-            ))}
+            {validUsers.length > 0 ? (
+              validUsers.map(user => (
+                <SelectItem key={user.id} value={user.id}>
+                  {user.email || (user as any).first_name && (user as any).last_name 
+                    ? `${(user as any).first_name || ''} ${(user as any).last_name || ''}`.trim() 
+                    : user.id}
+                </SelectItem>
+              ))
+            ) : (
+              <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                No users available
+              </div>
+            )}
           </ScrollArea>
         </SelectContent>
       </Select>

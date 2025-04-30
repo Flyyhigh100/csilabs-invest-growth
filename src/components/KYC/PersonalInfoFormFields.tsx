@@ -11,6 +11,9 @@ interface PersonalInfoFormFieldsProps {
 }
 
 const PersonalInfoFormFields: React.FC<PersonalInfoFormFieldsProps> = ({ form }) => {
+  // Filter out any countries with empty values
+  const validCountries = countries.filter(country => country.value && country.value.trim() !== '');
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -66,7 +69,7 @@ const PersonalInfoFormFields: React.FC<PersonalInfoFormFieldsProps> = ({ form })
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {countries.map((country) => (
+                  {validCountries.map((country) => (
                     <SelectItem key={country.value} value={country.value}>
                       {country.label}
                     </SelectItem>
@@ -133,7 +136,7 @@ const PersonalInfoFormFields: React.FC<PersonalInfoFormFieldsProps> = ({ form })
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {countries.map((country) => (
+                  {validCountries.map((country) => (
                     <SelectItem key={country.value} value={country.value}>
                       {country.label}
                     </SelectItem>
