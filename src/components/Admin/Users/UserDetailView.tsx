@@ -3,14 +3,16 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { UserCircle, Calendar, AtSign, Wallet } from 'lucide-react';
 import UserTransactionDashboard from './UserTransactions/UserTransactionDashboard';
 
 interface UserDetailProps {
   user: any;
+  onCheckKyc?: (userId: string) => void;
 }
 
-const UserDetailView: React.FC<UserDetailProps> = ({ user }) => {
+const UserDetailView: React.FC<UserDetailProps> = ({ user, onCheckKyc }) => {
   if (!user) return null;
 
   const renderKycStatus = (status?: string) => {
@@ -152,6 +154,3 @@ const UserDetailView: React.FC<UserDetailProps> = ({ user }) => {
 };
 
 export default UserDetailView;
-
-// Don't forget to import the Button component
-import { Button } from '@/components/ui/button';

@@ -9,6 +9,8 @@ export interface Transaction {
   updated_at: string;
   transaction_id: string;
   token_sent: boolean;
+  token_amount?: number;
+  token_price?: number;
   blockchain_tx_id?: string;
   external_transaction_id?: string;
   user_id: string;
