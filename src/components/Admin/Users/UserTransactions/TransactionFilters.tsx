@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { useTransactionFilters, TransactionFilters } from './filters/useTransactionFilters';
+import { useTransactionFilters } from './filters/useTransactionFilters';
+import type { TransactionFilters as TransactionFiltersType } from './filters/useTransactionFilters';
 import SearchFilter from './filters/SearchFilter';
 import StatusFilter from './filters/StatusFilter';
 import PaymentMethodFilter from './filters/PaymentMethodFilter';
@@ -9,7 +10,7 @@ import AmountRangeFilter from './filters/AmountRangeFilter';
 import ActionButtons from './filters/ActionButtons';
 
 interface TransactionFiltersProps {
-  onFilterChange: (filters: TransactionFilters) => void;
+  onFilterChange: (filters: TransactionFiltersType) => void;
   onExportCSV: () => void;
 }
 
