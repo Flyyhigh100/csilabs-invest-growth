@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface NavbarContextType {
   isMobileNavOpen: boolean;
@@ -23,6 +23,19 @@ interface NavbarContextProviderProps {
 
 export const NavbarContextProvider: React.FC<NavbarContextProviderProps> = ({ children }) => {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+  // Prevent body scrolling when mobile nav is open
+  useEffect(() => {
+    if (isMobileNavOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileNavOpen]);
 
   const toggleMobileNav = () => {
     setIsMobileNavOpen(prev => !prev);

@@ -11,6 +11,7 @@ const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const { user } = useAuth();
 
+  // Handle scroll events to update navbar appearance
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
@@ -19,6 +20,18 @@ const Navbar: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   return (
     <nav 
@@ -64,55 +77,75 @@ const Navbar: React.FC = () => {
         <button 
           className={cn(
             "md:hidden p-2 rounded-md transition-colors z-50",
-            isOpen ? "text-gray-800 bg-white" : "text-cbis-dark"
+            isOpen ? "text-gray-800" : "text-cbis-dark"
           )}
           onClick={() => setIsOpen(!isOpen)}
+          aria-label="Toggle menu"
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
 
-      {/* Mobile Navigation */}
+      {/* Mobile Navigation - Fixed overlay with solid white background */}
       <div 
         className={cn(
-          "fixed inset-0 bg-white z-40 md:hidden flex flex-col pt-20 px-6 shadow-lg",
+          "fixed inset-0 bg-white z-40 md:hidden flex flex-col",
+          "transition-transform duration-300 ease-in-out",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
+        style={{ height: '100vh' }}
       >
-        <div className="border-b border-gray-100 py-1">
+        {/* Menu header with logo */}
+        <div className="border-b border-gray-100 p-4 bg-white">
           <Link 
             to="/" 
-            className="block py-3 text-center text-gray-800 hover:text-cbis-blue hover:bg-gray-50 rounded-md"
+            className="flex items-center justify-center"
             onClick={() => setIsOpen(false)}
           >
-            Home
+            <span className="text-xl font-bold bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">
+              CSi Labs
+            </span>
           </Link>
         </div>
         
-        <div className="border-b border-gray-100 py-1">
-          <Link 
-            to="/research-documents" 
-            className="block py-3 text-center text-gray-800 hover:text-cbis-blue hover:bg-gray-50 rounded-md"
-            onClick={() => setIsOpen(false)}
-          >
-            Research
-          </Link>
+        {/* Menu content with solid background */}
+        <div className="flex-1 overflow-auto bg-white pt-6">
+          <div className="border-b border-gray-100 py-1">
+            <Link 
+              to="/" 
+              className="block py-3 px-6 text-center text-gray-800 hover:text-cbis-blue hover:bg-gray-50 transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              Home
+            </Link>
+          </div>
+          
+          <div className="border-b border-gray-100 py-1">
+            <Link 
+              to="/research-documents" 
+              className="block py-3 px-6 text-center text-gray-800 hover:text-cbis-blue hover:bg-gray-50 transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              Research
+            </Link>
+          </div>
+          
+          <div className="border-b border-gray-100 py-1">
+            <Link 
+              to="/token-info" 
+              className="block py-3 px-6 text-center text-gray-800 hover:text-cbis-blue hover:bg-gray-50 transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              Token Info
+            </Link>
+          </div>
         </div>
         
-        <div className="border-b border-gray-100 py-1">
-          <Link 
-            to="/token-info" 
-            className="block py-3 text-center text-gray-800 hover:text-cbis-blue hover:bg-gray-50 rounded-md"
-            onClick={() => setIsOpen(false)}
-          >
-            Token Info
-          </Link>
-        </div>
-        
-        <div className="mt-6">
+        {/* Bottom action buttons with solid background */}
+        <div className="p-6 border-t border-gray-100 bg-white">
           <Button 
             asChild
-            className="w-full bg-gradient-to-r from-cbis-blue to-cbis-teal text-white"
+            className="w-full mb-3 bg-gradient-to-r from-cbis-blue to-cbis-teal text-white"
             onClick={() => setIsOpen(false)}
           >
             {user ? (
@@ -121,25 +154,25 @@ const Navbar: React.FC = () => {
               <Link to="/register">Contribute Now</Link>
             )}
           </Button>
+          
+          {user ? (
+            <Link 
+              to="/dashboard/payments" 
+              className="py-3 w-full flex items-center justify-center gap-2 text-cbis-dark hover:text-cbis-blue hover:bg-gray-50 rounded-md transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <Link 
+              to="/login" 
+              className="py-3 w-full flex items-center justify-center gap-2 text-cbis-dark hover:text-cbis-blue hover:bg-gray-50 rounded-md transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              <LogIn className="h-4 w-4" /> Sign In
+            </Link>
+          )}
         </div>
-        
-        {user ? (
-          <Link 
-            to="/dashboard/payments" 
-            className="py-4 mt-4 text-center flex items-center justify-center gap-2 text-cbis-dark hover:text-cbis-blue hover:bg-gray-50 rounded-md"
-            onClick={() => setIsOpen(false)}
-          >
-            Dashboard
-          </Link>
-        ) : (
-          <Link 
-            to="/login" 
-            className="py-4 mt-4 text-center flex items-center justify-center gap-2 text-cbis-dark hover:text-cbis-blue hover:bg-gray-50 rounded-md"
-            onClick={() => setIsOpen(false)}
-          >
-            <LogIn className="h-4 w-4" /> Sign In
-          </Link>
-        )}
       </div>
     </nav>
   );
