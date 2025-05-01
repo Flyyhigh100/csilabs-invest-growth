@@ -71,8 +71,8 @@ const Hero: React.FC = () => {
                 <Skeleton className="w-full aspect-auto" />
               ) : (
                 <img 
-                  src="/Ray3.jpg"
-                  alt="Dr. Ray - Cancer Research Expert" 
+                  src="/cryptologo_ray.jpg"
+                  alt="CBIS Ray Crypto Logo" 
                   className="w-full h-auto object-cover rounded-lg"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
