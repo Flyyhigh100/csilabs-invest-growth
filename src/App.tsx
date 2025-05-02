@@ -30,6 +30,7 @@ import KYCVerificationPage from './pages/Dashboard/KYCVerification/KYCVerificati
 import Profile from './pages/Dashboard/Profile';
 import Documents from './pages/Dashboard/Documents';
 import DashboardHome from './pages/Dashboard/DashboardHome';
+import StripeStandaloneTest from './pages/StripeStandaloneTest';
 
 // Import Legal pages
 import TermsOfService from './pages/Legal/TermsAndConditions';
@@ -69,6 +70,7 @@ export default function App() {
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/research-documents" element={<ResearchDocuments />} />
                     <Route path="/token-info" element={<TokenInfo />} />
+                    <Route path="/stripe-test" element={<StripeStandaloneTest />} />
                     
                     {/* Legal Routes */}
                     <Route path="/legal/terms-and-conditions" element={<TermsOfService />} />
