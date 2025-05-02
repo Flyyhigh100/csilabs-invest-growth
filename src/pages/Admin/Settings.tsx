@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,12 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, Info, Settings as SettingsIcon, Mail, Bell, Shield, WrenchIcon } from 'lucide-react';
+import { CheckCircle, Info, Settings as SettingsIcon, Mail, Bell, Shield, WrenchIcon, Coins } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 import { useNavigate } from 'react-router-dom';
 import APIKeyValidator from '@/components/Admin/APIKeyValidator';
+import CoinPaymentsConfig from '@/components/Admin/CoinPayments/CoinPaymentsConfig';
 
 // For simplicity, we'll simulate settings state with React state
 // In a real app, this would be connected to the database
@@ -69,8 +69,8 @@ const AdminSettings: React.FC = () => {
         </Alert>
       </div>
 
-      <Tabs defaultValue="api" className="space-y-4">
-        <TabsList>
+      <Tabs defaultValue="payments" className="space-y-4">
+        <TabsList className="flex-wrap">
           <TabsTrigger value="notifications">
             <Bell className="mr-2 h-4 w-4" />
             Notifications
@@ -82,6 +82,10 @@ const AdminSettings: React.FC = () => {
           <TabsTrigger value="security">
             <Shield className="mr-2 h-4 w-4" />
             Security
+          </TabsTrigger>
+          <TabsTrigger value="payments">
+            <Coins className="mr-2 h-4 w-4" />
+            Payment Gateways
           </TabsTrigger>
           <TabsTrigger value="tools">
             <WrenchIcon className="mr-2 h-4 w-4" />
@@ -252,6 +256,11 @@ const AdminSettings: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Payment Gateways Tab */}
+        <TabsContent value="payments" className="space-y-4">
+          <CoinPaymentsConfig />
         </TabsContent>
 
         {/* Transaction Tools */}

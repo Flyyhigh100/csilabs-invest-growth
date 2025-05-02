@@ -1,41 +1,37 @@
 
-// Define types for payment hooks
+import { KycVerificationData } from '../kyc/types';
+import { Transaction } from '@/types/transactions';
 
 export interface CryptoPaymentDetails {
-  address: string;
-  amount: number;
-  amountInCrypto?: number;
-  currency?: string;
-  qrCodeUrl?: string;
-  status?: string;
-  txnId?: string;
-  
-  // Legacy properties
-  payment_address?: string;
-  paymentAddress?: string;
-  qrcode_url?: string;
-  statusUrl?: string;
-  status_url?: string;
   transactionId?: string;
+  address?: string;
+  amount?: number | string;
+  checkout_url?: string;
   payment_id?: string;
-  externalTransactionId?: string;
+  payment_address?: string;
+  payment_amount?: number;
+  payment_qr_code?: string;
+  timeout?: number;
   txn_id?: string;
-  expiresAt?: string;
-  instructions?: string;
-  usdValue?: number;
-  checkStatusUrl?: string;
-  tokenAmount?: number;
+  status_url?: string;
+  status_text?: string;
+  currency?: string;
+  currency_name?: string;
+  currency_iso?: string;
   tokenPrice?: number;
+  token_amount?: number;
+  confirmations_needed?: number;
+  [key: string]: any;
 }
 
 export interface StripeCryptoOnrampResult {
   success: boolean;
-  error?: string;
-  details?: string;
   redirect_url?: string;
   session_id?: string;
   client_secret?: string;
-  suggestion?: string;
+  error?: string;
+  details?: string;
+  client_side?: boolean;
 }
 
 export interface UsePaymentHandlersProps {
@@ -45,7 +41,7 @@ export interface UsePaymentHandlersProps {
 export interface UsePaymentHandlersReturn {
   isProcessing: boolean;
   showCryptoDialog: boolean;
-  setShowCryptoDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowCryptoDialog: (show: boolean) => void;
   cryptoPaymentDetails: CryptoPaymentDetails | null;
   handleStripeCryptoOnramp: (amount: number, currentTokenPrice?: number) => Promise<StripeCryptoOnrampResult>;
   handleCoinPaymentsPayment: (amount: number, currency?: string, currentTokenPrice?: number) => Promise<boolean>;
@@ -53,9 +49,7 @@ export interface UsePaymentHandlersReturn {
   kycRequired: (amount: number) => boolean;
 }
 
-// Define the PaymentValidationOptions interface
-export interface PaymentValidationOptions {
-  isCrypto?: boolean;
-  skipKycCheck?: boolean;
-  tokenPrice?: number;
+export interface PaymentValidationResult {
+  isValid: boolean;
+  error?: string;
 }
