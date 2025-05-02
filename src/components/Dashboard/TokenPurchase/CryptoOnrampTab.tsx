@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CreditCard, Loader2, AlertTriangle, ExternalLink } from 'lucide-react';
@@ -10,7 +9,7 @@ interface CryptoOnrampTabProps {
   walletAddress: string;
   isProcessing: boolean;
   isWalletMissing: boolean;
-  onInitiateOnramp: () => Promise<{success: boolean, redirect_url?: string, client_secret?: string, session_id?: string, error?: string, details?: string}>;
+  onInitiateOnramp: () => Promise<{success: boolean, redirect_url?: string, session_id?: string, error?: string, details?: string}>;
 }
 
 const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
@@ -59,9 +58,9 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
         throw new Error(result.error || 'Failed to create payment session');
       }
       
-      // Handle different response types - either direct redirect_url or client_secret
+      // Only handle direct redirect URL
       if (result.redirect_url) {
-        console.log("Received redirect URL from server, redirecting user...");
+        console.log("🌐 redirecting...");
         toast.success("Redirecting to Stripe...", {
           description: "You will be redirected to complete your purchase"
         });
@@ -69,18 +68,8 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
         // Direct redirect
         window.location.href = result.redirect_url;
       } 
-      else if (result.client_secret && result.session_id) {
-        console.log("Received client secret, constructing redirect URL...");
-        toast.success("Redirecting to Stripe...", {
-          description: "You will be redirected to complete your purchase"
-        });
-        
-        // Construct the URL for Stripe's hosted onramp page
-        const redirectUrl = `https://crypto.stripe.com/onramp?session_id=${result.session_id}&client_secret=${result.client_secret}`;
-        window.location.href = redirectUrl;
-      }
       else {
-        throw new Error("No redirect information received from server");
+        throw new Error("No redirect URL received from server");
       }
     } catch (err: any) {
       console.error('Error initializing Stripe Onramp redirect:', err);

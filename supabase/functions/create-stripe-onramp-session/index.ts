@@ -70,9 +70,8 @@ serve(async (req) => {
     console.log(`Authenticated user: ${userId} (${userData.user.email || 'no email'})`);
 
     // Get client IP address for tracking and fraud prevention
-    const forwardedFor = req.headers.get("x-forwarded-for");
-    const clientIp = forwardedFor ? forwardedFor.split(",")[0].trim() : "127.0.0.1";
-    console.log("Client IP:", clientIp);
+    const ip = req.headers.get("x-forwarded-for") ?? "127.0.0.1";
+    console.log("Client IP:", ip);
 
     // Check if Stripe API key is available
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY_CRYPTO");
@@ -88,15 +87,17 @@ serve(async (req) => {
     }
 
     // Initialize Stripe client with the crypto key
-    // This version uses an older API version which should be more compatible
     console.log("Initializing Stripe with API version 2023-10-16...");
     const stripe = new Stripe(stripeSecretKey, {
       apiVersion: "2023-10-16"
     });
 
     try {
-      // Create a crypto onramp session using the stable embedded mode instead
-      console.log("Creating Stripe crypto onramp session with client_secret...");
+      // Create a crypto onramp session
+      console.log("Creating Stripe crypto onramp session...");
+      
+      const returnUrl = `${req.headers.get("origin") || "https://app.csitoken.io"}/dashboard/payments?status=success`;
+      console.log("Return URL:", returnUrl);
 
       const sessionParams = {
         wallet_addresses: {
@@ -116,15 +117,19 @@ serve(async (req) => {
           user_id: userId,
           wallet_address: walletAddress,
           amount: amount ? amount.toString() : "100",
-          token_price: tokenPrice ? tokenPrice.toString() : "1.00"
-        }
+          token_price: tokenPrice ? tokenPrice.toString() : "1.00",
+          return_url: returnUrl
+        },
+        success_url: returnUrl,
+        cancel_url: `${req.headers.get("origin") || "https://app.csitoken.io"}/dashboard/payments?status=cancelled`,
+        customer_ip_address: ip
       };
       
       console.log("Session params prepared:", JSON.stringify(sessionParams));
       
-      // Create a crypto onramp session
+      // Create the onramp session
       const session = await stripe.crypto.onrampSessions.create(sessionParams);
-      console.log("Successfully created Stripe onramp session with ID:", session.id);
+      console.log("⏩ redirect to", session.redirect_url);
 
       // Create a transaction record in our database
       const supabaseAdmin = createClient(
@@ -165,10 +170,10 @@ serve(async (req) => {
         // Continue the process even if DB operation fails
       }
 
-      // Return the client secret for the frontend to use with Stripe embedded components
+      // Return the redirect URL for the frontend to use
       return new Response(JSON.stringify({ 
         success: true,
-        client_secret: session.client_secret,
+        redirect_url: session.redirect_url,
         session_id: session.id
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

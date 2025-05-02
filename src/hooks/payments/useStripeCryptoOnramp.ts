@@ -28,8 +28,8 @@ export const useStripeCryptoOnramp = (walletAddress: string | null) => {
         return { success: false, error: "Authentication required" };
       }
       
-      console.log("Invoking create-stripe-onramp-redirect function...");
-      const { data, error } = await supabase.functions.invoke('create-stripe-onramp-redirect', {
+      console.log("Invoking create-stripe-onramp-session function...");
+      const { data, error } = await supabase.functions.invoke('create-stripe-onramp-session', {
         body: { 
           amount, 
           walletAddress,
@@ -68,29 +68,28 @@ export const useStripeCryptoOnramp = (walletAddress: string | null) => {
         };
       }
 
-      // Check if we have either redirect_url or client_secret for redirect
-      if (!data.redirect_url && !data.client_secret) {
-        console.error("No redirect URL or client secret received from Stripe", data);
+      // Check if we have redirect_url for redirect
+      if (!data.redirect_url) {
+        console.error("No redirect URL received from Stripe", data);
         setIsProcessing(false);
         return { 
           success: false, 
-          error: "No session data received. Please try again.",
+          error: "No redirect URL received. Please try again.",
           details: data ? JSON.stringify(data) : null
         };
       }
       
       console.log("Received successful Stripe onramp session response:", {
         hasRedirectUrl: !!data.redirect_url,
-        hasClientSecret: !!data.client_secret,
-        hasSessionId: !!data.session_id
+        sessionId: !!data.session_id
       });
       
       toast.success("Initializing crypto purchase...");
+      console.log("🌐 redirecting...");
       
       return { 
         success: true, 
         redirect_url: data.redirect_url,
-        client_secret: data.client_secret,
         session_id: data.session_id 
       };
     } catch (error: any) {

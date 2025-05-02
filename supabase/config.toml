@@ -24,11 +24,11 @@ enabled = true
 [realtime]
 enabled = true
 
-[functions.create-stripe-onramp-redirect]
-verify_jwt = true
-
 [functions.create-stripe-onramp-session]
 verify_jwt = true
 
 [functions.create-coinpayments-payment]
 verify_jwt = true
+
+[functions.stripe-webhooks]
+verify_jwt = false
