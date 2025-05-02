@@ -5,13 +5,14 @@ import { CreditCard, Wallet } from 'lucide-react';
 import CryptoOnrampTab from './CryptoOnrampTab';
 import CryptoPaymentTab from './CryptoPaymentTab';
 import { KycVerificationData } from '@/hooks/kyc/types';
+import { StripeCryptoOnrampResult } from '@/hooks/payments/types';
 
 interface PaymentTabsProps {
   amount: number;
   selectedCurrency: string;
   setSelectedCurrency: (currency: string) => void;
   walletAddress: string | null;
-  handleStripeCryptoOnramp: () => Promise<{success: boolean, clientSecret?: string, sessionId?: string}>;
+  handleStripeCryptoOnramp: () => Promise<StripeCryptoOnrampResult>;
   handleCoinPaymentWithCurrency: () => void;
   isProcessing: boolean;
   isKycNeeded: boolean;

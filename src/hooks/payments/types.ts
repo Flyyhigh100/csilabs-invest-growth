@@ -24,7 +24,7 @@ export interface UsePaymentHandlersReturn {
   showCryptoDialog: boolean;
   setShowCryptoDialog: (show: boolean) => void;
   cryptoPaymentDetails: CryptoPaymentDetails | null;
-  handleStripeCryptoOnramp: (amount: number, currentTokenPrice?: number) => Promise<boolean>;
+  handleStripeCryptoOnramp: (amount: number, currentTokenPrice?: number) => Promise<StripeCryptoOnrampResult>;
   handleCoinPaymentsPayment: (amount: number, currency?: string, currentTokenPrice?: number) => Promise<boolean>;
   handleCryptoPayment: (amount: number, currentTokenPrice?: number) => Promise<boolean>;
   kycRequired: (amount: number) => boolean;

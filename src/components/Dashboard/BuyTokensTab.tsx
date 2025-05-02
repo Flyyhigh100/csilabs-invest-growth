@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,11 +43,10 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
     const isKycNeeded = kycRequired(amount) && kycData?.status !== 'approved';
     const isWalletMissing = !walletAddress;
 
-    // Create a wrapper for the Stripe Crypto Onramp function
+    // Update the wrapper to return the complete result object
     const handleStripeCryptoOnrampWrapper = async () => {
       // Pass current token price to the payment handler
-      const success = await handleStripeCryptoOnramp(amount, currentPrice);
-      return { success };
+      return await handleStripeCryptoOnramp(amount, currentPrice);
     };
 
     const handleCoinPaymentWithCurrency = () => {

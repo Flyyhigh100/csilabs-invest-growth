@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useStripeCryptoOnramp } from './useStripeCryptoOnramp';
 import { useCryptoPayments } from './useCryptoPayments';
 import { usePaymentValidation } from './usePaymentValidation';
-import { CryptoPaymentDetails, UsePaymentHandlersProps, UsePaymentHandlersReturn } from './types';
+import { CryptoPaymentDetails, UsePaymentHandlersProps, UsePaymentHandlersReturn, StripeCryptoOnrampResult } from './types';
 import { toast } from 'sonner';
 
 export const usePaymentHandlers = (walletAddress: string | null): UsePaymentHandlersReturn => {
@@ -27,14 +27,14 @@ export const usePaymentHandlers = (walletAddress: string | null): UsePaymentHand
 
   const isProcessing = isStripeCryptoProcessing || isCryptoProcessing;
 
-  // Wrapper for Stripe Crypto Onramp to ensure it returns a boolean
-  const handleStripeCryptoOnramp = async (amount: number, currentTokenPrice?: number): Promise<boolean> => {
+  // Wrapper for Stripe Crypto Onramp to return the complete result object, not just boolean
+  const handleStripeCryptoOnramp = async (amount: number, currentTokenPrice?: number): Promise<StripeCryptoOnrampResult> => {
     try {
       const result = await processStripeCryptoOnramp(amount, currentTokenPrice);
-      return result.success;
+      return result; // Return the complete result object
     } catch (error) {
       console.error("Error in Stripe Crypto Onramp:", error);
-      return false;
+      return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
     }
   };
   
