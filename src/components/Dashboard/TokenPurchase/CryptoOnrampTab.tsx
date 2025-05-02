@@ -33,11 +33,22 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
   const [error, setError] = useState<string | null>(null);
   const onrampElementRef = useRef<HTMLDivElement>(null);
   const [sessionData, setSessionData] = useSessionStorage('crypto_onramp_session', null);
+  const [apiKeyMissing, setApiKeyMissing] = useState(false);
+  
+  // Check for Stripe publishable key
+  useEffect(() => {
+    const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY_CRYPTO;
+    if (!stripeKey) {
+      console.error('Missing Stripe Crypto Onramp publishable key');
+      setApiKeyMissing(true);
+      setError('Missing Stripe API key configuration');
+    }
+  }, []);
   
   // Load Stripe Scripts
   useEffect(() => {
-    // Skip if scripts are already loaded
-    if (window.StripeOnramp) return;
+    // Skip if scripts are already loaded or there's an API key error
+    if (window.StripeOnramp || apiKeyMissing) return;
     if (document.querySelector('script[src="https://js.stripe.com/v3/"]') &&
         document.querySelector('script[src="https://crypto-js.stripe.com/crypto-onramp-outer.js"]')) {
       return;
@@ -45,6 +56,7 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
     
     const loadScripts = async () => {
       setIsLoadingScript(true);
+      setError(null);
       
       try {
         // Load Stripe.js first
@@ -54,11 +66,15 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
         
         const stripePromise = new Promise((resolve, reject) => {
           stripeScript.onload = resolve;
-          stripeScript.onerror = () => reject(new Error('Failed to load Stripe.js'));
+          stripeScript.onerror = (e) => {
+            console.error('Failed to load Stripe.js:', e);
+            reject(new Error('Failed to load Stripe.js'));
+          };
         });
         
         document.body.appendChild(stripeScript);
         await stripePromise;
+        console.log('Successfully loaded Stripe.js');
         
         // Then load Crypto Onramp
         const onrampScript = document.createElement('script');
@@ -67,11 +83,15 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
         
         const onrampPromise = new Promise((resolve, reject) => {
           onrampScript.onload = resolve;
-          onrampScript.onerror = () => reject(new Error('Failed to load Stripe Crypto Onramp'));
+          onrampScript.onerror = (e) => {
+            console.error('Failed to load Stripe Crypto Onramp:', e);
+            reject(new Error('Failed to load Stripe Crypto Onramp'));
+          };
         });
         
         document.body.appendChild(onrampScript);
         await onrampPromise;
+        console.log('Successfully loaded Stripe Crypto Onramp');
         
       } catch (err: any) {
         console.error("Failed to load Stripe scripts:", err);
@@ -94,10 +114,15 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
         }
       }
     };
-  }, []);
+  }, [apiKeyMissing]);
   
   const initializeOnrampWidget = async () => {
-    if (!onrampElementRef.current || !window.StripeOnramp) return;
+    if (!onrampElementRef.current) return;
+    
+    if (!window.StripeOnramp) {
+      setError('Stripe scripts failed to load. Please refresh the page and try again.');
+      return;
+    }
     
     try {
       setIsLoadingWidget(true);
@@ -117,8 +142,14 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
         amount
       });
       
+      // Get Stripe publishable key
+      const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY_CRYPTO;
+      if (!stripePublishableKey) {
+        throw new Error('Missing Stripe publishable key');
+      }
+      
       // Initialize the widget
-      const stripeOnramp = window.StripeOnramp(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY_CRYPTO || '');
+      const stripeOnramp = window.StripeOnramp(stripePublishableKey);
       
       // Store instance for potential cleanup
       window.stripeOnrampInstance = stripeOnramp;
@@ -178,6 +209,9 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
     initializeOnrampWidget();
   };
 
+  // Check if environment has Stripe publishable key
+  const missingStripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY_CRYPTO ? false : true;
+
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3 mb-4">
@@ -197,6 +231,11 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             {error}
+            {missingStripeKey && (
+              <div className="mt-2">
+                <strong>Administrator note:</strong> Please configure VITE_STRIPE_PUBLISHABLE_KEY_CRYPTO in your environment variables.
+              </div>
+            )}
           </AlertDescription>
         </Alert>
       )}
@@ -211,7 +250,7 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
             </div>
             <Button 
               onClick={handleOnrampButtonClick} 
-              disabled={isProcessing || isWalletMissing || isLoadingScript || isLoadingWidget}
+              disabled={isProcessing || isWalletMissing || isLoadingScript || isLoadingWidget || apiKeyMissing}
               className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white py-2 px-4 sm:w-auto w-full"
             >
               {isLoadingScript || isLoadingWidget ? (
