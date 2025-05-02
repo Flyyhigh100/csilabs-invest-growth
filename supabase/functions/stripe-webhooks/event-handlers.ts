@@ -57,7 +57,7 @@ export const handlePaymentIntentSucceeded = async (supabaseClient, paymentIntent
   }
 };
 
-// Handle crypto onramp session updated event (new handler)
+// Handle crypto onramp session updated event
 export const handleCryptoOnrampSessionUpdated = async (supabaseClient, session) => {
   console.log(`[WEBHOOK] Processing crypto.onramp_session.updated event for session: ${session.id}`);
   console.log(`[WEBHOOK] Session status: ${session.status}`);
@@ -71,7 +71,7 @@ export const handleCryptoOnrampSessionUpdated = async (supabaseClient, session) 
       return;
     }
     
-    // Update to check for 'fulfillment_complete' status instead of 'fulfilled'
+    // Check for 'fulfillment_complete' status as per latest Stripe API
     if (session.status === 'fulfillment_complete') {
       if (transaction.status === 'completed') {
         console.log(`[WEBHOOK] Transaction ${transaction.id} is already marked as completed`);
