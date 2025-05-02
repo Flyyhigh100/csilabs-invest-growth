@@ -25,7 +25,8 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   
   // Check if environment has Stripe publishable key
-  const missingStripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY_CRYPTO ? false : true;
+  const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY_CRYPTO;
+  const missingStripeKey = !stripePublishableKey;
   
   const handleBuyCryptoClick = async () => {
     if (isWalletMissing) {

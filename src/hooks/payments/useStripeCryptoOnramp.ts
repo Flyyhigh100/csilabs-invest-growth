@@ -3,12 +3,13 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { usePaymentValidation } from './usePaymentValidation';
+import { StripeCryptoOnrampResult } from './types';
 
 export const useStripeCryptoOnramp = (walletAddress: string | null) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { validatePaymentRequest } = usePaymentValidation(walletAddress);
 
-  const createOnrampSession = async (amount: number, currentTokenPrice?: number) => {
+  const createOnrampSession = async (amount: number, currentTokenPrice?: number): Promise<StripeCryptoOnrampResult> => {
     if (!validatePaymentRequest(amount)) return { success: false };
     
     setIsProcessing(true);
@@ -104,6 +105,10 @@ export const useStripeCryptoOnramp = (walletAddress: string | null) => {
         error: errorMessage,
         details: errorDetails || error.stack
       };
+    } finally {
+      if (isProcessing) {
+        setIsProcessing(false);
+      }
     }
   };
 
