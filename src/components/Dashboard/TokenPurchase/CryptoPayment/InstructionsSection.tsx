@@ -47,7 +47,7 @@ const InstructionsSection: React.FC<InstructionsSectionProps> = ({
             <div className="flex flex-col space-y-1">
               <div className="font-mono bg-gray-100 p-3 rounded-md border border-gray-300 flex flex-col">
                 <span className="text-xl font-semibold text-gray-800">{cryptoAmount} {currency}</span>
-                <span className="text-xs text-gray-600">≈ ${usdValue.toFixed(2)} USD</span>
+                <span className="text-xs text-gray-600">≈ ${typeof usdValue === 'number' ? usdValue.toFixed(2) : '0.00'} USD</span>
               </div>
               
               <p className="text-xs text-gray-500 mt-1">
@@ -59,7 +59,7 @@ const InstructionsSection: React.FC<InstructionsSectionProps> = ({
               <Alert variant="default" className="bg-blue-50 text-blue-700 border-blue-200">
                 <AlertCircle className="h-4 w-4 text-blue-600" />
                 <AlertDescription className="text-xs">
-                  The amount above has been converted from ${usdValue.toFixed(2)} USD to {cryptoAmount} {currency} 
+                  The amount above has been converted from ${typeof usdValue === 'number' ? usdValue.toFixed(2) : '0.00'} USD to {cryptoAmount} {currency} 
                   using current exchange rates.
                 </AlertDescription>
               </Alert>

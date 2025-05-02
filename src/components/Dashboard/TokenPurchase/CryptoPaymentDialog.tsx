@@ -29,7 +29,7 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
 }) => {
   if (!paymentDetails) return null;
   
-  const { statusUrl } = paymentDetails;
+  const statusUrl = paymentDetails.statusUrl || paymentDetails.status_url;
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
