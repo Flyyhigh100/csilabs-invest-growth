@@ -4,10 +4,23 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Info } from "lucide-react";
 
 interface StatusCheckSectionProps {
-  statusUrl: string;
+  statusUrl?: string;  // Keep for backward compatibility
+  statusCheckUrl?: string;  // New property name
+  transactionId?: string;
 }
 
-const StatusCheckSection: React.FC<StatusCheckSectionProps> = ({ statusUrl }) => {
+const StatusCheckSection: React.FC<StatusCheckSectionProps> = ({ 
+  statusUrl, 
+  statusCheckUrl,
+  transactionId 
+}) => {
+  // Use either statusCheckUrl or statusUrl, whichever is provided
+  const url = statusCheckUrl || statusUrl || '';
+  
+  if (!url) {
+    return null;
+  }
+  
   return (
     <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
       <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -19,7 +32,7 @@ const StatusCheckSection: React.FC<StatusCheckSectionProps> = ({ statusUrl }) =>
       </p>
       <Button asChild variant="outline" className="w-full">
         <a 
-          href={statusUrl} 
+          href={url} 
           target="_blank" 
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2"

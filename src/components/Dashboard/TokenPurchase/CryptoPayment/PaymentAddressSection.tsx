@@ -6,14 +6,18 @@ import { toast } from 'sonner';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PaymentAddressSectionProps {
-  paymentAddress: string;
+  address?: string;  // Added this prop to match DialogContent
+  paymentAddress?: string;  // Keep this for backward compatibility
   currency?: string;
 }
 
 const PaymentAddressSection: React.FC<PaymentAddressSectionProps> = ({ 
+  address,
   paymentAddress,
   currency = "BNB" 
 }) => {
+  // Use either address or paymentAddress, whichever is provided
+  const actualAddress = address || paymentAddress || '';
   const [copied, setCopied] = React.useState(false);
   
   // Get the appropriate network label based on currency
@@ -39,30 +43,30 @@ const PaymentAddressSection: React.FC<PaymentAddressSectionProps> = ({
 
   // Validate the payment address
   const isValidAddress = React.useMemo(() => {
-    if (!paymentAddress || paymentAddress.trim() === '') return false;
+    if (!actualAddress || actualAddress.trim() === '') return false;
     
     // Different validation patterns based on currency type
     if (currency === "BNB" || currency === "ETH" || currency === "BSC") {
       // Ethereum-style addresses (0x...)
-      return /^0x[a-fA-F0-9]{40}$/.test(paymentAddress);
+      return /^0x[a-fA-F0-9]{40}$/.test(actualAddress);
     } else if (currency === "TRX" || currency === "USDT") {
       // Tron addresses (T...)
-      return /^T[a-zA-Z0-9]{33}$/.test(paymentAddress);
+      return /^T[a-zA-Z0-9]{33}$/.test(actualAddress);
     } else if (currency === "BTC") {
       // Bitcoin addresses
-      return /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[ac-hj-np-z02-9]{39,59}$/.test(paymentAddress);
+      return /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[ac-hj-np-z02-9]{39,59}$/.test(actualAddress);
     } else if (currency === "XRP") {
       // Ripple addresses
-      return /^r[0-9a-zA-Z]{24,34}$/.test(paymentAddress);
+      return /^r[0-9a-zA-Z]{24,34}$/.test(actualAddress);
     }
     
     // For any other currency, just check if it's not empty and has reasonable length
-    return paymentAddress.length > 10;
-  }, [paymentAddress, currency]);
+    return actualAddress.length > 10;
+  }, [actualAddress, currency]);
 
   const handleCopy = () => {
-    if (paymentAddress) {
-      navigator.clipboard.writeText(paymentAddress);
+    if (actualAddress) {
+      navigator.clipboard.writeText(actualAddress);
       setCopied(true);
       toast.success("Payment address copied to clipboard");
       
@@ -72,7 +76,7 @@ const PaymentAddressSection: React.FC<PaymentAddressSectionProps> = ({
     }
   };
 
-  if (!paymentAddress) {
+  if (!actualAddress) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
@@ -99,7 +103,7 @@ const PaymentAddressSection: React.FC<PaymentAddressSectionProps> = ({
       <h3 className="text-sm font-medium mb-2">Payment Address ({getNetworkLabel()})</h3>
       <div className="flex items-center gap-2">
         <div className="bg-white p-3 rounded border border-gray-200 text-sm font-mono break-all w-full">
-          {paymentAddress}
+          {actualAddress}
         </div>
         <Button 
           variant="outline" 

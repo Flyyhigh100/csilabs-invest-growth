@@ -29,6 +29,7 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
 }) => {
   if (!paymentDetails) return null;
   
+  // Get status URL using either new or legacy property names
   const statusUrl = paymentDetails.statusUrl || paymentDetails.status_url;
   
   return (
@@ -41,8 +42,13 @@ const CryptoPaymentDialog: React.FC<CryptoPaymentDialogProps> = ({
           </DialogTitle>
         </DialogHeader>
         
-        {/* Use the dedicated DialogContent component to organize and display payment details */}
-        <DialogContentComponent paymentDetails={paymentDetails} />
+        {/* Pass all required props to DialogContent */}
+        <DialogContentComponent 
+          paymentDetails={paymentDetails} 
+          onOpenChange={onOpenChange}
+          amount={amount}
+          selectedCurrency={selectedCurrency}
+        />
         
         <DialogFooter className="flex flex-col sm:flex-row gap-2">
           {statusUrl && (

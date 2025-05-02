@@ -6,18 +6,23 @@ import QRCodeDisplay from './QRCodeDisplay';
 
 interface QRCodeSectionProps {
   qrCodeUrl?: string;
-  paymentAddress: string;
+  address?: string;  // Added this prop to match what's being passed
+  paymentAddress?: string;  // Keep this for backward compatibility
   currency: string;
-  amount: string | number;
+  amount?: string | number;
 }
 
 const QRCodeSection: React.FC<QRCodeSectionProps> = ({
   qrCodeUrl,
+  address,
   paymentAddress,
   currency,
   amount
 }) => {
-  if (!qrCodeUrl && !paymentAddress) {
+  // Use either address or paymentAddress, whichever is provided
+  const actualAddress = address || paymentAddress || '';
+  
+  if (!qrCodeUrl && !actualAddress) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
@@ -37,7 +42,7 @@ const QRCodeSection: React.FC<QRCodeSectionProps> = ({
       {qrCodeUrl ? (
         <QRCodeDisplay 
           qrCodeUrl={qrCodeUrl} 
-          paymentAddress={paymentAddress}
+          paymentAddress={actualAddress}
           currency={currency}
         />
       ) : (

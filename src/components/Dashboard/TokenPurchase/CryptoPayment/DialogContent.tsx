@@ -65,27 +65,38 @@ const DialogContent: React.FC<DialogContentProps> = ({
   
   // Get custom instructions if available
   const instructions = paymentDetails.instructions;
+  
+  // Get amount to display (either from paymentDetails or prop)
+  const displayAmount = paymentDetails.amount || amount;
 
   return (
     <>
       <DialogHeader>
         <DialogTitle className="text-lg">Complete Your Crypto Payment</DialogTitle>
         <DialogDescription>
-          Please send {paymentDetails.amount} {currency} to complete your purchase of CSi tokens.
+          Please send {displayAmount} {currency} to complete your purchase of CSi tokens.
         </DialogDescription>
       </DialogHeader>
       
       {/* Payment QR Code */}
-      <QRCodeSection qrCodeUrl={qrCodeUrl} address={address} currency={currency} />
+      <QRCodeSection 
+        qrCodeUrl={qrCodeUrl} 
+        address={address} 
+        currency={currency}
+        amount={displayAmount}
+      />
       
       {/* Payment Address */}
-      <PaymentAddressSection address={address} currency={currency} />
+      <PaymentAddressSection 
+        address={address} 
+        currency={currency} 
+      />
       
       {/* Transaction ID */}
       <TransactionIdSection transactionId={transactionId} />
       
       {/* Time Remaining Alert */}
-      {hasExpiration && <TimeRemainingAlert expiresAt={expiresAt} />}
+      {hasExpiration && expiresAt && <TimeRemainingAlert expiresAt={expiresAt} />}
       
       {/* Payment Instructions */}
       <InstructionsSection paymentDetails={paymentDetails} instructions={instructions} />
