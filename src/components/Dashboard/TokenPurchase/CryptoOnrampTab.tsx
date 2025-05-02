@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CreditCard, Loader2, AlertTriangle, ExternalLink } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
+import { loadStripeOnrampScripts } from '@/lib/loadStripeOnramp';
 
 interface CryptoOnrampTabProps {
   amount: number;
@@ -16,19 +18,23 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
   amount,
   walletAddress,
   isProcessing,
-  isWalletMissing,
-  onInitiateOnramp
+  isWalletMissing
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [suggestedFix, setSuggestedFix] = useState<string | null>(null);
   
+  // Load Stripe Onramp scripts on component mount
+  useEffect(() => {
+    loadStripeOnrampScripts();
+  }, []);
+  
   // Check if environment has Stripe publishable key
   const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY_CRYPTO;
   const missingStripeKey = !stripePublishableKey;
   
-  const handleBuyCryptoClick = async () => {
+  const handleBuyCryptoClick = () => {
     if (isWalletMissing) {
       toast.error("Wallet Address Required", {
         description: "You need to provide a wallet address to receive your tokens.",
@@ -44,68 +50,49 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
       return;
     }
     
+    if (!window.StripeOnramp) {
+      toast.error('Stripe script not loaded yet, please wait a second.');
+      // Try to load scripts again
+      loadStripeOnrampScripts();
+      return;
+    }
+    
     try {
       setIsLoading(true);
       setError(null);
       setErrorDetails(null);
       setSuggestedFix(null);
 
-      console.log("Initiating Stripe Crypto Onramp redirect...");
-      const result = await onInitiateOnramp();
+      console.log("Initiating Stripe Crypto Onramp redirect with client-side URL generation...");
       
-      if (!result.success) {
-        console.error("Onramp session creation failed:", result);
-        throw new Error(result.error || 'Failed to create payment session');
-      }
+      // Create the standalone onramp instance
+      const standalone = window.StripeOnramp.Standalone({
+        source_currency: 'usd',
+        amount: { source_amount: String(amount) },
+        destination_currency: 'usdc',  // Default to USDC, could be parameterized
+        destination_network: 'polygon' // Default to Polygon, could be parameterized
+      });
       
-      // Only handle direct redirect URL
-      if (result.redirect_url) {
-        console.log("🌐 redirecting...");
-        toast.success("Redirecting to Stripe...", {
-          description: "You will be redirected to complete your purchase"
-        });
-        
-        // Direct redirect
-        window.location.href = result.redirect_url;
-      } 
-      else {
-        throw new Error("No redirect URL received from server");
-      }
+      // Get the redirect URL
+      const url = standalone.getUrl();
+      console.log('Redirecting to', url);
+      
+      // Redirect the user to Stripe's hosted onramp
+      toast.success("Redirecting to Stripe...", {
+        description: "You will be redirected to complete your purchase"
+      });
+      
+      window.location.href = url;
     } catch (err: any) {
       console.error('Error initializing Stripe Onramp redirect:', err);
       
-      // Extract detailed error information if available
-      let errorMessage = err.message || 'Failed to initialize payment';
-      let details = '';
-      let suggestion = null;
-      
-      if (err.details) {
-        details = err.details;
-      } else if (typeof err === 'object') {
-        if (err.response) {
-          try {
-            const responseData = await err.response.json();
-            if (responseData.details) details = responseData.details;
-            if (responseData.suggestion) suggestion = responseData.suggestion;
-            if (responseData.error && errorMessage === 'Failed to initialize payment') {
-              errorMessage = responseData.error;
-            }
-          } catch (e) {
-            // Could not parse response JSON
-            console.error("Could not parse error response:", e);
-          }
-        } else if (err.message) {
-          errorMessage = err.message;
-          if (err.suggestion) suggestion = err.suggestion;
-          if (err.details) details = err.details;
-        }
-      }
+      let errorMessage = err.message || 'Failed to initialize Stripe Onramp';
       
       setError(errorMessage);
-      setErrorDetails(details);
-      setSuggestedFix(suggestion);
+      setErrorDetails(err.details || null);
+      setSuggestedFix(err.suggestion || null);
       
-      toast.error('Payment initialization failed', {
+      toast.error('Stripe Onramp initialization failed', {
         description: errorMessage || 'Please try again or contact support'
       });
     } finally {
@@ -146,7 +133,7 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
               <div className="mt-2 flex items-start gap-1">
                 <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                 <span>
-                  <strong>Note:</strong> Please configure STRIPE_SECRET_KEY_CRYPTO and STRIPE_PUBLISHABLE_KEY_CRYPTO in your Supabase Edge Function secrets.
+                  <strong>Note:</strong> Please configure STRIPE_PUBLISHABLE_KEY_CRYPTO in your environment.
                 </span>
               </div>
             )}
@@ -162,18 +149,18 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
             <p className="font-medium">Developer Setup Instructions:</p>
             <ol className="list-decimal list-inside ml-2 mt-1 text-sm space-y-1">
               <li>Ensure you have a Stripe account with Crypto Onramp enabled.</li>
-              <li>Verify your Stripe API key has <code>crypto.onrampSessions: write</code> permission.</li>
-              <li>Set both <code>STRIPE_SECRET_KEY_CRYPTO</code> and <code>STRIPE_PUBLISHABLE_KEY_CRYPTO</code> in Supabase secrets.</li>
-              <li>Make sure you're using the latest Stripe API version that supports Crypto Onramp.</li>
+              <li>The client-side Onramp doesn't require API keys in the backend.</li>
+              <li>Make sure the Stripe scripts are loading properly (check console).</li>
+              <li>Test with various amounts to ensure redirects work correctly.</li>
             </ol>
             <div className="mt-2 flex items-center">
               <a 
-                href="https://dashboard.stripe.com/apikeys" 
+                href="https://docs.stripe.com/crypto/onramp" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline inline-flex items-center gap-1 text-sm"
               >
-                Check Stripe API Keys <ExternalLink className="h-3 w-3" />
+                Stripe Crypto Onramp Documentation <ExternalLink className="h-3 w-3" />
               </a>
             </div>
           </AlertDescription>
@@ -189,7 +176,7 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
           </div>
           <Button 
             onClick={handleBuyCryptoClick} 
-            disabled={isProcessing || isWalletMissing || isLoading || missingStripeKey}
+            disabled={isProcessing || isWalletMissing || isLoading}
             className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white py-2 px-4 sm:w-auto w-full"
           >
             {isLoading ? (
