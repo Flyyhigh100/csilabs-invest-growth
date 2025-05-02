@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CreditCard, Loader2 } from 'lucide-react';
+import { AlertCircle, CreditCard, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
 
@@ -10,7 +10,7 @@ interface CryptoOnrampTabProps {
   walletAddress: string;
   isProcessing: boolean;
   isWalletMissing: boolean;
-  onInitiateOnramp: () => Promise<{success: boolean, redirect_url?: string, error?: string}>;
+  onInitiateOnramp: () => Promise<{success: boolean, redirect_url?: string, error?: string, details?: string}>;
 }
 
 const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
@@ -22,6 +22,7 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
   
   // Check if environment has Stripe publishable key
   const missingStripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY_CRYPTO ? false : true;
@@ -45,21 +46,50 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
     try {
       setIsLoading(true);
       setError(null);
+      setErrorDetails(null);
 
+      console.log("Initiating Stripe Crypto Onramp redirect...");
       const result = await onInitiateOnramp();
       
       if (!result.success || !result.redirect_url) {
+        console.error("Onramp session creation failed:", result);
         throw new Error(result.error || 'Failed to create payment session');
       }
+      
+      console.log("Received redirect URL from server, redirecting user...");
+      toast.success("Redirecting to Stripe...", {
+        description: "You will be redirected to complete your purchase"
+      });
       
       // Redirect to Stripe's hosted onramp page
       window.location.href = result.redirect_url;
       
     } catch (err: any) {
       console.error('Error initializing Stripe Onramp redirect:', err);
-      setError(err.message || 'Failed to initialize payment');
+      
+      // Extract detailed error information if available
+      let errorMessage = err.message || 'Failed to initialize payment';
+      let details = '';
+      
+      if (err.details) {
+        details = err.details;
+      } else if (typeof err === 'object' && err.response) {
+        try {
+          const responseData = await err.response.json();
+          if (responseData.details) details = responseData.details;
+          if (responseData.error && errorMessage === 'Failed to initialize payment') {
+            errorMessage = responseData.error;
+          }
+        } catch (e) {
+          // Could not parse response JSON
+        }
+      }
+      
+      setError(errorMessage);
+      setErrorDetails(details);
+      
       toast.error('Payment initialization failed', {
-        description: err.message || 'Please try again or contact support'
+        description: errorMessage || 'Please try again or contact support'
       });
     } finally {
       setIsLoading(false);
@@ -81,13 +111,21 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
       </div>
       
       {error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="flex flex-col gap-2">
             <div>{error}</div>
+            {errorDetails && (
+              <div className="mt-2 text-sm opacity-80">
+                <strong>Details:</strong> {errorDetails}
+              </div>
+            )}
             {missingStripeKey && (
-              <div className="mt-2">
-                <strong>Administrator note:</strong> Please configure STRIPE_SECRET_KEY_CRYPTO in your environment variables.
+              <div className="mt-2 flex items-start gap-1">
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>
+                  <strong>Administrator note:</strong> Please configure STRIPE_SECRET_KEY_CRYPTO in your Supabase Edge Function secrets.
+                </span>
               </div>
             )}
           </AlertDescription>

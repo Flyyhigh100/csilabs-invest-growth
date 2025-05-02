@@ -24,7 +24,7 @@ export const useStripeCryptoOnramp = (walletAddress: string | null) => {
           description: "You must be logged in to make a payment."
         });
         setIsProcessing(false);
-        return { success: false };
+        return { success: false, error: "Authentication required" };
       }
       
       console.log("Invoking create-stripe-onramp-redirect function...");
@@ -38,20 +38,30 @@ export const useStripeCryptoOnramp = (walletAddress: string | null) => {
       
       if (error) {
         console.error("Stripe onramp error:", error);
-        toast.error("Payment session failed", { 
-          description: error.message || "Please try again or contact support." 
-        });
+        let errorMessage = error.message || "Please try again or contact support.";
+        let errorDetails = null;
+        
+        // Check if error has additional details
+        if (error.context && typeof error.context === 'object') {
+          errorDetails = JSON.stringify(error.context);
+        }
+        
         setIsProcessing(false);
-        return { success: false };
+        return { 
+          success: false, 
+          error: errorMessage,
+          details: errorDetails 
+        };
       }
       
       if (!data?.redirect_url) {
-        console.error("No redirect URL received from Stripe");
-        toast.error("Payment session failed", {
-          description: "No session data received. Please try again."
-        });
+        console.error("No redirect URL received from Stripe", data);
         setIsProcessing(false);
-        return { success: false };
+        return { 
+          success: false, 
+          error: "No session data received. Please try again.",
+          details: data ? JSON.stringify(data) : null
+        };
       }
       
       console.log("Received Stripe onramp redirect URL:", data.redirect_url);
@@ -64,11 +74,36 @@ export const useStripeCryptoOnramp = (walletAddress: string | null) => {
       };
     } catch (error: any) {
       console.error("Error creating Stripe onramp session:", error);
-      toast.error("Payment session failed", {
-        description: error.message || "Please try again or contact support."
-      });
+      
+      // Try to extract more details from the error
+      let errorMessage = "Please try again or contact support.";
+      let errorDetails = null;
+      
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      if (error.response) {
+        try {
+          const responseData = await error.response.json();
+          if (responseData.error) {
+            errorMessage = responseData.error;
+          }
+          if (responseData.details) {
+            errorDetails = responseData.details;
+          }
+        } catch (e) {
+          // Could not parse JSON from response
+          console.error("Could not parse error response:", e);
+        }
+      }
+      
       setIsProcessing(false);
-      return { success: false };
+      return { 
+        success: false, 
+        error: errorMessage,
+        details: errorDetails || error.stack
+      };
     }
   };
 
