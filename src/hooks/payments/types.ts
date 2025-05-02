@@ -54,6 +54,7 @@ export interface PaymentValidationOptions {
   requireWallet?: boolean;
   minAmount?: number;
   maxAmount?: number;
+  isCrypto?: boolean;
 }
 
 export interface PaymentValidationResult {
