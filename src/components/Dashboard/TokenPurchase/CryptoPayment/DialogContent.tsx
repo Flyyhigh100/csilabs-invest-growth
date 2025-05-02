@@ -1,120 +1,109 @@
 
 import React from 'react';
-import { Separator } from "@/components/ui/separator";
+import { DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import QRCodeSection from './QRCodeSection';
 import PaymentAddressSection from './PaymentAddressSection';
 import TransactionIdSection from './TransactionIdSection';
-import TimeRemainingAlert from '@/components/Dashboard/TokenPurchase/CryptoPayment/TimeRemainingAlert';
-import InstructionsSection from './InstructionsSection';
 import StatusCheckSection from './StatusCheckSection';
+import TimeRemainingAlert from './TimeRemainingAlert';
+import InstructionsSection from './InstructionsSection';
+import DialogFooterActions from './DialogFooterActions';
 import { CryptoPaymentDetails } from '@/hooks/payments/types';
-import { Spinner } from "@/components/ui/spinner";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from 'lucide-react';
 
 interface DialogContentProps {
-  paymentDetails: CryptoPaymentDetails;
+  paymentDetails: CryptoPaymentDetails | null;
+  onOpenChange: (open: boolean) => void;
+  amount: number;
+  selectedCurrency: string;
 }
 
-const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
+const DialogContent: React.FC<DialogContentProps> = ({
+  paymentDetails,
+  onOpenChange,
+  amount,
+  selectedCurrency
+}) => {
   if (!paymentDetails) {
-    return (
-      <div className="py-8 text-center text-gray-500 flex flex-col items-center">
-        <Spinner className="mb-4" />
-        <p>Payment information is loading...</p>
-      </div>
-    );
-  }
-  
-  // Check if we're missing critical payment information
-  // Use both legacy (payment_address) and new property names (address)
-  const hasCriticalError = !paymentDetails.address && 
-    !paymentDetails.payment_address && 
-    !paymentDetails.paymentAddress;
-  
-  if (hasCriticalError) {
-    return (
-      <div className="py-8">
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Unable to generate payment information. Please try again or contact support.
-          </AlertDescription>
-        </Alert>
-        
-        <div className="mt-4 bg-gray-50 p-4 rounded-md text-sm">
-          <h4 className="font-medium mb-2">Debug Information:</h4>
-          <p className="text-xs text-gray-600 mb-2">
-            This information may help support diagnose the issue:
-          </p>
-          <pre className="text-xs bg-gray-100 p-3 rounded overflow-auto max-h-40">
-            {JSON.stringify({
-              hasTransactionId: !!(paymentDetails.transactionId || paymentDetails.payment_id),
-              hasExternalId: !!(paymentDetails.externalTransactionId || paymentDetails.txn_id || paymentDetails.txnId),
-              hasQrCode: !!(paymentDetails.qrCodeUrl || paymentDetails.qrcode_url),
-              currency: paymentDetails.currency,
-              timeStamp: new Date().toISOString()
-            }, null, 2)}
-          </pre>
-        </div>
-      </div>
-    );
+    return null;
   }
 
-  // Ensure we use either the new property names or fall back to legacy names
-  const paymentAddress = paymentDetails.address || 
-    paymentDetails.paymentAddress || 
-    paymentDetails.payment_address;
+  // Extract payment details, handling both legacy and new property names
+  const address = paymentDetails.address || paymentDetails.payment_address || paymentDetails.paymentAddress || '';
+
+  // Determine currency to display (from paymentDetails or fallback to selected)
+  const currency = paymentDetails.currency || selectedCurrency || 'USDT';
   
-  const qrCodeUrl = paymentDetails.qrCodeUrl || paymentDetails.qrcode_url;
-  const statusUrl = paymentDetails.statusUrl || paymentDetails.status_url;
-  const externalTxnId = paymentDetails.txnId || 
+  // Extract transaction ID (handling multiple possible property names)
+  const transactionId = 
+    paymentDetails.transactionId || 
+    paymentDetails.payment_id || 
     paymentDetails.externalTransactionId || 
-    paymentDetails.txn_id;
+    paymentDetails.txn_id || 
+    paymentDetails.txnId || 
+    '';
   
+  // Get QR code URL
+  const qrCodeUrl = paymentDetails.qrCodeUrl || paymentDetails.qrcode_url || '';
+  
+  // Get status check URL
+  const statusCheckUrl = 
+    paymentDetails.statusUrl || 
+    paymentDetails.status_url || 
+    paymentDetails.checkStatusUrl || 
+    '';
+    
+  // Check if address and amount are available for payment
+  const hasPaymentAddress = Boolean(
+    paymentDetails.paymentAddress || 
+    paymentDetails.payment_address || 
+    paymentDetails.address
+  );
+  
+  // Get expiration info if available
+  const expiresAt = paymentDetails.expiresAt;
+  const hasExpiration = Boolean(expiresAt);
+  
+  // Get custom instructions if available
+  const instructions = paymentDetails.instructions;
+
   return (
-    <div className="space-y-4 my-2">
-      {paymentDetails.expiresAt && (
-        <TimeRemainingAlert expiresAt={paymentDetails.expiresAt} />
-      )}
+    <>
+      <DialogHeader>
+        <DialogTitle className="text-lg">Complete Your Crypto Payment</DialogTitle>
+        <DialogDescription>
+          Please send {paymentDetails.amount} {currency} to complete your purchase of CSi tokens.
+        </DialogDescription>
+      </DialogHeader>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <QRCodeSection 
-          qrCodeUrl={qrCodeUrl} 
-          paymentAddress={paymentAddress}
-          currency={paymentDetails.currency}
-          amount={paymentDetails.amount} 
-        />
-        
-        <div className="space-y-4">
-          <PaymentAddressSection 
-            paymentAddress={paymentAddress} 
-            currency={paymentDetails.currency}
-          />
-          
-          {externalTxnId && (
-            <TransactionIdSection transactionId={externalTxnId} />
-          )}
-        </div>
-      </div>
+      {/* Payment QR Code */}
+      <QRCodeSection qrCodeUrl={qrCodeUrl} address={address} currency={currency} />
       
-      <Separator className="my-4" />
+      {/* Payment Address */}
+      <PaymentAddressSection address={address} currency={currency} />
       
-      <InstructionsSection 
-        paymentDetails={paymentDetails} 
-        instructions={paymentDetails.instructions} 
+      {/* Transaction ID */}
+      <TransactionIdSection transactionId={transactionId} />
+      
+      {/* Time Remaining Alert */}
+      {hasExpiration && <TimeRemainingAlert expiresAt={expiresAt} />}
+      
+      {/* Payment Instructions */}
+      <InstructionsSection paymentDetails={paymentDetails} instructions={instructions} />
+      
+      {/* Status Check Button */}
+      <StatusCheckSection 
+        statusCheckUrl={statusCheckUrl} 
+        transactionId={transactionId} 
       />
-      
-      {statusUrl && (
-        <StatusCheckSection statusUrl={statusUrl} />
-      )}
-      
-      <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-800">
-        <AlertDescription>
-          <strong>Payment Testing Info:</strong> You can visit the Transactions page to check payment status or use the link above to track your payment on CoinPayments.
-        </AlertDescription>
-      </Alert>
-    </div>
+
+      {/* Dialog Footer */}
+      <DialogFooter className="mt-4">
+        <DialogFooterActions 
+          onClose={() => onOpenChange(false)}
+          statusCheckUrl={statusCheckUrl}
+        />
+      </DialogFooter>
+    </>
   );
 };
 

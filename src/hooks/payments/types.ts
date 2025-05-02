@@ -33,8 +33,9 @@ export interface StripeCryptoOnrampResult {
   error?: string;
   details?: string;
   redirect_url?: string;
-  sessionId?: string;
-  clientSecret?: string;
+  session_id?: string;
+  client_secret?: string;
+  suggestion?: string;
 }
 
 export interface UsePaymentHandlersProps {

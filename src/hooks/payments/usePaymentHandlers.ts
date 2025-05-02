@@ -27,14 +27,54 @@ export const usePaymentHandlers = (walletAddress: string | null): UsePaymentHand
 
   const isProcessing = isStripeCryptoProcessing || isCryptoProcessing;
 
-  // Wrapper for Stripe Crypto Onramp to return the complete result object, not just boolean
+  // Wrapper for Stripe Crypto Onramp with enhanced error handling
   const handleStripeCryptoOnramp = async (amount: number, currentTokenPrice?: number): Promise<StripeCryptoOnrampResult> => {
     try {
+      // Validate wallet address before proceeding
+      if (!walletAddress) {
+        toast.error("Wallet Address Required", {
+          description: "You need to add a wallet address before making a purchase."
+        });
+        return { 
+          success: false, 
+          error: "Wallet address required",
+          details: "Please add a wallet address in your profile settings."
+        };
+      }
+      
+      console.log(`Initiating Stripe Crypto Onramp purchase: $${amount} → ${walletAddress}`);
       const result = await processStripeCryptoOnramp(amount, currentTokenPrice);
-      return result; // Return the complete result object
+      
+      // Log result details for debugging
+      if (!result.success) {
+        console.error("Stripe Crypto Onramp failed:", result);
+        
+        // Handle specific error types
+        if (result.error?.includes("API key") || result.error?.includes("permission")) {
+          toast.error("Payment configuration error", {
+            description: "The Stripe Crypto API is not properly configured."
+          });
+        } else {
+          toast.error("Payment initialization failed", {
+            description: result.error || "Please try again or contact support"
+          });
+        }
+      }
+      
+      return result;
     } catch (error) {
-      console.error("Error in Stripe Crypto Onramp:", error);
-      return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+      console.error("Error in Stripe Crypto Onramp handler:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      
+      toast.error("Payment system error", {
+        description: "An unexpected error occurred while setting up your payment."
+      });
+      
+      return { 
+        success: false, 
+        error: errorMessage,
+        details: error instanceof Error ? error.stack : "Unknown error occurred during payment setup"
+      };
     }
   };
   

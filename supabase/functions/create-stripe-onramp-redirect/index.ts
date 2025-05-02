@@ -15,12 +15,22 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Starting create-stripe-onramp-redirect function...");
+    
     // Parse the request body
     const { walletAddress, amount, tokenPrice } = await req.json();
+    console.log(`Received request for wallet: ${walletAddress}, amount: ${amount}, tokenPrice: ${tokenPrice || 'not provided'}`);
     
     // Validate required parameters
     if (!walletAddress) {
-      throw new Error("Wallet address is required");
+      console.error("Missing required parameter: walletAddress");
+      return new Response(JSON.stringify({ 
+        error: "Wallet address is required",
+        details: "Please provide a valid wallet address"
+      }), { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400 
+      });
     }
     
     // Initialize Supabase client with the anon key
@@ -32,19 +42,34 @@ serve(async (req) => {
     // Get the user's ID from the auth header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("Missing authorization header");
+      console.error("Missing authorization header");
+      return new Response(JSON.stringify({ 
+        error: "Missing authorization header",
+        details: "Authentication required" 
+      }), { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401 
+      });
     }
 
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError || !userData.user) {
-      throw new Error("Authentication failed");
+      console.error("Authentication failed:", userError);
+      return new Response(JSON.stringify({ 
+        error: "Authentication failed",
+        details: userError?.message || "Unable to verify user identity"
+      }), { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401 
+      });
     }
     
     const userId = userData.user.id;
+    console.log(`Authenticated user: ${userId} (${userData.user.email || 'no email'})`);
 
-    // Get client IP address
+    // Get client IP address for tracking and fraud prevention
     const forwardedFor = req.headers.get("x-forwarded-for");
     const clientIp = forwardedFor ? forwardedFor.split(",")[0].trim() : "127.0.0.1";
     console.log("Client IP:", clientIp);
@@ -62,17 +87,26 @@ serve(async (req) => {
       });
     }
 
-    // Initialize Stripe client with the crypto key
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: "2024-04-10"
-    });
-
     try {
-      console.log("Creating Stripe crypto onramp session with redirect_url...");
+      // Initialize Stripe client with the crypto key
+      // Note: Using apiVersion 2023-10-16 which is more stable with the crypto onramp feature
+      console.log("Initializing Stripe with API version 2023-10-16...");
+      const stripe = new Stripe(stripeSecretKey, {
+        apiVersion: "2023-10-16"
+      });
       
-      // Create a crypto onramp session with redirect_url
-      const session = await stripe.crypto.onrampSessions.create({
-        customer_ip_address: clientIp,
+      // Create transaction record first to track the attempt
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+        { auth: { persistSession: false } }
+      );
+      
+      const returnUrl = `${req.headers.get("origin") || "https://csi-token-platform.onrender.com"}/dashboard/payments?status=success`;
+      console.log("Return URL:", returnUrl);
+      
+      console.log("Creating Stripe onramp session...");
+      const sessionParams = {
         wallet_addresses: {
           ethereum: walletAddress,
           solana: walletAddress,
@@ -91,19 +125,18 @@ serve(async (req) => {
           wallet_address: walletAddress,
           amount: amount ? amount.toString() : "100",
           token_price: tokenPrice ? tokenPrice.toString() : "1.00",
-          return_url: `${req.headers.get("origin")}/dashboard/payments?status=success`
-        }
-      });
+          return_url: returnUrl
+        },
+        ui_mode: "embedded",
+        success_url: returnUrl,
+        cancel_url: `${req.headers.get("origin") || "https://csi-token-platform.onrender.com"}/dashboard/payments?status=cancelled`
+      };
       
+      console.log("Session params prepared:", JSON.stringify(sessionParams));
+      
+      // Create a crypto onramp session
+      const session = await stripe.crypto.onrampSessions.create(sessionParams);
       console.log("Successfully created Stripe onramp session with ID:", session.id);
-      console.log("Redirect URL available:", !!session.redirect_url);
-
-      // Create a transaction record in our database
-      const supabaseAdmin = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-        { auth: { persistSession: false } }
-      );
       
       try {
         // Create transaction record
@@ -139,7 +172,11 @@ serve(async (req) => {
 
       // Return the redirect URL for the hosted page
       return new Response(JSON.stringify({ 
-        redirect_url: session.redirect_url,
+        success: true,
+        redirect_url: session.client_secret ? 
+          `https://crypto.stripe.com/onramp?session_id=${session.id}&client_secret=${session.client_secret}` : 
+          null,
+        client_secret: session.client_secret,
         session_id: session.id
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -148,15 +185,33 @@ serve(async (req) => {
     } catch (stripeError) {
       console.error("Stripe API error:", stripeError);
       
-      // Check if it's a Stripe library error
-      const errorMessage = stripeError instanceof Error 
-        ? stripeError.message 
-        : "Unknown Stripe error";
+      // Detailed error handling
+      let errorMessage = "An error occurred with the Stripe API";
+      let errorDetails = "";
+      
+      if (stripeError instanceof Error) {
+        errorMessage = stripeError.message;
+        errorDetails = stripeError.stack || "";
+        
+        // Check for specific Stripe errors
+        if ('code' in stripeError) {
+          const stripeErrorCode = (stripeError as any).code;
+          
+          if (stripeErrorCode === 'api_key_expired') {
+            errorDetails = "The Stripe API key is expired. Please update to a new API key.";
+          } else if (stripeErrorCode === 'invalid_request_error') {
+            errorDetails = "The request to Stripe was invalid. Check your API key permissions.";
+          } else if (stripeErrorCode === 'permission_error') {
+            errorDetails = "Your Stripe API key doesn't have permission to create onramp sessions. Check that 'crypto.onrampSessions: write' is enabled.";
+          }
+        }
+      }
       
       return new Response(JSON.stringify({ 
         error: "Stripe API error", 
         message: errorMessage,
-        details: "The Stripe Crypto API returned an error. Please check your Stripe configuration."
+        details: errorDetails,
+        suggestion: "Verify that your Stripe API key has the 'crypto.onrampSessions: write' permission enabled."
       }), { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400 
@@ -165,13 +220,14 @@ serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error occurred";
     console.error(`Error creating onramp session: ${message}`);
+    console.error(error instanceof Error ? error.stack : "No stack trace available");
     
     return new Response(JSON.stringify({ 
       error: message,
       details: error instanceof Error ? error.stack : "No additional details available" 
     }), { 
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400 
+      status: 500 
     });
   }
 });

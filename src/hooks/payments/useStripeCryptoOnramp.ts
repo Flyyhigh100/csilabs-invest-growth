@@ -41,6 +41,7 @@ export const useStripeCryptoOnramp = (walletAddress: string | null) => {
         console.error("Stripe onramp error:", error);
         let errorMessage = error.message || "Please try again or contact support.";
         let errorDetails = null;
+        let suggestion = null;
         
         // Check if error has additional details
         if (error.context && typeof error.context === 'object') {
@@ -51,12 +52,25 @@ export const useStripeCryptoOnramp = (walletAddress: string | null) => {
         return { 
           success: false, 
           error: errorMessage,
-          details: errorDetails 
+          details: errorDetails,
+          suggestion 
         };
       }
       
-      if (!data?.redirect_url) {
-        console.error("No redirect URL received from Stripe", data);
+      // Check if we received a valid response from the edge function
+      if (!data) {
+        console.error("Received empty response from Stripe onramp endpoint");
+        setIsProcessing(false);
+        return { 
+          success: false, 
+          error: "Empty response from server", 
+          details: "The server returned an empty response. Please contact support." 
+        };
+      }
+
+      // Check if we have either redirect_url or client_secret for redirect
+      if (!data.redirect_url && !data.client_secret) {
+        console.error("No redirect URL or client secret received from Stripe", data);
         setIsProcessing(false);
         return { 
           success: false, 
@@ -65,13 +79,19 @@ export const useStripeCryptoOnramp = (walletAddress: string | null) => {
         };
       }
       
-      console.log("Received Stripe onramp redirect URL:", data.redirect_url);
+      console.log("Received successful Stripe onramp session response:", {
+        hasRedirectUrl: !!data.redirect_url,
+        hasClientSecret: !!data.client_secret,
+        hasSessionId: !!data.session_id
+      });
+      
       toast.success("Initializing crypto purchase...");
       
       return { 
         success: true, 
         redirect_url: data.redirect_url,
-        sessionId: data.session_id 
+        client_secret: data.client_secret,
+        session_id: data.session_id 
       };
     } catch (error: any) {
       console.error("Error creating Stripe onramp session:", error);
@@ -79,6 +99,7 @@ export const useStripeCryptoOnramp = (walletAddress: string | null) => {
       // Try to extract more details from the error
       let errorMessage = "Please try again or contact support.";
       let errorDetails = null;
+      let suggestion = null;
       
       if (error.message) {
         errorMessage = error.message;
@@ -93,6 +114,9 @@ export const useStripeCryptoOnramp = (walletAddress: string | null) => {
           if (responseData.details) {
             errorDetails = responseData.details;
           }
+          if (responseData.suggestion) {
+            suggestion = responseData.suggestion;
+          }
         } catch (e) {
           // Could not parse JSON from response
           console.error("Could not parse error response:", e);
@@ -103,7 +127,8 @@ export const useStripeCryptoOnramp = (walletAddress: string | null) => {
       return { 
         success: false, 
         error: errorMessage,
-        details: errorDetails || error.stack
+        details: errorDetails || error.stack,
+        suggestion
       };
     } finally {
       if (isProcessing) {
