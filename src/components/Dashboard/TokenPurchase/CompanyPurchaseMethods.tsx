@@ -29,11 +29,11 @@ const CompanyPurchaseMethods: React.FC<CompanyPurchaseMethodsProps> = ({
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <PurchaseMethodCard
-          title="Credit Card"
-          description="Quick and secure payment using Stripe. No KYC required for most purchases."
+          title="Buy Crypto with Card"
+          description="Quick and secure crypto purchase using Stripe. Pay with credit card, Apple Pay, or Google Pay."
           icon={<CreditCard className="h-6 w-6" />}
           onClick={onSelectStripe}
-          buttonLabel={`Pay $${amount}`}
+          buttonLabel={`Buy $${amount}`}
           disabled={isProcessing || isWalletMissing}
           highlight={true}
           badgeText="Recommended"
@@ -46,7 +46,7 @@ const CompanyPurchaseMethods: React.FC<CompanyPurchaseMethodsProps> = ({
         </PurchaseMethodCard>
         
         <PurchaseMethodCard
-          title="Cryptocurrency"
+          title="More Crypto Options"
           description="Pay with your preferred cryptocurrency. Additional verification may be required."
           icon={<Coins className="h-6 w-6" />}
           onClick={onSelectCrypto}

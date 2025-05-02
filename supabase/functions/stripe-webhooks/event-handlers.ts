@@ -1,295 +1,104 @@
+// Import necessary dependencies
+import { updateTransactionStatus } from "./transaction-ops.ts";
+import { findTransactionBySessionId } from "./transaction-ops.ts";
 
-import { createPaymentConfirmationNotification } from "./utils.ts";
-import { 
-  updateTransactionStatus, 
-  findTransactionBySessionId, 
-  createTransactionFromSession,
-  findTransactionByPaymentIntent,
-  forceUpdateExternalTransactionId
-} from "./transaction-ops.ts";
-import { findRecentPendingTransactions } from "./utils.ts";
-import { checkAndUpdatePayment } from "./stripe-ops.ts";
-
-// Handle checkout.session.completed event
-export const handleCheckoutSessionCompleted = async (supabase: any, session: any) => {
-  // Add CRITICAL logging for debugging
-  console.log('[CRITICAL] Processing checkout session:', JSON.stringify({
-    id: session.id,
-    payment_intent: session.payment_intent,
-    payment_status: session.payment_status,
-    mode: session.mode
-  }));
-  
-  // Skip if not a payment or payment not successful
-  if (session.mode !== 'payment' || session.payment_status !== 'paid') {
-    console.log('[WEBHOOK] Not a completed payment, skipping');
-    return;
-  }
-  
-  // CRITICAL CHECK: Confirm payment_intent exists
-  if (!session.payment_intent) {
-    console.error('[CRITICAL] Session has no payment_intent field:', session.id);
-    // Even without payment_intent, we should still try to find and update the transaction
-    // by session ID since we created it with the session ID during checkout
-  }
-  
-  console.log(`[CRITICAL] Processing completed payment for session: ${session.id} with payment_intent: ${session.payment_intent || 'Not available'}`);
+// Handle checkout session completed event
+export const handleCheckoutSessionCompleted = async (supabaseClient, session) => {
+  console.log(`[WEBHOOK] Processing checkout.session.completed event for session: ${session.id}`);
   
   try {
-    // First, check if we already processed this session to prevent duplicates
-    const { data: existingCompletedTx, error: existingTxError } = await supabase
-      .from('transactions')
-      .select('id, status, external_transaction_id')
-      .eq('transaction_id', session.id)
-      .eq('status', 'completed')
-      .maybeSingle();
-      
-    if (existingCompletedTx) {
-      console.log(`[WEBHOOK] Session ${session.id} already marked as completed`);
-      
-      // Ensure the external_transaction_id is set even if already completed
-      if (session.payment_intent && !existingCompletedTx.external_transaction_id) {
-        console.log(`[CRITICAL] Updating missing payment intent ID for completed transaction: ${existingCompletedTx.id}`);
-        
-        // Use our force update method instead of regular update
-        const updated = await forceUpdateExternalTransactionId(
-          supabase, 
-          existingCompletedTx.id,
-          session.payment_intent
-        );
-        
-        if (updated) {
-          console.log(`[CRITICAL] Successfully force-updated external_transaction_id for existing completed transaction`);
-        }
-      }
-      
+    // Find the transaction in our database
+    const transaction = await findTransactionBySessionId(supabaseClient, session.id);
+    
+    if (!transaction) {
+      console.error(`[WEBHOOK] No transaction found for session ID: ${session.id}`);
       return;
     }
     
-    // Retrieve the transaction using the session ID
-    const pendingTx = await findTransactionBySessionId(supabase, session.id);
-    
-    if (pendingTx) {
-      console.log(`[CRITICAL] Found transaction to update: ${pendingTx.id} with payment_intent: ${session.payment_intent || 'Not available'}`);
-      
-      // Always attempt to update the transaction with the payment_intent if available
-      if (session.payment_intent) {
-        // DIRECT APPROACH: Use the force update method to ensure external_transaction_id is updated
-        const updated = await forceUpdateExternalTransactionId(
-          supabase,
-          pendingTx.id,
-          session.payment_intent
-        );
-        
-        if (updated) {
-          console.log(`[CRITICAL] Successfully force-updated external_transaction_id for transaction ${pendingTx.id}`);
-          
-          // Create a notification for the user
-          if (pendingTx.user_id) {
-            await createPaymentConfirmationNotification(supabase, pendingTx.user_id, (session.amount_total / 100).toFixed(2));
-          }
-        } else {
-          console.error(`[CRITICAL] Force update failed for transaction ${pendingTx.id}`);
-          
-          // Fall back to the standard update method
-          console.log(`[CRITICAL] Trying fallback to standard update method`);
-          const fallbackUpdate = await updateTransactionStatus(supabase, pendingTx, session.payment_intent);
-          
-          if (fallbackUpdate) {
-            console.log(`[CRITICAL] Standard update succeeded as fallback`);
-            // Create a notification for the user
-            if (pendingTx.user_id) {
-              await createPaymentConfirmationNotification(supabase, pendingTx.user_id, (session.amount_total / 100).toFixed(2));
-            }
-          } else {
-            console.error(`[CRITICAL] All update attempts failed for transaction ${pendingTx.id}`);
-          }
-        }
-      } else {
-        // Even without payment_intent, update status to completed if payment is marked as paid
-        if (session.payment_status === 'paid') {
-          const fallbackUpdate = await updateTransactionStatus(supabase, pendingTx);
-          console.log(`[CRITICAL] Updated transaction status without payment intent: ${fallbackUpdate ? 'success' : 'failed'}`);
-          
-          // Create notification
-          if (fallbackUpdate && pendingTx.user_id) {
-            await createPaymentConfirmationNotification(supabase, pendingTx.user_id, (session.amount_total / 100).toFixed(2));
-          }
-        }
-      }
-    } else {
-      // No existing transaction found
-      console.log(`[WEBHOOK] Transaction not found for session ${session.id}, attempting to create from webhook data`);
-      
-      // IMPORTANT: Always include payment_intent when creating from session
-      const newTx = await createTransactionFromSession(supabase, session);
-      
-      // Create a notification for the user if transaction was created
-      if (newTx && session.metadata?.user_id) {
-        await createPaymentConfirmationNotification(supabase, session.metadata.user_id, (session.amount_total / 100).toFixed(2));
-      }
+    if (transaction.status === 'completed') {
+      console.log(`[WEBHOOK] Transaction ${transaction.id} is already marked as completed`);
+      return;
     }
     
+    // Update the transaction status
+    await updateTransactionStatus(supabaseClient, transaction, session.payment_intent);
+    
+    console.log(`[WEBHOOK] Successfully updated transaction status for checkout session: ${session.id}`);
   } catch (error) {
-    console.error(`[CRITICAL] Error processing checkout session: ${error.message}`);
-    console.error(error.stack || 'No stack trace available');
+    console.error(`[WEBHOOK] Error handling checkout session completed: ${error.message}`);
   }
 };
 
-// Handle payment_intent.succeeded event
-export const handlePaymentIntentSucceeded = async (supabase: any, paymentIntent: any) => {
-  // Add CRITICAL logging for payment intent details
-  console.log(`[CRITICAL] PaymentIntent ${paymentIntent.id} was successful!`, JSON.stringify({
-    id: paymentIntent.id,
-    status: paymentIntent.status,
-    amount: paymentIntent.amount,
-    currency: paymentIntent.currency,
-    metadata: paymentIntent.metadata
-  }));
+// Handle payment intent succeeded event
+export const handlePaymentIntentSucceeded = async (supabaseClient, paymentIntent) => {
+  console.log(`[WEBHOOK] Processing payment_intent.succeeded event for: ${paymentIntent.id}`);
+
+  try {
+    // Find the transaction by payment intent ID
+    const transaction = await findTransactionBySessionId(supabaseClient, paymentIntent.id);
+
+    if (!transaction) {
+      console.error(`[WEBHOOK] No transaction found for payment intent ID: ${paymentIntent.id}`);
+      return;
+    }
+
+    if (transaction.status === 'completed') {
+      console.log(`[WEBHOOK] Transaction ${transaction.id} is already marked as completed`);
+      return;
+    }
+
+    // Update the transaction status
+    await updateTransactionStatus(supabaseClient, transaction, paymentIntent.id);
+
+    console.log(`[WEBHOOK] Successfully updated transaction status for payment intent: ${paymentIntent.id}`);
+  } catch (error) {
+    console.error(`[WEBHOOK] Error handling payment intent succeeded: ${error.message}`);
+  }
+};
+
+// Handle crypto onramp session updated event (new handler)
+export const handleCryptoOnrampSessionUpdated = async (supabaseClient, session) => {
+  console.log(`[WEBHOOK] Processing crypto.onramp_session.updated event for session: ${session.id}`);
+  console.log(`[WEBHOOK] Session status: ${session.status}`);
   
   try {
-    // Try to find transaction by payment_intent ID if we have it
-    if (paymentIntent.id) {
-      // First check by external_transaction_id field
-      const pendingTx = await findTransactionByPaymentIntent(supabase, paymentIntent.id);
-      
-      if (pendingTx) {
-        // Update the transaction regardless of current status
-        console.log(`[CRITICAL] Found transaction by payment intent, updating to completed:`, JSON.stringify({
-          tx_id: pendingTx.id,
-          current_status: pendingTx.status,
-          amount: pendingTx.amount
-        }));
-        
-        // Use our force update method to ensure external_transaction_id is set
-        const updated = await forceUpdateExternalTransactionId(
-          supabase,
-          pendingTx.id,
-          paymentIntent.id
-        );
-        
-        if (updated) {
-          console.log(`[CRITICAL] Successfully force-updated transaction ${pendingTx.id} with payment intent ${paymentIntent.id}`);
-          
-          // Create a notification for the user
-          if (pendingTx.user_id) {
-            await createPaymentConfirmationNotification(supabase, pendingTx.user_id, pendingTx.amount);
-          }
-        } else {
-          console.error(`[CRITICAL] Force update failed for transaction ${pendingTx.id} in payment_intent handler`);
-          
-          // Fall back to direct Supabase update as a last resort
-          const updateData = {
-            status: 'completed',
-            external_transaction_id: paymentIntent.id,
-            updated_at: new Date().toISOString(),
-            completed_at: new Date().toISOString()
-          };
-          
-          const { data, error } = await supabase
-            .from('transactions')
-            .update(updateData)
-            .eq('id', pendingTx.id)
-            .select()
-            .single();
-            
-          if (error) {
-            console.error(`[CRITICAL] Even direct update failed: ${error.message}`);
-          } else {
-            console.log(`[CRITICAL] Direct update succeeded as fallback`);
-            
-            // Create a notification for the user
-            if (pendingTx.user_id) {
-              await createPaymentConfirmationNotification(supabase, pendingTx.user_id, pendingTx.amount);
-            }
-          }
-        }
-        
+    // Find the transaction in our database
+    const transaction = await findTransactionBySessionId(supabaseClient, session.id);
+    
+    if (!transaction) {
+      console.error(`[WEBHOOK] No transaction found for crypto onramp session ID: ${session.id}`);
+      return;
+    }
+    
+    // Only update status if the session is fulfilled
+    if (session.status === 'fulfilled') {
+      if (transaction.status === 'completed') {
+        console.log(`[WEBHOOK] Transaction ${transaction.id} is already marked as completed`);
         return;
       }
-
-      // If not found by payment intent, try other methods
-      console.log(`[CRITICAL] No transaction found with payment intent: ${paymentIntent.id}`);
       
-      // Try to find by metadata if available
-      if (paymentIntent.metadata?.session_id) {
-        console.log(`[CRITICAL] Trying to find transaction by session ID: ${paymentIntent.metadata.session_id}`);
+      // Update the transaction status
+      await updateTransactionStatus(supabaseClient, transaction);
+      
+      // Create a notification for the user
+      const { error: notifError } = await supabaseClient
+        .from('notifications')
+        .insert({
+          user_id: transaction.user_id,
+          type: 'payment_confirmed',
+          title: 'Crypto Purchase Confirmed',
+          message: `Your crypto purchase of $${transaction.amount.toFixed(2)} has been confirmed.`
+        });
         
-        const sessionTx = await findTransactionBySessionId(supabase, paymentIntent.metadata.session_id);
-        
-        if (sessionTx) {
-          console.log(`[CRITICAL] Found transaction by session ID, updating status:`, JSON.stringify({
-            tx_id: sessionTx.id,
-            current_status: sessionTx.status
-          }));
-          
-          // Use our force update method
-          const updated = await forceUpdateExternalTransactionId(
-            supabase,
-            sessionTx.id,
-            paymentIntent.id
-          );
-          
-          if (updated) {
-            console.log(`[CRITICAL] Successfully force-updated transaction found by session ID`);
-            
-            // Create a notification for the user
-            if (sessionTx.user_id) {
-              await createPaymentConfirmationNotification(supabase, sessionTx.user_id, sessionTx.amount);
-            }
-          } else {
-            console.error(`[CRITICAL] Force update failed for transaction found by session ID`);
-          }
-        } else {
-          console.log(`[CRITICAL] No transaction found by session ID: ${paymentIntent.metadata.session_id}`);
-        }
-      } else {
-        console.log(`[CRITICAL] Payment intent has no session_id in metadata, cannot find transaction`);
+      if (notifError) {
+        console.error(`[WEBHOOK] Error creating notification: ${notifError.message}`);
       }
       
-      // Look for ANY pending transaction that might match by wallet address or amount
-      console.log(`[CRITICAL] Searching for any pending transactions that might match this payment...`);
-      
-      const recentPendingTxs = await findRecentPendingTransactions(supabase);
-      if (recentPendingTxs.length > 0) {
-        console.log(`[CRITICAL] Found ${recentPendingTxs.length} recent pending transactions, checking if any match...`);
-        
-        // If we have only ONE pending transaction and the payment amount matches within 1 cent, force update it
-        if (recentPendingTxs.length === 1) {
-          const pendingTx = recentPendingTxs[0];
-          const pendingAmount = pendingTx.amount;
-          const paymentAmount = paymentIntent.amount / 100; // Stripe amounts are in cents
-          
-          console.log(`[CRITICAL] Comparing pending transaction amount ${pendingAmount} with payment amount ${paymentAmount}`);
-          
-          if (Math.abs(pendingAmount - paymentAmount) < 0.01) {
-            console.log(`[CRITICAL] Found matching pending transaction by amount: ${pendingTx.id}`);
-            
-            // Use our force update method
-            const updated = await forceUpdateExternalTransactionId(
-              supabase,
-              pendingTx.id,
-              paymentIntent.id
-            );
-            
-            if (updated) {
-              console.log(`[CRITICAL] Successfully force-updated transaction found by amount match`);
-              
-              // Create a notification for the user
-              if (pendingTx.user_id) {
-                await createPaymentConfirmationNotification(supabase, pendingTx.user_id, pendingTx.amount);
-              }
-            }
-          }
-        }
-      } else {
-        console.log(`[CRITICAL] No recent pending transactions found to match against`);
-      }
+      console.log(`[WEBHOOK] Successfully updated transaction status for crypto onramp session: ${session.id}`);
     } else {
-      console.error(`[CRITICAL] Payment intent has no ID, cannot process`);
+      console.log(`[WEBHOOK] No action taken for crypto onramp session with status: ${session.status}`);
     }
-  } catch (err) {
-    console.error(`[CRITICAL] Error processing payment intent: ${err.message}`);
-    console.error(err.stack || 'No stack trace available');
+  } catch (error) {
+    console.error(`[WEBHOOK] Error handling crypto onramp session updated: ${error.message}`);
   }
 };

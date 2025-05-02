@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { CreditCard, Wallet } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KycVerificationData } from '@/hooks/kyc/types';
-import CardPaymentTab from './CardPaymentTab';
+import CryptoOnrampTab from './CryptoOnrampTab';
 import CryptoPaymentTab from './CryptoPaymentTab';
 import CompanyPurchaseMethods from './CompanyPurchaseMethods';
 import DexPurchaseOption from './DexPurchaseOption';
@@ -13,7 +13,8 @@ interface PaymentOptionsProps {
   amount: number;
   selectedCurrency: string;
   setSelectedCurrency: (currency: string) => void;
-  handleStripePayment: (amount: number) => Promise<void>;
+  walletAddress: string | null;
+  handleStripeCryptoOnramp: () => Promise<{success: boolean, clientSecret?: string, sessionId?: string}>;
   handleCoinPaymentWithCurrency: () => void;
   isProcessing: boolean;
   isKycNeeded: boolean;
@@ -25,7 +26,8 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
   amount,
   selectedCurrency,
   setSelectedCurrency,
-  handleStripePayment,
+  walletAddress,
+  handleStripeCryptoOnramp,
   handleCoinPaymentWithCurrency,
   isProcessing,
   isKycNeeded,
@@ -33,16 +35,19 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
   kycData
 }) => {
   const [showCryptoDetails, setShowCryptoDetails] = useState(false);
+  const [paymentType, setPaymentType] = useState<'stripe' | 'coinpayments' | null>(null);
   
   // Handle selection of different payment methods
   const handleStripeSelected = () => {
     if (!isWalletMissing && !isProcessing) {
-      handleStripePayment(amount);
+      setPaymentType('stripe');
+      setShowCryptoDetails(true);
     }
   };
   
   const handleCryptoSelected = () => {
     if (!isWalletMissing && !isProcessing) {
+      setPaymentType('coinpayments');
       setShowCryptoDetails(true);
     }
   };
@@ -58,28 +63,47 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
         onSelectCrypto={handleCryptoSelected}
       />
       
-      {/* Crypto payment details section - only shown when crypto is selected */}
+      {/* Crypto payment details section - only shown when a payment method is selected */}
       {showCryptoDetails && (
-        <Tabs defaultValue="crypto" className="w-full mt-6">
+        <Tabs defaultValue={paymentType === 'stripe' ? 'stripe' : 'crypto'} className="w-full mt-6">
           <TabsList className="grid grid-cols-1 w-full max-w-md mx-auto mb-4 bg-gray-100">
-            <TabsTrigger value="crypto" className="data-[state=active]:bg-blue-50 data-[state=active]:text-cbis-blue">
-              <Wallet className="mr-2 h-4 w-4" />
-              Crypto Payment Options
-            </TabsTrigger>
+            {paymentType === 'stripe' ? (
+              <TabsTrigger value="stripe" className="data-[state=active]:bg-blue-50 data-[state=active]:text-cbis-blue">
+                <CreditCard className="mr-2 h-4 w-4" />
+                Buy Crypto with Card
+              </TabsTrigger>
+            ) : (
+              <TabsTrigger value="crypto" className="data-[state=active]:bg-blue-50 data-[state=active]:text-cbis-blue">
+                <Wallet className="mr-2 h-4 w-4" />
+                Crypto Payment Options
+              </TabsTrigger>
+            )}
           </TabsList>
           
-          <TabsContent value="crypto" className="border rounded-lg p-4 border-blue-100 bg-blue-50/20">
-            <CryptoPaymentTab 
-              amount={amount}
-              selectedCurrency={selectedCurrency}
-              setSelectedCurrency={setSelectedCurrency}
-              handleCoinPaymentWithCurrency={handleCoinPaymentWithCurrency}
-              isProcessing={isProcessing}
-              isKycNeeded={isKycNeeded}
-              isWalletMissing={isWalletMissing}
-              kycData={kycData}
-            />
-          </TabsContent>
+          {paymentType === 'stripe' ? (
+            <TabsContent value="stripe" className="border rounded-lg p-4 border-blue-100 bg-blue-50/20">
+              <CryptoOnrampTab 
+                amount={amount}
+                walletAddress={walletAddress || ''}
+                isProcessing={isProcessing}
+                isWalletMissing={isWalletMissing}
+                onInitiateOnramp={handleStripeCryptoOnramp}
+              />
+            </TabsContent>
+          ) : (
+            <TabsContent value="crypto" className="border rounded-lg p-4 border-blue-100 bg-blue-50/20">
+              <CryptoPaymentTab 
+                amount={amount}
+                selectedCurrency={selectedCurrency}
+                setSelectedCurrency={setSelectedCurrency}
+                handleCoinPaymentWithCurrency={handleCoinPaymentWithCurrency}
+                isProcessing={isProcessing}
+                isKycNeeded={isKycNeeded}
+                isWalletMissing={isWalletMissing}
+                kycData={kycData}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       )}
       

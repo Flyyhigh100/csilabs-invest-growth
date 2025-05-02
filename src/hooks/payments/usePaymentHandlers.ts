@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { useStripePayment } from './useStripePayment';
+import { useStripeCryptoOnramp } from './useStripeCryptoOnramp';
 import { useCryptoPayments } from './useCryptoPayments';
 import { usePaymentValidation } from './usePaymentValidation';
 import { CryptoPaymentDetails, UsePaymentHandlersProps, UsePaymentHandlersReturn } from './types';
@@ -12,10 +12,10 @@ export const usePaymentHandlers = (walletAddress: string | null): UsePaymentHand
   
   // Get payment method specific handlers
   const { 
-    handleStripePayment: processStripePayment, 
-    isProcessing: isStripeProcessing,
-    setIsProcessing: setStripeProcessing
-  } = useStripePayment(walletAddress);
+    createOnrampSession: processStripeCryptoOnramp, 
+    isProcessing: isStripeCryptoProcessing,
+    setIsProcessing: setStripeCryptoProcessing
+  } = useStripeCryptoOnramp(walletAddress);
   
   const {
     handleCoinPaymentsPayment: processCoinPayment,
@@ -25,15 +25,15 @@ export const usePaymentHandlers = (walletAddress: string | null): UsePaymentHand
     setIsProcessing: setCryptoProcessing
   } = useCryptoPayments(walletAddress);
 
-  const isProcessing = isStripeProcessing || isCryptoProcessing;
+  const isProcessing = isStripeCryptoProcessing || isCryptoProcessing;
 
-  // Wrapper for Stripe payment to ensure it returns a boolean
-  const handleStripePayment = async (amount: number, currentTokenPrice?: number): Promise<boolean> => {
+  // Wrapper for Stripe Crypto Onramp to ensure it returns a boolean
+  const handleStripeCryptoOnramp = async (amount: number, currentTokenPrice?: number): Promise<boolean> => {
     try {
-      await processStripePayment(amount, currentTokenPrice);
-      return true;
+      const result = await processStripeCryptoOnramp(amount, currentTokenPrice);
+      return result.success;
     } catch (error) {
-      console.error("Error in Stripe payment:", error);
+      console.error("Error in Stripe Crypto Onramp:", error);
       return false;
     }
   };
@@ -71,9 +71,9 @@ export const usePaymentHandlers = (walletAddress: string | null): UsePaymentHand
     showCryptoDialog,
     setShowCryptoDialog,
     cryptoPaymentDetails,
-    handleStripePayment,
+    handleStripeCryptoOnramp,
     handleCoinPaymentsPayment,
     handleCryptoPayment,
-    kycRequired // This is now correctly passing the function from usePaymentValidation
+    kycRequired
   };
 };

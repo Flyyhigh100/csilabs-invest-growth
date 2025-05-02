@@ -24,7 +24,7 @@ export interface UsePaymentHandlersReturn {
   showCryptoDialog: boolean;
   setShowCryptoDialog: (show: boolean) => void;
   cryptoPaymentDetails: CryptoPaymentDetails | null;
-  handleStripePayment: (amount: number, currentTokenPrice?: number) => Promise<boolean>;
+  handleStripeCryptoOnramp: (amount: number, currentTokenPrice?: number) => Promise<boolean>;
   handleCoinPaymentsPayment: (amount: number, currency?: string, currentTokenPrice?: number) => Promise<boolean>;
   handleCryptoPayment: (amount: number, currentTokenPrice?: number) => Promise<boolean>;
   kycRequired: (amount: number) => boolean;
@@ -35,4 +35,12 @@ export interface PaymentValidationOptions {
   isCrypto?: boolean;
   skipKycCheck?: boolean;
   tokenPrice?: number;
+}
+
+// Add the new Stripe Crypto Onramp types
+export interface StripeCryptoOnrampResult {
+  success: boolean;
+  clientSecret?: string;
+  sessionId?: string;
+  error?: string;
 }

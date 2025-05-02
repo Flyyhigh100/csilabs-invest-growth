@@ -1,7 +1,7 @@
 
 import { corsHeaders } from "./utils.ts";
 import { createClients, verifyStripeSignatureAsync } from "./clients.ts";
-import { handleCheckoutSessionCompleted, handlePaymentIntentSucceeded } from "./event-handlers.ts";
+import { handleCheckoutSessionCompleted, handlePaymentIntentSucceeded, handleCryptoOnrampSessionUpdated } from "./event-handlers.ts";
 import { findRecentPendingTransactions } from "./utils.ts";
 import { checkAndUpdatePayment } from "./stripe-ops.ts";
 
@@ -52,6 +52,10 @@ export const handleStripeWebhook = async (req: Request) => {
       
       case 'payment_intent.succeeded':
         await handlePaymentIntentSucceeded(supabaseClient, event.data.object);
+        break;
+      
+      case 'crypto.onramp_session.updated':
+        await handleCryptoOnrampSessionUpdated(supabaseClient, event.data.object);
         break;
       
       default:

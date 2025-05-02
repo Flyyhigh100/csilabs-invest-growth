@@ -1,16 +1,36 @@
 
+# This is the project configuration file for your Supabase project.
 project_id = "hrhvliqkmetcdphnetxb"
 
 [api]
 port = 54321
-openapi_file = "api/openapi.json"
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[storage]
+bucket_size = 30
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_refresh_tokens = true
 
 [functions]
 [functions.create-coinpayments-payment]
 verify_jwt = true
-[functions.validate-api-keys]
+[functions.create-stripe-checkout]
 verify_jwt = true
+[functions.create-stripe-onramp-session]
+verify_jwt = true
+[functions.coinpayments-ipn-webhook]
+verify_jwt = false
 [functions.stripe-webhooks]
 verify_jwt = false
-[functions.get-coinpayments-currencies]
-verify_jwt = true

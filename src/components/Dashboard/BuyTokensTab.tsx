@@ -14,6 +14,7 @@ import PaymentOptions from './TokenPurchase/PaymentOptions';
 import WalletMissingContent from './TokenPurchase/WalletMissingContent';
 import PurchaseGuide from './TokenPurchase/PurchaseGuide';
 import { TokenPriceProvider, useTokenPrice } from '@/context/TokenPriceContext';
+import PaymentTabs from './TokenPurchase/PaymentTabs';
 
 interface BuyTokensTabProps {
   walletAddress: string | null;
@@ -35,7 +36,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
       showCryptoDialog,
       setShowCryptoDialog,
       cryptoPaymentDetails,
-      handleStripePayment,
+      handleStripeCryptoOnramp,
       handleCoinPaymentsPayment,
       kycRequired
     } = usePaymentHandlers(walletAddress);
@@ -43,14 +44,11 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
     const isKycNeeded = kycRequired(amount) && kycData?.status !== 'approved';
     const isWalletMissing = !walletAddress;
 
-    // Update this method to handle the boolean return value
-    const handleStripePaymentWrapper = async (amount: number): Promise<void> => {
+    // Create a wrapper for the Stripe Crypto Onramp function
+    const handleStripeCryptoOnrampWrapper = async () => {
       // Pass current token price to the payment handler
-      const success = await handleStripePayment(amount, currentPrice);
-      // You can optionally do something with the success value here if needed
-      if (!success) {
-        console.error("Stripe payment was not successful");
-      }
+      const success = await handleStripeCryptoOnramp(amount, currentPrice);
+      return { success };
     };
 
     const handleCoinPaymentWithCurrency = () => {
@@ -80,11 +78,12 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
             <div className="mt-6">
               <h3 className="text-base font-medium mb-4 text-gray-700">Select Payment Method</h3>
               
-              <PaymentOptions 
+              <PaymentTabs 
                 amount={amount}
                 selectedCurrency={selectedCurrency}
                 setSelectedCurrency={setSelectedCurrency}
-                handleStripePayment={handleStripePaymentWrapper}
+                walletAddress={walletAddress}
+                handleStripeCryptoOnramp={handleStripeCryptoOnrampWrapper}
                 handleCoinPaymentWithCurrency={handleCoinPaymentWithCurrency}
                 isProcessing={isProcessing}
                 isKycNeeded={isKycNeeded}
