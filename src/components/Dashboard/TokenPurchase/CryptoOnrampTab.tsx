@@ -11,7 +11,7 @@ interface CryptoOnrampTabProps {
   walletAddress: string;
   isProcessing: boolean;
   isWalletMissing: boolean;
-  onInitiateOnramp: () => Promise<{success: boolean, clientSecret?: string, sessionId?: string}>;
+  onInitiateOnramp: () => Promise<{success: boolean, clientSecret?: string, sessionId?: string, error?: string}>;
 }
 
 declare global {
@@ -32,7 +32,7 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
   const [isLoadingWidget, setIsLoadingWidget] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const onrampElementRef = useRef<HTMLDivElement>(null);
-  const [sessionData, setSessionData] = useSessionStorage('crypto_onramp_session', null);
+  const [sessionData, setSessionData] = useSessionStorage<any>('crypto_onramp_session', null);
   const [apiKeyMissing, setApiKeyMissing] = useState(false);
   
   // Check for Stripe publishable key
@@ -52,6 +52,15 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
     if (document.querySelector('script[src="https://js.stripe.com/v3/"]') &&
         document.querySelector('script[src="https://crypto-js.stripe.com/crypto-onramp-outer.js"]')) {
       return;
+    }
+    
+    // Clean up any existing stripe instances
+    if (window.stripeOnrampInstance) {
+      try {
+        delete window.stripeOnrampInstance;
+      } catch (e) {
+        console.warn('Error cleaning up old Stripe instance:', e);
+      }
     }
     
     const loadScripts = async () => {
@@ -131,10 +140,13 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
       const result = await onInitiateOnramp();
       
       if (!result.success || !result.clientSecret) {
+        if (result.error) {
+          throw new Error(result.error);
+        }
         throw new Error('Failed to initialize payment session');
       }
       
-      // Store session data
+      // Store session data with timestamp
       setSessionData({
         sessionId: result.sessionId,
         clientSecret: result.clientSecret,
@@ -146,6 +158,15 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
       const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY_CRYPTO;
       if (!stripePublishableKey) {
         throw new Error('Missing Stripe publishable key');
+      }
+      
+      // Clean up any existing instance
+      if (window.stripeOnrampInstance) {
+        try {
+          delete window.stripeOnrampInstance;
+        } catch (e) {
+          console.warn('Error cleaning up old Stripe instance:', e);
+        }
       }
       
       // Initialize the widget
@@ -167,6 +188,9 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
           toast.success("Crypto purchase complete", {
             description: "Your transaction has been processed successfully."
           });
+          
+          // Clear the session data on completion
+          setSessionData(null);
         },
         onError: (error: any) => {
           console.error('Onramp error:', error);
@@ -185,6 +209,9 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
       toast.error('Payment initialization failed', {
         description: err.message || 'Please try again or contact support'
       });
+      
+      // Clear session data on error
+      setSessionData(null);
     } finally {
       setIsLoadingWidget(false);
     }
@@ -209,6 +236,24 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
     initializeOnrampWidget();
   };
 
+  const resetSession = () => {
+    setSessionData(null);
+    setError(null);
+    
+    // Clean up any existing Stripe instance
+    if (window.stripeOnrampInstance) {
+      try {
+        delete window.stripeOnrampInstance;
+      } catch (e) {
+        console.warn('Error cleaning up Stripe instance:', e);
+      }
+    }
+    
+    toast.success("Session reset successfully", {
+      description: "You can now start a new payment session"
+    });
+  };
+
   // Check if environment has Stripe publishable key
   const missingStripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY_CRYPTO ? false : true;
 
@@ -229,12 +274,23 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {error}
+          <AlertDescription className="flex flex-col gap-2">
+            <div>{error}</div>
             {missingStripeKey && (
               <div className="mt-2">
                 <strong>Administrator note:</strong> Please configure VITE_STRIPE_PUBLISHABLE_KEY_CRYPTO in your environment variables.
               </div>
+            )}
+            {/* Add reset button when there's an error and session data exists */}
+            {sessionData && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="self-start mt-1"
+                onClick={resetSession}
+              >
+                Reset Session
+              </Button>
             )}
           </AlertDescription>
         </Alert>
@@ -264,11 +320,23 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
             </Button>
           </div>
         ) : (
-          <div id="onramp-element" ref={onrampElementRef} className="min-h-[500px] p-4">
-            <div className="flex justify-center items-center h-32">
-              <Loader2 className="h-8 w-8 animate-spin text-cbis-blue" />
+          <>
+            <div id="onramp-element" ref={onrampElementRef} className="min-h-[500px] w-full">
+              <div className="flex justify-center items-center h-32">
+                <Loader2 className="h-8 w-8 animate-spin text-cbis-blue" />
+              </div>
             </div>
-          </div>
+            <div className="p-4 border-t border-gray-200 flex justify-end">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={resetSession}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                Cancel Payment
+              </Button>
+            </div>
+          </>
         )}
       </div>
       

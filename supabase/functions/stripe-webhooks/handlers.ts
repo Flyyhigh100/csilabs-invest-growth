@@ -76,7 +76,11 @@ export const handleStripeWebhook = async (req: Request) => {
       console.error(`[WEBHOOK] Error in fallback check: ${fallbackError.message}`);
     }
 
-    return new Response(JSON.stringify({ received: true, event: event.type }), {
+    return new Response(JSON.stringify({ 
+      received: true, 
+      event: event.type,
+      status: "OK"
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

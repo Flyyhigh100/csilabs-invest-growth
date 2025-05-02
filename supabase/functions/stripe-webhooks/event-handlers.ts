@@ -1,3 +1,4 @@
+
 // Import necessary dependencies
 import { updateTransactionStatus } from "./transaction-ops.ts";
 import { findTransactionBySessionId } from "./transaction-ops.ts";
@@ -70,8 +71,8 @@ export const handleCryptoOnrampSessionUpdated = async (supabaseClient, session) 
       return;
     }
     
-    // Only update status if the session is fulfilled
-    if (session.status === 'fulfilled') {
+    // Update to check for 'fulfillment_complete' status instead of 'fulfilled'
+    if (session.status === 'fulfillment_complete') {
       if (transaction.status === 'completed') {
         console.log(`[WEBHOOK] Transaction ${transaction.id} is already marked as completed`);
         return;
