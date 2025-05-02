@@ -49,6 +49,13 @@ export interface UsePaymentHandlersReturn {
   kycRequired: (amount: number) => boolean;
 }
 
+export interface PaymentValidationOptions {
+  skipKycCheck?: boolean;
+  requireWallet?: boolean;
+  minAmount?: number;
+  maxAmount?: number;
+}
+
 export interface PaymentValidationResult {
   isValid: boolean;
   error?: string;
