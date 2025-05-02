@@ -37,7 +37,13 @@ export const usePaymentCreation = (walletAddress: string | null) => {
     
     // Handle common payment data fields
     const commonDetails: CryptoPaymentDetails = {
+      address: data.address || data.paymentAddress || data.payment_address || "",
+      amount: data.amount || data.amountf || 0,
+      currency: currency || data.currency || "USDT",
+      
+      // Legacy properties for compatibility
       payment_id: data.transactionId || data.payment_id || "",
+      transactionId: data.transactionId || data.payment_id || "",
       paymentAddress: data.paymentAddress || data.address || "",
       payment_address: data.paymentAddress || data.address || "",
       qrCodeUrl: data.qrCodeUrl || data.qrcode_url || "",
@@ -45,14 +51,12 @@ export const usePaymentCreation = (walletAddress: string | null) => {
       statusUrl: data.statusUrl || data.status_url || "",
       status_url: data.statusUrl || data.status_url || "",
       txn_id: data.externalTransactionId || data.txn_id || "",
+      txnId: data.externalTransactionId || data.txn_id || "",
       externalTransactionId: data.externalTransactionId || data.txn_id || "",
-      currency: currency || data.currency || "USDT",
-      amount: data.amount || data.amountf || "",
       usdValue: usdAmount,
       checkStatusUrl: data.checkStatusUrl || `/dashboard/transactions?payment=crypto&txn=${data.transactionId || data.payment_id || ""}`,
       tokenAmount: data.tokenAmount || (tokenPrice ? usdAmount / tokenPrice : usdAmount),
       tokenPrice: tokenPrice,
-      transactionId: data.transactionId || data.payment_id || "",
     };
     
     // Handle expiration time - convert from seconds if needed

@@ -9,6 +9,23 @@ export interface CryptoPaymentDetails {
   qrCodeUrl?: string;
   status?: string;
   txnId?: string;
+  
+  // Legacy properties
+  payment_address?: string;
+  paymentAddress?: string;
+  qrcode_url?: string;
+  statusUrl?: string;
+  status_url?: string;
+  transactionId?: string;
+  payment_id?: string;
+  externalTransactionId?: string;
+  txn_id?: string;
+  expiresAt?: string;
+  instructions?: string;
+  usdValue?: number;
+  checkStatusUrl?: string;
+  tokenAmount?: number;
+  tokenPrice?: number;
 }
 
 export interface StripeCryptoOnrampResult {
@@ -33,4 +50,11 @@ export interface UsePaymentHandlersReturn {
   handleCoinPaymentsPayment: (amount: number, currency?: string, currentTokenPrice?: number) => Promise<boolean>;
   handleCryptoPayment: (amount: number, currentTokenPrice?: number) => Promise<boolean>;
   kycRequired: (amount: number) => boolean;
+}
+
+// Define the PaymentValidationOptions interface
+export interface PaymentValidationOptions {
+  isCrypto?: boolean;
+  skipKycCheck?: boolean;
+  tokenPrice?: number;
 }

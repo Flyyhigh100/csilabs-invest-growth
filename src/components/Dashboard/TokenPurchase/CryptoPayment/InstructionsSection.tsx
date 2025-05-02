@@ -21,7 +21,7 @@ const InstructionsSection: React.FC<InstructionsSectionProps> = ({
   const currency = paymentDetails.currency || 'USDT';
   
   // Format crypto amount for display (ensure it shows the exact amount needed)
-  const cryptoAmount = paymentDetails.amount || '0';
+  const cryptoAmount = paymentDetails.amount?.toString() || '0';
   const usdValue = paymentDetails.usdValue || 0;
   
   // For stablecoins like USDT, USDC that are pegged to USD, the amounts may be nearly the same

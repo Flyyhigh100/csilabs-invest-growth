@@ -27,8 +27,10 @@ const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
   }
   
   // Check if we're missing critical payment information
-  // Use both legacy (payment_address) and new property names (paymentAddress)
-  const hasCriticalError = !paymentDetails.payment_address && !paymentDetails.paymentAddress;
+  // Use both legacy (payment_address) and new property names (address)
+  const hasCriticalError = !paymentDetails.address && 
+    !paymentDetails.payment_address && 
+    !paymentDetails.paymentAddress;
   
   if (hasCriticalError) {
     return (
@@ -48,7 +50,7 @@ const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
           <pre className="text-xs bg-gray-100 p-3 rounded overflow-auto max-h-40">
             {JSON.stringify({
               hasTransactionId: !!(paymentDetails.transactionId || paymentDetails.payment_id),
-              hasExternalId: !!(paymentDetails.externalTransactionId || paymentDetails.txn_id),
+              hasExternalId: !!(paymentDetails.externalTransactionId || paymentDetails.txn_id || paymentDetails.txnId),
               hasQrCode: !!(paymentDetails.qrCodeUrl || paymentDetails.qrcode_url),
               currency: paymentDetails.currency,
               timeStamp: new Date().toISOString()
@@ -60,10 +62,15 @@ const DialogContent: React.FC<DialogContentProps> = ({ paymentDetails }) => {
   }
 
   // Ensure we use either the new property names or fall back to legacy names
-  const paymentAddress = paymentDetails.paymentAddress || paymentDetails.payment_address;
+  const paymentAddress = paymentDetails.address || 
+    paymentDetails.paymentAddress || 
+    paymentDetails.payment_address;
+  
   const qrCodeUrl = paymentDetails.qrCodeUrl || paymentDetails.qrcode_url;
   const statusUrl = paymentDetails.statusUrl || paymentDetails.status_url;
-  const externalTxnId = paymentDetails.externalTransactionId || paymentDetails.txn_id;
+  const externalTxnId = paymentDetails.txnId || 
+    paymentDetails.externalTransactionId || 
+    paymentDetails.txn_id;
   
   return (
     <div className="space-y-4 my-2">
