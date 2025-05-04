@@ -1,14 +1,6 @@
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-// Create Supabase client
-function createSupabaseClient() {
-  return createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-  );
-}
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
 // CORS headers for preflight requests
 const corsHeaders = {
@@ -16,279 +8,150 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Update transaction status in Supabase
-async function updateTransactionStatus(
-  client: any,
-  externalTxId: string,
-  status: string,
-  completedAt?: string
-) {
-  try {
-    console.log(`[TEST-IPN] Updating transaction with external ID ${externalTxId} to status: ${status}`);
-    
-    const updateData: Record<string, any> = {
-      status: status,
-      updated_at: new Date().toISOString()
-    };
-    
-    if (completedAt) {
-      updateData.completed_at = completedAt;
-    }
-    
-    // First, find the transaction by external_transaction_id
-    const { data: transaction, error: findError } = await client
-      .from('transactions')
-      .select('id, status')
-      .eq('external_transaction_id', externalTxId)
-      .single();
-      
-    if (findError || !transaction) {
-      console.error(`[TEST-IPN] Error finding transaction with external ID ${externalTxId}:`, findError);
-      return { 
-        success: false, 
-        message: `Transaction not found with external ID: ${externalTxId}`,
-        error: findError?.message
-      };
-    }
-    
-    // Only update if status is different
-    if (transaction.status !== status) {
-      const { error: updateError } = await client
-        .from('transactions')
-        .update(updateData)
-        .eq('id', transaction.id);
-        
-      if (updateError) {
-        console.error(`[TEST-IPN] Error updating transaction ${transaction.id}:`, updateError);
-        return { 
-          success: false, 
-          message: `Failed to update transaction ${transaction.id}`,
-          error: updateError.message
-        };
-      }
-      
-      console.log(`[TEST-IPN] Successfully updated transaction ${transaction.id} status from ${transaction.status} to ${status}`);
-      return { 
-        success: true, 
-        message: `Transaction ${transaction.id} updated from ${transaction.status} to ${status}`,
-        transactionId: transaction.id
-      };
-    } else {
-      console.log(`[TEST-IPN] Transaction ${transaction.id} already has status ${status}, no update needed`);
-      return { 
-        success: true, 
-        message: `Transaction ${transaction.id} already has status ${status}, no update needed`,
-        transactionId: transaction.id,
-        noChange: true
-      };
-    }
-  } catch (error) {
-    console.error('[TEST-IPN] Error in updateTransactionStatus:', error);
-    return { 
-      success: false, 
-      message: 'Exception during transaction update',
-      error: error.message
-    };
-  }
-}
-
-// Log IPN data to a dedicated log table for debugging
-async function logIpnData(
-  client: any, 
-  ipnData: any, 
-  isValid: boolean, 
-  responseStatus: string,
-  hmacHeader?: string,
-  requestBody?: string
-) {
-  try {
-    const { error } = await client
-      .from('ipn_logs')
-      .insert({
-        provider: 'test-coinpayments',
-        raw_data: ipnData,
-        is_valid: isValid,
-        response_status: responseStatus,
-        txn_id: ipnData.txn_id || null,
-        status: ipnData.status || null,
-        hmac_header: hmacHeader || 'test-hmac',
-        request_body: requestBody || JSON.stringify(ipnData)
-      });
-      
-    if (error) {
-      console.error('[TEST-IPN] Error logging IPN data:', error);
-      return { success: false, error: error.message };
-    }
-    
-    return { success: true };
-  } catch (error) {
-    console.error('[TEST-IPN] Error in logIpnData:', error);
-    return { success: false, error: error.message };
-  }
+function createSupabaseClient() {
+  return createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  );
 }
 
 serve(async (req) => {
-  // Handle OPTIONS request for CORS
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
   
   try {
-    // Verify this is only used in development/test environments
-    const environment = Deno.env.get('ENVIRONMENT') || 'development';
-    if (environment === 'production') {
+    // Parse request body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
       return new Response(
-        JSON.stringify({ 
-          error: 'This endpoint is only available in development environments' 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 403 
-        }
+        JSON.stringify({ success: false, message: 'Invalid JSON in request body' }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
     
-    // Create Supabase client
-    const supabaseClient = createSupabaseClient();
+    // Extract parameters
+    const { transactionId, status = '100', amount } = requestBody;
     
-    // Parse IPN data (could be JSON or form data)
-    let ipnDataObj: Record<string, any> = {};
-    let isJsonPayload = false;
-    
-    const contentType = req.headers.get('content-type') || '';
-    if (contentType.includes('application/json')) {
-      // Handle JSON payload
-      ipnDataObj = await req.json();
-      isJsonPayload = true;
-    } else if (contentType.includes('application/x-www-form-urlencoded') || 
-               contentType.includes('multipart/form-data')) {
-      // Handle form data
-      const formData = await req.formData();
-      for (const [key, value] of formData.entries()) {
-        ipnDataObj[key] = value;
-      }
-    } else {
+    if (!transactionId) {
       return new Response(
-        JSON.stringify({ error: 'Unsupported content type' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 400 
-        }
+        JSON.stringify({ success: false, message: 'Missing required field: transactionId' }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
     
-    console.log('[TEST-IPN] Received test IPN data:', ipnDataObj);
+    console.log(`Processing test IPN webhook for transaction: ${transactionId}`);
     
-    // Validate required fields
-    if (!ipnDataObj.ipn_type || !ipnDataObj.txn_id) {
-      const errorMessage = 'Missing required IPN fields (ipn_type, txn_id)';
-      console.error(`[TEST-IPN] ${errorMessage}`);
-      
-      // Log the invalid IPN
-      await logIpnData(
-        supabaseClient,
-        ipnDataObj, 
-        false, 
-        errorMessage
-      );
-      
+    // Get the transaction from database
+    const supabase = createSupabaseClient();
+    const { data: transaction, error: txError } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('external_transaction_id', transactionId)
+      .maybeSingle();
+    
+    if (txError || !transaction) {
+      console.error('Error fetching transaction:', txError);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: errorMessage
+          message: txError ? `Database error: ${txError.message}` : `Transaction not found with external ID: ${transactionId}` 
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 400 
-        }
+        { status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
     
-    // Process IPN
-    let updateResult = null;
-    let statusMessage = 'Received';
+    console.log(`Found transaction in database:`, JSON.stringify(transaction));
     
-    if (ipnDataObj.ipn_type === 'api') {
-      // Get status from IPN
-      const ipnStatus = parseInt(ipnDataObj.status, 10);
-      let transactionStatus = 'pending';
-      
-      // Map CoinPayments status to our status format
-      if (ipnStatus < 0) {
-        transactionStatus = 'failed';
-      } else if (ipnStatus === 0) {
-        transactionStatus = 'pending';
-      } else if (ipnStatus >= 1) {
-        // All status values >= 1 should be considered completed
-        transactionStatus = 'completed';
-      }
-      
-      console.log(`[TEST-IPN] Transaction ${ipnDataObj.txn_id} IPN Status: ${ipnStatus}, Mapped to: ${transactionStatus}`);
-      
-      // Update transaction status in our database
-      updateResult = await updateTransactionStatus(
-        supabaseClient,
-        ipnDataObj.txn_id,
-        transactionStatus,
-        transactionStatus === 'completed' ? new Date().toISOString() : undefined
-      );
-      
-      statusMessage = updateResult.message;
-    }
+    // Create test IPN notification data
+    const ipnData = {
+      ipn_version: '1.0',
+      ipn_type: 'api',
+      ipn_mode: 'hmac',
+      ipn_id: `TEST_${Date.now()}`,
+      merchant: Deno.env.get('COINPAYMENTS_MERCHANT_ID') || 'test_merchant',
+      ipn_secret: Deno.env.get('COINPAYMENTS_IPN_SECRET') || 'test_secret',
+      txn_id: transactionId,
+      status: status,
+      status_text: status === '100' ? 'Complete' : status === '2' ? 'Pending' : 'Waiting for payment',
+      amount1: amount || transaction.amount,
+      amount2: amount || transaction.amount,
+      currency1: 'USD',
+      currency2: transaction.currency || 'USDT',
+      buyer_name: 'Test User',
+      buyer_email: 'test@example.com',
+      received_amount: amount || transaction.amount,
+      received_confirms: '3',
+      payment_address: transaction.payment_address || '0xabcdef1234567890',
+      custom: transaction.wallet_address || null
+    };
     
-    // Log the test IPN data
-    const logResult = await logIpnData(
-      supabaseClient,
-      ipnDataObj,
-      true,
-      statusMessage
-    );
-    
-    // Return response with details
-    return new Response(
-      JSON.stringify({
-        success: updateResult ? updateResult.success : true,
-        message: updateResult ? updateResult.message : 'IPN logged but no transaction update was performed',
-        ipn_processed: true,
-        ipn_logged: logResult.success,
-        details: {
-          txn_id: ipnDataObj.txn_id,
-          status: ipnDataObj.status,
-          transaction_update: updateResult,
-          log_result: logResult
-        }
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-        status: 200 
-      }
-    );
-  } catch (error) {
-    console.error('[TEST-IPN] Error processing test IPN:', error);
-    
-    // Try to create Supabase client for logging
+    // Send the test IPN notification to our webhook
     try {
-      const supabaseClient = createSupabaseClient();
-      await logIpnData(
-        supabaseClient,
-        { error: error.message || 'Unknown error' },
-        false,
-        'Exception during processing'
+      console.log('Sending test IPN notification to webhook:', JSON.stringify(ipnData));
+      
+      const webhookResponse = await fetch(
+        'https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/coinpayments-ipn-webhook', 
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams(ipnData).toString()
+        }
       );
-    } catch (logError) {
-      console.error('[TEST-IPN] Failed to log error:', logError);
+      
+      const webhookResult = await webhookResponse.text();
+      console.log(`Webhook response (${webhookResponse.status}):`, webhookResult);
+      
+      // Call status update edge function to ensure transaction is processed
+      console.log('Triggering status check to update transaction');
+      const statusCheckResponse = await fetch(
+        'https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/check-coinpayments-status',
+        {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}` 
+          },
+          body: JSON.stringify({ 
+            transactionId: transaction.id,
+            external_transaction_id: transactionId,
+            forceUpdate: true
+          })
+        }
+      );
+      
+      const statusUpdateResult = await statusCheckResponse.json();
+      console.log('Status check response:', JSON.stringify(statusUpdateResult));
+      
+      // Return success response
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Test IPN notification sent successfully',
+          webhookStatus: webhookResponse.status,
+          statusUpdateResult: statusUpdateResult
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    } catch (webhookError) {
+      console.error('Error sending test IPN notification:', webhookError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: `Error sending test IPN notification: ${webhookError.message}` 
+        }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
     }
-    
+  } catch (error) {
+    console.error('Unhandled exception:', error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        message: 'Error processing IPN',
-        error: error.message
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-        status: 500 
-      }
+      JSON.stringify({ success: false, message: `Internal server error: ${error.message || 'Unknown error'}` }),
+      { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     );
   }
 });

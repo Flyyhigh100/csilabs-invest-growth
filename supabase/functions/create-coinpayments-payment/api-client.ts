@@ -83,16 +83,41 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
       throw new Error("CoinPayments public key not configured");
     }
     
-    // Get merchant ID from environment with improved debugging
-    const merchantId = Deno.env.get("COINPAYMENTS_MERCHANT_ID");
-    
     // Debug environment variables
     console.log("Environment variables available:", Object.keys(Deno.env.toObject()).join(", "));
     
+    // Enhanced merchant ID handling - first try environment variable
+    let merchantId = Deno.env.get("COINPAYMENTS_MERCHANT_ID");
+    console.log(`Merchant ID from environment: ${merchantId || 'NOT SET'}`);
+    
+    // If not in environment, try to fetch from Supabase secrets
     if (!merchantId) {
-      console.warn("COINPAYMENTS_MERCHANT_ID not set in environment. Payments may route to the default account.");
+      try {
+        console.log("Trying to get merchant ID from Supabase secrets");
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+        
+        if (supabaseUrl && supabaseKey) {
+          const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.29.0");
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          
+          const { data, error } = await supabase.rpc('get_secret', { secret_name: 'COINPAYMENTS_MERCHANT_ID' });
+          if (data && !error) {
+            merchantId = data;
+            console.log(`Found merchant ID in Supabase secrets: ${merchantId.substring(0, 4)}...`);
+          } else {
+            console.warn("Could not find merchant ID in Supabase secrets:", error);
+          }
+        }
+      } catch (secretError) {
+        console.error("Error fetching from Supabase secrets:", secretError);
+      }
+    }
+    
+    if (!merchantId) {
+      console.warn("COINPAYMENTS_MERCHANT_ID not set - payment will default to account associated with API keys");
     } else {
-      console.log(`Found merchant ID: ${merchantId} (${typeof merchantId})`);
+      console.log(`Using merchant ID: ${merchantId} (${typeof merchantId})`);
     }
     
     // Build query parameters with updated nonce
@@ -108,10 +133,10 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
       ...params
     });
     
-    // Add merchant parameter if available
+    // Add merchant parameter if available - THIS IS THE CRITICAL PART
     if (merchantId) {
       queryParams.append('merchant', merchantId);
-      console.log('Added merchant ID to API request');
+      console.log('Added merchant ID to API request params');
     }
     
     const payload = queryParams.toString();
@@ -159,7 +184,10 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
       throw new Error(`CoinPayments API error: ${data.error}`);
     }
     
-    return data.result;
+    return {
+      ...data.result,
+      merchant_id_used: merchantId ? 'yes' : 'no'
+    };
   } catch (error) {
     console.error('Error in API request:', error);
     
@@ -174,7 +202,7 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
 }
 
 /**
- * Create a transaction with the CoinPayments API with improved validation
+ * Create a transaction with the CoinPayments API with improved validations
  */
 async function createRealCoinPaymentsTransaction(
   amount: number,
@@ -198,14 +226,34 @@ async function createRealCoinPaymentsTransaction(
       throw new Error("Wallet address must be provided");
     }
     
-    // Get merchant ID for logging with improved debugging
-    const merchantId = Deno.env.get("COINPAYMENTS_MERCHANT_ID");
+    // Debug environment variables
+    console.log("Environment variables in createRealCoinPaymentsTransaction:", Object.keys(Deno.env.toObject()).join(", "));
+    
+    // Get merchant ID with enhanced logging and debug
+    let merchantId = Deno.env.get("COINPAYMENTS_MERCHANT_ID");
+    console.log(`Merchant ID from env: ${merchantId || 'NOT SET'} (${typeof merchantId})`);
+    
     if (!merchantId) {
-      console.warn("COINPAYMENTS_MERCHANT_ID not set - payment will default to account associated with API keys");
-      // Try to find out what environment variables are available
-      console.log("Available environment variables:", Object.keys(Deno.env.toObject()).join(", "));
-    } else {
-      console.log(`Creating transaction for merchant ID: ${merchantId}`);
+      try {
+        console.log("Attempting to get merchant ID from Supabase secrets");
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+        
+        if (supabaseUrl && supabaseKey) {
+          const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.29.0");
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          
+          const { data, error } = await supabase.rpc('get_secret', { secret_name: 'COINPAYMENTS_MERCHANT_ID' });
+          if (data && !error) {
+            merchantId = data;
+            console.log(`Using merchant ID from secrets: ${merchantId.substring(0, 4)}...`);
+          } else {
+            console.warn("Failed to get merchant ID from secrets:", error);
+          }
+        }
+      } catch (secretError) {
+        console.error("Error accessing Supabase secrets:", secretError);
+      }
     }
     
     const params: Record<string, any> = {
@@ -219,12 +267,20 @@ async function createRealCoinPaymentsTransaction(
       ipn_url: Deno.env.get("COINPAYMENTS_IPN_URL") || "https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/coinpayments-ipn-webhook"
     };
     
+    // CRITICAL: Add merchant ID if available
+    if (merchantId) {
+      params.merchant = merchantId;
+      console.log(`Added merchant ID to transaction params: ${merchantId.substring(0, 4)}...`);
+    } else {
+      console.warn("No merchant ID available, transaction will use default account");
+    }
+    
     // Enable auto confirm - makes payments confirm quickly for testing
     if (autoConfirm) {
       params.auto_confirm = "1";
     }
     
-    console.log(`Creating real CoinPayments transaction with params: ${JSON.stringify(params)}`);
+    console.log(`Creating CoinPayments transaction with params:`, JSON.stringify(params));
     
     try {
       const result = await coinPaymentsRequest("create_transaction", params);
@@ -308,7 +364,8 @@ function createMockTransaction(
     checkout_url: `https://www.coinpayments.net/index.php?cmd=checkout&id=${txnId}`,
     status_url: `https://www.coinpayments.net/index.php?cmd=status&id=${txnId}`,
     qrcode_url: qrcodeUrl,
-    currency: currency
+    currency: currency,
+    merchant_id_used: 'mock_data'
   };
 }
 
