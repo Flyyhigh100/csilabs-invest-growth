@@ -30,7 +30,13 @@ const CryptoOnboardingDialog: React.FC<CryptoOnboardingDialogProps> = ({ onCompl
   };
   
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      setOpen(isOpen);
+      // If the dialog is closed without selecting an option, default to experienced
+      if (!isOpen && !localStorage.getItem('cryptoOnboardingComplete')) {
+        handleUserResponse(false);
+      }
+    }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

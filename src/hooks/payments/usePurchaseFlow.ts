@@ -3,9 +3,12 @@ import { useState, useEffect, useCallback } from 'react';
 
 interface PurchaseFlowState {
   isNewToWallet: boolean | null;
-  currentStep: number;
-  walletSetupComplete: boolean;
-  walletFundingComplete: boolean;
+  activeSection: 'wallet' | 'funding' | 'purchase';
+  sectionsCompleted: {
+    wallet: boolean;
+    funding: boolean;
+    purchase: boolean;
+  };
   showCoinPaymentsOptions: boolean;
   needsRender: boolean; // Force re-renders when needed
 }
@@ -13,9 +16,12 @@ interface PurchaseFlowState {
 export const usePurchaseFlow = () => {
   const [state, setState] = useState<PurchaseFlowState>({
     isNewToWallet: null,
-    currentStep: 1,
-    walletSetupComplete: false,
-    walletFundingComplete: false,
+    activeSection: 'wallet',
+    sectionsCompleted: {
+      wallet: false,
+      funding: false,
+      purchase: false
+    },
     showCoinPaymentsOptions: false,
     needsRender: false
   });
@@ -36,16 +42,20 @@ export const usePurchaseFlow = () => {
     if (walletSetupComplete) {
       setState(prev => ({
         ...prev,
-        walletSetupComplete: true,
-        currentStep: walletFundingComplete ? 3 : 2
+        sectionsCompleted: {
+          ...prev.sectionsCompleted,
+          wallet: true
+        }
       }));
     }
     
     if (walletFundingComplete) {
       setState(prev => ({
         ...prev,
-        walletFundingComplete: true,
-        currentStep: 3
+        sectionsCompleted: {
+          ...prev.sectionsCompleted,
+          funding: true
+        }
       }));
     }
   }, []);
@@ -61,15 +71,14 @@ export const usePurchaseFlow = () => {
     console.log("Setting wallet setup complete");
     localStorage.setItem('walletSetupComplete', 'true');
     
-    // Use a timeout to ensure the state update happens after the current render cycle
-    setTimeout(() => {
-      setState(prev => ({
-        ...prev,
-        walletSetupComplete: true,
-        currentStep: 2,
-        needsRender: !prev.needsRender // Toggle to force re-render
-      }));
-    }, 50);
+    setState(prev => ({
+      ...prev,
+      sectionsCompleted: {
+        ...prev.sectionsCompleted,
+        wallet: true
+      },
+      needsRender: !prev.needsRender // Toggle to force re-render
+    }));
   }, []);
 
   const markWalletFundingComplete = useCallback(() => {
@@ -78,9 +87,29 @@ export const usePurchaseFlow = () => {
     
     setState(prev => ({
       ...prev,
-      walletFundingComplete: true,
-      currentStep: 3,
+      sectionsCompleted: {
+        ...prev.sectionsCompleted,
+        funding: true
+      },
       needsRender: !prev.needsRender // Toggle to force re-render
+    }));
+  }, []);
+  
+  const markPurchaseComplete = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      sectionsCompleted: {
+        ...prev.sectionsCompleted,
+        purchase: true
+      },
+      needsRender: !prev.needsRender
+    }));
+  }, []);
+
+  const setActiveSection = useCallback((section: 'wallet' | 'funding' | 'purchase') => {
+    setState(prev => ({
+      ...prev,
+      activeSection: section
     }));
   }, []);
 
@@ -99,9 +128,12 @@ export const usePurchaseFlow = () => {
     
     setState({
       isNewToWallet: null,
-      currentStep: 1,
-      walletSetupComplete: false,
-      walletFundingComplete: false,
+      activeSection: 'wallet',
+      sectionsCompleted: {
+        wallet: false,
+        funding: false,
+        purchase: false
+      },
       showCoinPaymentsOptions: false,
       needsRender: false
     });
@@ -112,6 +144,8 @@ export const usePurchaseFlow = () => {
     handleOnboardingComplete,
     markWalletSetupComplete,
     markWalletFundingComplete,
+    markPurchaseComplete,
+    setActiveSection,
     showCoinPayments,
     resetFlow
   };
