@@ -10,7 +10,7 @@ interface PurchaseFlowState {
     purchase: boolean;
   };
   showCoinPaymentsOptions: boolean;
-  isDirectPurchase: boolean; // New flag for direct purchase flow
+  isDirectPurchase: boolean; // Flag for direct purchase flow
   needsRender: boolean; // Force re-renders when needed
 }
 
@@ -24,7 +24,7 @@ export const usePurchaseFlow = () => {
       purchase: false
     },
     showCoinPaymentsOptions: false,
-    isDirectPurchase: false, // Initialize new flag
+    isDirectPurchase: false, // Initialize flag
     needsRender: false
   });
 
@@ -122,8 +122,9 @@ export const usePurchaseFlow = () => {
     }));
   }, []);
   
-  // New function to set direct purchase flag
+  // Function to set direct purchase flag
   const setDirectPurchase = useCallback((isDirectPurchase: boolean) => {
+    console.log("Setting direct purchase flag to:", isDirectPurchase);
     setState(prev => ({
       ...prev,
       isDirectPurchase: isDirectPurchase
@@ -158,7 +159,7 @@ export const usePurchaseFlow = () => {
     markPurchaseComplete,
     setActiveSection,
     showCoinPayments,
-    setDirectPurchase, // Export the new function
+    setDirectPurchase, // Export the function
     resetFlow
   };
 };

@@ -28,8 +28,10 @@ export const TokenPurchaseSections: React.FC<{
     markWalletFundingComplete,
     showCoinPaymentsOptions,
     showCoinPayments,
+    setDirectPurchase,
     resetFlow,
-    needsRender
+    needsRender,
+    isDirectPurchase
   } = usePurchaseFlow();
   
   const [educationCompleted, setEducationCompleted] = useState(false);
@@ -96,6 +98,7 @@ export const TokenPurchaseSections: React.FC<{
   const renderFundingSectionContent = () => {
     return (
       <WalletFundingStep 
+        walletAddress={walletAddress}
         onComplete={() => {
           markWalletFundingComplete();
           toast.success("Wallet funding noted", {
@@ -105,9 +108,6 @@ export const TokenPurchaseSections: React.FC<{
         }}
         onStartFunding={() => {
           markWalletFundingComplete();
-          toast.success("Moving to purchase options", {
-            description: "You can now select your preferred payment method"
-          });
           setActiveSection('purchase');
         }}
       />
@@ -128,16 +128,18 @@ export const TokenPurchaseSections: React.FC<{
           isWalletMissing={!walletAddress}
           onSelectCoinPayments={() => {
             showCoinPayments();
+            setDirectPurchase(true);
             toast.success("Payment options loaded");
           }}
           onSelectDex={() => {
             window.open('https://app.uniswap.org/', '_blank');
           }}
+          setDirectPurchase={setDirectPurchase}
         />
       );
     }
     
-    return <BuyTokensTab walletAddress={walletAddress} />;
+    return <BuyTokensTab walletAddress={walletAddress} isDirectPurchase={isDirectPurchase} />;
   };
 
   // console.log debug info
@@ -145,7 +147,8 @@ export const TokenPurchaseSections: React.FC<{
     isNewToWallet, 
     activeSection, 
     sectionsCompleted, 
-    educationCompleted
+    educationCompleted,
+    isDirectPurchase
   });
 
   return (
