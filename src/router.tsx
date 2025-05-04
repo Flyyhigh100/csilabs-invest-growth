@@ -11,7 +11,8 @@ import AdminDashboard from './components/Admin/Dashboard';
 import AdminKycPage from './pages/Admin/KYCVerifications';
 import AdminTransactionsPage from './pages/Admin/Transactions';
 import AdminSettingsPage from './pages/Admin/Settings';
-import TestToolsPage from './pages/Admin/TestTools';
+// TestToolsPage is still imported but only accessible by admins with proper permissions
+import TestToolsPage from './pages/Admin/TestTools'; 
 import CoinPaymentsSetupPage from "./pages/Admin/CoinPaymentsSetup";
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
@@ -69,20 +70,15 @@ const router = createBrowserRouter([
     path: "/admin/settings",
     element: <AdminRoute><AdminSettingsPage /></AdminRoute>,
   },
+  // Test tools page is only accessible by admins with appropriate permissions
   {
     path: "/admin/test-tools",
     element: <AdminRoute><TestToolsPage /></AdminRoute>,
   },
   
-  // Add the CoinPayments setup route
+  // CoinPayments setup route only accessible via admin panel
   {
     path: "/admin/coinpayments-setup",
-    element: <AdminRoute><CoinPaymentsSetupPage /></AdminRoute>,
-  },
-  
-  // Add a direct route for easier access
-  {
-    path: "/coinpayments-setup",
     element: <AdminRoute><CoinPaymentsSetupPage /></AdminRoute>,
   },
 ]);

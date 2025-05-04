@@ -30,8 +30,6 @@ import KYCVerificationPage from './pages/Dashboard/KYCVerification/KYCVerificati
 import Profile from './pages/Dashboard/Profile';
 import Documents from './pages/Dashboard/Documents';
 import DashboardHome from './pages/Dashboard/DashboardHome';
-import StripeStandaloneTest from './pages/StripeStandaloneTest';
-import CoinPaymentsSetup from './pages/CoinPaymentsSetup';
 
 // Import Legal pages
 import TermsOfService from './pages/Legal/TermsAndConditions';
@@ -49,6 +47,7 @@ import AdminNotificationsPage from './pages/Admin/Notifications';
 import AdminTransactionToolsPage from './pages/Admin/TransactionTools';
 import AdminResearchDocuments from './pages/Admin/ResearchDocuments';
 import SystemFlowPage from './pages/Admin/SystemFlow';
+import CoinPaymentsSetupPage from './pages/Admin/CoinPaymentsSetup';
 
 const queryClient = new QueryClient();
 
@@ -71,8 +70,6 @@ export default function App() {
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/research-documents" element={<ResearchDocuments />} />
                     <Route path="/token-info" element={<TokenInfo />} />
-                    <Route path="/stripe-test" element={<StripeStandaloneTest />} />
-                    <Route path="/coinpayments-setup" element={<CoinPaymentsSetup />} />
                     
                     {/* Legal Routes */}
                     <Route path="/legal/terms-and-conditions" element={<TermsOfService />} />
@@ -103,6 +100,7 @@ export default function App() {
                       <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
                       <Route path="/admin/research-documents" element={<AdminResearchDocuments />} />
                       <Route path="/admin/token-pricing" element={<TokenPricingPage />} />
+                      <Route path="/admin/coinpayments-setup" element={<CoinPaymentsSetupPage />} />
                     </Route>
                     
                     {/* Fallback */}

@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { DollarSign } from 'lucide-react';
 import { usePaymentHandlers } from '@/hooks/payments';
 import { useKycVerification } from '@/hooks/kyc/useKycVerification';
@@ -137,7 +136,6 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
             <CardTitle className="flex items-center gap-2 text-xl text-cbis-blue">
               <DollarSign className="h-5 w-5 text-cbis-teal" />
               Purchase CSi Tokens
-              <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-600 border-blue-200">Test Mode</Badge>
             </CardTitle>
             <CardDescription className="text-gray-600 mt-1">
               Choose your payment method and amount to purchase CSi tokens

@@ -14,8 +14,8 @@ const Transactions = () => {
   const [searchParams] = useSearchParams();
   const { user, refreshSession } = useAuth();
   
-  // In test mode, we'll allow transactions without KYC
-  const allowTransactionsWithoutKYC = true;
+  // In production, KYC is required
+  const allowTransactionsWithoutKYC = false;
   
   const success = searchParams.get('success');
   const canceled = searchParams.get('canceled');

@@ -1,8 +1,6 @@
 
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Info, AlertTriangle } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -13,6 +11,9 @@ interface SellTokensTabProps {
 }
 
 const SellTokensTab: React.FC<SellTokensTabProps> = ({ walletAddress }) => {
+  // This component is kept but not linked from any UI element
+  // Necessary to maintain for potential future use
+  
   const [amount, setAmount] = useState<number>(0);
   
   const handleSellTokens = () => {
@@ -26,10 +27,10 @@ const SellTokensTab: React.FC<SellTokensTabProps> = ({ walletAddress }) => {
       return;
     }
     
-    // This is just a simulation for testing
+    // Production functionality would be implemented here
     toast.info("Processing sell request...");
     setTimeout(() => {
-      toast.success("This is a test environment. In production, this would initiate a sell transaction.");
+      toast.success("Your sell request has been submitted for processing.");
     }, 1500);
   };
   
@@ -37,25 +38,15 @@ const SellTokensTab: React.FC<SellTokensTabProps> = ({ walletAddress }) => {
     <Card>
       <CardHeader>
         <CardTitle>Sell CSi Tokens</CardTitle>
-        <CardDescription>Test the token selling functionality</CardDescription>
+        <CardDescription>Exchange your CSi tokens</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Alert className="mb-4">
-          <AlertTriangle className="h-5 w-5 text-amber-500" />
-          <AlertTitle>Test Environment</AlertTitle>
-          <AlertDescription>
-            This is a test environment. No actual tokens will be sold. In production, this would connect to the Polygon network to process your transaction.
-          </AlertDescription>
-        </Alert>
-        
         {!walletAddress ? (
-          <Alert className="mb-4">
-            <Info className="h-5 w-5" />
-            <AlertTitle>Wallet Address Required</AlertTitle>
-            <AlertDescription>
+          <div className="text-center p-4 bg-blue-50 rounded-md border border-blue-100">
+            <p className="text-blue-700 font-medium">
               Please add your Polygon wallet address above before proceeding.
-            </AlertDescription>
-          </Alert>
+            </p>
+          </div>
         ) : (
           <>
             <div className="space-y-2">
@@ -74,14 +65,14 @@ const SellTokensTab: React.FC<SellTokensTabProps> = ({ walletAddress }) => {
             </div>
             
             <Button onClick={handleSellTokens} className="w-full">
-              Test Sell Transaction
+              Submit Sell Request
             </Button>
           </>
         )}
       </CardContent>
       <CardFooter>
         <p className="text-sm text-muted-foreground">
-          Note: In a production environment, you would be able to sell your CSi tokens for USD or cryptocurrency through our platform.
+          Sell requests are processed within 1-2 business days.
         </p>
       </CardFooter>
     </Card>

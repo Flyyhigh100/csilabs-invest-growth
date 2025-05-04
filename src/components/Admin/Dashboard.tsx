@@ -1,8 +1,8 @@
+
 import React from 'react';
 import { UserCheck, Receipt } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../ui/button';
-import { Coins } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
   
@@ -22,12 +22,6 @@ const AdminDashboard: React.FC = () => {
             <Link to="/admin/transactions">
               <Receipt className="mr-1.5 h-4 w-4" />
               Manage Transactions
-            </Link>
-          </Button>
-          <Button asChild variant="outline" className="bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100">
-            <Link to="/coinpayments-setup">
-              <Coins className="mr-1.5 h-4 w-4" />
-              CoinPayments Setup
             </Link>
           </Button>
         </div>

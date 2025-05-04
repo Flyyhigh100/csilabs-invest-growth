@@ -16,8 +16,8 @@ const Payments = () => {
   const { walletAddress, isLoadingWallet, handleWalletUpdated } = useWalletAddress();
   
   const isKycApproved = kycData?.status === 'approved';
-  // For testing purposes - we're allowing payments even without KYC approval
-  const allowPaymentsWithoutKYC = true;
+  // For production - we're requiring KYC approval
+  const allowPaymentsWithoutKYC = false;
   
   return (
     <DashboardLayout title="Payments">

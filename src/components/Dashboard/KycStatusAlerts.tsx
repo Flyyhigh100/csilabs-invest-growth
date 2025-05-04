@@ -15,28 +15,14 @@ interface KycStatusAlertsProps {
 const KycStatusAlerts: React.FC<KycStatusAlertsProps> = ({
   kycData,
   amount,
-  allowPaymentsWithoutKYC = true
+  allowPaymentsWithoutKYC = false // Changed default to false for production
 }) => {
   const isKycPending = kycData?.status === 'pending';
   const isKycRejected = kycData?.status === 'rejected';
   const isKycApproved = kycData?.status === 'approved';
 
-  // Only show test mode alert if not approved and allowed
-  if (!isKycApproved && allowPaymentsWithoutKYC) {
-    return (
-      <Alert className="mb-6 bg-amber-50 text-amber-800 border-amber-200">
-        <Info className="h-5 w-5" />
-        <AlertTitle>Test Mode Active</AlertTitle>
-        <AlertDescription>
-          Normally, KYC verification would be required before high-value crypto payments. This is currently in test mode allowing payments without verification.
-          {!kycData?.status && " We recommend completing verification in the KYC section."}
-          {isKycPending && " Your verification is currently being reviewed."}
-          {isKycRejected && " Your verification was rejected. Please try again with valid documents."}
-        </AlertDescription>
-      </Alert>
-    );
-  }
-  
+  // No test mode alert in production - this component now returns null 
+  // unless we want to show specific alerts in the future
   return null;
 };
 
