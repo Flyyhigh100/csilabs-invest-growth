@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { usePaymentHandlers } from '@/hooks/payments';
 
 interface WalletFundingStepProps {
   onComplete: () => void;
@@ -18,7 +17,6 @@ const WalletFundingStep: React.FC<WalletFundingStepProps> = ({
   walletAddress
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const { handleStripeCryptoOnramp } = usePaymentHandlers(walletAddress);
 
   const handleWalletFunded = () => {
     setIsProcessing(true);
@@ -38,31 +36,18 @@ const WalletFundingStep: React.FC<WalletFundingStepProps> = ({
     // First mark the funding step as complete
     onStartFunding();
     
-    // Then initiate the Stripe Crypto Onramp
     try {
-      toast.info("Initializing Stripe Crypto...", {
+      toast.success("Redirecting to Stripe...", {
         description: "You'll be redirected to fund your wallet in a moment"
       });
       
-      // Default amount of $50 for wallet funding
-      const result = await handleStripeCryptoOnramp(50);
+      // Direct redirect to crypto.link.com
+      console.log("Redirecting to https://crypto.link.com/");
+      window.location.href = "https://crypto.link.com/";
       
-      if (result.success && result.client_side) {
-        // For client-side Stripe implementation, we don't have a direct URL
-        // The client-side method is already handling the redirect
-        toast.success("Redirecting to Stripe...");
-      } else if (result.success && result.redirect_url) {
-        // If we have a redirect URL from the server, use it
-        window.location.href = result.redirect_url;
-      } else {
-        toast.error("Could not initialize Stripe", {
-          description: result.error || "Please try again later"
-        });
-        setIsProcessing(false);
-      }
     } catch (error) {
-      console.error("Error initiating Stripe:", error);
-      toast.error("Failed to connect to payment provider", {
+      console.error("Error redirecting:", error);
+      toast.error("Failed to redirect", {
         description: "Please try again or contact support"
       });
       setIsProcessing(false);
