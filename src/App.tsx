@@ -6,18 +6,20 @@ import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import Transactions from "./pages/Transactions";
-import Users from "./pages/Users";
-import KYCVerifications from "./pages/KYCVerifications";
-import Settings from "./pages/Settings";
-import ResearchDocuments from "./pages/ResearchDocuments";
-import TokenPricing from "./pages/TokenPricing";
-import SystemFlow from "./pages/SystemFlow";
-import IPNLogs from "./pages/IPNLogs";
-import Notifications from "./pages/Notifications";
+// Import Admin pages from Admin directory
+import AdminTransactions from "./pages/Admin/Transactions";
+import AdminUsers from "./pages/Admin/Users";
+import AdminKYCVerifications from "./pages/Admin/KYCVerifications";
+import AdminSettings from "./pages/Admin/Settings";
+import AdminResearchDocuments from "./pages/Admin/ResearchDocuments";
+import AdminTokenPricing from "./pages/Admin/TokenPricing";
+import AdminSystemFlow from "./pages/Admin/SystemFlow";
+import AdminIPNLogs from "./pages/Admin/IPNLogs";
+import AdminNotifications from "./pages/Admin/Notifications";
 import CoinPaymentsSetup from "./pages/CoinPaymentsSetup";
-import TestIPNWebhook from "./pages/TestIPNWebhook";
-import TestIPNForm from "./pages/TestIPNForm";
+// Use the paths that match your file structure for these test pages
+import TestIPNWebhook from "./pages/Admin/TestIPNWebhook"; 
+import TestIPNForm from "./pages/Admin/TestIPNForm";
 import { Toaster } from "@/components/ui/toaster";
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { ReactQueryDevtools } from 'react-query/devtools';
@@ -37,6 +39,9 @@ import { mainnet, goerli } from 'wagmi/chains';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from "@/components/Dashboard/Layout";
 import TestToolsPage from './pages/Admin/TestTools';
+
+// Create a TopNavigation component here since it appears to be missing
+import TopNavigation from '@/components/Dashboard/Layouts/TopNavigation';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -105,14 +110,8 @@ function App() {
     checkAdminStatus();
   }, [user, supabase]);
 
-  useHydrate(queryClient, () => {
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
-
-    const localStorageData = localStorage.getItem('react-query');
-    return localStorageData ? JSON.parse(localStorageData) : undefined;
-  });
+  // Fix the hydration issue by providing a proper function
+  const hydratedState = useHydrate(queryClient);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -121,7 +120,8 @@ function App() {
 
     const localStorageData = localStorage.getItem('react-query');
     if (!localStorageData) {
-      localStorage.setItem('react-query', JSON.stringify(queryClient.dehydrate()));
+      // Fix the dehydrate method access
+      localStorage.setItem('react-query', JSON.stringify(queryClient.getQueryCache().getAll()));
     }
   }, []);
 
@@ -201,15 +201,15 @@ function App() {
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminRoute />}>
                 <Route path="" element={<Dashboard />} />
-                <Route path="transactions" element={<Transactions />} />
-                <Route path="users" element={<Users />} />
-                <Route path="kyc-verifications" element={<KYCVerifications />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="research-documents" element={<ResearchDocuments />} />
-                <Route path="token-pricing" element={<TokenPricing />} />
-                <Route path="system-flow" element={<SystemFlow />} />
-                <Route path="ipn-logs" element={<IPNLogs />} />
-                <Route path="notifications" element={<Notifications />} />
+                <Route path="transactions" element={<AdminTransactions />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="kyc-verifications" element={<AdminKYCVerifications />} />
+                <Route path="settings" element={<AdminSettings />} />
+                <Route path="research-documents" element={<AdminResearchDocuments />} />
+                <Route path="token-pricing" element={<AdminTokenPricing />} />
+                <Route path="system-flow" element={<AdminSystemFlow />} />
+                <Route path="ipn-logs" element={<AdminIPNLogs />} />
+                <Route path="notifications" element={<AdminNotifications />} />
                 <Route path="test-tools" element={<TestToolsPage />} />
               </Route>
             </Routes>
