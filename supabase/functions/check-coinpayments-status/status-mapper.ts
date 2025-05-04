@@ -1,50 +1,55 @@
 
-// Map CoinPayments numeric status codes to our internal status strings
-export function mapCoinPaymentsStatus(statusCode: number): string {
-  // CoinPayments Status Codes:
-  // -2 = Refunded/Cancelled
-  // -1 = Cancelled or Timed Out
-  // 0 = Pending
-  // 1 = Payment received (should be completed)
-  // 2+ = Confirmed (# is the number of confirmations)
-  // 100+ = Completed (fully confirmed per coin requirements)
+/**
+ * Maps CoinPayments transaction status codes to our internal status values
+ */
+export function mapCoinPaymentsStatus(status: number | string): string {
+  // Convert status to number for safer comparison
+  const statusNum = typeof status === 'string' ? parseInt(status, 10) : status;
   
-  if (statusCode < 0) {
-    return 'failed';
-  } else if (statusCode === 0) {
-    return 'pending';
-  } else if (statusCode === 1) {
-    return 'confirmed'; // Received payment but still processing
-  } else if (statusCode >= 2 && statusCode < 100) {
-    return 'confirmed'; // Got confirmations, almost done
-  } else if (statusCode >= 100) {
-    return 'completed'; // Fully completed
-  } else {
-    console.warn(`Unknown CoinPayments status code: ${statusCode}, falling back to 'pending'`);
-    return 'pending';
+  switch (statusNum) {
+    case -2:
+      return 'refunded'; // PayPal refund or reversed
+    case -1:
+      return 'cancelled'; // Cancelled / timed out
+    case 0:
+      return 'pending'; // Waiting for buyer funds
+    case 1:
+      return 'pending'; // Funds received, waiting for confirmation
+    case 2:
+      return 'confirmed'; // Confirmed by network but not yet sent
+    case 3: 
+    case 100: // Status 100 is complete
+      return 'completed'; // Completed, funds sent to merchant
+    default:
+      // If we receive a status code we don't recognize, default to pending
+      console.warn(`Unknown CoinPayments status code: ${status}, defaulting to 'pending'`);
+      return 'pending';
   }
 }
 
-// Get a human-readable description for the status
-export function getStatusDescription(statusCode: number): string {
-  switch (statusCode) {
+/**
+ * Returns a human-readable description of a CoinPayments status code
+ */
+export function getStatusDescription(status: number | string): string {
+  // Convert status to number for safer comparison
+  const statusNum = typeof status === 'string' ? parseInt(status, 10) : status;
+  
+  switch (statusNum) {
     case -2:
-      return 'Transaction refunded';
+      return 'PayPal refund or reversal';
     case -1:
-      return 'Transaction cancelled';
+      return 'Cancelled / timed out';
     case 0:
-      return 'Waiting for payment';
+      return 'Waiting for buyer funds';
     case 1:
-      return 'Payment received';
+      return 'Funds received, waiting for confirmations';
     case 2:
-      return 'Payment confirmed';
+      return 'Confirmed by network, waiting to send';
+    case 3:
+      return 'Payment completed, funds sent to merchant';
     case 100:
-      return 'Payment complete';
+      return 'Payment completed (complete)';
     default:
-      return statusCode > 2 && statusCode < 100 
-        ? `Payment confirmed (${statusCode} confirmations)` 
-        : statusCode >= 100 
-          ? 'Payment complete' 
-          : 'Unknown status';
+      return `Unknown status code: ${status}`;
   }
 }

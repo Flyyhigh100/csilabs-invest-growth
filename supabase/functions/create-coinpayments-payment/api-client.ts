@@ -83,12 +83,16 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
       throw new Error("CoinPayments public key not configured");
     }
     
-    // Get merchant ID from environment
+    // Get merchant ID from environment with improved debugging
     const merchantId = Deno.env.get("COINPAYMENTS_MERCHANT_ID");
+    
+    // Debug environment variables
+    console.log("Environment variables available:", Object.keys(Deno.env.toObject()).join(", "));
+    
     if (!merchantId) {
       console.warn("COINPAYMENTS_MERCHANT_ID not set in environment. Payments may route to the default account.");
     } else {
-      console.log(`Using merchant ID: ${merchantId}`);
+      console.log(`Found merchant ID: ${merchantId} (${typeof merchantId})`);
     }
     
     // Build query parameters with updated nonce
@@ -117,6 +121,8 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
     
     // Send request to CoinPayments API with detailed logging
     console.log('Sending request to CoinPayments API...');
+    console.log('Request params:', queryParams.toString());
+    
     const response = await fetch("https://www.coinpayments.net/api.php", {
       method: "POST",
       headers: {
@@ -192,10 +198,12 @@ async function createRealCoinPaymentsTransaction(
       throw new Error("Wallet address must be provided");
     }
     
-    // Get merchant ID for logging
+    // Get merchant ID for logging with improved debugging
     const merchantId = Deno.env.get("COINPAYMENTS_MERCHANT_ID");
     if (!merchantId) {
       console.warn("COINPAYMENTS_MERCHANT_ID not set - payment will default to account associated with API keys");
+      // Try to find out what environment variables are available
+      console.log("Available environment variables:", Object.keys(Deno.env.toObject()).join(", "));
     } else {
       console.log(`Creating transaction for merchant ID: ${merchantId}`);
     }

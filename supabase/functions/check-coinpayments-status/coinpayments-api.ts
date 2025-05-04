@@ -21,11 +21,12 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<any> 
       };
     }
     
-    // Log merchant ID status
+    // Enhanced merchant ID logging
     if (!merchantId) {
       console.warn("COINPAYMENTS_MERCHANT_ID not set - status check will default to account associated with API keys");
+      console.log("Environment variables available:", Object.keys(Deno.env.toObject()).join(", "));
     } else {
-      console.log(`Checking transaction for merchant ID: ${merchantId}`);
+      console.log(`Found merchant ID: ${merchantId} (${typeof merchantId})`);
     }
     
     try {
@@ -69,6 +70,7 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<any> 
         .join('');
       
       console.log(`Making API request to CoinPayments for transaction ${txnId} with nonce ${nonce}`);
+      console.log(`Request params: ${requestData.toString()}`);
       
       // Make the API request
       const response = await fetch('https://www.coinpayments.net/api.php', {
