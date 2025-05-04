@@ -32,3 +32,9 @@ verify_jwt = true
 
 [functions.stripe-webhooks]
 verify_jwt = false
+
+[functions.admin-operations]
+verify_jwt = true
+
+[functions.validate-api-keys]
+verify_jwt = true

@@ -1,56 +1,72 @@
 
 import { corsHeaders } from "./cors.ts";
 
-// Generate HMAC signature for CoinPayments API
-export async function generateCoinPaymentsHMAC(message: string, key: string): Promise<string> {
-  // Create a TextEncoder to convert the string to bytes
-  const encoder = new TextEncoder();
-  
-  // Convert message and key to bytes
-  const messageBytes = encoder.encode(message);
-  const keyBytes = encoder.encode(key);
-  
-  // Import key for HMAC
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    keyBytes,
-    { name: 'HMAC', hash: 'SHA-512' },
-    false,
-    ['sign']
-  );
-  
-  // Sign the message
-  const signature = await crypto.subtle.sign(
-    'HMAC',
-    cryptoKey,
-    messageBytes
-  );
-  
-  // Convert signature to hex
-  return Array.from(new Uint8Array(signature))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-// Create response helpers
-export function createSuccessResponse(data: any) {
-  return new Response(
-    JSON.stringify(data),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
-}
-
-export function createErrorResponse(message: string, status: number = 400, details: any = {}) {
+// Create a consistent response format
+export function createErrorResponse(message: string, status = 400, details: any = null) {
   return new Response(
     JSON.stringify({
-      error: message,
-      ...details
+      success: false,
+      message,
+      details
     }),
-    { 
+    {
       status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      }
     }
   );
 }
 
-export { corsHeaders };
+export function createSuccessResponse(data: any, status = 200) {
+  return new Response(
+    JSON.stringify({
+      success: true,
+      ...data
+    }),
+    {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      }
+    }
+  );
+}
+
+// Generate HMAC signature for CoinPayments API
+export async function generateCoinPaymentsHMAC(payload: string, privateKey: string): Promise<string> {
+  try {
+    // Convert private key to bytes
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(privateKey);
+    
+    // Convert payload to bytes
+    const messageData = encoder.encode(payload);
+    
+    // Import the key for HMAC
+    const key = await crypto.subtle.importKey(
+      "raw", 
+      keyData, 
+      { name: "HMAC", hash: "SHA-512" }, 
+      false, 
+      ["sign"]
+    );
+    
+    // Sign the payload
+    const signature = await crypto.subtle.sign(
+      "HMAC", 
+      key, 
+      messageData
+    );
+    
+    // Convert the signature to hex
+    return Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  } catch (error) {
+    console.error('Error generating HMAC signature:', error);
+    throw error;
+  }
+}

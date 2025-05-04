@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
@@ -70,7 +71,7 @@ serve(async (req) => {
     // Handle different operations
     switch (operation) {
       case 'update_coinpayments_config':
-        return await handleUpdateCoinPaymentsConfig(supabase, requestBody);
+        return await handleUpdateCoinPaymentsConfig(supabase, requestBody, user.id);
         
       default:
         return createErrorResponse(`Unknown operation: ${operation}`, 400);
@@ -83,9 +84,9 @@ serve(async (req) => {
 });
 
 /**
- * Update CoinPayments configuration secrets
+ * Update CoinPayments configuration secrets in both the database and edge function secrets
  */
-async function handleUpdateCoinPaymentsConfig(supabase, requestBody) {
+async function handleUpdateCoinPaymentsConfig(supabase, requestBody, adminUserId) {
   try {
     const { public_key, private_key, ipn_secret, merchant_id } = requestBody;
     
@@ -93,7 +94,9 @@ async function handleUpdateCoinPaymentsConfig(supabase, requestBody) {
       return createErrorResponse('Missing required API keys', 400);
     }
     
-    // Update each secret individually to avoid issues if some are missing
+    console.log(`Admin ${adminUserId} is updating CoinPayments configuration`);
+    
+    // Update each secret individually in the database secrets table
     const updates = [];
     
     if (public_key) {
@@ -112,16 +115,85 @@ async function handleUpdateCoinPaymentsConfig(supabase, requestBody) {
       updates.push(updateSecret(supabase, 'COINPAYMENTS_MERCHANT_ID', merchant_id));
     }
     
-    // Wait for all updates to complete
+    // Wait for all database updates to complete
     await Promise.all(updates);
     
+    // Now update the edge function secrets by making requests to the Supabase Management API
+    const projectRef = Deno.env.get('SUPABASE_PROJECT_REF') || 'hrhvliqkmetcdphnetxb';
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    // Only attempt to update edge function secrets if we have the necessary credentials
+    if (projectRef && serviceRoleKey) {
+      try {
+        // Create a client for the Supabase Management API
+        const response = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/secrets`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${serviceRoleKey}`
+          },
+          body: JSON.stringify([
+            { name: 'COINPAYMENTS_PUBLIC_KEY', value: public_key },
+            { name: 'COINPAYMENTS_PRIVATE_KEY', value: private_key },
+            ...(ipn_secret ? [{ name: 'COINPAYMENTS_IPN_SECRET', value: ipn_secret }] : []),
+            ...(merchant_id ? [{ name: 'COINPAYMENTS_MERCHANT_ID', value: merchant_id }] : [])
+          ])
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Error updating edge function secrets:', errorData);
+          
+          // Continue despite error - we'll report it in the response
+          return createSuccessResponse({
+            message: 'CoinPayments configuration partially updated',
+            updated: {
+              database: true,
+              edgeFunctions: false
+            },
+            error: `Failed to update edge function secrets: ${response.status} ${response.statusText}`,
+            details: "The database secrets were updated successfully, but the edge function secrets could not be updated. Please update them manually in the Supabase dashboard."
+          });
+        }
+        
+        console.log('Edge function secrets updated successfully');
+      } catch (error) {
+        console.error('Error updating edge function secrets:', error);
+        
+        // Continue despite error - we'll report it in the response
+        return createSuccessResponse({
+          message: 'CoinPayments configuration partially updated',
+          updated: {
+            database: true,
+            edgeFunctions: false
+          },
+          error: `Exception updating edge function secrets: ${error.message}`,
+          details: "The database secrets were updated successfully, but the edge function secrets could not be updated. Please update them manually in the Supabase dashboard."
+        });
+      }
+    } else {
+      console.warn('Missing required credentials to update edge function secrets');
+      
+      // Log available environment variables for debugging (without revealing values)
+      console.log('Available environment variables:', Object.keys(Deno.env.toObject()).join(', '));
+      
+      // Continue despite missing credentials - we'll report it in the response
+      return createSuccessResponse({
+        message: 'CoinPayments configuration partially updated',
+        updated: {
+          database: true,
+          edgeFunctions: false
+        },
+        details: "The database secrets were updated successfully, but the edge function secrets could not be updated due to missing credentials. Please update them manually in the Supabase dashboard."
+      });
+    }
+    
+    // Return success response with transaction data
     return createSuccessResponse({
       message: 'CoinPayments configuration updated successfully',
       updated: {
-        public_key: !!public_key,
-        private_key: !!private_key,
-        ipn_secret: !!ipn_secret,
-        merchant_id: !!merchant_id
+        database: true,
+        edgeFunctions: true
       }
     });
   } catch (error) {
