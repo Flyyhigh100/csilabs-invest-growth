@@ -1,22 +1,22 @@
+
 import React from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import Index from './pages/Index';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Dashboard/Transactions';
 import Profile from './pages/Dashboard/Profile';
-import AuthLayout from './components/Auth/Layout';
-import SignIn from './pages/Auth/SignIn';
-import SignUp from './pages/Auth/SignUp';
-import ForgotPassword from './pages/Auth/ForgotPassword';
-import ResetPassword from './pages/Auth/ResetPassword';
-import AuthRoute from './components/AuthRoute';
+import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import AdminDashboard from './components/Admin/Dashboard';
-import KycManagement from './pages/Admin/KycManagement';
-import TransactionManagement from './pages/Admin/TransactionManagement';
-import AdminSettings from './pages/Admin/Settings';
+import AdminKycPage from './pages/Admin/KYCVerifications';
+import AdminTransactionsPage from './pages/Admin/Transactions';
+import AdminSettingsPage from './pages/Admin/Settings';
 import TestToolsPage from './pages/Admin/TestTools';
 import CoinPaymentsSetupPage from "./pages/Admin/CoinPaymentsSetup";
+import Login from './pages/Auth/Login';
+import Register from './pages/Auth/Register';
+import ForgotPassword from './pages/Auth/ForgotPassword';
+import ResetPassword from './pages/Auth/ResetPassword';
 
 const router = createBrowserRouter([
   {
@@ -25,72 +25,59 @@ const router = createBrowserRouter([
   },
   {
     path: "/dashboard",
-    element: <AuthRoute><Dashboard /></AuthRoute>,
+    element: <ProtectedRoute><Dashboard /></ProtectedRoute>,
   },
   {
     path: "/transactions",
-    element: <AuthRoute><Transactions /></AuthRoute>,
+    element: <ProtectedRoute><Transactions /></ProtectedRoute>,
   },
   {
     path: "/profile",
-    element: <AuthRoute><Profile /></AuthRoute>,
+    element: <ProtectedRoute><Profile /></ProtectedRoute>,
   },
   {
-    path: "/auth",
-    element: <AuthLayout />,
-    children: [
-      {
-        path: "signin",
-        element: <SignIn />,
-      },
-      {
-        path: "signup",
-        element: <SignUp />,
-      },
-      {
-        path: "forgot-password",
-        element: <ForgotPassword />,
-      },
-      {
-        path: "reset-password",
-        element: <ResetPassword />,
-      },
-    ],
+    path: "/login",
+    element: <Login />,
+  },
+  {
+    path: "/signup",
+    element: <Register />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPassword />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPassword />,
   },
   
   // Admin routes
   {
     path: "/admin",
-    element: <AdminRoute />,
-    children: [
-      {
-        path: "dashboard",
-        element: <AdminDashboard />,
-      },
-      {
-        path: "kyc",
-        element: <KycManagement />,
-      },
-      {
-        path: "transactions",
-        element: <TransactionManagement />,
-      },
-      {
-        path: "settings",
-        element: <AdminSettings />,
-      },
-      {
-        path: "test-tools",
-        element: <TestToolsPage />,
-      },
-      
-      // Add the CoinPayments setup route
-      {
-        path: "coinpayments-setup",
-        element: <CoinPaymentsSetupPage />,
-      },
-      
-    ],
+    element: <AdminRoute><AdminDashboard /></AdminRoute>,
+  },
+  {
+    path: "/admin/kyc",
+    element: <AdminRoute><AdminKycPage /></AdminRoute>,
+  },
+  {
+    path: "/admin/transactions",
+    element: <AdminRoute><AdminTransactionsPage /></AdminRoute>,
+  },
+  {
+    path: "/admin/settings",
+    element: <AdminRoute><AdminSettingsPage /></AdminRoute>,
+  },
+  {
+    path: "/admin/test-tools",
+    element: <AdminRoute><TestToolsPage /></AdminRoute>,
+  },
+  
+  // Add the CoinPayments setup route
+  {
+    path: "/admin/coinpayments-setup",
+    element: <AdminRoute><CoinPaymentsSetupPage /></AdminRoute>,
   },
   
   // Add a direct route for easier access
@@ -98,7 +85,6 @@ const router = createBrowserRouter([
     path: "/coinpayments-setup",
     element: <AdminRoute><CoinPaymentsSetupPage /></AdminRoute>,
   },
-  
 ]);
 
 export default router;
