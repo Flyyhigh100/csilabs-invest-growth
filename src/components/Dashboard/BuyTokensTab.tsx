@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,13 +15,16 @@ import WalletMissingContent from './TokenPurchase/WalletMissingContent';
 import PurchaseGuide from './TokenPurchase/PurchaseGuide';
 import { TokenPriceProvider, useTokenPrice } from '@/context/TokenPriceContext';
 import PaymentTabs from './TokenPurchase/PaymentTabs';
+import CryptoPaymentTab from './TokenPurchase/CryptoPaymentTab';
 
 interface BuyTokensTabProps {
   walletAddress: string | null;
+  isDirectPurchase?: boolean; // New prop to indicate direct purchase flow
 }
 
 const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
-  walletAddress
+  walletAddress,
+  isDirectPurchase = false // Default to false if not provided
 }) => {
   const [amount, setAmount] = useState<number>(100);
   const [selectedCurrency, setSelectedCurrency] = useState<string>("USDT");
@@ -74,20 +78,39 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
             <KycRequirementAlert amount={amount} kycData={kycData} />
             
             <div className="mt-6">
-              <h3 className="text-base font-medium mb-4 text-gray-700">Select Payment Method</h3>
+              <h3 className="text-base font-medium mb-4 text-gray-700">
+                {isDirectPurchase ? "CoinPayments Purchase" : "Select Payment Method"}
+              </h3>
               
-              <PaymentTabs 
-                amount={amount}
-                selectedCurrency={selectedCurrency}
-                setSelectedCurrency={setSelectedCurrency}
-                walletAddress={walletAddress}
-                handleStripeCryptoOnramp={handleStripeCryptoOnrampWrapper}
-                handleCoinPaymentWithCurrency={handleCoinPaymentWithCurrency}
-                isProcessing={isProcessing}
-                isKycNeeded={isKycNeeded}
-                isWalletMissing={isWalletMissing}
-                kycData={kycData}
-              />
+              {isDirectPurchase ? (
+                // When direct purchase is selected, only show CryptoPaymentTab
+                <div className="border rounded-lg p-4 border-blue-100 bg-blue-50/20">
+                  <CryptoPaymentTab 
+                    amount={amount}
+                    selectedCurrency={selectedCurrency}
+                    setSelectedCurrency={setSelectedCurrency}
+                    handleCoinPaymentWithCurrency={handleCoinPaymentWithCurrency}
+                    isProcessing={isProcessing}
+                    isKycNeeded={isKycNeeded}
+                    isWalletMissing={isWalletMissing}
+                    kycData={kycData}
+                  />
+                </div>
+              ) : (
+                // Regular flow shows payment tabs
+                <PaymentTabs 
+                  amount={amount}
+                  selectedCurrency={selectedCurrency}
+                  setSelectedCurrency={setSelectedCurrency}
+                  walletAddress={walletAddress}
+                  handleStripeCryptoOnramp={handleStripeCryptoOnrampWrapper}
+                  handleCoinPaymentWithCurrency={handleCoinPaymentWithCurrency}
+                  isProcessing={isProcessing}
+                  isKycNeeded={isKycNeeded}
+                  isWalletMissing={isWalletMissing}
+                  kycData={kycData}
+                />
+              )}
             </div>
             
             {isProcessing && <ProcessingIndicator />}

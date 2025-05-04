@@ -12,6 +12,7 @@ interface PurchasePathSelectorProps {
   isWalletMissing: boolean;
   onSelectCoinPayments: () => void;
   onSelectDex: () => void;
+  setDirectPurchase?: (isDirectPurchase: boolean) => void; // New prop for setting direct purchase
 }
 
 const PurchasePathSelector: React.FC<PurchasePathSelectorProps> = ({
@@ -19,8 +20,17 @@ const PurchasePathSelector: React.FC<PurchasePathSelectorProps> = ({
   isProcessing,
   isWalletMissing,
   onSelectCoinPayments,
-  onSelectDex
+  onSelectDex,
+  setDirectPurchase
 }) => {
+  // Enhanced handler that sets direct purchase flag
+  const handleSelectCoinPayments = () => {
+    if (setDirectPurchase) {
+      setDirectPurchase(true); // Set direct purchase flag to true
+    }
+    onSelectCoinPayments();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
@@ -35,7 +45,7 @@ const PurchasePathSelector: React.FC<PurchasePathSelectorProps> = ({
           title="Direct Company Purchase"
           description="Purchase directly from CSi using CoinPayments. Funds support company operations and development."
           icon={<DollarSign className="h-6 w-6" />}
-          onClick={onSelectCoinPayments}
+          onClick={handleSelectCoinPayments}
           buttonLabel={`Contribute $${amount}`}
           disabled={isProcessing || isWalletMissing}
           highlight={true}

@@ -10,6 +10,7 @@ interface PurchaseFlowState {
     purchase: boolean;
   };
   showCoinPaymentsOptions: boolean;
+  isDirectPurchase: boolean; // New flag for direct purchase flow
   needsRender: boolean; // Force re-renders when needed
 }
 
@@ -23,6 +24,7 @@ export const usePurchaseFlow = () => {
       purchase: false
     },
     showCoinPaymentsOptions: false,
+    isDirectPurchase: false, // Initialize new flag
     needsRender: false
   });
 
@@ -119,6 +121,14 @@ export const usePurchaseFlow = () => {
       showCoinPaymentsOptions: true
     }));
   }, []);
+  
+  // New function to set direct purchase flag
+  const setDirectPurchase = useCallback((isDirectPurchase: boolean) => {
+    setState(prev => ({
+      ...prev,
+      isDirectPurchase: isDirectPurchase
+    }));
+  }, []);
 
   const resetFlow = useCallback(() => {
     localStorage.removeItem('cryptoExperienceLevel');
@@ -135,6 +145,7 @@ export const usePurchaseFlow = () => {
         purchase: false
       },
       showCoinPaymentsOptions: false,
+      isDirectPurchase: false, // Reset direct purchase flag
       needsRender: false
     });
   }, []);
@@ -147,6 +158,7 @@ export const usePurchaseFlow = () => {
     markPurchaseComplete,
     setActiveSection,
     showCoinPayments,
+    setDirectPurchase, // Export the new function
     resetFlow
   };
 };
