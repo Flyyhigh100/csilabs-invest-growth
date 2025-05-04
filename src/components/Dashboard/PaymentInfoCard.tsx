@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ const PaymentInfoCard: React.FC<PaymentInfoCardProps> = ({
             </p>
             <ol className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 mt-2 pl-5 list-decimal marker:text-blue-500 marker:font-medium">
               <li className="text-gray-700 pl-1">Add your Polygon wallet address</li>
-              <li className="text-gray-700 pl-1">Choose your investment amount</li>
+              <li className="text-gray-700 pl-1">Choose your contribution amount</li>
               <li className="text-gray-700 pl-1">Select your payment method</li>
               <li className="text-gray-700 pl-1">Complete the transaction</li>
             </ol>
