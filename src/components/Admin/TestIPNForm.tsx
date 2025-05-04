@@ -1,336 +1,176 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { AlertCircle, Send } from 'lucide-react';
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Transaction } from '@/types/transactions';
-import SyncCryptoPaymentButton from '../Dashboard/Transactions/SyncCryptoPaymentButton';
 
-const TestIPNForm: React.FC = () => {
-  const [transactionId, setTransactionId] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const [status, setStatus] = useState('100'); // Default to "Complete"
-  const [foundTransaction, setFoundTransaction] = useState<Transaction | null>(null);
-  const [error, setError] = useState<string | null>(null);
+const formSchema = z.object({
+  txn_id: z.string().min(1, "Transaction ID is required"),
+  status: z.string().min(1, "Status is required"),
+});
 
-  // Status options for test IPN
-  const statusOptions = [
-    { value: '0', label: 'Waiting for funds' },
-    { value: '1', label: 'Confirming (Pending)' },
-    { value: '2', label: 'Confirmed (Still Pending)' },
-    { value: '100', label: 'Complete' }
-  ];
+const TestIPNForm = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [result, setResult] = useState<any>(null);
 
-  // Handle transaction search by ID
-  const handleSearch = async () => {
-    if (!transactionId) {
-      toast.error("Please enter a transaction ID");
-      return;
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      txn_id: '',
+      status: '100'
     }
+  });
 
-    setIsSearching(true);
-    setError(null);
-    setFoundTransaction(null);
-    
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('external_transaction_id', transactionId)
-        .maybeSingle();
+      setIsSubmitting(true);
       
-      if (error) {
-        throw new Error(error.message);
-      }
+      // Create the IPN payload similar to what CoinPayments would send
+      const ipnPayload = {
+        ipn_version: '1.0',
+        ipn_type: 'api',
+        ipn_mode: 'hmac',
+        ipn_id: `TEST_${Date.now()}`,
+        merchant: 'test_merchant',
+        txn_id: values.txn_id,
+        status: values.status,
+        status_text: getStatusText(values.status),
+        currency1: 'USD',
+        currency2: 'BTC',
+        amount1: '100.00',
+        amount2: '0.01',
+        fee: '0.001',
+        buyer_name: 'Test User',
+        received_amount: '0.01',
+        received_confirms: '3'
+      };
       
-      if (!data) {
-        setError(`No transaction found with ID: ${transactionId}`);
-        return;
-      }
+      toast.info("Sending test IPN webhook...");
       
-      setFoundTransaction(data);
-      toast.success("Transaction found");
-    } catch (err: any) {
-      console.error("Error searching for transaction:", err);
-      setError(err.message || "An error occurred while searching for the transaction");
-      toast.error("Error searching for transaction");
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // Send test IPN notification
-  const sendTestIPN = async () => {
-    if (!transactionId) {
-      toast.error("Please enter a transaction ID");
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    try {
-      toast.info("Sending test IPN notification...");
-      
+      // Call the test IPN webhook function
       const { data, error } = await supabase.functions.invoke('test-ipn-webhook', {
-        body: { 
-          transactionId,
-          status
-        }
+        body: ipnPayload
       });
       
       if (error) {
-        throw new Error(error.message);
+        toast.error(`Error: ${error.message || 'Unknown error'}`);
+        setResult({ success: false, error: error.message });
+      } else {
+        console.log("Test IPN response:", data);
+        setResult(data);
+        
+        if (data?.success) {
+          toast.success("Test IPN processed successfully", {
+            description: data.message
+          });
+        } else {
+          toast.warning("IPN request sent but processing failed", {
+            description: data?.message || "Unknown error"
+          });
+        }
       }
-      
-      if (!data.success) {
-        throw new Error(data.message || "Failed to send test IPN");
-      }
-      
-      toast.success("Test IPN notification sent", {
-        description: "The transaction should be updated shortly."
-      });
-      
-      console.log("Test IPN response:", data);
-      
-      // Update the transaction in state if we found it
-      if (foundTransaction) {
-        // Wait a moment for the status update to process
-        setTimeout(async () => {
-          try {
-            const { data: updatedTx, error: txError } = await supabase
-              .from('transactions')
-              .select('*')
-              .eq('id', foundTransaction.id)
-              .single();
-            
-            if (!txError && updatedTx) {
-              setFoundTransaction(updatedTx);
-            }
-          } catch (refreshError) {
-            console.error("Error refreshing transaction data:", refreshError);
-          }
-        }, 2000);
-      }
-      
-    } catch (err: any) {
-      console.error("Error sending test IPN:", err);
-      toast.error("Error sending test IPN", {
-        description: err.message || "An unexpected error occurred"
-      });
+    } catch (error) {
+      console.error("Error sending test IPN:", error);
+      toast.error("Failed to send test IPN");
+      setResult({ success: false, error: error.message });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
-  
-  // Handle API key validation
-  const validateApiKeys = async () => {
-    try {
-      setIsLoading(true);
-      
-      toast.info("Validating API keys...");
-      
-      const { data, error } = await supabase.functions.invoke('validate-api-keys', {
-        body: { 
-          service: 'coinpayments',
-          debug: true
-        }
-      });
-      
-      if (error) {
-        throw new Error(error.message || "Failed to validate API keys");
-      }
-      
-      if (data.isValid) {
-        toast.success("API Keys Valid", {
-          description: data.details || "Your CoinPayments API keys are configured correctly."
-        });
-      } else {
-        toast.error("API Key Configuration Issue", {
-          description: data.details || "The CoinPayments API keys appear to be invalid or misconfigured."
-        });
-      }
-      
-      console.log("API key validation result:", data);
-    } catch (err: any) {
-      console.error("Error validating API keys:", err);
-      toast.error("Error validating API keys", {
-        description: err.message || "An unexpected error occurred"
-      });
-    } finally {
-      setIsLoading(false);
-    }
+
+  const getStatusText = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      '-1': 'Cancelled/Timed Out',
+      '0': 'Pending',
+      '1': 'Payment Received',
+      '2': 'Complete',
+      '100': 'Complete (From API)'
+    };
+    
+    return statusMap[status] || `Unknown Status (${status})`;
   };
 
   return (
-    <Card className="mb-6">
+    <Card>
       <CardHeader>
-        <CardTitle>CoinPayments Test Tools</CardTitle>
-        <CardDescription>Tools for testing CoinPayments integration and IPN notifications</CardDescription>
+        <CardTitle>Test CoinPayments IPN Webhook</CardTitle>
+        <CardDescription>
+          Send a test IPN notification to simulate a payment status update
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* API Key Validator Tool */}
-        <div className="border p-4 rounded-md bg-gray-50">
-          <h3 className="text-md font-medium mb-4">API Key Validation</h3>
-          <div className="flex justify-between items-center">
-            <p className="text-sm text-muted-foreground">
-              Validate your CoinPayments API keys and merchant configuration
-            </p>
-            <Button
-              onClick={validateApiKeys}
-              variant="outline"
-              disabled={isLoading}
-              className="bg-white hover:bg-gray-100"
-            >
-              Validate API Keys
+      
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="txn_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>External Transaction ID</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter the transaction's external_transaction_id" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="-1">-1: Cancelled/Timed Out</SelectItem>
+                      <SelectItem value="0">0: Pending</SelectItem>
+                      <SelectItem value="1">1: Payment Received</SelectItem>
+                      <SelectItem value="2">2: Complete</SelectItem>
+                      <SelectItem value="100">100: Complete (From API)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                'Send Test IPN'
+              )}
             </Button>
-          </div>
-        </div>
-        
-        {/* Transaction Search Form */}
-        <div className="border p-4 rounded-md">
-          <h3 className="text-md font-medium mb-4">Find Transaction</h3>
-          <div className="grid gap-4">
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <Label htmlFor="transactionId">External Transaction ID (CP...)</Label>
-                <Input
-                  id="transactionId"
-                  value={transactionId}
-                  onChange={(e) => setTransactionId(e.target.value)}
-                  placeholder="Enter CoinPayments transaction ID (CP...)"
-                  className="font-mono"
-                  disabled={isSearching || isLoading}
-                />
-              </div>
-              <Button
-                onClick={handleSearch}
-                disabled={!transactionId || isSearching || isLoading}
-              >
-                Search
-              </Button>
-            </div>
-            
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-          </div>
-        </div>
-        
-        {/* Transaction Details and IPN Test Form */}
-        {foundTransaction && (
-          <div className="border p-4 rounded-md bg-blue-50">
-            <h3 className="text-md font-medium mb-4">Transaction Found</h3>
-            
-            <div className="mb-4 space-y-2 text-sm">
-              <div className="grid grid-cols-2 gap-1">
-                <span className="font-medium">Internal ID:</span>
-                <span className="font-mono">{foundTransaction.id}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="font-medium">External ID:</span>
-                <span className="font-mono">{foundTransaction.external_transaction_id}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="font-medium">Amount:</span>
-                <span>${foundTransaction.amount}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="font-medium">Currency:</span>
-                <span>{foundTransaction.currency}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="font-medium">Status:</span>
-                <span className="capitalize">{foundTransaction.status}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="font-medium">Created:</span>
-                <span>{new Date(foundTransaction.created_at).toLocaleString()}</span>
-              </div>
-            </div>
-            
-            <div className="grid gap-4 mt-6">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="status">Test Status to Send</Label>
-                <Select
-                  value={status}
-                  onValueChange={setStatus}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger id="status" className="w-full">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex flex-col space-y-2">
-                <Button
-                  onClick={sendTestIPN}
-                  disabled={isLoading}
-                  className="w-full"
-                >
-                  <Send className="mr-2 h-4 w-4" />
-                  {isLoading ? "Sending..." : "Send Test IPN"}
-                </Button>
-                
-                <SyncCryptoPaymentButton
-                  transaction={foundTransaction}
-                  onSyncComplete={(updatedTx) => {
-                    if (updatedTx) {
-                      setFoundTransaction(updatedTx);
-                      toast.success("Transaction status updated");
-                    }
-                  }}
-                  forceUpdate={true}
-                  className="w-full"
-                  size="default"
-                  variant="outline"
-                />
-                
-                <SyncCryptoPaymentButton
-                  transaction={foundTransaction}
-                  validateApiKeysOnly={true}
-                  className="w-full"
-                  size="sm"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Instructions */}
-        <div className="text-sm text-muted-foreground border-t pt-4 mt-4">
-          <h4 className="font-medium mb-2">About This Tool</h4>
-          <p className="mb-2">
-            This tool lets you test your CoinPayments integration by:
-          </p>
-          <ol className="list-decimal list-inside space-y-1 pl-2">
-            <li>Validating your API key configuration</li>
-            <li>Sending test IPN notifications to simulate payment status changes</li>
-            <li>Manually checking transaction status via the API</li>
-          </ol>
-          <p className="mt-2">
-            When you send a test IPN, the system will update the transaction status in the database
-            just like a real CoinPayments notification would.
-          </p>
-        </div>
+          </form>
+        </Form>
       </CardContent>
+      
+      {result && (
+        <CardFooter className="flex-col items-start border-t pt-4">
+          <h4 className="font-medium mb-2">Result:</h4>
+          <pre className="bg-slate-100 p-4 rounded w-full overflow-x-auto text-xs">
+            {JSON.stringify(result, null, 2)}
+          </pre>
+        </CardFooter>
+      )}
     </Card>
   );
 };

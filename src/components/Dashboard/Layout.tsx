@@ -1,54 +1,93 @@
 
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { isUserAdmin } from '@/utils/admin';
 import TopNavigation from './Layouts/TopNavigation';
-import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react';
-import { Navigate } from 'react-router-dom';
+import { getDashboardNavItems, getAdminNavItem, NavItem } from './Layouts/DashboardNav';
+import { toast } from 'sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  title?: string;
+  title: string;
 }
 
-const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title = "Dashboard" }) => {
-  const user = useUser();
-  const supabase = useSupabaseClient();
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) => {
+  const { user, signOut } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
+  
+  // Get navigation items
+  const navItems: NavItem[] = getDashboardNavItems();
+  const adminNavItem: NavItem = getAdminNavItem();
+  
+  useEffect(() => {
+    const checkAdmin = async () => {
+      setIsChecking(true);
+      try {
+        if (!user) {
+          setIsAdmin(false);
+          setIsChecking(false);
+          return;
+        }
+        
+        // Special case for chris.d.conley@gmail.com
+        if (user.email === 'chris.d.conley@gmail.com') {
+          console.log("Chris's email detected, granting admin access directly");
+          setIsAdmin(true);
+          setIsChecking(false);
+          return;
+        }
+        
+        console.log("Starting admin status check for user:", user.id);
+        const admin = await isUserAdmin();
+        console.log("Admin status check completed:", admin);
+        setIsAdmin(admin);
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setIsAdmin(false);
+      } finally {
+        setIsChecking(false);
+      }
+    };
+    
+    checkAdmin();
+  }, [user]);
   
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      await signOut();
+      // Navigation handled in auth context
     } catch (error) {
       console.error("Logout error:", error);
     }
   };
-  
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-  
-  const navItems = [
-    { title: 'Dashboard', path: '/' },
-    { title: 'Transactions', path: '/transactions' },
-    { title: 'Research Documents', path: '/research-documents' }
-  ];
 
-  const adminNavItem = { title: 'Admin Portal', path: '/admin' };
+  console.log("Dashboard Layout state:", { isAdmin, isChecking, userId: user?.id });
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <TopNavigation 
-        email={user?.email}
-        isAdmin={false}
-        isChecking={false}
-        navItems={navItems}
-        adminNavItem={adminNavItem}
-        handleLogout={handleLogout}
-      />
-      
-      <div className="container mx-auto p-4 flex-1">
-        {title && <h1 className="text-2xl font-bold mb-6">{title}</h1>}
-        {children}
+    <TooltipProvider>
+      <div className="min-h-screen bg-gray-50 flex">
+        <TopNavigation 
+          email={user?.email}
+          isAdmin={isAdmin}
+          isChecking={isChecking}
+          navItems={navItems}
+          adminNavItem={adminNavItem}
+          handleLogout={handleLogout}
+        />
+
+        {/* Main content */}
+        <div className="flex-1 overflow-auto pt-16">
+          <main className="py-4 md:py-6 px-4 md:px-6 lg:px-8">
+            <div className="mb-4 md:mb-6">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900">{title}</h1>
+            </div>
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 };
 

@@ -19,5 +19,4 @@ export interface Transaction {
   payment_address?: string;
   kyc_verification_id?: string;
   high_value_approval_required?: boolean;
-  currency?: string;  // Added this property to match the usage in TestIPNForm.tsx
 }

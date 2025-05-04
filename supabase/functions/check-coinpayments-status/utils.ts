@@ -1,22 +1,20 @@
 
-/**
- * Utility function to create error responses with CORS headers
- */
-export function createErrorResponse(message: string, statusCode = 400, additionalData = {}) {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  };
-  
+// CORS headers for preflight requests
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Create a consistent response format
+export function createErrorResponse(message: string, status = 400, details: any = null) {
   return new Response(
     JSON.stringify({
       success: false,
       message,
-      timestamp: new Date().toISOString(),
-      ...additionalData
+      details
     }),
     {
-      status: statusCode,
+      status,
       headers: {
         'Content-Type': 'application/json',
         ...corsHeaders
@@ -25,23 +23,14 @@ export function createErrorResponse(message: string, statusCode = 400, additiona
   );
 }
 
-/**
- * Utility function to create success responses with CORS headers
- */
-export function createSuccessResponse(data = {}) {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  };
-  
+export function createSuccessResponse(data: any, status = 200) {
   return new Response(
     JSON.stringify({
       success: true,
-      timestamp: new Date().toISOString(),
       ...data
     }),
     {
-      status: 200,
+      status,
       headers: {
         'Content-Type': 'application/json',
         ...corsHeaders

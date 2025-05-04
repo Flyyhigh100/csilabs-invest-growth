@@ -21,110 +21,12 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<any> 
       };
     }
     
-    // Enhanced merchant ID debugging
-    console.log(`Merchant ID check - Environment variables available:`);
-    console.log(Object.keys(Deno.env.toObject()).join(", "));
-    console.log(`Merchant ID value: ${merchantId || 'NOT SET'} (type: ${typeof merchantId})`);
-    
+    // Enhanced merchant ID logging
     if (!merchantId) {
-      console.warn("COINPAYMENTS_MERCHANT_ID not found in environment variables");
-      // Try to fetch from Supabase secrets as fallback
-      try {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-        if (supabaseUrl && supabaseKey) {
-          const supabase = createClient(supabaseUrl, supabaseKey);
-          console.log("Attempting to fetch merchant ID from Supabase secrets...");
-          const { data, error } = await supabase.rpc('get_secret', { secret_name: 'COINPAYMENTS_MERCHANT_ID' });
-          if (data && !error) {
-            console.log(`Found merchant ID in Supabase secrets: ${data.substring(0, 4)}...`);
-            // Use the merchant ID from secrets
-            const merchantIdFromSecrets = data;
-            try {
-              // Prepare request data
-              const requestData = new URLSearchParams();
-              requestData.append('version', '1');
-              requestData.append('cmd', 'get_tx_info');
-              requestData.append('key', publicKey);
-              requestData.append('txid', txnId);
-              requestData.append('full', '1');
-              
-              // Force add merchant ID from secrets
-              if (merchantIdFromSecrets) {
-                requestData.append('merchant', merchantIdFromSecrets);
-                console.log('Added merchant ID from secrets to status check request');
-              }
-              
-              // Create a unique nonce using millisecond precision timestamp + random suffix
-              const timestamp = Date.now();
-              const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-              const nonce = `${timestamp}${randomSuffix}`;
-              console.log(`Using nonce: ${nonce} for transaction ${txnId}`);
-              
-              requestData.append('format', 'json');
-              requestData.append('nonce', nonce);
-              
-              // Create HMAC signature using native crypto
-              const encoder = new TextEncoder();
-              const key = encoder.encode(privateKey);
-              const message = encoder.encode(requestData.toString());
-              const cryptoKey = await crypto.subtle.importKey(
-                "raw", key, { name: "HMAC", hash: "SHA-512" }, false, ["sign"]
-              );
-              const signature = await crypto.subtle.sign(
-                "HMAC", cryptoKey, message
-              );
-              
-              // Convert signature to hex string
-              const signatureHex = Array.from(new Uint8Array(signature))
-                .map(b => b.toString(16).padStart(2, '0'))
-                .join('');
-              
-              console.log(`Making API request to CoinPayments for transaction ${txnId} with nonce ${nonce} and merchant ID from secrets`);
-              console.log(`Request params: ${requestData.toString()}`);
-              
-              // Make the API request
-              const response = await fetch('https://www.coinpayments.net/api.php', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/x-www-form-urlencoded',
-                  'HMAC': signatureHex
-                },
-                body: requestData
-              });
-              
-              // Parse the response
-              const data = await response.json();
-              
-              console.log(`CoinPayments API response for ${txnId}:`, JSON.stringify(data).substring(0, 200) + '...');
-              
-              // Handle API errors
-              if (data.error !== 'ok') {
-                console.error('CoinPayments API error:', data.error);
-                return {
-                  error: true,
-                  status_text: `API error: ${data.error}`
-                };
-              }
-              
-              // Return successful response
-              return {
-                error: false,
-                result: data.result,
-                merchant_id_used: 'from_secrets'
-              };
-            } catch (apiError) {
-              console.error('Error making API request using merchant ID from secrets:', apiError);
-              // Fall through to standard request
-            }
-          } else {
-            console.log("Could not find merchant ID in Supabase secrets");
-          }
-        }
-      } catch (secretError) {
-        console.error("Error fetching from Supabase secrets:", secretError);
-        // Continue with standard request
-      }
+      console.warn("COINPAYMENTS_MERCHANT_ID not set - status check will default to account associated with API keys");
+      console.log("Environment variables available:", Object.keys(Deno.env.toObject()).join(", "));
+    } else {
+      console.log(`Found merchant ID: ${merchantId} (${typeof merchantId})`);
     }
     
     try {
@@ -197,8 +99,7 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<any> 
       // Return successful response
       return {
         error: false,
-        result: data.result,
-        merchant_id_used: merchantId ? 'from_env' : 'none'
+        result: data.result
       };
     } catch (apiError) {
       console.error('Error making API request to CoinPayments:', apiError);

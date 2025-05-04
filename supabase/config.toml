@@ -4,36 +4,31 @@ project_id = "hrhvliqkmetcdphnetxb"
 [api]
 enabled = true
 port = 54321
-schemas = ["public", "storage", "graphql_public"]
+schemas = ["public", "storage"]
 
 [db]
 port = 54322
-shadow_port = 54320
-major_version = 15
 
 [studio]
-enabled = true
 port = 54323
-api_url = "http://localhost"
 
 [inbucket]
-enabled = true
 port = 54324
 
 [storage]
 enabled = true
-port = 54325
 
 [auth]
 enabled = true
-port = 54326
 
 [realtime]
 enabled = true
-port = 54327
 
-[functions.validate-api-keys]
+[functions.create-stripe-onramp-session]
 verify_jwt = true
 
-[functions.test-ipn-webhook]
+[functions.create-coinpayments-payment]
 verify_jwt = true
+
+[functions.stripe-webhooks]
+verify_jwt = false
