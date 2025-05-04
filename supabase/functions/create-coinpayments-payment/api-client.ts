@@ -1,3 +1,4 @@
+
 // Mock implementation for local testing
 const USE_MOCK_DATA = Deno.env.get("USE_MOCK_DATA") === "true";
 const ALLOW_MOCK_FALLBACK = Deno.env.get("ALLOW_MOCK_FALLBACK") === "true";
@@ -82,6 +83,14 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
       throw new Error("CoinPayments public key not configured");
     }
     
+    // Get merchant ID from environment
+    const merchantId = Deno.env.get("COINPAYMENTS_MERCHANT_ID");
+    if (!merchantId) {
+      console.warn("COINPAYMENTS_MERCHANT_ID not set in environment. Payments may route to the default account.");
+    } else {
+      console.log(`Using merchant ID: ${merchantId}`);
+    }
+    
     // Build query parameters with updated nonce
     const nonce = generateNonce();
     console.log(`Using unique nonce: ${nonce}`);
@@ -94,6 +103,12 @@ async function coinPaymentsRequest(command: string, params: Record<string, any> 
       nonce: nonce,
       ...params
     });
+    
+    // Add merchant parameter if available
+    if (merchantId) {
+      queryParams.append('merchant', merchantId);
+      console.log('Added merchant ID to API request');
+    }
     
     const payload = queryParams.toString();
     console.log(`Creating signature for payload: ${payload.substring(0, 100)}${payload.length > 100 ? '...' : ''}`);
@@ -175,6 +190,14 @@ async function createRealCoinPaymentsTransaction(
     
     if (!walletAddress) {
       throw new Error("Wallet address must be provided");
+    }
+    
+    // Get merchant ID for logging
+    const merchantId = Deno.env.get("COINPAYMENTS_MERCHANT_ID");
+    if (!merchantId) {
+      console.warn("COINPAYMENTS_MERCHANT_ID not set - payment will default to account associated with API keys");
+    } else {
+      console.log(`Creating transaction for merchant ID: ${merchantId}`);
     }
     
     const params: Record<string, any> = {

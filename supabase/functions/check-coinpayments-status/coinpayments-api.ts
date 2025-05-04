@@ -11,6 +11,7 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<any> 
     // Get API credentials from environment
     const publicKey = Deno.env.get('COINPAYMENTS_PUBLIC_KEY');
     const privateKey = Deno.env.get('COINPAYMENTS_PRIVATE_KEY');
+    const merchantId = Deno.env.get('COINPAYMENTS_MERCHANT_ID');
     
     if (!publicKey || !privateKey) {
       console.error('Missing CoinPayments API keys');
@@ -18,6 +19,13 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<any> 
         error: true,
         status_text: 'Missing CoinPayments API keys in server configuration'
       };
+    }
+    
+    // Log merchant ID status
+    if (!merchantId) {
+      console.warn("COINPAYMENTS_MERCHANT_ID not set - status check will default to account associated with API keys");
+    } else {
+      console.log(`Checking transaction for merchant ID: ${merchantId}`);
     }
     
     try {
@@ -28,6 +36,12 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<any> 
       requestData.append('key', publicKey);
       requestData.append('txid', txnId);
       requestData.append('full', '1');
+      
+      // Add merchant parameter if available to ensure we're checking the right account
+      if (merchantId) {
+        requestData.append('merchant', merchantId);
+        console.log('Added merchant ID to status check request');
+      }
       
       // Create a unique nonce using millisecond precision timestamp + random suffix
       const timestamp = Date.now();
