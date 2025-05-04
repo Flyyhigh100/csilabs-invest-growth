@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Wallet, ArrowRight } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -59,9 +59,7 @@ export const WalletSection: React.FC<{
             existingWalletAddress={walletAddress || undefined} 
             onWalletUpdated={() => {
               onWalletUpdated();
-              if (!walletSetupComplete) {
-                markWalletSetupComplete();
-              }
+              markWalletSetupComplete();
             }} 
           />
         )}
@@ -81,19 +79,27 @@ export const TokenPurchaseSection: React.FC<{
     showCoinPaymentsOptions,
     showCoinPayments
   } = usePurchaseFlow();
+  
+  // Force re-render of funding step when wallet setup is complete
+  useEffect(() => {
+    console.log("Wallet setup complete:", walletSetupComplete);
+    console.log("Current step:", currentStep);
+  }, [walletSetupComplete, currentStep]);
 
   return (
     <>
       <EnhancedPurchaseGuide currentStep={currentStep} />
       
-      <WalletFundingStep 
-        isExpanded={walletSetupComplete && !walletFundingComplete}
-        onComplete={markWalletFundingComplete}
-        onStartFunding={() => {
-          // This will trigger the Stripe Crypto tab in the next component
-          markWalletFundingComplete();
-        }}
-      />
+      {walletSetupComplete && !walletFundingComplete && (
+        <WalletFundingStep 
+          isExpanded={true}
+          onComplete={markWalletFundingComplete}
+          onStartFunding={() => {
+            // This will trigger the Stripe Crypto tab in the next component
+            markWalletFundingComplete();
+          }}
+        />
+      )}
       
       {walletFundingComplete && (
         <Card className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 transition-all hover:shadow-md mt-6">

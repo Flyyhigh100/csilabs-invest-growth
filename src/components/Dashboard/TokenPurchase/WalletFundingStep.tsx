@@ -17,23 +17,7 @@ const WalletFundingStep: React.FC<WalletFundingStepProps> = ({
   isExpanded 
 }) => {
   if (!isExpanded) {
-    return (
-      <Card className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 transition-all hover:shadow-md">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="bg-gray-200 p-2 rounded-full">
-              <DollarSign className="h-5 w-5 text-gray-500" />
-            </div>
-            <div>
-              <CardTitle className="text-lg font-semibold text-gray-400">Step 2: Fund Your Wallet</CardTitle>
-              <CardDescription className="text-gray-400 mt-1">
-                Complete the previous step to unlock this step
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-    );
+    return null;
   }
 
   return (

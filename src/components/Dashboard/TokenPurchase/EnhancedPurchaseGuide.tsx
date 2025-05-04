@@ -13,6 +13,8 @@ const EnhancedPurchaseGuide: React.FC<EnhancedPurchaseGuideProps> = ({ currentSt
     { id: 3, title: "Purchase CSi tokens", description: "Exchange your crypto for CSi tokens" }
   ];
 
+  console.log("EnhancedPurchaseGuide rendering with currentStep:", currentStep);
+
   return (
     <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-6">
       <h3 className="text-sm font-medium text-gray-700 mb-4">Token Purchase Process</h3>

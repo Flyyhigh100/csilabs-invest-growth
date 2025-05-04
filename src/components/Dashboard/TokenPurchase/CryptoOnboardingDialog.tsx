@@ -50,7 +50,7 @@ const CryptoOnboardingDialog: React.FC<CryptoOnboardingDialogProps> = ({ onCompl
           </div>
         </div>
         
-        <DialogFooter className="flex flex-col sm:flex-row gap-3">
+        <DialogFooter className="flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           <Button 
             onClick={() => handleUserResponse(true)}
             className="w-full sm:w-auto bg-gradient-to-r from-cbis-blue to-cbis-teal"
