@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Wallet, ArrowRight } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import WalletFundingStep from '../TokenPurchase/WalletFundingStep';
 import EnhancedPurchaseGuide from '../TokenPurchase/EnhancedPurchaseGuide';
 import PurchasePathSelector from '../TokenPurchase/PurchasePathSelector';
 import { usePurchaseFlow } from '@/hooks/payments/usePurchaseFlow';
+import { toast } from 'sonner';
 
 export const WalletSection: React.FC<{
   isLoadingWallet: boolean;
@@ -26,8 +27,17 @@ export const WalletSection: React.FC<{
     walletSetupComplete
   } = usePurchaseFlow();
 
+  // Use local state to track when the wallet education is completed
+  const [educationCompleted, setEducationCompleted] = useState(false);
+
   const handleWalletEducationComplete = () => {
+    console.log("Wallet education complete");
+    setEducationCompleted(true);
     markWalletSetupComplete();
+    // Show toast feedback to the user
+    toast.success("Moving to the next step", {
+      description: "You can now fund your wallet"
+    });
   };
 
   return (
@@ -50,11 +60,9 @@ export const WalletSection: React.FC<{
       <CardContent className="space-y-6">
         <CryptoOnboardingDialog onComplete={handleOnboardingComplete} />
         
-        {isNewToWallet && !walletSetupComplete && (
+        {isNewToWallet && !walletSetupComplete && !educationCompleted ? (
           <WalletEducationPanel onComplete={handleWalletEducationComplete} />
-        )}
-        
-        {(!isNewToWallet || walletSetupComplete) && (
+        ) : (
           <WalletAddressForm 
             existingWalletAddress={walletAddress || undefined} 
             onWalletUpdated={() => {
@@ -73,6 +81,7 @@ export const TokenPurchaseSection: React.FC<{
 }> = ({ walletAddress }) => {
   const { 
     currentStep,
+    needsRender, // Add this to ensure re-renders
     walletSetupComplete,
     walletFundingComplete, 
     markWalletFundingComplete,
@@ -80,11 +89,18 @@ export const TokenPurchaseSection: React.FC<{
     showCoinPayments
   } = usePurchaseFlow();
   
-  // Force re-render of funding step when wallet setup is complete
+  // Local state to trigger re-renders
+  const [key, setKey] = useState(0);
+  
+  // Force re-render when state changes
   useEffect(() => {
-    console.log("Wallet setup complete:", walletSetupComplete);
-    console.log("Current step:", currentStep);
-  }, [walletSetupComplete, currentStep]);
+    console.log("TokenPurchaseSection: State changed - walletSetupComplete:", walletSetupComplete);
+    console.log("TokenPurchaseSection: Current step:", currentStep);
+    console.log("TokenPurchaseSection: Wallet funding complete:", walletFundingComplete);
+    
+    // Update the key to force a re-render
+    setKey(prev => prev + 1);
+  }, [walletSetupComplete, currentStep, walletFundingComplete, needsRender]);
 
   return (
     <>
@@ -92,6 +108,7 @@ export const TokenPurchaseSection: React.FC<{
       
       {walletSetupComplete && !walletFundingComplete && (
         <WalletFundingStep 
+          key={`funding-step-${key}`}
           isExpanded={true}
           onComplete={markWalletFundingComplete}
           onStartFunding={() => {
@@ -102,7 +119,10 @@ export const TokenPurchaseSection: React.FC<{
       )}
       
       {walletFundingComplete && (
-        <Card className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 transition-all hover:shadow-md mt-6">
+        <Card 
+          key={`purchase-card-${key}`}
+          className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 transition-all hover:shadow-md mt-6"
+        >
           <div className="h-2 bg-gradient-to-r from-green-500 to-green-600"></div>
           <CardHeader>
             <div className="flex items-center gap-3">

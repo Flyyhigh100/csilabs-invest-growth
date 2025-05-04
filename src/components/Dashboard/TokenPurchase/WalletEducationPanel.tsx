@@ -16,6 +16,12 @@ const WalletEducationPanel: React.FC<WalletEducationPanelProps> = ({ onComplete,
     { name: 'Trust Wallet', description: 'Multi-chain mobile wallet', url: 'https://trustwallet.com/' }
   ];
 
+  const handleWalletCreated = () => {
+    console.log("User clicked 'I've created my wallet'");
+    // Call the onComplete callback provided by the parent component
+    onComplete();
+  };
+
   return (
     <div className={`space-y-4 ${className}`}>
       <Alert className="bg-blue-50 border-blue-200">
@@ -66,7 +72,7 @@ const WalletEducationPanel: React.FC<WalletEducationPanelProps> = ({ onComplete,
       
       <div className="pt-3">
         <Button 
-          onClick={onComplete} 
+          onClick={handleWalletCreated} 
           className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
         >
           <CheckCircle className="mr-2 h-4 w-4" />

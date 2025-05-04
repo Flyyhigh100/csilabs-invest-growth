@@ -7,6 +7,7 @@ interface PurchaseFlowState {
   walletSetupComplete: boolean;
   walletFundingComplete: boolean;
   showCoinPaymentsOptions: boolean;
+  needsRender: boolean; // Force re-renders when needed
 }
 
 export const usePurchaseFlow = () => {
@@ -15,7 +16,8 @@ export const usePurchaseFlow = () => {
     currentStep: 1,
     walletSetupComplete: false,
     walletFundingComplete: false,
-    showCoinPaymentsOptions: false
+    showCoinPaymentsOptions: false,
+    needsRender: false
   });
 
   // Initialize from localStorage if available
@@ -56,20 +58,29 @@ export const usePurchaseFlow = () => {
   }, []);
 
   const markWalletSetupComplete = useCallback(() => {
+    console.log("Setting wallet setup complete");
     localStorage.setItem('walletSetupComplete', 'true');
-    setState(prev => ({
-      ...prev,
-      walletSetupComplete: true,
-      currentStep: 2
-    }));
+    
+    // Use a timeout to ensure the state update happens after the current render cycle
+    setTimeout(() => {
+      setState(prev => ({
+        ...prev,
+        walletSetupComplete: true,
+        currentStep: 2,
+        needsRender: !prev.needsRender // Toggle to force re-render
+      }));
+    }, 50);
   }, []);
 
   const markWalletFundingComplete = useCallback(() => {
+    console.log("Setting wallet funding complete");
     localStorage.setItem('walletFundingComplete', 'true');
+    
     setState(prev => ({
       ...prev,
       walletFundingComplete: true,
-      currentStep: 3
+      currentStep: 3,
+      needsRender: !prev.needsRender // Toggle to force re-render
     }));
   }, []);
 
@@ -91,7 +102,8 @@ export const usePurchaseFlow = () => {
       currentStep: 1,
       walletSetupComplete: false,
       walletFundingComplete: false,
-      showCoinPaymentsOptions: false
+      showCoinPaymentsOptions: false,
+      needsRender: false
     });
   }, []);
 

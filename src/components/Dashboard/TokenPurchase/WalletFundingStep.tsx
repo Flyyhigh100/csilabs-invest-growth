@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
@@ -16,9 +16,24 @@ const WalletFundingStep: React.FC<WalletFundingStepProps> = ({
   onStartFunding,
   isExpanded 
 }) => {
+  // Log when this component renders
+  useEffect(() => {
+    console.log("WalletFundingStep rendering with isExpanded:", isExpanded);
+  }, [isExpanded]);
+
   if (!isExpanded) {
     return null;
   }
+
+  const handleWalletFunded = () => {
+    console.log("User clicked 'I've already funded my wallet'");
+    onComplete();
+  };
+
+  const handleStartFunding = () => {
+    console.log("User clicked 'Fund My Wallet with Stripe'");
+    onStartFunding();
+  };
 
   return (
     <Card className="bg-white rounded-lg shadow-sm overflow-hidden border border-blue-200 transition-all hover:shadow-md">
@@ -65,14 +80,14 @@ const WalletFundingStep: React.FC<WalletFundingStepProps> = ({
         
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Button 
-            onClick={onStartFunding} 
+            onClick={handleStartFunding} 
             className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white sm:flex-1"
           >
             Fund My Wallet with Stripe
           </Button>
           <Button 
             variant="outline" 
-            onClick={onComplete}
+            onClick={handleWalletFunded}
             className="sm:flex-1"
           >
             <CheckCircle className="mr-2 h-4 w-4" />
