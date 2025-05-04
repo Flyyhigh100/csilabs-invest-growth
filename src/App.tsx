@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { useUser, useSupabaseClient } from '@supabase/auth-helpers-react';
-import { Auth } from '@supabase/auth-ui-react'
-import { ThemeSupa } from '@supabase/auth-ui-shared'
+import { Auth } from '@supabase/auth-ui-react';
+import { ThemeSupa } from '@supabase/auth-ui-shared';
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
@@ -17,25 +18,24 @@ import Notifications from "./pages/Notifications";
 import CoinPaymentsSetup from "./pages/CoinPaymentsSetup";
 import TestIPNWebhook from "./pages/TestIPNWebhook";
 import TestIPNForm from "./pages/TestIPNForm";
-import TopNavigation from '@/components/Dashboard/Layouts/TopNavigation';
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/toaster";
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { ReactQueryDevtools } from 'react-query/devtools';
 import { useHydrate } from 'react-query/hydration';
-import { createBrowserSupabaseClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserSupabaseClient } from '@supabase/auth-helpers-nextjs';
 import { MoralisProvider } from "react-moralis";
 import { polygonMumbai } from "@wagmi/chains";
-import { WagmiConfig, createConfig, configureChains } from 'wagmi'
-import { publicProvider } from 'wagmi/providers/public'
+import { WagmiConfig, createConfig, configureChains } from 'wagmi';
+import { publicProvider } from 'wagmi/providers/public';
 import {
   EthereumClient,
   w3mConnectors,
   w3mProvider,
-} from '@web3modal/ethereum'
-import { Web3Modal } from '@web3modal/react'
-import { mainnet, goerli } from 'wagmi/chains'
-
-// Make sure TestToolsPage is imported at the top with other imports
+} from '@web3modal/ethereum';
+import { Web3Modal } from '@web3modal/react';
+import { mainnet, goerli } from 'wagmi/chains';
+import { useAuth } from '@/contexts/AuthContext';
+import DashboardLayout from "@/components/Dashboard/Layout";
 import TestToolsPage from './pages/Admin/TestTools';
 
 const queryClient = new QueryClient({
@@ -58,25 +58,52 @@ const { chains, publicClient } = configureChains(
     w3mProvider({ projectId }),
     publicProvider()
   ]
-)
+);
 
 const wagmiConfig = createConfig({
   autoConnect: true,
   connectors: w3mConnectors({ projectId, version: 1, chains }),
   publicClient
-})
+});
 
-const ethereumClient = new EthereumClient(wagmiConfig, chains)
+const ethereumClient = new EthereumClient(wagmiConfig, chains);
 
 function App() {
   const supabase = useSupabaseClient();
   const user = useUser();
 
   const [hydrated, setHydrated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    // Check if the current user is an admin
+    async function checkAdminStatus() {
+      if (user) {
+        // Check if user exists in the admins table
+        const { data, error } = await supabase
+          .from('admins')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+          
+        if (data && !error) {
+          setIsAdmin(true);
+        }
+        
+        setIsChecking(false);
+      } else {
+        setIsAdmin(false);
+        setIsChecking(false);
+      }
+    }
+    
+    checkAdminStatus();
+  }, [user, supabase]);
 
   useHydrate(queryClient, () => {
     if (typeof window === 'undefined') {
@@ -94,14 +121,40 @@ function App() {
 
     const localStorageData = localStorage.getItem('react-query');
     if (!localStorageData) {
-      localStorage.setItem('react-query', JSON.stringify(queryClient. dehydrate()));
+      localStorage.setItem('react-query', JSON.stringify(queryClient.dehydrate()));
     }
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      // Navigate to home page after logout
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
+  const navItems = [
+    { title: 'Dashboard', path: '/' },
+    { title: 'Transactions', path: '/transactions' },
+    { title: 'Research Documents', path: '/research-documents' }
+  ];
+
+  const adminNavItem = { title: 'Admin Portal', path: '/admin' };
 
   const AdminRoute = () => {
     return user ? (
       user.email?.includes("@cbis.network") ? (
-        <TopNavigation />
+        <DashboardLayout title="Admin Dashboard">
+          <TopNavigation 
+            email={user?.email}
+            isAdmin={isAdmin}
+            isChecking={isChecking}
+            navItems={navItems}
+            adminNavItem={adminNavItem}
+            handleLogout={handleLogout}
+          />
+        </DashboardLayout>
       ) : (
         <Navigate to="/" />
       )
