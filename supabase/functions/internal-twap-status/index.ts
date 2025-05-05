@@ -13,6 +13,42 @@ function isDebugEnabled() {
   return Deno.env.get("DEBUG_TWAP") === "true";
 }
 
+// Helper function to proxy requests to the V4 subgraph
+async function proxySubgraphRequest(poolId) {
+  try {
+    const UNISWAP_V4_URL = Deno.env.get("UNISWAP_V4_URL") || 
+      'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-polygon';
+    
+    if (isDebugEnabled()) {
+      console.log(`[DEBUG] Proxying request to V4 subgraph: ${UNISWAP_V4_URL}`);
+    }
+    
+    // Query for the pool and its details
+    const query = `{
+      pool(id: "${poolId}") {
+        token0 { id symbol decimals }
+        token1 { id symbol decimals }
+        sqrtPriceX96
+      }
+    }`;
+    
+    const response = await fetch(UNISWAP_V4_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Subgraph status: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error proxying subgraph request:", error);
+    throw error;
+  }
+}
+
 // Helper function to fetch TWAP status from the V4 pool
 async function fetchTwapStatus() {
   try {
@@ -27,25 +63,8 @@ async function fetchTwapStatus() {
       console.log(`[DEBUG] Fetching status for V4 pool ${UNISWAP_V4_POOL} from ${UNISWAP_V4_URL}`);
     }
 
-    // Query the subgraph for basic pool information to verify connectivity
-    const response = await fetch(UNISWAP_V4_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: `{
-          pool(id: "${UNISWAP_V4_POOL}") {
-            id
-            sqrtPriceX96
-          }
-        }`
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Subgraph error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    // Proxy the request to avoid CORS issues
+    const data = await proxySubgraphRequest(UNISWAP_V4_POOL);
     
     if (isDebugEnabled()) {
       console.log("[DEBUG] Subgraph response:", JSON.stringify(data));
@@ -60,8 +79,11 @@ async function fetchTwapStatus() {
     }
 
     // Return diagnostic information
-    const sqrtPriceX96 = data.data.pool.sqrtPriceX96;
-    const rawPrice = convertSqrtPriceToPrice(sqrtPriceX96);
+    const pool = data.data.pool;
+    const sqrtPriceX96 = pool.sqrtPriceX96;
+    const rawPrice = convertSqrtPriceToPrice(sqrtPriceX96, 
+      parseInt(pool.token0.decimals), 
+      parseInt(pool.token1.decimals));
     
     return {
       lastAttempt: new Date().toISOString(),
@@ -72,7 +94,9 @@ async function fetchTwapStatus() {
         pool: UNISWAP_V4_POOL,
         endpoint: UNISWAP_V4_URL,
         sqrtPriceX96: sqrtPriceX96,
-        rawCalculatedPrice: rawPrice
+        rawCalculatedPrice: rawPrice,
+        token0: pool.token0,
+        token1: pool.token1
       }
     };
   } catch (error) {
@@ -91,20 +115,37 @@ async function fetchTwapStatus() {
   }
 }
 
-// Helper to convert sqrtPriceX96 to actual price (simplified)
-function convertSqrtPriceToPrice(sqrtPriceX96) {
+// Helper to convert sqrtPriceX96 to actual price
+function convertSqrtPriceToPrice(sqrtPriceX96, decimals0 = 18, decimals1 = 6) {
   try {
     // Convert the string to BigInt
     const sqrtPriceBigInt = BigInt(sqrtPriceX96);
     
     // Formula: (sqrtPriceX96^2 / 2^192) * 10^(decimals1 - decimals0)
-    // For simplicity, assuming decimals0 = 18 and decimals1 = 6
-    const price = Number(sqrtPriceBigInt * sqrtPriceBigInt >> 192n) / 10**(6 - 18);
+    const price = Number(sqrtPriceBigInt * sqrtPriceBigInt >> 192n) / 10**(decimals1 - decimals0);
     
     return price;
   } catch (error) {
     console.error("Error converting sqrt price:", error);
     return null;
+  }
+}
+
+// Add an endpoint to directly test the subgraph
+async function testSubgraphConnection(poolId) {
+  try {
+    const data = await proxySubgraphRequest(poolId);
+    return {
+      success: true,
+      data,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString()
+    };
   }
 }
 
@@ -116,6 +157,27 @@ serve(async (req) => {
   }
 
   try {
+    const url = new URL(req.url);
+    const path = url.pathname.split('/').pop();
+    
+    // Check if this is a direct test request
+    if (path === 'test-connection') {
+      const poolId = url.searchParams.get('poolId') || 
+        '0x7d3640d16367d75ebe808b3b22cd60a70aea6c1c3a72be45082736e3fbb6040c';
+      
+      const testResult = await testSubgraphConnection(poolId);
+      
+      return new Response(
+        JSON.stringify(testResult),
+        {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+    }
+
     // Check if we need to refresh the cache
     const now = Date.now();
     if (!lastStatusCheck || !statusCache || now - lastStatusCheck > STATUS_CACHE_TTL) {

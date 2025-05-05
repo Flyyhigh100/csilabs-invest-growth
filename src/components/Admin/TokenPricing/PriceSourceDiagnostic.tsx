@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RefreshCw, Info, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { UNISWAP_V4_POOL } from '@/services/api/config';
 
 interface PriceSourceProps {
   name: string;
@@ -72,14 +73,173 @@ const PriceSource: React.FC<PriceSourceProps> = ({
 const PriceSourceDiagnostic = () => {
   const [sources, setSources] = React.useState({
     v4Subgraph: { isWorking: null, latestPrice: null, lastError: null, lastAttempt: null, isTesting: false },
-    v4Spot: { isWorking: null, latestPrice: null, lastError: null, lastAttempt: null, isTesting: false },
+    v4EdgeProxy: { isWorking: null, latestPrice: null, lastError: null, lastAttempt: null, isTesting: false },
     v3Twap: { isWorking: null, latestPrice: null, lastError: null, lastAttempt: null, isTesting: false },
     definedfi: { isWorking: null, latestPrice: null, lastError: null, lastAttempt: null, isTesting: false },
     dexscreener: { isWorking: null, latestPrice: null, lastError: null, lastAttempt: null, isTesting: false }
   });
 
-  // Mock functionality for testing each source
+  // Test the V4 subgraph directly
+  const testV4Subgraph = async () => {
+    setSources(prev => ({ 
+      ...prev, 
+      v4Subgraph: { ...prev.v4Subgraph, isTesting: true } 
+    }));
+
+    try {
+      // Use the GraphQL query directly
+      const response = await fetch('https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-polygon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `{
+            pool(id: "${UNISWAP_V4_POOL}") {
+              sqrtPriceX96
+              token0 { id symbol decimals }
+              token1 { id symbol decimals }
+            }
+          }`
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.errors || !data.data?.pool) {
+        throw new Error(data.errors ? data.errors[0].message : 'Pool not found');
+      }
+      
+      // Calculate price from sqrtPriceX96
+      const sqrtPriceX96 = BigInt(data.data.pool.sqrtPriceX96);
+      const decimals0 = parseInt(data.data.pool.token0.decimals);
+      const decimals1 = parseInt(data.data.pool.token1.decimals);
+      const price = Number((sqrtPriceX96 * sqrtPriceX96 >> 192n)) / 10**(decimals1 - decimals0);
+      
+      setSources(prev => ({ 
+        ...prev, 
+        v4Subgraph: { 
+          isWorking: true,
+          latestPrice: price, 
+          lastError: null, 
+          lastAttempt: new Date().toISOString(),
+          isTesting: false 
+        } 
+      }));
+    } catch (error) {
+      setSources(prev => ({ 
+        ...prev, 
+        v4Subgraph: { 
+          isWorking: false, 
+          lastError: error instanceof Error ? error.message : String(error), 
+          lastAttempt: new Date().toISOString(),
+          isTesting: false 
+        } 
+      }));
+    }
+  };
+  
+  // Test the Edge Function proxy
+  const testV4EdgeProxy = async () => {
+    setSources(prev => ({ 
+      ...prev, 
+      v4EdgeProxy: { ...prev.v4EdgeProxy, isTesting: true } 
+    }));
+
+    try {
+      // Use the edge function proxy
+      const response = await fetch(`https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/internal-twap-status/test-connection?poolId=${UNISWAP_V4_POOL}`);
+      
+      if (!response.ok) {
+        throw new Error(`Edge function error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Edge function proxy failed');
+      }
+      
+      if (!data.data?.data?.pool) {
+        throw new Error('No pool data returned');
+      }
+      
+      // Get price from pool data
+      const pool = data.data.data.pool;
+      const sqrtPriceX96 = BigInt(pool.sqrtPriceX96);
+      const decimals0 = parseInt(pool.token0.decimals);
+      const decimals1 = parseInt(pool.token1.decimals);
+      const price = Number((sqrtPriceX96 * sqrtPriceX96 >> 192n)) / 10**(decimals1 - decimals0);
+      
+      setSources(prev => ({ 
+        ...prev, 
+        v4EdgeProxy: { 
+          isWorking: true,
+          latestPrice: price, 
+          lastError: null, 
+          lastAttempt: new Date().toISOString(),
+          isTesting: false 
+        } 
+      }));
+    } catch (error) {
+      setSources(prev => ({ 
+        ...prev, 
+        v4EdgeProxy: { 
+          isWorking: false, 
+          lastError: error instanceof Error ? error.message : String(error), 
+          lastAttempt: new Date().toISOString(),
+          isTesting: false 
+        } 
+      }));
+    }
+  };
+  
+  // Test status endpoint
+  const testStatusEndpoint = async () => {
+    setSources(prev => ({ 
+      ...prev, 
+      v4EdgeProxy: { ...prev.v4EdgeProxy, isTesting: true } 
+    }));
+
+    try {
+      const response = await fetch('https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/internal-twap-status');
+      
+      if (!response.ok) {
+        throw new Error(`Status endpoint error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      setSources(prev => ({ 
+        ...prev, 
+        v4EdgeProxy: { 
+          isWorking: true,
+          latestPrice: data.lastPrice, 
+          lastError: data.lastError || null, 
+          lastAttempt: data.lastAttempt || new Date().toISOString(),
+          isTesting: false 
+        } 
+      }));
+    } catch (error) {
+      setSources(prev => ({ 
+        ...prev, 
+        v4EdgeProxy: { 
+          isWorking: false, 
+          lastError: error instanceof Error ? error.message : String(error), 
+          lastAttempt: new Date().toISOString(),
+          isTesting: false 
+        } 
+      }));
+    }
+  };
+
+  // Generic test function for other sources
   const testSource = async (source: keyof typeof sources) => {
+    // Skip if it's one of our special handlers
+    if (source === 'v4Subgraph') {
+      return testV4Subgraph();
+    } else if (source === 'v4EdgeProxy') {
+      return testV4EdgeProxy();
+    }
+    
     // Set source as testing
     setSources(prev => ({ 
       ...prev, 
@@ -87,27 +247,10 @@ const PriceSourceDiagnostic = () => {
     }));
 
     try {
-      // Call a function that would test each source
-      // For now we're just simulating success/failure
-      const response = await fetch('https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/internal-twap-status');
-      const data = await response.json();
-      
-      // Update source status based on diagnostics data
-      // In a real implementation, we would actually test each source
-      let isWorking = source === 'v4Subgraph' ? data.source === 'v4Subgraph' && !data.lastError : false;
-      let price = source === 'v4Subgraph' ? data.lastPrice : null;
-      let error = source === 'v4Subgraph' ? data.lastError : "Not implemented yet";
-      
-      // For demo purposes:
-      if (source !== 'v4Subgraph') {
-        isWorking = Math.random() > 0.5;
-        if (isWorking) {
-          price = 1 + (Math.random() * 0.1);
-          error = null;
-        } else {
-          error = "Test not implemented yet";
-        }
-      }
+      // For other sources, simulate a test
+      let isWorking = Math.random() > 0.3;
+      let price = isWorking ? 1 + (Math.random() * 0.1) : null;
+      let error = isWorking ? null : "Test not implemented yet";
       
       setSources(prev => ({ 
         ...prev, 
@@ -133,6 +276,16 @@ const PriceSourceDiagnostic = () => {
       }));
     }
   };
+  
+  // Run initial tests on component mount
+  React.useEffect(() => {
+    testV4Subgraph();
+    testStatusEndpoint();
+    // Test other sources
+    setTimeout(() => testSource('v3Twap'), 500);
+    setTimeout(() => testSource('definedfi'), 1000);
+    setTimeout(() => testSource('dexscreener'), 1500);
+  }, []);
 
   return (
     <Card>
@@ -162,17 +315,17 @@ const PriceSourceDiagnostic = () => {
         />
         
         <PriceSource 
-          name="Uniswap V4 Spot (Fallback 1)" 
-          isWorking={sources.v4Spot.isWorking}
-          latestPrice={sources.v4Spot.latestPrice}
-          lastError={sources.v4Spot.lastError}
-          lastAttempt={sources.v4Spot.lastAttempt}
-          onTest={() => testSource('v4Spot')}
-          isTesting={sources.v4Spot.isTesting}
+          name="Edge Function Proxy" 
+          isWorking={sources.v4EdgeProxy.isWorking}
+          latestPrice={sources.v4EdgeProxy.latestPrice}
+          lastError={sources.v4EdgeProxy.lastError}
+          lastAttempt={sources.v4EdgeProxy.lastAttempt}
+          onTest={() => testSource('v4EdgeProxy')}
+          isTesting={sources.v4EdgeProxy.isTesting}
         />
         
         <PriceSource 
-          name="Uniswap V3 TWAP (Fallback 2)" 
+          name="Uniswap V3 TWAP (Fallback 1)" 
           isWorking={sources.v3Twap.isWorking}
           latestPrice={sources.v3Twap.latestPrice}
           lastError={sources.v3Twap.lastError}
@@ -182,7 +335,7 @@ const PriceSourceDiagnostic = () => {
         />
         
         <PriceSource 
-          name="Defined.fi (Fallback 3)" 
+          name="Defined.fi (Fallback 2)" 
           isWorking={sources.definedfi.isWorking}
           latestPrice={sources.definedfi.latestPrice}
           lastError={sources.definedfi.lastError}
@@ -192,7 +345,7 @@ const PriceSourceDiagnostic = () => {
         />
         
         <PriceSource 
-          name="DexScreener (Fallback 4)" 
+          name="DexScreener (Fallback 3)" 
           isWorking={sources.dexscreener.isWorking}
           latestPrice={sources.dexscreener.latestPrice}
           lastError={sources.dexscreener.lastError}
