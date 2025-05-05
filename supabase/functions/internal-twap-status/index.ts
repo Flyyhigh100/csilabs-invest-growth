@@ -2,7 +2,113 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { corsHeaders } from "./utils.ts";
 
-// Handle the GET /internal/twap/status route
+// Create a connection to the V4 TWAP service - simulating a connection
+// since we can't directly import code from the frontend
+let lastStatusCheck = null;
+let statusCache = null;
+const STATUS_CACHE_TTL = 5000; // 5 seconds
+
+// Helper function to get debug value from environment
+function isDebugEnabled() {
+  return Deno.env.get("DEBUG_TWAP") === "true";
+}
+
+// Helper function to fetch TWAP status from the V4 pool
+async function fetchTwapStatus() {
+  try {
+    // We'll use the UNISWAP_V4_URL and UNISWAP_V4_POOL from environment if available
+    const UNISWAP_V4_URL = Deno.env.get("UNISWAP_V4_URL") || 
+      'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-polygon';
+    
+    const UNISWAP_V4_POOL = Deno.env.get("UNISWAP_V4_POOL") || 
+      '0x7d3640d16367d75ebe808b3b22cd60a70aea6c1c3a72be45082736e3fbb6040c';
+    
+    if (isDebugEnabled()) {
+      console.log(`[DEBUG] Fetching status for V4 pool ${UNISWAP_V4_POOL} from ${UNISWAP_V4_URL}`);
+    }
+
+    // Query the subgraph for basic pool information to verify connectivity
+    const response = await fetch(UNISWAP_V4_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `{
+          pool(id: "${UNISWAP_V4_POOL}") {
+            id
+            sqrtPriceX96
+          }
+        }`
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Subgraph error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    if (isDebugEnabled()) {
+      console.log("[DEBUG] Subgraph response:", JSON.stringify(data));
+    }
+
+    if (data.errors) {
+      throw new Error(`Subgraph query error: ${JSON.stringify(data.errors)}`);
+    }
+
+    if (!data.data?.pool) {
+      throw new Error(`Pool ${UNISWAP_V4_POOL} not found in subgraph`);
+    }
+
+    // Return diagnostic information
+    const sqrtPriceX96 = data.data.pool.sqrtPriceX96;
+    const rawPrice = convertSqrtPriceToPrice(sqrtPriceX96);
+    
+    return {
+      lastAttempt: new Date().toISOString(),
+      lastError: null,
+      lastPrice: rawPrice,
+      source: "v4Subgraph",
+      diagnostics: {
+        pool: UNISWAP_V4_POOL,
+        endpoint: UNISWAP_V4_URL,
+        sqrtPriceX96: sqrtPriceX96,
+        rawCalculatedPrice: rawPrice
+      }
+    };
+  } catch (error) {
+    console.error("Error fetching TWAP status:", error);
+    
+    return {
+      lastAttempt: new Date().toISOString(),
+      lastError: error instanceof Error ? error.message : String(error),
+      lastPrice: null,
+      source: "error",
+      diagnostics: {
+        error: error instanceof Error ? error.message : String(error),
+        errorType: error.constructor.name
+      }
+    };
+  }
+}
+
+// Helper to convert sqrtPriceX96 to actual price (simplified)
+function convertSqrtPriceToPrice(sqrtPriceX96) {
+  try {
+    // Convert the string to BigInt
+    const sqrtPriceBigInt = BigInt(sqrtPriceX96);
+    
+    // Formula: (sqrtPriceX96^2 / 2^192) * 10^(decimals1 - decimals0)
+    // For simplicity, assuming decimals0 = 18 and decimals1 = 6
+    const price = Number(sqrtPriceBigInt * sqrtPriceBigInt >> 192n) / 10**(6 - 18);
+    
+    return price;
+  } catch (error) {
+    console.error("Error converting sqrt price:", error);
+    return null;
+  }
+}
+
+// Handle the GET /internal/twap-status route
 serve(async (req) => {
   // Handle preflight CORS
   if (req.method === 'OPTIONS') {
@@ -10,20 +116,23 @@ serve(async (req) => {
   }
 
   try {
-    // This is a simplified mock response since we can't directly access the frontend's state
-    // In a real implementation, we would store this data in a database or shared cache
-    // For now, we'll create a simplified version that can be replaced with real data
-    
-    const mockStatus = {
-      lastAttempt: new Date().toISOString(),
-      lastError: null,
-      lastPrice: 1.0007, // Example price based on console logs
-      source: "v3Twap" // Most likely source based on console logs
-    };
+    // Check if we need to refresh the cache
+    const now = Date.now();
+    if (!lastStatusCheck || !statusCache || now - lastStatusCheck > STATUS_CACHE_TTL) {
+      statusCache = await fetchTwapStatus();
+      lastStatusCheck = now;
+      
+      if (isDebugEnabled()) {
+        console.log(`[DEBUG] Updated TWAP status cache at ${new Date().toISOString()}`);
+        console.log(`[DEBUG] Status data:`, JSON.stringify(statusCache));
+      }
+    } else if (isDebugEnabled()) {
+      console.log(`[DEBUG] Using cached TWAP status from ${new Date(lastStatusCheck).toISOString()}`);
+    }
 
     // Return the status in JSON format
     return new Response(
-      JSON.stringify(mockStatus),
+      JSON.stringify(statusCache),
       {
         headers: {
           ...corsHeaders,
@@ -37,7 +146,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         error: "Internal server error",
-        message: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString()
       }),
       {
         status: 500,

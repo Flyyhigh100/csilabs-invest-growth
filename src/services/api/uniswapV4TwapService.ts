@@ -1,3 +1,4 @@
+
 import { gql, request } from 'graphql-request';
 import { UNISWAP_V4_POOL, ENABLE_LOGGING, COUNTER_TOKEN_DECIMALS } from './config';
 import { isValidPrice, MIN_VALID_PRICE, MAX_VALID_PRICE } from './utils/priceValidation';
@@ -16,6 +17,19 @@ let lastError: string | null = null;
 let lastPrice: number | null = null;
 let lastSource: 'v4Subgraph' | 'v3Twap' | 'DexScreener' | 'cache' | null = null;
 
+// Diagnostics data for debugging
+interface DiagnosticsData {
+  requestParams?: any;
+  response?: any;
+  error?: string;
+  sqrtPriceX96?: string;
+  calculatedPrice?: number;
+  endpoint?: string;
+  poolId?: string;
+}
+
+let lastDiagnostics: DiagnosticsData | null = null;
+
 // Subgraph endpoint for Uniswap V4 on Polygon
 const SUBGRAPH_ENDPOINT = import.meta.env.VITE_V4_SUBGRAPH_ENDPOINT || 
   'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-polygon';
@@ -33,10 +47,21 @@ interface PoolQueryResponse {
  * @returns The sqrtPriceX96 value as a BigInt
  */
 export async function querySqrtPriceX96(poolId: string): Promise<bigint> {
+  // Enhanced query with token details for better debugging
   const query = gql`
     {
       pool(id: "${poolId}") {
         sqrtPriceX96
+        token0 {
+          id
+          symbol
+          decimals
+        }
+        token1 {
+          id
+          symbol
+          decimals
+        }
       }
     }
   `;
@@ -45,30 +70,92 @@ export async function querySqrtPriceX96(poolId: string): Promise<bigint> {
     console.debug('[DEBUG_TWAP] Making GraphQL query to endpoint:', SUBGRAPH_ENDPOINT);
     console.debug('[DEBUG_TWAP] Pool ID:', poolId);
     console.debug('[DEBUG_TWAP] Query string:', query);
+    
+    // Save diagnostic data
+    lastDiagnostics = {
+      ...lastDiagnostics,
+      requestParams: {
+        endpoint: SUBGRAPH_ENDPOINT,
+        poolId,
+        query: query.toString()
+      }
+    };
   }
 
   const startTime = performance.now();
-  const response = await request<PoolQueryResponse>(SUBGRAPH_ENDPOINT, query);
-  const endTime = performance.now();
-  
-  if (ENABLE_LOGGING || DEBUG_TWAP) {
-    console.debug('subgraph-ms', endTime - startTime);
-  }
-
-  if (DEBUG_TWAP) {
-    console.debug('[DEBUG_TWAP] Raw response data:', JSON.stringify(response));
-  }
-
-  if (!response?.pool?.sqrtPriceX96) {
-    const errorMsg = 'Failed to fetch sqrtPriceX96 from subgraph';
-    if (DEBUG_TWAP) {
-      console.error('[DEBUG_TWAP] Error:', errorMsg);
+  try {
+    const response = await request<any>(SUBGRAPH_ENDPOINT, query);
+    const endTime = performance.now();
+    
+    if (ENABLE_LOGGING || DEBUG_TWAP) {
+      console.debug('subgraph-ms', endTime - startTime);
     }
-    throw new Error(errorMsg);
-  }
 
-  // Convert the string to BigInt
-  return BigInt(response.pool.sqrtPriceX96);
+    if (DEBUG_TWAP) {
+      console.debug('[DEBUG_TWAP] Raw response data:', JSON.stringify(response));
+      
+      // Save response for diagnostics
+      lastDiagnostics = {
+        ...lastDiagnostics,
+        response: response
+      };
+    }
+
+    if (!response?.pool?.sqrtPriceX96) {
+      const errorMsg = 'Failed to fetch sqrtPriceX96 from subgraph';
+      if (DEBUG_TWAP) {
+        console.error('[DEBUG_TWAP] Error:', errorMsg);
+        lastDiagnostics = {
+          ...lastDiagnostics,
+          error: errorMsg
+        };
+      }
+      throw new Error(errorMsg);
+    }
+
+    // Store token details for diagnostics
+    if (DEBUG_TWAP && response.pool.token0 && response.pool.token1) {
+      console.debug('[DEBUG_TWAP] Pool token0:', response.pool.token0);
+      console.debug('[DEBUG_TWAP] Pool token1:', response.pool.token1);
+      
+      lastDiagnostics = {
+        ...lastDiagnostics,
+        token0: response.pool.token0,
+        token1: response.pool.token1
+      };
+    }
+
+    // Store the sqrtPriceX96 for diagnostics
+    if (DEBUG_TWAP) {
+      lastDiagnostics = {
+        ...lastDiagnostics,
+        sqrtPriceX96: response.pool.sqrtPriceX96
+      };
+    }
+
+    // Convert the string to BigInt
+    return BigInt(response.pool.sqrtPriceX96);
+  } catch (error) {
+    const endTime = performance.now();
+    console.error(`[DEBUG_TWAP] Query failed after ${endTime - startTime}ms:`, error);
+    
+    // Enhanced error logging
+    if (DEBUG_TWAP) {
+      console.error('[DEBUG_TWAP] Query error details:', {
+        endpoint: SUBGRAPH_ENDPOINT,
+        poolId,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined
+      });
+      
+      lastDiagnostics = {
+        ...lastDiagnostics,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+    
+    throw error;
+  }
 }
 
 /**
@@ -85,8 +172,37 @@ export function convertQ96ToDecimal(
   decimals0 = 18,
   decimals1 = COUNTER_TOKEN_DECIMALS
 ): number {
-  // Formula: (sqrtPriceX96^2 / 2^192) * 10^(decimals1 - decimals0)
-  return Number((sqrtPriceX96 * sqrtPriceX96 >> 192n)) / 10**(decimals1 - decimals0);
+  try {
+    // Formula: (sqrtPriceX96^2 / 2^192) * 10^(decimals1 - decimals0)
+    const price = Number((sqrtPriceX96 * sqrtPriceX96 >> 192n)) / 10**(decimals1 - decimals0);
+    
+    if (DEBUG_TWAP) {
+      console.debug('[DEBUG_TWAP] Price calculation:', { 
+        sqrtPriceX96: sqrtPriceX96.toString(), 
+        decimals0, 
+        decimals1, 
+        result: price 
+      });
+      
+      lastDiagnostics = {
+        ...lastDiagnostics,
+        calculatedPrice: price
+      };
+    }
+    
+    return price;
+  } catch (error) {
+    console.error('[DEBUG_TWAP] Error in price conversion:', error);
+    
+    if (DEBUG_TWAP) {
+      lastDiagnostics = {
+        ...lastDiagnostics,
+        error: `Price conversion error: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
+    
+    throw error;
+  }
 }
 
 /**
@@ -98,7 +214,8 @@ export function getTwapStatus() {
     lastAttempt: lastAttemptTime,
     lastError: lastError,
     lastPrice: lastPrice,
-    source: lastSource
+    source: lastSource,
+    diagnostics: lastDiagnostics,
   };
 }
 
@@ -110,6 +227,7 @@ export async function fetchSubgraphPrice(): Promise<number> {
   let retries = 0;
   lastAttemptTime = new Date().toISOString();
   lastSource = 'v4Subgraph';
+  lastDiagnostics = { endpoint: SUBGRAPH_ENDPOINT, poolId: UNISWAP_V4_POOL };
   
   try {
     while (retries <= MAX_RETRIES) {
@@ -142,6 +260,11 @@ export async function fetchSubgraphPrice(): Promise<number> {
           const errorMsg = `Invalid V4 subgraph price: ${price}`;
           if (DEBUG_TWAP) {
             console.error('[DEBUG_TWAP] Validation failed:', errorMsg);
+            lastDiagnostics = {
+              ...lastDiagnostics,
+              error: errorMsg,
+              validationLimits: { min: MIN_VALID_PRICE, max: MAX_VALID_PRICE }
+            };
           }
           throw new Error(errorMsg);
         }

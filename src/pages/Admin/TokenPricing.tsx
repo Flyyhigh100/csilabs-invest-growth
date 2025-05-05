@@ -6,6 +6,8 @@ import CurrentPriceCard from '@/components/Admin/TokenPricing/CurrentPriceCard';
 import { useTokenData } from '@/hooks/useTokenData';
 import { TokenPriceProvider, useTokenPrice } from '@/context/TokenPriceContext';
 import { PriceDebugger } from '@/components/Admin/TokenPricing/PriceDebugger';
+import PriceSourceDiagnostic from '@/components/Admin/TokenPricing/PriceSourceDiagnostic';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const TokenPricingContent = () => {
   const { 
@@ -23,25 +25,43 @@ const TokenPricingContent = () => {
   const secondsUntilRefresh = Math.ceil(timeUntilNextUpdate / 1000);
     
   return (
-    <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
-      <TokenPriceChart 
-        priceData={priceData} 
-        isHistoryLoading={isLoading}
-        refreshAllData={refreshAllData}
-      />
-      
-      <div className="space-y-6">
-        <CurrentPriceCard 
-          currentPrice={currentPrice}
-          isPriceLoading={isLoading}
-          refreshPrice={refreshPrice}
-          formattedLastUpdated={formattedLastUpdated}
-          secondsUntilRefresh={secondsUntilRefresh}
-          dataSource={dataSource}
-        />
+    <div className="space-y-6">
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
+        </TabsList>
         
-        <PriceDebugger />
-      </div>
+        <TabsContent value="overview">
+          <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+            <TokenPriceChart 
+              priceData={priceData} 
+              isHistoryLoading={isLoading}
+              refreshAllData={refreshAllData}
+            />
+            
+            <div className="space-y-6">
+              <CurrentPriceCard 
+                currentPrice={currentPrice}
+                isPriceLoading={isLoading}
+                refreshPrice={refreshPrice}
+                formattedLastUpdated={formattedLastUpdated}
+                secondsUntilRefresh={secondsUntilRefresh}
+                dataSource={dataSource}
+              />
+              
+              <PriceDebugger />
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="diagnostics">
+          <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+            <PriceDebugger />
+            <PriceSourceDiagnostic />
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
