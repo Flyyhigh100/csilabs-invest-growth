@@ -1,5 +1,5 @@
 
-import { fetchCurrentTokenPrice } from './currentPriceService';
+import { fetchCurrentTokenPrice, PriceResult } from './currentPriceService';
 
 /**
  * Converts USD value to token amount using current price
@@ -7,8 +7,18 @@ import { fetchCurrentTokenPrice } from './currentPriceService';
  * @param tokenPrice Current token price (optional, will fetch if not provided)
  * @returns Promise with token amount
  */
-export const convertUsdToTokenAmount = async (usdAmount: number, tokenPrice?: number): Promise<number> => {
-  const price = tokenPrice || await fetchCurrentTokenPrice();
+export const convertUsdToTokenAmount = async (usdAmount: number, tokenPrice?: number | PriceResult): Promise<number> => {
+  let price: number;
+  
+  if (tokenPrice === undefined) {
+    const priceResult = await fetchCurrentTokenPrice();
+    price = priceResult.price;
+  } else if (typeof tokenPrice === 'number') {
+    price = tokenPrice;
+  } else {
+    price = tokenPrice.price;
+  }
+  
   if (price <= 0) return 0;
   return usdAmount / price;
 };
@@ -19,7 +29,17 @@ export const convertUsdToTokenAmount = async (usdAmount: number, tokenPrice?: nu
  * @param tokenPrice Current token price (optional, will fetch if not provided)
  * @returns Promise with USD amount
  */
-export const convertTokenAmountToUsd = async (tokenAmount: number, tokenPrice?: number): Promise<number> => {
-  const price = tokenPrice || await fetchCurrentTokenPrice();
+export const convertTokenAmountToUsd = async (tokenAmount: number, tokenPrice?: number | PriceResult): Promise<number> => {
+  let price: number;
+  
+  if (tokenPrice === undefined) {
+    const priceResult = await fetchCurrentTokenPrice();
+    price = priceResult.price;
+  } else if (typeof tokenPrice === 'number') {
+    price = tokenPrice;
+  } else {
+    price = tokenPrice.price;
+  }
+  
   return tokenAmount * price;
 };

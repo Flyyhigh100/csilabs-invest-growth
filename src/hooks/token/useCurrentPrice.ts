@@ -11,7 +11,7 @@ export const useCurrentPrice = () => {
         console.log('Fetching current token price');
         const result = await fetchCurrentTokenPrice();
         // Extract just the price value for backward compatibility
-        return typeof result === 'number' ? result : result.price;
+        return result.price;
       } catch (error) {
         console.error('Current price query failed:', error);
         toast({

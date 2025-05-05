@@ -1,7 +1,8 @@
 
 // Re-export all price-related functionality
 export { fetchTokenPriceHistory } from './historicalPriceService';
-export { fetchCurrentTokenPrice, PriceResult } from './currentPriceService';
+export { fetchCurrentTokenPrice } from './currentPriceService';
+export type { PriceResult } from './currentPriceService';
 export { convertUsdToTokenAmount, convertTokenAmountToUsd } from './priceConversionService';
 export { getTimeUntilNextPriceRefresh, getPriceLastUpdatedTime } from './utils/priceCache';
 
