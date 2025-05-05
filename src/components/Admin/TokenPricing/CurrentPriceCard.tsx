@@ -62,7 +62,7 @@ const CurrentPriceCard: React.FC<CurrentPriceCardProps> = ({
           <AlertDescription className="flex flex-col space-y-1 text-xs">
             <div className="flex justify-between">
               <span>Primary data source:</span>
-              <span className="font-medium">Uniswap V4 TWAP (15min window)</span>
+              <span className="font-medium">Uniswap V4 Subgraph</span>
             </div>
             <div className="flex justify-between">
               <span>Last updated:</span>

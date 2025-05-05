@@ -7,18 +7,6 @@ import { fetchUniswapV4Price } from './uniswapV4PriceService';
 import { getCachedPrice, setCachedPrice, shouldRefreshPrice } from './utils/priceCache';
 import { ENABLE_LOGGING, FORCE_REFRESH_CACHE } from './config';
 
-// Initialize the V4 TWAP data collection system
-import { initializeV4TwapDataCollection } from './uniswapV4TwapService';
-
-// Start collecting price data for TWAP calculation
-// Only call this if it's a browser environment (not SSR)
-if (typeof window !== 'undefined') {
-  // Small delay to ensure all services are loaded
-  setTimeout(() => {
-    initializeV4TwapDataCollection();
-  }, 1000);
-}
-
 export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Promise<number> => {
   try {
     // Check if we can use cached price
@@ -36,16 +24,16 @@ export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Pro
       console.log('Fetching current token price, force refresh:', forceRefresh);
     }
     
-    // Primary source: Uniswap V4 TWAP
+    // Primary source: Uniswap V4 subgraph price
     try {
-      const v4TwapPrice = await fetchUniswapV4Twap();
+      const v4SubgraphPrice = await fetchUniswapV4Twap();
       if (ENABLE_LOGGING) {
-        console.log('Successfully fetched Uniswap V4 TWAP price:', v4TwapPrice);
+        console.log('Successfully fetched Uniswap V4 subgraph price:', v4SubgraphPrice);
       }
-      setCachedPrice(v4TwapPrice);
-      return v4TwapPrice;
-    } catch (v4TwapError) {
-      console.warn('Failed to fetch Uniswap V4 TWAP price, falling back to V4 spot price:', v4TwapError);
+      setCachedPrice(v4SubgraphPrice);
+      return v4SubgraphPrice;
+    } catch (v4SubgraphError) {
+      console.warn('Failed to fetch Uniswap V4 subgraph price, falling back to V4 spot price:', v4SubgraphError);
       
       // First fallback: Uniswap V4 spot price
       try {
