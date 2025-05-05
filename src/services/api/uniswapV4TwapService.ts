@@ -12,6 +12,13 @@ const RETRY_DELAY = 1000;
 const SUBGRAPH_ENDPOINT = import.meta.env.VITE_V4_SUBGRAPH_ENDPOINT || 
   'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-polygon';
 
+// Define the GraphQL response type
+interface PoolQueryResponse {
+  pool: {
+    sqrtPriceX96: string;
+  };
+}
+
 /**
  * Query the V4 subgraph to get the current sqrtPriceX96 value
  * @param poolId The Uniswap V4 pool ID
@@ -27,7 +34,7 @@ export async function querySqrtPriceX96(poolId: string): Promise<bigint> {
   `;
 
   const startTime = performance.now();
-  const response = await request(SUBGRAPH_ENDPOINT, query);
+  const response = await request<PoolQueryResponse>(SUBGRAPH_ENDPOINT, query);
   const endTime = performance.now();
   
   if (ENABLE_LOGGING) {

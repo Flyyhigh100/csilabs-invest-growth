@@ -1,6 +1,13 @@
 
 import { querySqrtPriceX96, convertQ96ToDecimal, fetchSubgraphPrice } from '../uniswapV4TwapService';
 
+// Define the mock response type to match our interface
+interface PoolQueryResponse {
+  pool: {
+    sqrtPriceX96: string;
+  };
+}
+
 // Mock the GraphQL request function
 jest.mock('graphql-request', () => ({
   gql: jest.fn((query) => query),
@@ -8,7 +15,7 @@ jest.mock('graphql-request', () => ({
     pool: {
       sqrtPriceX96: '79228162514264337593543950336' // exactly 1 << 96
     }
-  })
+  } as PoolQueryResponse)
 }));
 
 // Mock validation and cache functions
