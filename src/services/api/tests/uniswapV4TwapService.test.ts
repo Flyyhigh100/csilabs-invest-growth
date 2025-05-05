@@ -1,5 +1,5 @@
 
-import { querySqrtPriceX96, convertQ96ToDecimal, fetchSubgraphPrice, getTwapStatus } from '../uniswapV4TwapService';
+import { queryV4PoolData, convertQ96ToDecimal, fetchSubgraphPrice, getTwapStatus } from '../uniswapV4TwapService';
 
 // Define the mock response type to match our interface
 interface PoolQueryResponse {
@@ -12,10 +12,13 @@ interface PoolQueryResponse {
 jest.mock('graphql-request', () => ({
   gql: jest.fn((query) => query),
   request: jest.fn().mockResolvedValue({
-    pool: {
+    pools: [{
+      id: 'mock-pool-id',
+      token0: { id: '0x123', symbol: 'TOKEN0', decimals: '18' },
+      token1: { id: '0x456', symbol: 'TOKEN1', decimals: '6' },
       sqrtPriceX96: '79228162514264337593543950336' // exactly 1 << 96
-    }
-  } as PoolQueryResponse)
+    }]
+  })
 }));
 
 // Mock validation and cache functions
@@ -50,9 +53,9 @@ describe('Uniswap V4 TWAP Service', () => {
     jest.clearAllMocks();
   });
 
-  test('querySqrtPriceX96 returns correct value', async () => {
-    const result = await querySqrtPriceX96('test-pool-id');
-    expect(result.toString()).toBe('79228162514264337593543950336');
+  test('queryV4PoolData returns correct value', async () => {
+    const result = await queryV4PoolData();
+    expect(result.sqrtPriceX96.toString()).toBe('79228162514264337593543950336');
   });
 
   test('convertQ96ToDecimal converts sqrtPriceX96 correctly', () => {
