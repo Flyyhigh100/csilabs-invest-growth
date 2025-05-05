@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RefreshCw, Info, AlertCircle } from 'lucide-react';
@@ -251,7 +252,8 @@ const PriceSourceDiagnostic = () => {
           latestPrice: null,
           lastError: error instanceof Error ? error.message : String(error), 
           lastAttempt: new Date().toISOString(),
-          isTesting: false
+          isTesting: false,
+          endpoint: prev.v4EdgeProxy.endpoint
         } 
       }));
     }
@@ -280,7 +282,8 @@ const PriceSourceDiagnostic = () => {
           latestPrice: data.lastPrice, 
           lastError: data.lastError || null, 
           lastAttempt: data.lastAttempt || new Date().toISOString(),
-          isTesting: false 
+          isTesting: false,
+          endpoint: data.endpoint || prev.v4EdgeProxy.endpoint
         } 
       }));
     } catch (error) {
@@ -292,7 +295,7 @@ const PriceSourceDiagnostic = () => {
           latestPrice: null,
           lastError: error instanceof Error ? error.message : String(error), 
           lastAttempt: new Date().toISOString(),
-          isTesting: false 
+          isTesting: false
         } 
       }));
     }
