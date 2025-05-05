@@ -16,6 +16,24 @@ interface PriceSourceProps {
   isTesting: boolean;
 }
 
+// Define interface for the source state to avoid type errors
+interface SourceState {
+  isWorking: boolean | null;
+  latestPrice: number | null;
+  lastError: string | null;
+  lastAttempt: string | null;
+  isTesting: boolean;
+}
+
+// Define interface for all sources
+interface SourcesState {
+  v4Subgraph: SourceState;
+  v4EdgeProxy: SourceState;
+  v3Twap: SourceState;
+  definedfi: SourceState;
+  dexscreener: SourceState;
+}
+
 const PriceSource: React.FC<PriceSourceProps> = ({
   name,
   isWorking,
@@ -71,12 +89,20 @@ const PriceSource: React.FC<PriceSourceProps> = ({
 };
 
 const PriceSourceDiagnostic = () => {
-  const [sources, setSources] = React.useState({
-    v4Subgraph: { isWorking: null, latestPrice: null, lastError: null, lastAttempt: null, isTesting: false },
-    v4EdgeProxy: { isWorking: null, latestPrice: null, lastError: null, lastAttempt: null, isTesting: false },
-    v3Twap: { isWorking: null, latestPrice: null, lastError: null, lastAttempt: null, isTesting: false },
-    definedfi: { isWorking: null, latestPrice: null, lastError: null, lastAttempt: null, isTesting: false },
-    dexscreener: { isWorking: null, latestPrice: null, lastError: null, lastAttempt: null, isTesting: false }
+  const initialSourceState: SourceState = {
+    isWorking: null,
+    latestPrice: null,
+    lastError: null,
+    lastAttempt: null,
+    isTesting: false
+  };
+
+  const [sources, setSources] = React.useState<SourcesState>({
+    v4Subgraph: {...initialSourceState},
+    v4EdgeProxy: {...initialSourceState},
+    v3Twap: {...initialSourceState},
+    definedfi: {...initialSourceState},
+    dexscreener: {...initialSourceState}
   });
 
   // Test the V4 subgraph directly
@@ -128,7 +154,9 @@ const PriceSourceDiagnostic = () => {
       setSources(prev => ({ 
         ...prev, 
         v4Subgraph: { 
+          ...prev.v4Subgraph,
           isWorking: false, 
+          latestPrice: null,
           lastError: error instanceof Error ? error.message : String(error), 
           lastAttempt: new Date().toISOString(),
           isTesting: false 
@@ -183,7 +211,9 @@ const PriceSourceDiagnostic = () => {
       setSources(prev => ({ 
         ...prev, 
         v4EdgeProxy: { 
+          ...prev.v4EdgeProxy,
           isWorking: false, 
+          latestPrice: null,
           lastError: error instanceof Error ? error.message : String(error), 
           lastAttempt: new Date().toISOString(),
           isTesting: false 
@@ -222,7 +252,9 @@ const PriceSourceDiagnostic = () => {
       setSources(prev => ({ 
         ...prev, 
         v4EdgeProxy: { 
+          ...prev.v4EdgeProxy,
           isWorking: false, 
+          latestPrice: null,
           lastError: error instanceof Error ? error.message : String(error), 
           lastAttempt: new Date().toISOString(),
           isTesting: false 
@@ -269,6 +301,7 @@ const PriceSourceDiagnostic = () => {
         [source]: { 
           ...prev[source], 
           isWorking: false, 
+          latestPrice: null,
           lastError: error instanceof Error ? error.message : String(error), 
           lastAttempt: new Date().toISOString(),
           isTesting: false 

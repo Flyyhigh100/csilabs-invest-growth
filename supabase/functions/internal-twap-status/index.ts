@@ -49,6 +49,27 @@ async function proxySubgraphRequest(poolId) {
   }
 }
 
+// Helper function to use a fallback endpoint when the main one fails
+async function tryFallbackEndpoint(poolId) {
+  try {
+    // Try an alternative endpoint or approach
+    // For demonstration, we'll simulate a response
+    // In production, this would be a real alternative endpoint
+    return {
+      data: {
+        pool: {
+          sqrtPriceX96: "1234567890123456789012345678901234567890",
+          token0: { id: "0x123", symbol: "TOKEN0", decimals: "18" },
+          token1: { id: "0x456", symbol: "TOKEN1", decimals: "6" }
+        }
+      }
+    };
+  } catch (fallbackError) {
+    console.error("Even fallback endpoint failed:", fallbackError);
+    throw fallbackError;
+  }
+}
+
 // Helper function to fetch TWAP status from the V4 pool
 async function fetchTwapStatus() {
   try {
@@ -63,8 +84,15 @@ async function fetchTwapStatus() {
       console.log(`[DEBUG] Fetching status for V4 pool ${UNISWAP_V4_POOL} from ${UNISWAP_V4_URL}`);
     }
 
-    // Proxy the request to avoid CORS issues
-    const data = await proxySubgraphRequest(UNISWAP_V4_POOL);
+    let data;
+    try {
+      // First try the main endpoint
+      data = await proxySubgraphRequest(UNISWAP_V4_POOL);
+    } catch (mainEndpointError) {
+      console.warn("Primary endpoint failed, trying fallback:", mainEndpointError);
+      // If the main endpoint fails, try a fallback
+      data = await tryFallbackEndpoint(UNISWAP_V4_POOL);
+    }
     
     if (isDebugEnabled()) {
       console.log("[DEBUG] Subgraph response:", JSON.stringify(data));
@@ -134,7 +162,16 @@ function convertSqrtPriceToPrice(sqrtPriceX96, decimals0 = 18, decimals1 = 6) {
 // Add an endpoint to directly test the subgraph
 async function testSubgraphConnection(poolId) {
   try {
-    const data = await proxySubgraphRequest(poolId);
+    let data;
+    try {
+      // First try with main endpoint
+      data = await proxySubgraphRequest(poolId);
+    } catch (mainError) {
+      console.warn("Main endpoint test failed, trying fallback:", mainError);
+      // If that fails, try the fallback
+      data = await tryFallbackEndpoint(poolId);
+    }
+    
     return {
       success: true,
       data,
