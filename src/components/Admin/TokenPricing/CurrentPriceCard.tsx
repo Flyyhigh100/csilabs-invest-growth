@@ -13,7 +13,7 @@ interface CurrentPriceCardProps {
   refreshPrice: () => void;
   formattedLastUpdated: string;
   secondsUntilRefresh: number;
-  dataSource?: 'on-chain' | 'defined.fi' | 'dexscreener' | 'cache' | null;
+  dataSource?: 'on-chain' | 'on-chain-v4' | 'on-chain-v3' | 'defined.fi' | 'dexscreener' | 'cache' | null;
 }
 
 const CurrentPriceCard: React.FC<CurrentPriceCardProps> = ({
