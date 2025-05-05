@@ -7,9 +7,15 @@
 export const TOKEN_ADDRESS = '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0';  // CSL token address
 export const CHAIN_ID = '137';  // Polygon mainnet
 
-// Uniswap Pool Configuration
+// Uniswap Pool Configuration - Updated for V4's different format
 export const UNISWAP_V3_POOL = (import.meta.env?.VITE_V3_POOL as string | undefined)?.toLowerCase() || '0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f4';
-export const UNISWAP_V4_POOL = (import.meta.env?.VITE_V4_POOL as string | undefined)?.toLowerCase() || '0x7d3640d16367d75ebe808b3b22cd60a70aea6c1c3a72be45082736e3fbb6040c';
+
+// V4 Pool format: tokenA-tokenB (sorted by address)
+export const V4_POOL_FORMAT = (import.meta.env?.VITE_V4_POOL as string | undefined) || 
+  '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0-0x3c499c542cef5e3811e1192ce70d8cc03d5c3359';
+
+// For backward compatibility with existing code
+export const UNISWAP_V4_POOL = V4_POOL_FORMAT;
 
 export const COUNTER_TOKEN_SYMBOL = (import.meta.env?.VITE_COUNTER_TOKEN_SYMBOL as string | undefined) || 'USDC';
 export const COUNTER_TOKEN_DECIMALS = 6;

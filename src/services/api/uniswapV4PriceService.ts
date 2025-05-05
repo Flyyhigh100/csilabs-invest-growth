@@ -1,5 +1,10 @@
 
-import { UNISWAP_V4_URL, UNISWAP_V4_POOL, COUNTER_TOKEN_SYMBOL, ENABLE_LOGGING } from './config';
+import { 
+  UNISWAP_V4_URL, 
+  V4_POOL_FORMAT, 
+  COUNTER_TOKEN_SYMBOL, 
+  ENABLE_LOGGING 
+} from './config';
 
 interface PoolData {
   token0: { id: string; symbol: string; decimals: string };
@@ -7,8 +12,11 @@ interface PoolData {
   sqrtPriceX96: string;
 }
 
-const POOL_QUERY = `query ($id: ID!) {
-  pool(id: $id) {
+// Modified query to accommodate V4's different pool ID format
+// V4 pools are identified by tokenA-tokenB (sorted by address)
+const POOL_QUERY = `query ($tokens: String!) {
+  pools(where: { tokens_contains: $tokens }) {
+    id
     token0 { id symbol decimals }
     token1 { id symbol decimals }
     sqrtPriceX96
@@ -26,18 +34,38 @@ const sqrtPriceToPrice = (sqrtPriceX96: string, decimals0: number, decimals1: nu
 export const fetchUniswapV4Price = async (): Promise<number> => {
   try {
     if (ENABLE_LOGGING) {
-      console.log(`[V4] Fetching price from Uniswap V4 pool ${UNISWAP_V4_POOL}`);
+      console.log(`[V4] Fetching price from Uniswap V4 using tokens: ${V4_POOL_FORMAT}`);
+    }
+    
+    // Extract token addresses from the format
+    const [tokenA, tokenB] = V4_POOL_FORMAT.split('-');
+    
+    if (!tokenA || !tokenB) {
+      throw new Error(`Invalid V4 pool format: ${V4_POOL_FORMAT}, expected format is 'tokenA-tokenB'`);
     }
     
     const response = await fetch(UNISWAP_V4_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: POOL_QUERY, variables: { id: UNISWAP_V4_POOL } })
+      body: JSON.stringify({
+        query: POOL_QUERY,
+        variables: { tokens: [tokenA, tokenB] }
+      })
     });
     if (!response.ok) throw new Error(`V4 HTTP ${response.status}`);
 
     const json = await response.json();
-    const pool: PoolData | undefined = json.data?.pool;
+    
+    // In V4, we might get multiple pools, so we need to find the right one
+    const pools = json.data?.pools;
+    if (!pools || pools.length === 0) throw new Error('No V4 pools found for the specified tokens');
+    
+    if (ENABLE_LOGGING) {
+      console.log('[V4] Found pools:', pools.length);
+    }
+    
+    // Use the first pool for now (most likely the one we want)
+    const pool: PoolData = pools[0];
     if (!pool) throw new Error('V4 pool not found');
 
     if (ENABLE_LOGGING) {

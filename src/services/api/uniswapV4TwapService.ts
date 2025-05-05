@@ -1,6 +1,6 @@
 import { gql, request } from 'graphql-request';
 import { 
-  UNISWAP_V4_POOL, 
+  V4_POOL_FORMAT, 
   ENABLE_LOGGING, 
   COUNTER_TOKEN_DECIMALS, 
   UNISWAP_V4_ENDPOINTS 
@@ -33,6 +33,8 @@ interface DiagnosticsData {
   token0?: any;  
   token1?: any;  
   validationLimits?: { min: number; max: number };
+  poolFormat?: string;
+  tokens?: string[];
 }
 
 let lastDiagnostics: DiagnosticsData | null = null;
@@ -40,49 +42,50 @@ let lastDiagnostics: DiagnosticsData | null = null;
 // Edge function endpoint for proxying requests
 const EDGE_FUNCTION_ENDPOINT = 'https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/internal-twap-status';
 
-// Define the GraphQL response type
-interface PoolQueryResponse {
-  pool: {
-    sqrtPriceX96: string;
-  };
-}
+// Modified query for V4's pool identification approach
+const POOL_QUERY = gql`
+  query ($tokens: [String!]) {
+    pools(where: { tokens_contains: $tokens }) {
+      id
+      sqrtPriceX96
+      token0 {
+        id
+        symbol
+        decimals
+      }
+      token1 {
+        id
+        symbol
+        decimals
+      }
+    }
+  }
+`;
 
 /**
  * Query the V4 subgraph to get the current sqrtPriceX96 value
- * Try multiple endpoints in sequence until one works
+ * Using token addresses to find the pool instead of a specific pool ID
  * 
- * @param poolId The Uniswap V4 pool ID
- * @returns The sqrtPriceX96 value as a BigInt
+ * @returns The sqrtPriceX96 value as a BigInt and the pool data
  */
-export async function querySqrtPriceX96(poolId: string): Promise<bigint> {
-  // Enhanced query with token details for better debugging
-  const query = gql`
-    {
-      pool(id: "${poolId}") {
-        sqrtPriceX96
-        token0 {
-          id
-          symbol
-          decimals
-        }
-        token1 {
-          id
-          symbol
-          decimals
-        }
-      }
-    }
-  `;
+export async function queryV4PoolData(): Promise<{ sqrtPriceX96: bigint, poolData: any }> {
+  // Extract token addresses from the pool format
+  const tokens = V4_POOL_FORMAT.split('-');
+  
+  if (tokens.length !== 2) {
+    throw new Error(`Invalid V4 pool format: ${V4_POOL_FORMAT}, expected 'tokenA-tokenB'`);
+  }
 
   if (DEBUG_TWAP) {
-    console.debug('[DEBUG_TWAP] Attempting to query V4 subgraph endpoints');
+    console.debug('[DEBUG_TWAP] Attempting to query V4 subgraph endpoints with tokens:', tokens);
     
     // Save diagnostic data
     lastDiagnostics = {
       ...lastDiagnostics,
       requestParams: {
-        poolId,
-        query: query.toString()
+        tokens,
+        poolFormat: V4_POOL_FORMAT,
+        query: POOL_QUERY.toString()
       }
     };
   }
@@ -98,7 +101,7 @@ export async function querySqrtPriceX96(poolId: string): Promise<bigint> {
     
     try {
       const startTime = performance.now();
-      const response = await request<any>(endpoint, query);
+      const response = await request<any>(endpoint, POOL_QUERY, { tokens });
       const endTime = performance.now();
       
       if (ENABLE_LOGGING || DEBUG_TWAP) {
@@ -116,7 +119,20 @@ export async function querySqrtPriceX96(poolId: string): Promise<bigint> {
         };
       }
 
-      if (!response?.pool?.sqrtPriceX96) {
+      // Check if we got pools in the response
+      if (!response?.pools || response.pools.length === 0) {
+        const errorMsg = `No pools found with the specified tokens at ${endpoint}`;
+        if (DEBUG_TWAP) {
+          console.error('[DEBUG_TWAP] Error:', errorMsg);
+        }
+        errors.push({ endpoint, error: errorMsg });
+        continue; // Try next endpoint
+      }
+      
+      // Use the first pool that contains both tokens
+      const pool = response.pools[0]; 
+      
+      if (!pool?.sqrtPriceX96) {
         const errorMsg = `Failed to fetch sqrtPriceX96 from subgraph at ${endpoint}`;
         if (DEBUG_TWAP) {
           console.error('[DEBUG_TWAP] Error:', errorMsg);
@@ -126,14 +142,15 @@ export async function querySqrtPriceX96(poolId: string): Promise<bigint> {
       }
 
       // Store token details for diagnostics
-      if (DEBUG_TWAP && response.pool.token0 && response.pool.token1) {
-        console.debug('[DEBUG_TWAP] Pool token0:', response.pool.token0);
-        console.debug('[DEBUG_TWAP] Pool token1:', response.pool.token1);
+      if (DEBUG_TWAP && pool.token0 && pool.token1) {
+        console.debug('[DEBUG_TWAP] Pool token0:', pool.token0);
+        console.debug('[DEBUG_TWAP] Pool token1:', pool.token1);
         
         lastDiagnostics = {
           ...lastDiagnostics,
-          token0: response.pool.token0,
-          token1: response.pool.token1
+          token0: pool.token0,
+          token1: pool.token1,
+          poolId: pool.id
         };
       }
 
@@ -141,15 +158,17 @@ export async function querySqrtPriceX96(poolId: string): Promise<bigint> {
       if (DEBUG_TWAP) {
         lastDiagnostics = {
           ...lastDiagnostics,
-          sqrtPriceX96: response.pool.sqrtPriceX96
+          sqrtPriceX96: pool.sqrtPriceX96
         };
       }
 
       console.log(`Successfully fetched data from ${endpoint}`);
-      // Convert the string to BigInt and return
-      return BigInt(response.pool.sqrtPriceX96);
+      // Convert the string to BigInt and return with pool data
+      return { 
+        sqrtPriceX96: BigInt(pool.sqrtPriceX96),
+        poolData: pool
+      };
     } catch (error) {
-      const endTime = performance.now();
       console.warn(`[DEBUG_TWAP] Endpoint ${endpoint} failed:`, error);
       
       errors.push({ 
@@ -161,7 +180,7 @@ export async function querySqrtPriceX96(poolId: string): Promise<bigint> {
       if (DEBUG_TWAP) {
         console.error('[DEBUG_TWAP] Query error details:', {
           endpoint,
-          poolId,
+          tokens,
           errorMessage: error instanceof Error ? error.message : String(error),
           errorStack: error instanceof Error ? error.stack : undefined
         });
@@ -180,7 +199,8 @@ export async function querySqrtPriceX96(poolId: string): Promise<bigint> {
   console.log('[DEBUG_TWAP] All direct subgraph queries failed. Attempting to fetch via edge function proxy');
   try {
     const proxyStartTime = performance.now();
-    const response = await fetch(`${EDGE_FUNCTION_ENDPOINT}/test-connection?poolId=${poolId}`);
+    // Use the new V4_POOL_FORMAT when calling the edge function
+    const response = await fetch(`${EDGE_FUNCTION_ENDPOINT}/test-connection?tokens=${encodeURIComponent(V4_POOL_FORMAT)}`);
     
     if (!response.ok) {
       throw new Error(`Edge function proxy failed: ${response.status} ${response.statusText}`);
@@ -200,7 +220,7 @@ export async function querySqrtPriceX96(poolId: string): Promise<bigint> {
       };
     }
     
-    if (!data.success || !data.data?.data?.pool?.sqrtPriceX96) {
+    if (!data.success || !data.data?.data?.pools?.[0]?.sqrtPriceX96) {
       throw new Error('Edge function proxy returned no data');
     }
     
@@ -208,7 +228,7 @@ export async function querySqrtPriceX96(poolId: string): Promise<bigint> {
     lastSource = 'edgeProxy';
     
     // Store token details from proxy
-    const pool = data.data.data.pool;
+    const pool = data.data.data.pools[0];
     if (DEBUG_TWAP && pool.token0 && pool.token1) {
       lastDiagnostics = {
         ...lastDiagnostics,
@@ -218,7 +238,10 @@ export async function querySqrtPriceX96(poolId: string): Promise<bigint> {
       };
     }
     
-    return BigInt(pool.sqrtPriceX96);
+    return { 
+      sqrtPriceX96: BigInt(pool.sqrtPriceX96),
+      poolData: pool
+    };
   } catch (proxyError) {
     console.error('[DEBUG_TWAP] Edge function proxy attempt failed:', proxyError);
     
@@ -341,22 +364,24 @@ export async function fetchSubgraphPrice(): Promise<number> {
   let retries = 0;
   lastAttemptTime = new Date().toISOString();
   lastSource = 'v4Subgraph';
-  lastDiagnostics = { poolId: UNISWAP_V4_POOL };
+  lastDiagnostics = { poolFormat: V4_POOL_FORMAT, tokens: V4_POOL_FORMAT.split('-') };
   
   try {
     while (retries <= MAX_RETRIES) {
       try {
         if (ENABLE_LOGGING || DEBUG_TWAP) {
-          console.log(`Fetching V4 price from subgraph for pool ${UNISWAP_V4_POOL}`);
+          console.log(`Fetching V4 price from subgraph using tokens: ${V4_POOL_FORMAT}`);
         }
         
         // Try direct subgraph query first
         try {
-          // Query the subgraph for the sqrtPriceX96
-          const sqrtPriceX96 = await querySqrtPriceX96(UNISWAP_V4_POOL);
+          // Query the subgraph using token addresses instead of pool ID
+          const { sqrtPriceX96, poolData } = await queryV4PoolData();
           
           // Convert to decimal price
-          const price = convertQ96ToDecimal(sqrtPriceX96);
+          const decimals0 = parseInt(poolData.token0.decimals);
+          const decimals1 = parseInt(poolData.token1.decimals);
+          const price = convertQ96ToDecimal(sqrtPriceX96, decimals0, decimals1);
           
           if (ENABLE_LOGGING || DEBUG_TWAP) {
             console.log(`V4 subgraph price: ${price} (sqrtPriceX96: ${sqrtPriceX96.toString()})`);
