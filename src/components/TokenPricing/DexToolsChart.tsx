@@ -12,7 +12,7 @@ const DexToolsChart: React.FC = () => {
       <CardContent className="p-0 h-full">
         <iframe
           title="DexTools Chart"
-          src={`https://www.dextools.io/widget-chart/en/polygon/pe-light/${poolAddress}?theme=light&chartType=1&chartResolution=1D&drawingToolbars=false`}
+          src={`https://www.dextools.io/app/en/polygon/pair-explorer/${poolAddress}`}
           className="w-full h-full border-0"
           allow="clipboard-write"
         />
