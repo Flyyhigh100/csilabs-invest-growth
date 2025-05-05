@@ -61,8 +61,8 @@ const CurrentPriceCard: React.FC<CurrentPriceCardProps> = ({
         <Alert className="bg-blue-50 text-blue-800 border-blue-200">
           <AlertDescription className="flex flex-col space-y-1 text-xs">
             <div className="flex justify-between">
-              <span>Data source:</span>
-              <span className="font-medium">DexScreener (Polygon)</span>
+              <span>Primary data source:</span>
+              <span className="font-medium">Uniswap V4 TWAP (15min window)</span>
             </div>
             <div className="flex justify-between">
               <span>Last updated:</span>

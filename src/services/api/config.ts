@@ -29,6 +29,10 @@ export const DAYS_TO_INCLUDE = 90;
 export const PRICE_CACHE_DURATION = 10000; // 10 seconds to match polling interval
 export const ENABLE_LOGGING = true;
 
+// TWAP settings
+export const V4_TWAP_COLLECTION_INTERVAL = 2 * 60 * 1000; // 2 minutes
+export const V4_TWAP_WINDOW_SEC = 900; // 15 minutes (same as V3)
+
 // Validation thresholds
 export const MAX_PRICE_CHANGE_PERCENTAGE = 50; // Maximum allowed price change (50%)
 export const MIN_VALID_PRICE = 0.00001; // Minimum valid price

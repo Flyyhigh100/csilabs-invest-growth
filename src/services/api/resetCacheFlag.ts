@@ -6,14 +6,14 @@
  * 1. Open src/services/api/config.ts
  * 2. Change FORCE_REFRESH_CACHE from true to false
  * 
- * Do this after verifying that the token price is fetching correctly from the new pool.
+ * Do this after verifying that the token price is fetching correctly from the new V4 TWAP implementation.
  * Keeping this flag as true will prevent the system from using cached prices, which may
  * lead to more API calls than necessary.
  */
 
 export const remindToResetCacheFlag = () => {
   console.warn(
-    'REMINDER: Set FORCE_REFRESH_CACHE to false in config.ts after successful testing.'
+    'REMINDER: Set FORCE_REFRESH_CACHE to false in config.ts after successful testing of V4 TWAP.'
   );
 };
 

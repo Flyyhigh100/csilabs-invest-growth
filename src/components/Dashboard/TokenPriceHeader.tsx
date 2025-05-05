@@ -43,7 +43,7 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
   // Format the data source name for display
   const getSourceDisplayName = () => {
     switch(dataSource) {
-      case 'on-chain': return "Uniswap V3 (on-chain)";
+      case 'on-chain': return "Uniswap V4 TWAP";
       case 'defined.fi': return "Defined.fi API";
       case 'dexscreener': return "DexScreener API";
       case 'cache': return "Cached Data";

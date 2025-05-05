@@ -1,3 +1,4 @@
+
 import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { fetchCurrentTokenPrice } from '@/services/api/priceService';
 import { toast } from 'sonner';
@@ -55,7 +56,7 @@ export const TokenPriceProvider = ({
         
         // Determine the source based on logged messages (this is a simplification)
         // In a real implementation, the price service would return this information
-        if (console.log.toString().includes('TWAP')) {
+        if (console.log.toString().includes('V4 TWAP')) {
           source = 'on-chain';
         } else if (console.log.toString().includes('Defined')) {
           source = 'defined.fi';
