@@ -8,6 +8,15 @@ import { setCachedPrice } from './utils/priceCache';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
+// Debug flag from environment
+const DEBUG_TWAP = import.meta.env.VITE_DEBUG_TWAP === 'true' || import.meta.env.VITE_DEBUG_TWAP === '1';
+
+// Status tracking for the status endpoint
+let lastAttemptTime: string | null = null;
+let lastError: string | null = null;
+let lastPrice: number | null = null;
+let lastSource: 'v4Subgraph' | 'v3Twap' | 'DexScreener' | 'cache' | null = null;
+
 // Subgraph endpoint for Uniswap V4 on Polygon
 const SUBGRAPH_ENDPOINT = import.meta.env.VITE_V4_SUBGRAPH_ENDPOINT || 
   'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-polygon';
@@ -33,16 +42,30 @@ export async function querySqrtPriceX96(poolId: string): Promise<bigint> {
     }
   `;
 
+  if (DEBUG_TWAP) {
+    console.debug('[DEBUG_TWAP] Making GraphQL query to endpoint:', SUBGRAPH_ENDPOINT);
+    console.debug('[DEBUG_TWAP] Pool ID:', poolId);
+    console.debug('[DEBUG_TWAP] Query string:', query);
+  }
+
   const startTime = performance.now();
   const response = await request<PoolQueryResponse>(SUBGRAPH_ENDPOINT, query);
   const endTime = performance.now();
   
-  if (ENABLE_LOGGING) {
+  if (ENABLE_LOGGING || DEBUG_TWAP) {
     console.debug('subgraph-ms', endTime - startTime);
   }
 
+  if (DEBUG_TWAP) {
+    console.debug('[DEBUG_TWAP] Raw response data:', JSON.stringify(response));
+  }
+
   if (!response?.pool?.sqrtPriceX96) {
-    throw new Error('Failed to fetch sqrtPriceX96 from subgraph');
+    const errorMsg = 'Failed to fetch sqrtPriceX96 from subgraph';
+    if (DEBUG_TWAP) {
+      console.error('[DEBUG_TWAP] Error:', errorMsg);
+    }
+    throw new Error(errorMsg);
   }
 
   // Convert the string to BigInt
@@ -68,51 +91,93 @@ export function convertQ96ToDecimal(
 }
 
 /**
+ * Get the current status of TWAP price fetching
+ * Used by the status endpoint
+ */
+export function getTwapStatus() {
+  return {
+    lastAttempt: lastAttemptTime,
+    lastError: lastError,
+    lastPrice: lastPrice,
+    source: lastSource
+  };
+}
+
+/**
  * Fetch price directly from the V4 subgraph and convert to decimal
  * This replaces the previous custom TWAP calculation
  */
 export async function fetchSubgraphPrice(): Promise<number> {
   let retries = 0;
+  lastAttemptTime = new Date().toISOString();
+  lastSource = 'v4Subgraph';
   
-  while (retries <= MAX_RETRIES) {
-    try {
-      if (ENABLE_LOGGING) {
-        console.log(`Fetching V4 price from subgraph for pool ${UNISWAP_V4_POOL}`);
+  try {
+    while (retries <= MAX_RETRIES) {
+      try {
+        if (ENABLE_LOGGING || DEBUG_TWAP) {
+          console.log(`Fetching V4 price from subgraph for pool ${UNISWAP_V4_POOL}`);
+        }
+        
+        // Query the subgraph for the sqrtPriceX96
+        const sqrtPriceX96 = await querySqrtPriceX96(UNISWAP_V4_POOL);
+        
+        // Convert to decimal price
+        const price = convertQ96ToDecimal(sqrtPriceX96);
+        
+        if (ENABLE_LOGGING || DEBUG_TWAP) {
+          console.log(`V4 subgraph price: ${price} (sqrtPriceX96: ${sqrtPriceX96.toString()})`);
+        }
+        
+        // Debug price validation steps
+        if (DEBUG_TWAP) {
+          const { MIN_VALID_PRICE, MAX_VALID_PRICE } = await import('./utils/priceValidation');
+          console.debug('[DEBUG_TWAP] Validating price:', price);
+          console.debug('[DEBUG_TWAP] Min valid price:', MIN_VALID_PRICE);
+          console.debug('[DEBUG_TWAP] Max valid price:', MAX_VALID_PRICE);
+          console.debug('[DEBUG_TWAP] Price > MIN_VALID_PRICE?', price > MIN_VALID_PRICE);
+          console.debug('[DEBUG_TWAP] Price < MAX_VALID_PRICE?', price < MAX_VALID_PRICE);
+        }
+        
+        // Validate the price
+        if (!isValidPrice(price)) {
+          const errorMsg = `Invalid V4 subgraph price: ${price}`;
+          if (DEBUG_TWAP) {
+            console.error('[DEBUG_TWAP] Validation failed:', errorMsg);
+          }
+          throw new Error(errorMsg);
+        }
+        
+        // Cache the valid price
+        setCachedPrice(price);
+        
+        // Update status tracking
+        lastPrice = price;
+        lastError = null;
+        
+        return price;
+      } catch (error) {
+        retries++;
+        
+        // Update error status
+        lastError = error instanceof Error ? error.message : 'Unknown error';
+        
+        if (retries > MAX_RETRIES) {
+          console.error('V4 subgraph price fetching failed after max retries:', error);
+          throw error;
+        }
+        
+        console.warn(`V4 subgraph price fetch attempt ${retries} failed, retrying in ${RETRY_DELAY}ms:`, error);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retries));
       }
-      
-      // Query the subgraph for the sqrtPriceX96
-      const sqrtPriceX96 = await querySqrtPriceX96(UNISWAP_V4_POOL);
-      
-      // Convert to decimal price
-      const price = convertQ96ToDecimal(sqrtPriceX96);
-      
-      if (ENABLE_LOGGING) {
-        console.log(`V4 subgraph price: ${price} (sqrtPriceX96: ${sqrtPriceX96.toString()})`);
-      }
-      
-      // Validate the price
-      if (!isValidPrice(price)) {
-        throw new Error(`Invalid V4 subgraph price: ${price}`);
-      }
-      
-      // Cache the valid price
-      setCachedPrice(price);
-      
-      return price;
-    } catch (error) {
-      retries++;
-      
-      if (retries > MAX_RETRIES) {
-        console.error('V4 subgraph price fetching failed after max retries:', error);
-        throw error;
-      }
-      
-      console.warn(`V4 subgraph price fetch attempt ${retries} failed, retrying in ${RETRY_DELAY}ms:`, error);
-      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retries));
     }
-  }
 
-  throw new Error('V4 subgraph price fetch failed after retries');
+    throw new Error('V4 subgraph price fetch failed after retries');
+  } catch (error) {
+    // Make sure we update the error status before re-throwing
+    lastError = error instanceof Error ? error.message : 'Unknown error';
+    throw error;
+  }
 }
 
 /**

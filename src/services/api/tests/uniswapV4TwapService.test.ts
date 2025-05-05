@@ -1,5 +1,5 @@
 
-import { querySqrtPriceX96, convertQ96ToDecimal, fetchSubgraphPrice } from '../uniswapV4TwapService';
+import { querySqrtPriceX96, convertQ96ToDecimal, fetchSubgraphPrice, getTwapStatus } from '../uniswapV4TwapService';
 
 // Define the mock response type to match our interface
 interface PoolQueryResponse {
@@ -20,14 +20,36 @@ jest.mock('graphql-request', () => ({
 
 // Mock validation and cache functions
 jest.mock('../utils/priceValidation', () => ({
-  isValidPrice: jest.fn().mockReturnValue(true)
+  isValidPrice: jest.fn().mockReturnValue(true),
+  MIN_VALID_PRICE: 0.00001,
+  MAX_VALID_PRICE: 1000
 }));
 
 jest.mock('../utils/priceCache', () => ({
   setCachedPrice: jest.fn()
 }));
 
+// Mock the environment variables
+const originalEnv = process.env;
+
 describe('Uniswap V4 TWAP Service', () => {
+  let consoleDebugSpy;
+  
+  beforeEach(() => {
+    // Setup console spies
+    consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
+    jest.spyOn(console, 'log').mockImplementation();
+    jest.spyOn(console, 'error').mockImplementation();
+    jest.spyOn(console, 'warn').mockImplementation();
+    
+    // Reset mock environment
+    process.env = { ...originalEnv };
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   test('querySqrtPriceX96 returns correct value', async () => {
     const result = await querySqrtPriceX96('test-pool-id');
     expect(result.toString()).toBe('79228162514264337593543950336');
@@ -44,4 +66,34 @@ describe('Uniswap V4 TWAP Service', () => {
     const price = await fetchSubgraphPrice();
     expect(price).toBe(1); // Should be 1.0 based on our mock
   }, 30000); // Extend timeout for potential API calls
+
+  test('debug logging is triggered when DEBUG_TWAP is enabled', async () => {
+    // Set DEBUG_TWAP to true
+    process.env.VITE_DEBUG_TWAP = 'true';
+    
+    // Force re-import of the module to pick up the env change
+    jest.resetModules();
+    const freshModule = await import('../uniswapV4TwapService');
+    
+    // Call the function
+    await freshModule.fetchSubgraphPrice();
+    
+    // Verify debug logs were called
+    expect(consoleDebugSpy).toHaveBeenCalled();
+    
+    // At least one call should contain DEBUG_TWAP
+    const debugCalls = consoleDebugSpy.mock.calls;
+    const hasDebugTwapCall = debugCalls.some(call => 
+      call[0] && typeof call[0] === 'string' && call[0].includes('DEBUG_TWAP'));
+    
+    expect(hasDebugTwapCall).toBe(true);
+  });
+
+  test('getTwapStatus returns the correct status object structure', () => {
+    const status = getTwapStatus();
+    expect(status).toHaveProperty('lastAttempt');
+    expect(status).toHaveProperty('lastError');
+    expect(status).toHaveProperty('lastPrice');
+    expect(status).toHaveProperty('source');
+  });
 });
