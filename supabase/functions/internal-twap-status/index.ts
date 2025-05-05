@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { corsHeaders } from "../coinpayments-ipn-webhook/utils.ts";
+import { corsHeaders } from "./utils.ts";
 
 // Handle the GET /internal/twap/status route
 serve(async (req) => {

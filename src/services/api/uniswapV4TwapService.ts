@@ -1,7 +1,6 @@
-
 import { gql, request } from 'graphql-request';
 import { UNISWAP_V4_POOL, ENABLE_LOGGING, COUNTER_TOKEN_DECIMALS } from './config';
-import { isValidPrice } from './utils/priceValidation';
+import { isValidPrice, MIN_VALID_PRICE, MAX_VALID_PRICE } from './utils/priceValidation';
 import { setCachedPrice } from './utils/priceCache';
 
 // Constants for retry mechanisms
@@ -131,7 +130,6 @@ export async function fetchSubgraphPrice(): Promise<number> {
         
         // Debug price validation steps
         if (DEBUG_TWAP) {
-          const { MIN_VALID_PRICE, MAX_VALID_PRICE } = await import('./utils/priceValidation');
           console.debug('[DEBUG_TWAP] Validating price:', price);
           console.debug('[DEBUG_TWAP] Min valid price:', MIN_VALID_PRICE);
           console.debug('[DEBUG_TWAP] Max valid price:', MAX_VALID_PRICE);

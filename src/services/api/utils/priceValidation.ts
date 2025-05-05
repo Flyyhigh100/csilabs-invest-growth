@@ -1,5 +1,9 @@
 
-import { MAX_VALID_PRICE, MIN_VALID_PRICE } from '../config';
+import { MAX_VALID_PRICE as CONFIG_MAX_PRICE, MIN_VALID_PRICE as CONFIG_MIN_PRICE } from '../config';
+
+// Export these constants so they can be imported elsewhere
+export const MIN_VALID_PRICE = CONFIG_MIN_PRICE;
+export const MAX_VALID_PRICE = CONFIG_MAX_PRICE;
 
 /**
  * Validates if a price value is considered valid based on predefined constraints
