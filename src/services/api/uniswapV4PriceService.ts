@@ -1,3 +1,4 @@
+
 import { UNISWAP_V4_URL, UNISWAP_V4_POOL, COUNTER_TOKEN_SYMBOL, ENABLE_LOGGING } from './config';
 
 interface PoolData {
@@ -24,6 +25,10 @@ const sqrtPriceToPrice = (sqrtPriceX96: string, decimals0: number, decimals1: nu
 
 export const fetchUniswapV4Price = async (): Promise<number> => {
   try {
+    if (ENABLE_LOGGING) {
+      console.log(`[V4] Fetching price from Uniswap V4 pool ${UNISWAP_V4_POOL}`);
+    }
+    
     const response = await fetch(UNISWAP_V4_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -35,6 +40,10 @@ export const fetchUniswapV4Price = async (): Promise<number> => {
     const pool: PoolData | undefined = json.data?.pool;
     if (!pool) throw new Error('V4 pool not found');
 
+    if (ENABLE_LOGGING) {
+      console.log('[V4] Pool data:', pool);
+    }
+
     const sqrtStr = pool.sqrtPriceX96;
     const decimals0 = parseInt(pool.token0.decimals);
     const decimals1 = parseInt(pool.token1.decimals);
@@ -44,11 +53,11 @@ export const fetchUniswapV4Price = async (): Promise<number> => {
     let priceUSD: number;
 
     if (pool.token1.symbol.toUpperCase() === COUNTER_TOKEN_SYMBOL) {
-      priceUSD = priceToken1PerToken0; // token0 price in USDT
+      priceUSD = priceToken1PerToken0; // token0 price in USDC
     } else if (pool.token0.symbol.toUpperCase() === COUNTER_TOKEN_SYMBOL) {
       priceUSD = 1 / priceToken1PerToken0; // invert
     } else {
-      throw new Error('USDT not in v4 pool');
+      throw new Error(`${COUNTER_TOKEN_SYMBOL} not in v4 pool`);
     }
 
     if (isNaN(priceUSD) || priceUSD <= 0) throw new Error('Invalid v4 price');

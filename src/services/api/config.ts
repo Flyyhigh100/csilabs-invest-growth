@@ -4,14 +4,14 @@
  */
 
 // Token Configuration
-export const TOKEN_ADDRESS = '0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f4';  // Updated token address
+export const TOKEN_ADDRESS = '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0';  // CSL token address
 export const CHAIN_ID = '137';  // Polygon mainnet
 
-// Uniswap V3 Configuration
+// Uniswap Pool Configuration
 export const UNISWAP_V3_POOL = (import.meta.env?.VITE_V3_POOL as string | undefined)?.toLowerCase() || '0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f4';
-export const UNISWAP_V4_POOL = (import.meta.env?.VITE_V4_POOL as string | undefined)?.toLowerCase() || '0xe5c4a49b28f71506cdc43a48552804e8b7e7b3a727bb9b40d955ba69ec28976d';
+export const UNISWAP_V4_POOL = (import.meta.env?.VITE_V4_POOL as string | undefined)?.toLowerCase() || '0x7d3640d16367d75ebe808b3b22cd60a70aea6c1c3a72be45082736e3fbb6040c';
 
-export const COUNTER_TOKEN_SYMBOL = 'USDT';
+export const COUNTER_TOKEN_SYMBOL = (import.meta.env?.VITE_COUNTER_TOKEN_SYMBOL as string | undefined) || 'USDC';
 export const COUNTER_TOKEN_DECIMALS = 6;
 
 export const UNISWAP_V3_URL = import.meta.env?.VITE_V3_URL || 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon';
@@ -37,5 +37,5 @@ export const MAX_VALID_PRICE = 1000; // Maximum valid price - increased from 2 t
 // Max retries for API calls
 export const MAX_RETRIES = 3;
 export const RETRY_DELAY = 1000; // Base delay in ms for exponential backoff
-export const FORCE_REFRESH_CACHE = false;
+export const FORCE_REFRESH_CACHE = true; // Temporarily set to true to refresh cached prices
 export const STABLE_PRICE_THRESHOLD = 0.0001;

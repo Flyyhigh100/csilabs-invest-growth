@@ -1,15 +1,15 @@
 
 import { isValidPrice } from './utils/priceValidation';
-import { ENABLE_LOGGING } from './config';
+import { ENABLE_LOGGING, TOKEN_ADDRESS } from './config';
 
 const API_KEY = '3fe52a290da2025bdddcc45a353c0268810eacf7';
-const PAIR_ADDRESS = import.meta.env.VITE_PAIR_ADDRESS?.toLowerCase() ||
-  '0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f4';
+// Use the CSL token address directly rather than the pool
+const TOKEN_ADDRESS_TO_QUERY = TOKEN_ADDRESS;
 const CHAIN_ID = '137'; // Polygon
 
 export const fetchDefinedPrice = async (): Promise<number> => {
   if (ENABLE_LOGGING) {
-    console.log('Fetching current price from Defined.fi for token:', PAIR_ADDRESS);
+    console.log('Fetching current price from Defined.fi for token:', TOKEN_ADDRESS_TO_QUERY);
   }
   
   try {
@@ -25,7 +25,7 @@ export const fetchDefinedPrice = async (): Promise<number> => {
       body: JSON.stringify({
         query: `{
           getTokenByAddress(input: {
-            address: "${PAIR_ADDRESS}",
+            address: "${TOKEN_ADDRESS_TO_QUERY}",
             chain: POLYGON
           }) {
             price

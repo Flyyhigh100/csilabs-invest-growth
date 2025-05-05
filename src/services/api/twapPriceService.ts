@@ -2,7 +2,7 @@
 import { ethers } from 'ethers';
 import IUniswapV3PoolABI from '@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json';
 import { isValidPrice } from './utils/priceValidation';
-import { ENABLE_LOGGING } from './config';
+import { ENABLE_LOGGING, TOKEN_ADDRESS, COUNTER_TOKEN_SYMBOL } from './config';
 import { setCachedPrice } from './utils/priceCache';
 
 const provider = new ethers.providers.JsonRpcProvider(import.meta.env.VITE_POLYGON_RPC || 'https://polygon-rpc.com');
@@ -10,7 +10,7 @@ const poolAddr = (import.meta.env.VITE_V3_POOL as string)?.toLowerCase() || '0x0
 const WINDOW_SEC = Number(import.meta.env.VITE_TWAP_WINDOW) || 900; // 15 minutes by default
 
 // CSL token address
-const CSL = '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0'.toLowerCase();
+const CSL = TOKEN_ADDRESS.toLowerCase();
 
 // Configure retry mechanism
 const MAX_RETRIES = 3;
@@ -42,43 +42,43 @@ export async function fetchOnchainTwap(): Promise<number> {
         console.log(`Raw tick average: ${tickAvg}`);
       }
 
-      // Calculate raw price (token1 per token0, which is CSL per USDT)
+      // Calculate raw price (token1 per token0, which is CSL per USDC/USDT)
       const priceToken1PerToken0 = Math.pow(1.0001, Number(tickAvg));
       
       // Determine token ordering and invert if CSL is token1 (which it should be based on address ordering)
       const token0 = (await pool.token0()).toLowerCase();
       
       // Get token decimals to normalize the price
-      const token0Decimals = token0 === CSL ? 18 : 6; // USDT has 6 decimals, CSL has 18
+      const token0Decimals = token0 === CSL ? 18 : 6; // USDC/USDT has 6 decimals, CSL has 18
       const token1Decimals = token0 === CSL ? 6 : 18;
       
       // Calculate the decimal adjustment factor
       const decimalAdjustment = Math.pow(10, token1Decimals - token0Decimals);
       
       // Calculate final price with decimal adjustment
-      let priceCslInUsdt;
+      let priceCslInStablecoin;
       if (token0 === CSL) {
         // If CSL is token0 (unlikely in this case)
-        priceCslInUsdt = priceToken1PerToken0 * decimalAdjustment;
+        priceCslInStablecoin = priceToken1PerToken0 * decimalAdjustment;
       } else {
         // If CSL is token1 (which is our case) - invert the price
-        priceCslInUsdt = (1 / priceToken1PerToken0) * decimalAdjustment;
+        priceCslInStablecoin = (1 / priceToken1PerToken0) * decimalAdjustment;
       }
       
       if (ENABLE_LOGGING) {
-        console.log(`TWAP price calculation complete: ${priceCslInUsdt} USDT per CSL`);
+        console.log(`TWAP price calculation complete: ${priceCslInStablecoin} ${COUNTER_TOKEN_SYMBOL} per CSL`);
         console.log(`Token0: ${token0}, CSL is ${token0 === CSL ? 'token0' : 'token1'}`);
       }
       
       // Validate price
-      if (!isValidPrice(priceCslInUsdt)) {
-        throw new Error(`Invalid TWAP price: ${priceCslInUsdt}`);
+      if (!isValidPrice(priceCslInStablecoin)) {
+        throw new Error(`Invalid TWAP price: ${priceCslInStablecoin}`);
       }
 
       // Cache the valid price
-      setCachedPrice(priceCslInUsdt);
+      setCachedPrice(priceCslInStablecoin);
       
-      return priceCslInUsdt;
+      return priceCslInStablecoin;
     } catch (error) {
       retries++;
       
