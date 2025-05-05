@@ -1,6 +1,10 @@
-
 import { gql, request } from 'graphql-request';
-import { UNISWAP_V4_POOL, ENABLE_LOGGING, COUNTER_TOKEN_DECIMALS } from './config';
+import { 
+  UNISWAP_V4_POOL, 
+  ENABLE_LOGGING, 
+  COUNTER_TOKEN_DECIMALS, 
+  UNISWAP_V4_ENDPOINTS 
+} from './config';
 import { isValidPrice, MIN_VALID_PRICE, MAX_VALID_PRICE } from './utils/priceValidation';
 import { setCachedPrice } from './utils/priceCache';
 
@@ -33,10 +37,6 @@ interface DiagnosticsData {
 
 let lastDiagnostics: DiagnosticsData | null = null;
 
-// Subgraph endpoint for Uniswap V4 on Polygon
-const SUBGRAPH_ENDPOINT = import.meta.env.VITE_V4_SUBGRAPH_ENDPOINT || 
-  'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-polygon';
-
 // Edge function endpoint for proxying requests
 const EDGE_FUNCTION_ENDPOINT = 'https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/internal-twap-status';
 
@@ -49,6 +49,8 @@ interface PoolQueryResponse {
 
 /**
  * Query the V4 subgraph to get the current sqrtPriceX96 value
+ * Try multiple endpoints in sequence until one works
+ * 
  * @param poolId The Uniswap V4 pool ID
  * @returns The sqrtPriceX96 value as a BigInt
  */
@@ -73,157 +75,162 @@ export async function querySqrtPriceX96(poolId: string): Promise<bigint> {
   `;
 
   if (DEBUG_TWAP) {
-    console.debug('[DEBUG_TWAP] Making GraphQL query to endpoint:', SUBGRAPH_ENDPOINT);
-    console.debug('[DEBUG_TWAP] Pool ID:', poolId);
-    console.debug('[DEBUG_TWAP] Query string:', query);
+    console.debug('[DEBUG_TWAP] Attempting to query V4 subgraph endpoints');
     
     // Save diagnostic data
     lastDiagnostics = {
       ...lastDiagnostics,
       requestParams: {
-        endpoint: SUBGRAPH_ENDPOINT,
         poolId,
         query: query.toString()
       }
     };
   }
 
-  let directQueryFailed = false;
-  const startTime = performance.now();
+  // Collect errors from all endpoint attempts for diagnostic purposes
+  const errors = [];
   
-  try {
-    // First try: direct subgraph query
-    const response = await request<any>(SUBGRAPH_ENDPOINT, query);
-    const endTime = performance.now();
-    
-    if (ENABLE_LOGGING || DEBUG_TWAP) {
-      console.debug('subgraph-ms', endTime - startTime);
-    }
-
+  // Try each endpoint in sequence
+  for (const endpoint of UNISWAP_V4_ENDPOINTS) {
     if (DEBUG_TWAP) {
-      console.debug('[DEBUG_TWAP] Raw response data:', JSON.stringify(response));
-      
-      // Save response for diagnostics
-      lastDiagnostics = {
-        ...lastDiagnostics,
-        response: response
-      };
+      console.debug(`[DEBUG_TWAP] Trying endpoint: ${endpoint}`);
     }
+    
+    try {
+      const startTime = performance.now();
+      const response = await request<any>(endpoint, query);
+      const endTime = performance.now();
+      
+      if (ENABLE_LOGGING || DEBUG_TWAP) {
+        console.debug(`subgraph-ms (${endpoint})`, endTime - startTime);
+      }
 
-    if (!response?.pool?.sqrtPriceX96) {
-      const errorMsg = 'Failed to fetch sqrtPriceX96 from subgraph';
       if (DEBUG_TWAP) {
-        console.error('[DEBUG_TWAP] Error:', errorMsg);
+        console.debug(`[DEBUG_TWAP] Raw response from ${endpoint}:`, JSON.stringify(response));
+        
+        // Save response for diagnostics
         lastDiagnostics = {
           ...lastDiagnostics,
-          error: errorMsg
+          response: response,
+          endpoint: endpoint
         };
       }
-      throw new Error(errorMsg);
-    }
 
-    // Store token details for diagnostics
-    if (DEBUG_TWAP && response.pool.token0 && response.pool.token1) {
-      console.debug('[DEBUG_TWAP] Pool token0:', response.pool.token0);
-      console.debug('[DEBUG_TWAP] Pool token1:', response.pool.token1);
-      
-      lastDiagnostics = {
-        ...lastDiagnostics,
-        token0: response.pool.token0,
-        token1: response.pool.token1
-      };
-    }
-
-    // Store the sqrtPriceX96 for diagnostics
-    if (DEBUG_TWAP) {
-      lastDiagnostics = {
-        ...lastDiagnostics,
-        sqrtPriceX96: response.pool.sqrtPriceX96
-      };
-    }
-
-    // Convert the string to BigInt
-    return BigInt(response.pool.sqrtPriceX96);
-  } catch (error) {
-    directQueryFailed = true;
-    const endTime = performance.now();
-    console.warn(`[DEBUG_TWAP] Direct subgraph query failed after ${endTime - startTime}ms:`, error);
-    
-    // Enhanced error logging
-    if (DEBUG_TWAP) {
-      console.error('[DEBUG_TWAP] Query error details:', {
-        endpoint: SUBGRAPH_ENDPOINT,
-        poolId,
-        errorMessage: error instanceof Error ? error.message : String(error),
-        errorStack: error instanceof Error ? error.stack : undefined
-      });
-      
-      lastDiagnostics = {
-        ...lastDiagnostics,
-        error: error instanceof Error ? error.message : String(error)
-      };
-    }
-    
-    // Fall through to edge function proxy approach
-  }
-  
-  // If direct query failed, try using the edge function as a proxy
-  if (directQueryFailed) {
-    console.log('[DEBUG_TWAP] Attempting to fetch via edge function proxy');
-    try {
-      const proxyStartTime = performance.now();
-      const response = await fetch(`${EDGE_FUNCTION_ENDPOINT}/test-connection?poolId=${poolId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Edge function proxy failed: ${response.status} ${response.statusText}`);
+      if (!response?.pool?.sqrtPriceX96) {
+        const errorMsg = `Failed to fetch sqrtPriceX96 from subgraph at ${endpoint}`;
+        if (DEBUG_TWAP) {
+          console.error('[DEBUG_TWAP] Error:', errorMsg);
+        }
+        errors.push({ endpoint, error: errorMsg });
+        continue; // Try next endpoint
       }
-      
-      const data = await response.json();
-      const proxyEndTime = performance.now();
-      
-      if (DEBUG_TWAP) {
-        console.debug('[DEBUG_TWAP] Edge function proxy response time:', proxyEndTime - proxyStartTime);
-        console.debug('[DEBUG_TWAP] Edge proxy response:', data);
+
+      // Store token details for diagnostics
+      if (DEBUG_TWAP && response.pool.token0 && response.pool.token1) {
+        console.debug('[DEBUG_TWAP] Pool token0:', response.pool.token0);
+        console.debug('[DEBUG_TWAP] Pool token1:', response.pool.token1);
         
         lastDiagnostics = {
           ...lastDiagnostics,
-          response: data,
-          endpoint: EDGE_FUNCTION_ENDPOINT
+          token0: response.pool.token0,
+          token1: response.pool.token1
         };
       }
-      
-      if (!data.success || !data.data?.data?.pool?.sqrtPriceX96) {
-        throw new Error('Edge function proxy returned no data');
-      }
-      
-      // Set the source to edge proxy
-      lastSource = 'edgeProxy';
-      
-      // Store token details from proxy
-      const pool = data.data.data.pool;
-      if (DEBUG_TWAP && pool.token0 && pool.token1) {
-        lastDiagnostics = {
-          ...lastDiagnostics,
-          token0: pool.token0,
-          token1: pool.token1,
-          sqrtPriceX96: pool.sqrtPriceX96
-        };
-      }
-      
-      return BigInt(pool.sqrtPriceX96);
-    } catch (proxyError) {
-      console.error('[DEBUG_TWAP] Edge function proxy attempt failed:', proxyError);
-      
+
+      // Store the sqrtPriceX96 for diagnostics
       if (DEBUG_TWAP) {
         lastDiagnostics = {
           ...lastDiagnostics,
-          error: `Direct query and edge proxy both failed. Last error: ${proxyError instanceof Error ? proxyError.message : String(proxyError)}`
+          sqrtPriceX96: response.pool.sqrtPriceX96
+        };
+      }
+
+      console.log(`Successfully fetched data from ${endpoint}`);
+      // Convert the string to BigInt and return
+      return BigInt(response.pool.sqrtPriceX96);
+    } catch (error) {
+      const endTime = performance.now();
+      console.warn(`[DEBUG_TWAP] Endpoint ${endpoint} failed:`, error);
+      
+      errors.push({ 
+        endpoint, 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      
+      // Enhanced error logging
+      if (DEBUG_TWAP) {
+        console.error('[DEBUG_TWAP] Query error details:', {
+          endpoint,
+          poolId,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined
+        });
+        
+        lastDiagnostics = {
+          ...lastDiagnostics,
+          error: `${endpoint} failed: ${error instanceof Error ? error.message : String(error)}`
         };
       }
       
-      // Re-throw the original error to maintain the original error flow
-      throw new Error(`Failed to get sqrtPriceX96: Direct and proxy methods both failed`);
+      // Continue to try next endpoint
     }
+  }
+  
+  // If all direct subgraph queries failed, try using the edge function as a proxy
+  console.log('[DEBUG_TWAP] All direct subgraph queries failed. Attempting to fetch via edge function proxy');
+  try {
+    const proxyStartTime = performance.now();
+    const response = await fetch(`${EDGE_FUNCTION_ENDPOINT}/test-connection?poolId=${poolId}`);
+    
+    if (!response.ok) {
+      throw new Error(`Edge function proxy failed: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    const proxyEndTime = performance.now();
+    
+    if (DEBUG_TWAP) {
+      console.debug('[DEBUG_TWAP] Edge function proxy response time:', proxyEndTime - proxyStartTime);
+      console.debug('[DEBUG_TWAP] Edge proxy response:', data);
+      
+      lastDiagnostics = {
+        ...lastDiagnostics,
+        response: data,
+        endpoint: EDGE_FUNCTION_ENDPOINT
+      };
+    }
+    
+    if (!data.success || !data.data?.data?.pool?.sqrtPriceX96) {
+      throw new Error('Edge function proxy returned no data');
+    }
+    
+    // Set the source to edge proxy
+    lastSource = 'edgeProxy';
+    
+    // Store token details from proxy
+    const pool = data.data.data.pool;
+    if (DEBUG_TWAP && pool.token0 && pool.token1) {
+      lastDiagnostics = {
+        ...lastDiagnostics,
+        token0: pool.token0,
+        token1: pool.token1,
+        sqrtPriceX96: pool.sqrtPriceX96
+      };
+    }
+    
+    return BigInt(pool.sqrtPriceX96);
+  } catch (proxyError) {
+    console.error('[DEBUG_TWAP] Edge function proxy attempt failed:', proxyError);
+    
+    if (DEBUG_TWAP) {
+      lastDiagnostics = {
+        ...lastDiagnostics,
+        error: `All direct queries and edge proxy failed. Errors: ${JSON.stringify(errors)}. Proxy error: ${proxyError instanceof Error ? proxyError.message : String(proxyError)}`
+      };
+    }
+    
+    // Re-throw with comprehensive error message listing all failed attempts
+    throw new Error(`Failed to get sqrtPriceX96: All endpoints failed: ${JSON.stringify(errors)}`);
   }
 }
 
@@ -334,7 +341,7 @@ export async function fetchSubgraphPrice(): Promise<number> {
   let retries = 0;
   lastAttemptTime = new Date().toISOString();
   lastSource = 'v4Subgraph';
-  lastDiagnostics = { endpoint: SUBGRAPH_ENDPOINT, poolId: UNISWAP_V4_POOL };
+  lastDiagnostics = { poolId: UNISWAP_V4_POOL };
   
   try {
     while (retries <= MAX_RETRIES) {

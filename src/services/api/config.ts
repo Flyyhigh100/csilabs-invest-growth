@@ -14,8 +14,21 @@ export const UNISWAP_V4_POOL = (import.meta.env?.VITE_V4_POOL as string | undefi
 export const COUNTER_TOKEN_SYMBOL = (import.meta.env?.VITE_COUNTER_TOKEN_SYMBOL as string | undefined) || 'USDC';
 export const COUNTER_TOKEN_DECIMALS = 6;
 
+// Updated Uniswap V4 endpoints
+export const UNISWAP_V4_ENDPOINTS = [
+  // Primary new endpoints
+  import.meta.env?.VITE_V4_SUBGRAPH_ENDPOINT || 
+  'https://api.studio.thegraph.com/query/48211/uniswap-v4-polygon/version/latest',
+  'https://gateway-arbitrum.network.thegraph.com/api/subgraphs/name/uniswap/uniswap-v4',
+  'https://gateway.thegraph.com/api/subgraphs/name/uniswap/uniswap-v4-polygon',
+  // Legacy endpoint - now removed
+  'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-polygon'
+];
+
+// Use the first endpoint by default
+export const UNISWAP_V4_URL = UNISWAP_V4_ENDPOINTS[0];
+
 export const UNISWAP_V3_URL = import.meta.env?.VITE_V3_URL || 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon';
-export const UNISWAP_V4_URL = import.meta.env?.VITE_V4_URL || 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-polygon';
 
 // Legacy constant used by existing services (points to V3 by default)
 export const UNISWAP_SUBGRAPH_URL = UNISWAP_V3_URL;

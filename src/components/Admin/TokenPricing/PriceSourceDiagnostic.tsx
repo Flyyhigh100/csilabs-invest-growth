@@ -1,10 +1,9 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RefreshCw, Info, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { UNISWAP_V4_POOL } from '@/services/api/config';
+import { UNISWAP_V4_POOL, UNISWAP_V4_ENDPOINTS } from '@/services/api/config';
 
 interface PriceSourceProps {
   name: string;
@@ -23,6 +22,7 @@ interface SourceState {
   lastError: string | null;
   lastAttempt: string | null;
   isTesting: boolean;
+  endpoint: string;
 }
 
 // Define interface for all sources
@@ -94,7 +94,8 @@ const PriceSourceDiagnostic = () => {
     latestPrice: null,
     lastError: null,
     lastAttempt: null,
-    isTesting: false
+    isTesting: false,
+    endpoint: "none"
   };
 
   const [sources, setSources] = React.useState<SourcesState>({
@@ -112,44 +113,74 @@ const PriceSourceDiagnostic = () => {
       v4Subgraph: { ...prev.v4Subgraph, isTesting: true } 
     }));
 
+    let usedEndpoint = "";
+    
     try {
-      // Use the GraphQL query directly
-      const response = await fetch('https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-polygon', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: `{
-            pool(id: "${UNISWAP_V4_POOL}") {
-              sqrtPriceX96
-              token0 { id symbol decimals }
-              token1 { id symbol decimals }
-            }
-          }`
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (data.errors || !data.data?.pool) {
-        throw new Error(data.errors ? data.errors[0].message : 'Pool not found');
+      // Try each endpoint in the list until one works
+      for (const endpoint of UNISWAP_V4_ENDPOINTS) {
+        try {
+          console.log(`Trying V4 subgraph endpoint: ${endpoint}`);
+          
+          // Use the GraphQL query directly
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: `{
+                pool(id: "${UNISWAP_V4_POOL}") {
+                  sqrtPriceX96
+                  token0 { id symbol decimals }
+                  token1 { id symbol decimals }
+                }
+              }`
+            })
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error ${response.status}: ${errorText}`);
+          }
+          
+          const data = await response.json();
+          
+          if (data.errors) {
+            throw new Error(data.errors[0]?.message || 'GraphQL error');
+          }
+          
+          if (!data.data?.pool) {
+            throw new Error('Pool not found');
+          }
+          
+          // Calculate price from sqrtPriceX96
+          const sqrtPriceX96 = BigInt(data.data.pool.sqrtPriceX96);
+          const decimals0 = parseInt(data.data.pool.token0.decimals);
+          const decimals1 = parseInt(data.data.pool.token1.decimals);
+          const price = Number((sqrtPriceX96 * sqrtPriceX96 >> 192n)) / 10**(decimals1 - decimals0);
+          
+          // This endpoint worked
+          usedEndpoint = endpoint;
+          
+          setSources(prev => ({ 
+            ...prev, 
+            v4Subgraph: { 
+              isWorking: true,
+              latestPrice: price, 
+              lastError: null, 
+              lastAttempt: new Date().toISOString(),
+              isTesting: false,
+              endpoint: usedEndpoint
+            } 
+          }));
+          
+          return; // Exit after successful endpoint
+        } catch (endpointError) {
+          console.warn(`Endpoint ${endpoint} failed:`, endpointError);
+          // Continue to next endpoint
+        }
       }
       
-      // Calculate price from sqrtPriceX96
-      const sqrtPriceX96 = BigInt(data.data.pool.sqrtPriceX96);
-      const decimals0 = parseInt(data.data.pool.token0.decimals);
-      const decimals1 = parseInt(data.data.pool.token1.decimals);
-      const price = Number((sqrtPriceX96 * sqrtPriceX96 >> 192n)) / 10**(decimals1 - decimals0);
-      
-      setSources(prev => ({ 
-        ...prev, 
-        v4Subgraph: { 
-          isWorking: true,
-          latestPrice: price, 
-          lastError: null, 
-          lastAttempt: new Date().toISOString(),
-          isTesting: false 
-        } 
-      }));
+      // If we reach here, all endpoints failed
+      throw new Error("All V4 subgraph endpoints failed");
     } catch (error) {
       setSources(prev => ({ 
         ...prev, 
@@ -159,7 +190,8 @@ const PriceSourceDiagnostic = () => {
           latestPrice: null,
           lastError: error instanceof Error ? error.message : String(error), 
           lastAttempt: new Date().toISOString(),
-          isTesting: false 
+          isTesting: false,
+          endpoint: usedEndpoint || "none"
         } 
       }));
     }
@@ -197,6 +229,8 @@ const PriceSourceDiagnostic = () => {
       const decimals1 = parseInt(pool.token1.decimals);
       const price = Number((sqrtPriceX96 * sqrtPriceX96 >> 192n)) / 10**(decimals1 - decimals0);
       
+      const endpoint = data.endpoint || 'unknown';
+      
       setSources(prev => ({ 
         ...prev, 
         v4EdgeProxy: { 
@@ -204,7 +238,8 @@ const PriceSourceDiagnostic = () => {
           latestPrice: price, 
           lastError: null, 
           lastAttempt: new Date().toISOString(),
-          isTesting: false 
+          isTesting: false,
+          endpoint: endpoint
         } 
       }));
     } catch (error) {
@@ -216,7 +251,7 @@ const PriceSourceDiagnostic = () => {
           latestPrice: null,
           lastError: error instanceof Error ? error.message : String(error), 
           lastAttempt: new Date().toISOString(),
-          isTesting: false 
+          isTesting: false
         } 
       }));
     }
@@ -334,6 +369,7 @@ const PriceSourceDiagnostic = () => {
           <AlertDescription className="text-xs">
             The system will try each price source in order until it finds one that works. 
             Testing individual sources can help identify where failures are occurring.
+            V4 endpoints are tried in sequence: {UNISWAP_V4_ENDPOINTS.slice(0, 2).join(", ")}...
           </AlertDescription>
         </Alert>
         
@@ -341,7 +377,7 @@ const PriceSourceDiagnostic = () => {
           name="Uniswap V4 Subgraph (Primary)" 
           isWorking={sources.v4Subgraph.isWorking}
           latestPrice={sources.v4Subgraph.latestPrice}
-          lastError={sources.v4Subgraph.lastError}
+          lastError={sources.v4Subgraph.lastError ? `${sources.v4Subgraph.lastError} ${sources.v4Subgraph.endpoint ? `(Endpoint: ${sources.v4Subgraph.endpoint})` : ''}` : null}
           lastAttempt={sources.v4Subgraph.lastAttempt}
           onTest={() => testSource('v4Subgraph')}
           isTesting={sources.v4Subgraph.isTesting}
@@ -351,7 +387,7 @@ const PriceSourceDiagnostic = () => {
           name="Edge Function Proxy" 
           isWorking={sources.v4EdgeProxy.isWorking}
           latestPrice={sources.v4EdgeProxy.latestPrice}
-          lastError={sources.v4EdgeProxy.lastError}
+          lastError={sources.v4EdgeProxy.lastError ? `${sources.v4EdgeProxy.lastError} ${sources.v4EdgeProxy.endpoint ? `(Endpoint: ${sources.v4EdgeProxy.endpoint})` : ''}` : null}
           lastAttempt={sources.v4EdgeProxy.lastAttempt}
           onTest={() => testSource('v4EdgeProxy')}
           isTesting={sources.v4EdgeProxy.isTesting}
