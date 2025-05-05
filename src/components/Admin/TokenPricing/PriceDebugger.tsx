@@ -4,15 +4,52 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useTokenPrice } from '@/context/TokenPriceContext';
 import { TOKEN_ADDRESS, CHAIN_ID } from '@/services/api/config';
-import { RefreshCw, AlertCircle } from 'lucide-react';
+import { RefreshCw, AlertCircle, Clock, Info } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-const PriceDebugger = () => {
-  const { currentPrice, error, lastUpdated, timeUntilNextUpdate, refreshPrice } = useTokenPrice();
+export const PriceDebugger = () => {
+  const { 
+    currentPrice, 
+    error, 
+    lastUpdated, 
+    timeUntilNextUpdate, 
+    refreshPrice, 
+    dataSource 
+  } = useTokenPrice();
   
   const isDemoData = error !== null;
-  const apiStatus = useDexScreenerApiStatus();
+  
+  // Helper function to get source display name
+  const getSourceDisplayName = (source: string | null) => {
+    switch(source) {
+      case 'on-chain': return "Uniswap V4 TWAP";
+      case 'on-chain-v4': return "Uniswap V4 Spot";
+      case 'on-chain-v3': return "Uniswap V3 TWAP";
+      case 'defined.fi': return "Defined.fi API";
+      case 'dexscreener': return "DexScreener API";
+      case 'cache': return "Cached Data";
+      default: return "Unknown Source";
+    }
+  };
+
+  // Helper function to get badge variant based on source
+  const getSourceBadgeVariant = (source: string | null) => {
+    switch(source) {
+      case 'on-chain':
+      case 'on-chain-v4':
+      case 'on-chain-v3':
+        return "success";
+      case 'defined.fi':
+      case 'dexscreener':
+        return "warning";
+      case 'cache':
+        return "outline";
+      default:
+        return "default";
+    }
+  };
   
   return (
     <Card>
@@ -41,9 +78,32 @@ const PriceDebugger = () => {
             <span className="text-sm text-gray-500">Next Update In:</span>
             <span className="font-mono">{Math.ceil(timeUntilNextUpdate / 1000)}s</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-gray-500">API Status:</span>
-            <span className="font-mono">{apiStatus.isConnected ? '✅ Connected' : '❌ Error'}</span>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500">Data Source:</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center">
+                    <Badge variant={getSourceBadgeVariant(dataSource)}>
+                      {getSourceDisplayName(dataSource)}
+                    </Badge>
+                    <Info className="h-3.5 w-3.5 ml-1 opacity-70" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="left" align="center">
+                  <p className="text-xs max-w-xs">
+                    {dataSource?.includes('on-chain') ? 
+                      'Price data comes directly from the blockchain - highest reliability' :
+                      dataSource === 'defined.fi' || dataSource === 'dexscreener' ?
+                      'Price data comes from third-party API - medium reliability' :
+                      dataSource === 'cache' ?
+                      'Using cached price data - may be outdated' :
+                      'Source information unavailable'
+                    }
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           
           <div className="mt-2">
@@ -58,13 +118,18 @@ const PriceDebugger = () => {
             </Button>
           </div>
           
-          <Alert className="mt-4 bg-blue-50 border-blue-200">
+          <Alert className={`mt-4 ${
+            dataSource?.includes('on-chain') ? 'bg-green-50 border-green-200' :
+            dataSource === 'defined.fi' || dataSource === 'dexscreener' ? 'bg-yellow-50 border-yellow-200' :
+            'bg-blue-50 border-blue-200'
+          }`}>
             <AlertDescription className="text-xs">
               <div className="space-y-1">
                 <p><strong>Token Address:</strong> {TOKEN_ADDRESS}</p>
                 <p><strong>Chain ID:</strong> {CHAIN_ID}</p>
                 <p><strong>Cache Duration:</strong> 60s</p>
-                <p><strong>Primary Data Source:</strong> DexScreener API</p>
+                <p><strong>Primary Data Source:</strong> {getSourceDisplayName(dataSource)}</p>
+                <p><strong>Fallback Order:</strong> V4 TWAP → V4 Spot → V3 TWAP → Defined.fi → DexScreener</p>
               </div>
             </AlertDescription>
           </Alert>
@@ -84,27 +149,5 @@ const PriceDebugger = () => {
     </Card>
   );
 };
-
-// Custom hook to check DexScreener API status
-function useDexScreenerApiStatus() {
-  const [isConnected, setIsConnected] = React.useState<boolean>(false);
-  
-  React.useEffect(() => {
-    const checkApiStatus = async () => {
-      try {
-        // Attempt to fetch a price as a connectivity test
-        await fetch('https://api.dexscreener.com/latest/dex/pairs/polygon/0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f4');
-        setIsConnected(true);
-      } catch (error) {
-        console.error('Error checking API status:', error);
-        setIsConnected(false);
-      }
-    };
-    
-    checkApiStatus();
-  }, []);
-  
-  return { isConnected };
-}
 
 export default PriceDebugger;

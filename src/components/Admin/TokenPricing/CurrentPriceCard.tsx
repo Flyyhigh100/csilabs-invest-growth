@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Clock, RefreshCw, Loader2 } from 'lucide-react';
+import { Clock, RefreshCw, Loader2, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface CurrentPriceCardProps {
   currentPrice: number | null;
@@ -12,6 +13,7 @@ interface CurrentPriceCardProps {
   refreshPrice: () => void;
   formattedLastUpdated: string;
   secondsUntilRefresh: number;
+  dataSource?: 'on-chain' | 'defined.fi' | 'dexscreener' | 'cache' | null;
 }
 
 const CurrentPriceCard: React.FC<CurrentPriceCardProps> = ({
@@ -20,7 +22,58 @@ const CurrentPriceCard: React.FC<CurrentPriceCardProps> = ({
   refreshPrice,
   formattedLastUpdated,
   secondsUntilRefresh,
+  dataSource = null
 }) => {
+  // Helper function to get source display name
+  const getSourceDisplayName = (source: string | null) => {
+    switch(source) {
+      case 'on-chain': return "Uniswap V4 TWAP";
+      case 'on-chain-v4': return "Uniswap V4 Spot";
+      case 'on-chain-v3': return "Uniswap V3 TWAP";
+      case 'defined.fi': return "Defined.fi API";
+      case 'dexscreener': return "DexScreener API";
+      case 'cache': return "Cached Data";
+      default: return "Unknown Source";
+    }
+  };
+
+  // Helper function to get badge variant based on source
+  const getSourceBadgeVariant = (source: string | null) => {
+    switch(source) {
+      case 'on-chain':
+      case 'on-chain-v4':
+      case 'on-chain-v3':
+        return "success";
+      case 'defined.fi':
+      case 'dexscreener':
+        return "warning";
+      case 'cache':
+        return "outline";
+      default:
+        return "default";
+    }
+  };
+
+  // Helper function for tooltip content
+  const getSourceTooltip = (source: string | null) => {
+    switch(source) {
+      case 'on-chain':
+        return "Using Uniswap V4 TWAP data directly from blockchain";
+      case 'on-chain-v4':
+        return "Using Uniswap V4 spot price directly from blockchain";
+      case 'on-chain-v3':
+        return "Using Uniswap V3 TWAP data directly from blockchain";
+      case 'defined.fi':
+        return "Using third-party API data from Defined.fi";
+      case 'dexscreener':
+        return "Using third-party API data from DexScreener";
+      case 'cache':
+        return "Using cached price data";
+      default:
+        return "Source information unavailable";
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -58,11 +111,29 @@ const CurrentPriceCard: React.FC<CurrentPriceCardProps> = ({
           </div>
         </div>
         
-        <Alert className="bg-blue-50 text-blue-800 border-blue-200">
+        <Alert className={`${
+          dataSource?.includes('on-chain') ? 'bg-green-50 border-green-200 text-green-800' :
+          dataSource === 'defined.fi' || dataSource === 'dexscreener' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
+          'bg-blue-50 border-blue-200 text-blue-800'
+        }`}>
           <AlertDescription className="flex flex-col space-y-1 text-xs">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span>Primary data source:</span>
-              <span className="font-medium">Uniswap V4 Subgraph</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center">
+                      <Badge variant={getSourceBadgeVariant(dataSource)}>
+                        {getSourceDisplayName(dataSource)}
+                      </Badge>
+                      <Info className="h-3.5 w-3.5 ml-1 opacity-70" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p className="text-xs">{getSourceTooltip(dataSource)}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div className="flex justify-between">
               <span>Last updated:</span>

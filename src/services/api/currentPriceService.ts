@@ -7,7 +7,13 @@ import { fetchUniswapV4Price } from './uniswapV4PriceService';
 import { getCachedPrice, setCachedPrice, shouldRefreshPrice } from './utils/priceCache';
 import { ENABLE_LOGGING, FORCE_REFRESH_CACHE } from './config';
 
-export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Promise<number> => {
+// Define the return type with source information
+export interface PriceResult {
+  price: number;
+  source: 'on-chain' | 'on-chain-v4' | 'on-chain-v3' | 'defined.fi' | 'dexscreener' | 'cache';
+}
+
+export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Promise<PriceResult> => {
   try {
     // Check if we can use cached price
     if (!forceRefresh && !FORCE_REFRESH_CACHE) {
@@ -16,7 +22,10 @@ export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Pro
         if (ENABLE_LOGGING) {
           console.log('Using cached price:', cachedPrice.price);
         }
-        return cachedPrice.price;
+        return { 
+          price: cachedPrice.price,
+          source: 'cache'
+        };
       }
     }
     
@@ -31,7 +40,10 @@ export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Pro
         console.log('Successfully fetched Uniswap V4 subgraph price:', v4SubgraphPrice);
       }
       setCachedPrice(v4SubgraphPrice);
-      return v4SubgraphPrice;
+      return {
+        price: v4SubgraphPrice,
+        source: 'on-chain'
+      };
     } catch (v4SubgraphError) {
       console.warn('Failed to fetch Uniswap V4 subgraph price, falling back to V4 spot price:', v4SubgraphError);
       
@@ -42,7 +54,10 @@ export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Pro
           console.log('Successfully fetched Uniswap V4 spot price:', v4SpotPrice);
         }
         setCachedPrice(v4SpotPrice);
-        return v4SpotPrice;
+        return {
+          price: v4SpotPrice,
+          source: 'on-chain-v4'
+        };
       } catch (v4SpotError) {
         console.warn('Failed to fetch Uniswap V4 spot price, falling back to V3 TWAP:', v4SpotError);
         
@@ -53,7 +68,10 @@ export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Pro
             console.log('Successfully fetched on-chain V3 TWAP price:', twapPrice);
           }
           setCachedPrice(twapPrice);
-          return twapPrice;
+          return {
+            price: twapPrice,
+            source: 'on-chain-v3'
+          };
         } catch (twapError) {
           console.warn('Failed to fetch on-chain V3 TWAP price, falling back to Defined.fi:', twapError);
           
@@ -61,14 +79,20 @@ export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Pro
           try {
             const definedPrice = await fetchDefinedPrice();
             setCachedPrice(definedPrice);
-            return definedPrice;
+            return {
+              price: definedPrice,
+              source: 'defined.fi'
+            };
           } catch (definedError) {
             console.warn('Failed to fetch from Defined.fi, falling back to DexScreener:', definedError);
             
             // Fourth fallback: DexScreener
             const dexScreenerPrice = await fetchDexScreenerPrice();
             setCachedPrice(dexScreenerPrice);
-            return dexScreenerPrice;
+            return {
+              price: dexScreenerPrice,
+              source: 'dexscreener'
+            };
           }
         }
       }
@@ -80,7 +104,10 @@ export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Pro
     const cachedPrice = getCachedPrice();
     if (cachedPrice) {
       console.log('Using expired cached price as fallback:', cachedPrice.price);
-      return cachedPrice.price;
+      return {
+        price: cachedPrice.price,
+        source: 'cache'
+      };
     }
     
     throw error;
