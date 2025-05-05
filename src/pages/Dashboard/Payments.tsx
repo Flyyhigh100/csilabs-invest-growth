@@ -29,7 +29,7 @@ const Payments = () => {
       ) : (
         <>
           <div className="flex justify-between items-center mb-6">
-            <TokenPriceHeaderWithProvider />
+            <TokenPriceHeaderWithProvider className="w-full" />
           </div>
           
           <PaymentInfoCard 

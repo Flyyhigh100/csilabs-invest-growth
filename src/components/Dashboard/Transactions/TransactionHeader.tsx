@@ -9,7 +9,7 @@ interface TransactionHeaderProps {
   onRefresh: () => void;
 }
 
-const TransactionHeader: React.FC<TransactionHeaderProps> = () => {
+const TransactionHeader: React.FC<TransactionHeaderProps> = ({ isRefreshing, onRefresh }) => {
   return (
     <div className="flex items-center justify-between">
       <div>
