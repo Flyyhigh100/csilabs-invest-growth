@@ -23,18 +23,23 @@ const SUBGRAPH_ENDPOINTS = [
   'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-polygon'
 ];
 
+// Helper function to determine if the pool identifier is a direct ID or token pair
+function isDirectPoolId(poolIdentifier: string): boolean {
+  return !poolIdentifier.includes('-');
+}
+
 // Helper function to proxy requests to the V4 subgraph - will try multiple endpoints
-async function proxySubgraphRequest(tokens) {
+async function proxySubgraphRequest(poolIdentifier) {
   const errors = [];
+  const isDirectId = isDirectPoolId(poolIdentifier);
   
-  // Parse tokens parameter - can be either tokenA-tokenB format or a specific pool ID
-  let queryParams: any = { tokens };
+  let queryParams: any;
   let queryString = '';
   
   // Check if we're using the tokenA-tokenB format or a specific pool ID
-  if (typeof tokens === 'string' && tokens.includes('-')) {
+  if (!isDirectId) {
     // We're using token addresses
-    const tokenAddresses = tokens.split('-');
+    const tokenAddresses = poolIdentifier.split('-');
     queryParams = { tokens: tokenAddresses };
     queryString = `
       query ($tokens: [String!]) {
@@ -47,7 +52,7 @@ async function proxySubgraphRequest(tokens) {
       }`;
   } else {
     // Using a specific pool ID
-    queryParams = { id: tokens };
+    queryParams = { id: poolIdentifier };
     queryString = `
       query ($id: ID!) {
         pool(id: $id) {
@@ -65,6 +70,7 @@ async function proxySubgraphRequest(tokens) {
         console.log(`[DEBUG] Trying V4 subgraph endpoint: ${endpoint}`);
         console.log(`[DEBUG] Query:`, queryString);
         console.log(`[DEBUG] Variables:`, queryParams);
+        console.log(`[DEBUG] Pool identifier type: ${isDirectId ? 'Direct ID' : 'Token pair'}`);
       }
       
       // Send the GraphQL query
@@ -88,11 +94,11 @@ async function proxySubgraphRequest(tokens) {
         throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
       }
       
-      // Check if we're using the token addresses format or pool ID format
-      if (queryParams.tokens) {
+      // Check based on query type
+      if (!isDirectId) {
         // Using token addresses format, we expect pools array
         if (!data.data?.pools || data.data.pools.length === 0) {
-          throw new Error(`No pools found containing tokens ${tokens} in subgraph at ${endpoint}`);
+          throw new Error(`No pools found containing tokens ${poolIdentifier} in subgraph at ${endpoint}`);
         }
         
         // Use the first pool that contains both tokens
@@ -104,7 +110,7 @@ async function proxySubgraphRequest(tokens) {
       } else {
         // Using pool ID format, we expect a single pool
         if (!data.data?.pool) {
-          throw new Error(`Pool ${tokens} not found in subgraph at ${endpoint}`);
+          throw new Error(`Pool ${poolIdentifier} not found in subgraph at ${endpoint}`);
         }
         
         console.log(`Successfully retrieved data from endpoint: ${endpoint}`);
@@ -128,14 +134,16 @@ async function proxySubgraphRequest(tokens) {
 }
 
 // Helper function to use a fallback endpoint when the main one fails
-async function tryFallbackEndpoint(tokens) {
+async function tryFallbackEndpoint(poolIdentifier) {
   try {
     // Since we now try multiple endpoints in proxySubgraphRequest,
     // this function will generate mock data as a last resort
     console.log("All subgraph endpoints failed. Generating mock data...");
     
+    const isDirectId = isDirectPoolId(poolIdentifier);
+    
     // Check if we're using the token addresses format or pool ID format
-    if (typeof tokens === 'string' && tokens.includes('-')) {
+    if (!isDirectId) {
       // Using token addresses format
       return {
         data: {
@@ -174,7 +182,7 @@ function convertSqrtPriceToPrice(sqrtPriceX96, decimals0 = 18, decimals1 = 6) {
     const sqrtPriceBigInt = BigInt(sqrtPriceX96);
     
     // Formula: (sqrtPriceX96^2 / 2^192) * 10^(decimals1 - decimals0)
-    const price = Number(sqrtPriceBigInt * sqrtPriceBigInt >> 192n) / 10**(decimals1 - decimals0);
+    const price = Number(sqrtPriceBigInt * sqrtPriceBigInt >> 192n) / 10**(decimals0 - decimals1);
     
     return price;
   } catch (error) {
@@ -187,11 +195,13 @@ function convertSqrtPriceToPrice(sqrtPriceX96, decimals0 = 18, decimals1 = 6) {
 async function fetchTwapStatus() {
   try {
     // We'll use the environmental variables if available
-    const V4_POOL_FORMAT = Deno.env.get("VITE_V4_POOL") || 
-      '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0-0x3c499c542cef5e3811e1192ce70d8cc03d5c3359';
+    const V4_POOL = Deno.env.get("VITE_V4_POOL") || 
+      (Deno.env.get("VITE_V4_POOL_FORMAT") || 
+       '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0-0x3c499c542cef5e3811e1192ce70d8cc03d5c3359');
     
     if (isDebugEnabled()) {
-      console.log(`[DEBUG] Fetching status for V4 pool tokens ${V4_POOL_FORMAT}`);
+      console.log(`[DEBUG] Fetching status for V4 pool: ${V4_POOL}`);
+      console.log(`[DEBUG] Pool ID type: ${isDirectPoolId(V4_POOL) ? 'Direct ID' : 'Token Pair'}`);
     }
 
     let result;
@@ -199,7 +209,7 @@ async function fetchTwapStatus() {
     
     try {
       // First try the main endpoints
-      result = await proxySubgraphRequest(V4_POOL_FORMAT);
+      result = await proxySubgraphRequest(V4_POOL);
       dataSource = "v4Subgraph";
       
       if (isDebugEnabled()) {
@@ -208,7 +218,7 @@ async function fetchTwapStatus() {
     } catch (mainEndpointError) {
       console.warn("All primary endpoints failed, using fallback mock data:", mainEndpointError);
       // If all main endpoints fail, use mock data
-      result = await tryFallbackEndpoint(V4_POOL_FORMAT);
+      result = await tryFallbackEndpoint(V4_POOL);
       dataSource = "mockData";
     }
     
@@ -219,15 +229,22 @@ async function fetchTwapStatus() {
     // Get data from result based on query format
     const data = result.data;
     let pool;
+    const isDirectId = isDirectPoolId(V4_POOL);
     
-    if (data.data?.pools && data.data.pools.length > 0) {
+    if (!isDirectId) {
       // Using token addresses format
-      pool = data.data.pools[0];
-    } else if (data.data?.pool) {
-      // Using pool ID format
-      pool = data.data.pool;
+      if (data.data?.pools && data.data.pools.length > 0) {
+        pool = data.data.pools[0];
+      } else {
+        throw new Error(`No pool data found for ${V4_POOL}`);
+      }
     } else {
-      throw new Error(`No pool data found for ${V4_POOL_FORMAT}`);
+      // Using pool ID format
+      if (data.data?.pool) {
+        pool = data.data.pool;
+      } else {
+        throw new Error(`No pool data found for ${V4_POOL}`);
+      }
     }
 
     // Return diagnostic information
@@ -243,13 +260,15 @@ async function fetchTwapStatus() {
       source: dataSource,
       endpoint: result.source,
       diagnostics: {
-        poolFormat: V4_POOL_FORMAT,
+        poolId: isDirectId ? V4_POOL : null,
+        poolFormat: !isDirectId ? V4_POOL : null,
+        isDirectId,
         endpoint: result.source,
         sqrtPriceX96: sqrtPriceX96,
         rawCalculatedPrice: rawPrice,
         token0: pool.token0,
         token1: pool.token1,
-        poolId: pool.id
+        poolId: pool.id || (isDirectId ? V4_POOL : null)
       }
     };
   } catch (error) {
@@ -269,20 +288,20 @@ async function fetchTwapStatus() {
 }
 
 // Add an endpoint to directly test the subgraph
-async function testSubgraphConnection(tokens) {
+async function testSubgraphConnection(poolIdentifier) {
   try {
     let data;
     let endpoint = "";
     
     try {
       // First try with main endpoints
-      const result = await proxySubgraphRequest(tokens);
+      const result = await proxySubgraphRequest(poolIdentifier);
       data = result.data;
       endpoint = result.source;
     } catch (mainError) {
       console.warn("All main endpoints failed, using fallback:", mainError);
       // If all endpoints fail, try the fallback
-      const result = await tryFallbackEndpoint(tokens);
+      const result = await tryFallbackEndpoint(poolIdentifier);
       data = result.data;
       endpoint = result.source;
     }
@@ -291,6 +310,7 @@ async function testSubgraphConnection(tokens) {
       success: true,
       data,
       endpoint,
+      poolIdentifierType: isDirectPoolId(poolIdentifier) ? 'Direct ID' : 'Token pair',
       timestamp: new Date().toISOString()
     };
   } catch (error) {
@@ -319,8 +339,8 @@ serve(async (req) => {
       const poolId = url.searchParams.get('poolId');
       const tokens = url.searchParams.get('tokens');
       
-      // Use the first available parameter - prioritize tokens if both are provided
-      const queryParam = tokens || poolId || 
+      // Use the first available parameter - prioritize poolId if both are provided
+      const queryParam = poolId || tokens || Deno.env.get("VITE_V4_POOL") || 
         '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0-0x3c499c542cef5e3811e1192ce70d8cc03d5c3359';
       
       const testResult = await testSubgraphConnection(queryParam);

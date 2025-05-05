@@ -1,5 +1,7 @@
+
 import { gql, request } from 'graphql-request';
 import { 
+  UNISWAP_V4_POOL,
   V4_POOL_FORMAT, 
   ENABLE_LOGGING, 
   COUNTER_TOKEN_DECIMALS, 
@@ -35,6 +37,7 @@ interface DiagnosticsData {
   validationLimits?: { min: number; max: number };
   poolFormat?: string;
   tokens?: string[];
+  isDirectPoolId?: boolean;
 }
 
 let lastDiagnostics: DiagnosticsData | null = null;
@@ -42,8 +45,27 @@ let lastDiagnostics: DiagnosticsData | null = null;
 // Edge function endpoint for proxying requests
 const EDGE_FUNCTION_ENDPOINT = 'https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/internal-twap-status';
 
-// Modified query for V4's pool identification approach
-const POOL_QUERY = gql`
+// Query for direct pool ID approach
+const POOL_BY_ID_QUERY = gql`
+  query ($id: ID!) {
+    pool(id: $id) {
+      sqrtPriceX96
+      token0 {
+        id
+        symbol
+        decimals
+      }
+      token1 {
+        id
+        symbol
+        decimals
+      }
+    }
+  }
+`;
+
+// Query for token pair approach
+const POOL_BY_TOKENS_QUERY = gql`
   query ($tokens: [String!]) {
     pools(where: { tokens_contains: $tokens }) {
       id
@@ -63,29 +85,73 @@ const POOL_QUERY = gql`
 `;
 
 /**
+ * Determines if the provided pool identifier is a direct pool ID or a token pair format
+ * @param poolIdentifier The pool ID or token pair string
+ * @returns Boolean indicating if it's a direct pool ID
+ */
+function isDirectPoolId(poolIdentifier: string): boolean {
+  // If it contains a hyphen, it's likely the token pair format
+  return !poolIdentifier.includes('-');
+}
+
+/**
  * Query the V4 subgraph to get the current sqrtPriceX96 value
- * Using token addresses to find the pool instead of a specific pool ID
+ * Supporting both direct pool ID and token addresses formats
  * 
  * @returns The sqrtPriceX96 value as a BigInt and the pool data
  */
 export async function queryV4PoolData(): Promise<{ sqrtPriceX96: bigint, poolData: any }> {
-  // Extract token addresses from the pool format
-  const tokens = V4_POOL_FORMAT.split('-');
+  const poolIdentifier = UNISWAP_V4_POOL;
+  const isDirectId = isDirectPoolId(poolIdentifier);
   
-  if (tokens.length !== 2) {
-    throw new Error(`Invalid V4 pool format: ${V4_POOL_FORMAT}, expected 'tokenA-tokenB'`);
+  // Choose query parameters based on pool identifier format
+  let queryParams: any;
+  let queryString: any;
+  
+  if (isDirectId) {
+    // Direct pool ID approach
+    queryParams = { id: poolIdentifier };
+    queryString = POOL_BY_ID_QUERY;
+    
+    if (DEBUG_TWAP) {
+      console.debug(`[DEBUG_TWAP] Using direct pool ID query with ID: ${poolIdentifier}`);
+      lastDiagnostics = {
+        ...lastDiagnostics,
+        isDirectPoolId: true,
+        poolId: poolIdentifier
+      };
+    }
+  } else {
+    // Token pair approach
+    const tokens = poolIdentifier.split('-');
+    
+    if (tokens.length !== 2) {
+      throw new Error(`Invalid V4 pool format: ${poolIdentifier}, expected 'tokenA-tokenB' or direct pool ID`);
+    }
+    
+    queryParams = { tokens };
+    queryString = POOL_BY_TOKENS_QUERY;
+    
+    if (DEBUG_TWAP) {
+      console.debug(`[DEBUG_TWAP] Using token pair query with tokens: ${tokens.join(', ')}`);
+      lastDiagnostics = {
+        ...lastDiagnostics,
+        isDirectPoolId: false,
+        tokens,
+        poolFormat: poolIdentifier
+      };
+    }
   }
 
   if (DEBUG_TWAP) {
-    console.debug('[DEBUG_TWAP] Attempting to query V4 subgraph endpoints with tokens:', tokens);
+    console.debug('[DEBUG_TWAP] Attempting to query V4 subgraph endpoints');
     
     // Save diagnostic data
     lastDiagnostics = {
       ...lastDiagnostics,
       requestParams: {
-        tokens,
-        poolFormat: V4_POOL_FORMAT,
-        query: POOL_QUERY.toString()
+        ...queryParams,
+        query: queryString.toString()
       }
     };
   }
@@ -101,7 +167,7 @@ export async function queryV4PoolData(): Promise<{ sqrtPriceX96: bigint, poolDat
     
     try {
       const startTime = performance.now();
-      const response = await request<any>(endpoint, POOL_QUERY, { tokens });
+      const response = await request<any>(endpoint, queryString, queryParams);
       const endTime = performance.now();
       
       if (ENABLE_LOGGING || DEBUG_TWAP) {
@@ -119,18 +185,37 @@ export async function queryV4PoolData(): Promise<{ sqrtPriceX96: bigint, poolDat
         };
       }
 
-      // Check if we got pools in the response
-      if (!response?.pools || response.pools.length === 0) {
-        const errorMsg = `No pools found with the specified tokens at ${endpoint}`;
-        if (DEBUG_TWAP) {
-          console.error('[DEBUG_TWAP] Error:', errorMsg);
-        }
-        errors.push({ endpoint, error: errorMsg });
-        continue; // Try next endpoint
-      }
+      let pool;
       
-      // Use the first pool that contains both tokens
-      const pool = response.pools[0]; 
+      // Handle response based on query type
+      if (isDirectId) {
+        // Direct pool ID query returns a single pool
+        pool = response?.pool;
+        
+        if (!pool) {
+          const errorMsg = `Pool with ID ${poolIdentifier} not found at ${endpoint}`;
+          if (DEBUG_TWAP) {
+            console.error('[DEBUG_TWAP] Error:', errorMsg);
+          }
+          errors.push({ endpoint, error: errorMsg });
+          continue; // Try next endpoint
+        }
+      } else {
+        // Token pair query returns an array of pools
+        const pools = response?.pools;
+        
+        if (!pools || pools.length === 0) {
+          const errorMsg = `No pools found with the specified tokens at ${endpoint}`;
+          if (DEBUG_TWAP) {
+            console.error('[DEBUG_TWAP] Error:', errorMsg);
+          }
+          errors.push({ endpoint, error: errorMsg });
+          continue; // Try next endpoint
+        }
+        
+        // Use the first pool that contains both tokens
+        pool = pools[0];
+      }
       
       if (!pool?.sqrtPriceX96) {
         const errorMsg = `Failed to fetch sqrtPriceX96 from subgraph at ${endpoint}`;
@@ -150,7 +235,7 @@ export async function queryV4PoolData(): Promise<{ sqrtPriceX96: bigint, poolDat
           ...lastDiagnostics,
           token0: pool.token0,
           token1: pool.token1,
-          poolId: pool.id
+          poolId: pool.id || poolIdentifier
         };
       }
 
@@ -180,7 +265,9 @@ export async function queryV4PoolData(): Promise<{ sqrtPriceX96: bigint, poolDat
       if (DEBUG_TWAP) {
         console.error('[DEBUG_TWAP] Query error details:', {
           endpoint,
-          tokens,
+          isDirectId,
+          poolId: isDirectId ? poolIdentifier : null,
+          tokens: !isDirectId ? poolIdentifier.split('-') : null,
           errorMessage: error instanceof Error ? error.message : String(error),
           errorStack: error instanceof Error ? error.stack : undefined
         });
@@ -199,8 +286,16 @@ export async function queryV4PoolData(): Promise<{ sqrtPriceX96: bigint, poolDat
   console.log('[DEBUG_TWAP] All direct subgraph queries failed. Attempting to fetch via edge function proxy');
   try {
     const proxyStartTime = performance.now();
-    // Use the new V4_POOL_FORMAT when calling the edge function
-    const response = await fetch(`${EDGE_FUNCTION_ENDPOINT}/test-connection?tokens=${encodeURIComponent(V4_POOL_FORMAT)}`);
+    // Use the appropriate parameter based on pool identifier format
+    let url = `${EDGE_FUNCTION_ENDPOINT}/test-connection?`;
+    
+    if (isDirectId) {
+      url += `poolId=${encodeURIComponent(poolIdentifier)}`;
+    } else {
+      url += `tokens=${encodeURIComponent(poolIdentifier)}`;
+    }
+    
+    const response = await fetch(url);
     
     if (!response.ok) {
       throw new Error(`Edge function proxy failed: ${response.status} ${response.statusText}`);
@@ -220,15 +315,34 @@ export async function queryV4PoolData(): Promise<{ sqrtPriceX96: bigint, poolDat
       };
     }
     
-    if (!data.success || !data.data?.data?.pools?.[0]?.sqrtPriceX96) {
-      throw new Error('Edge function proxy returned no data');
+    if (!data.success) {
+      throw new Error(`Edge function proxy returned error: ${data.error || 'Unknown error'}`);
+    }
+    
+    let pool;
+    
+    // Extract pool data based on query type
+    if (isDirectId) {
+      pool = data.data?.data?.pool;
+      if (!pool) {
+        throw new Error('Edge function proxy returned no pool data');
+      }
+    } else {
+      const pools = data.data?.data?.pools;
+      if (!pools || pools.length === 0) {
+        throw new Error('Edge function proxy returned no pools');
+      }
+      pool = pools[0];
+    }
+    
+    if (!pool.sqrtPriceX96) {
+      throw new Error('Edge function proxy returned no sqrtPriceX96');
     }
     
     // Set the source to edge proxy
     lastSource = 'edgeProxy';
     
     // Store token details from proxy
-    const pool = data.data.data.pools[0];
     if (DEBUG_TWAP && pool.token0 && pool.token1) {
       lastDiagnostics = {
         ...lastDiagnostics,
@@ -253,7 +367,7 @@ export async function queryV4PoolData(): Promise<{ sqrtPriceX96: bigint, poolDat
     }
     
     // Re-throw with comprehensive error message listing all failed attempts
-    throw new Error(`Failed to get sqrtPriceX96: All endpoints failed: ${JSON.stringify(errors)}`);
+    throw new Error(`Failed to get pool data: All endpoints failed: ${JSON.stringify(errors)}`);
   }
 }
 
@@ -273,7 +387,7 @@ export function convertQ96ToDecimal(
 ): number {
   try {
     // Formula: (sqrtPriceX96^2 / 2^192) * 10^(decimals1 - decimals0)
-    const price = Number((sqrtPriceX96 * sqrtPriceX96 >> 192n)) / 10**(decimals1 - decimals0);
+    const price = Number((sqrtPriceX96 * sqrtPriceX96 >> 192n)) / 10**(decimals0 - decimals1);
     
     if (DEBUG_TWAP) {
       console.debug('[DEBUG_TWAP] Price calculation:', { 
@@ -364,18 +478,23 @@ export async function fetchSubgraphPrice(): Promise<number> {
   let retries = 0;
   lastAttemptTime = new Date().toISOString();
   lastSource = 'v4Subgraph';
-  lastDiagnostics = { poolFormat: V4_POOL_FORMAT, tokens: V4_POOL_FORMAT.split('-') };
+  lastDiagnostics = { 
+    poolId: isDirectPoolId(UNISWAP_V4_POOL) ? UNISWAP_V4_POOL : null,
+    poolFormat: !isDirectPoolId(UNISWAP_V4_POOL) ? UNISWAP_V4_POOL : null,
+    tokens: !isDirectPoolId(UNISWAP_V4_POOL) ? UNISWAP_V4_POOL.split('-') : null,
+    isDirectPoolId: isDirectPoolId(UNISWAP_V4_POOL)
+  };
   
   try {
     while (retries <= MAX_RETRIES) {
       try {
         if (ENABLE_LOGGING || DEBUG_TWAP) {
-          console.log(`Fetching V4 price from subgraph using tokens: ${V4_POOL_FORMAT}`);
+          console.log(`Fetching V4 price from subgraph using ${isDirectPoolId(UNISWAP_V4_POOL) ? 'pool ID' : 'tokens'}: ${UNISWAP_V4_POOL}`);
         }
         
         // Try direct subgraph query first
         try {
-          // Query the subgraph using token addresses instead of pool ID
+          // Query the subgraph using appropriate approach
           const { sqrtPriceX96, poolData } = await queryV4PoolData();
           
           // Convert to decimal price

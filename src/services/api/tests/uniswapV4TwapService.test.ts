@@ -3,9 +3,12 @@ import { queryV4PoolData, convertQ96ToDecimal, fetchSubgraphPrice, getTwapStatus
 
 // Define the mock response type to match our interface
 interface PoolQueryResponse {
-  pool: {
+  pools: Array<{
+    id: string;
+    token0: { id: string; symbol: string; decimals: string };
+    token1: { id: string; symbol: string; decimals: string };
     sqrtPriceX96: string;
-  };
+  }>;
 }
 
 // Mock the GraphQL request function

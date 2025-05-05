@@ -1,4 +1,3 @@
-
 /**
  * API Configuration for Token Data
  */
@@ -10,12 +9,14 @@ export const CHAIN_ID = '137';  // Polygon mainnet
 // Uniswap Pool Configuration - Updated for V4's different format
 export const UNISWAP_V3_POOL = (import.meta.env?.VITE_V3_POOL as string | undefined)?.toLowerCase() || '0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f4';
 
-// V4 Pool format: tokenA-tokenB (sorted by address)
-export const V4_POOL_FORMAT = (import.meta.env?.VITE_V4_POOL as string | undefined) || 
-  '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0-0x3c499c542cef5e3811e1192ce70d8cc03d5c3359';
+// V4 Pool - Now supporting both formats: direct pool ID or tokenA-tokenB
+// We prioritize direct pool ID if provided
+export const UNISWAP_V4_POOL = (import.meta.env?.VITE_V4_POOL as string | undefined) || 
+  '0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f5';
 
-// For backward compatibility with existing code
-export const UNISWAP_V4_POOL = V4_POOL_FORMAT;
+// For backward compatibility, keep the token pair format
+export const V4_POOL_FORMAT = (import.meta.env?.VITE_V4_POOL_FORMAT as string | undefined) || 
+  '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0-0x3c499c542cef5e3811e1192ce70d8cc03d5c3359';
 
 export const COUNTER_TOKEN_SYMBOL = (import.meta.env?.VITE_COUNTER_TOKEN_SYMBOL as string | undefined) || 'USDC';
 export const COUNTER_TOKEN_DECIMALS = 6;
@@ -51,7 +52,7 @@ export const ENABLE_LOGGING = true;
 // Validation thresholds
 export const MAX_PRICE_CHANGE_PERCENTAGE = 50; // Maximum allowed price change (50%)
 export const MIN_VALID_PRICE = 0.00001; // Minimum valid price
-export const MAX_VALID_PRICE = 1000; // Maximum valid price - increased from 2 to 1000
+export const MAX_VALID_PRICE = 1000; // Maximum valid price
 
 // Max retries for API calls
 export const MAX_RETRIES = 3;
