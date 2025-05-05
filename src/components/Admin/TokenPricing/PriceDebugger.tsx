@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTokenPrice } from '@/context/TokenPriceContext';
-import { TOKEN_ADDRESS, CHAIN_ID } from '@/services/api/config';
+import { TOKEN_ADDRESS, CHAIN_ID, UNISWAP_V4_POOL } from '@/services/api/config';
 import { RefreshCw, AlertCircle, Clock, Info, ExternalLink, Server } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";

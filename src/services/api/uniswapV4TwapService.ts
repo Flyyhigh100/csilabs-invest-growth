@@ -26,6 +26,9 @@ interface DiagnosticsData {
   calculatedPrice?: number;
   endpoint?: string;
   poolId?: string;
+  token0?: any;  // Add the missing token0 property
+  token1?: any;  // Add the missing token1 property
+  validationLimits?: { min: number; max: number }; // Add the missing validationLimits property
 }
 
 let lastDiagnostics: DiagnosticsData | null = null;
