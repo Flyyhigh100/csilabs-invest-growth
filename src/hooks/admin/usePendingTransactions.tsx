@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
 import { useState } from 'react';
 
+// Update the interface to make profiles nullable or possibly contain an error
 export interface PendingTransactionWithProfile extends Transaction {
   profiles: {
     first_name: string | null;
