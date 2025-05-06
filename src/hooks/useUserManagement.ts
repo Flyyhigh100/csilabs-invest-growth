@@ -9,9 +9,9 @@ interface Profile {
   id: string;
   first_name: string | null;
   last_name: string | null;
-  email: string | null; // Add this property to match database schema
-  role: string | null; // Add this property to match database schema
-  status: string | null; // Add this property to match database schema
+  email: string | null;
+  role: string | null;
+  status: string | null;
   wallet_address: string | null;
   created_at: string;
   updated_at: string;
@@ -58,7 +58,7 @@ export const useUserManagement = () => {
     );
   });
   
-  // Update user profile
+  // Update user profile - using parameterized queries for security
   const updateUserProfile = useMutation({
     mutationFn: async ({ userId, data }: { userId: string; data: UpdateProfileInput }) => {
       const { error } = await supabase
@@ -81,7 +81,7 @@ export const useUserManagement = () => {
     }
   });
   
-  // Update user status
+  // Update user status - using parameterized queries for security
   const updateUserStatus = useMutation({
     mutationFn: async ({ userId, status }: { userId: string; status: string }) => {
       const { error } = await supabase

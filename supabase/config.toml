@@ -59,6 +59,8 @@ enable_signup = true
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
 enable_confirmations = false
+# Enable password protection against leaked password databases
+enable_hibp_check = true
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
@@ -118,6 +120,15 @@ gcp_project_id = ""
 gcp_project_number = ""
 gcp_jwt_path = "supabase/gcloud.json"
 
-# Disable JWT verification for internal-twap-status function
+# Disable JWT verification for webhook endpoints
 [functions.internal-twap-status]
+verify_jwt = false
+
+[functions.stripe-webhooks]
+verify_jwt = false
+
+[functions.coinpayments-ipn-webhook]
+verify_jwt = false
+
+[functions.test-ipn-webhook]
 verify_jwt = false

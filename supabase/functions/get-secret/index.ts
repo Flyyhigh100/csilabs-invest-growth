@@ -24,6 +24,35 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
+    // First, verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
+    // Extract token and verify JWT
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized access', details: authError }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
+    // Now check if the user is an admin using the database function
+    const { data: isAdmin, error: adminCheckError } = await supabaseClient.rpc('is_admin');
+    
     // Get the secret name from request body
     const { secret_name } = await req.json() as RequestBody;
     
@@ -38,6 +67,17 @@ serve(async (req) => {
     }
     
     console.log(`Fetching secret: ${secret_name}`);
+    
+    // For non-admins, only allow specific secrets
+    if (!isAdmin && secret_name !== 'MORALIS_API_KEY') {
+      return new Response(
+        JSON.stringify({ error: 'Access denied to this secret' }),
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
 
     // Query the secrets table to get the secret value
     const { data, error } = await supabaseClient

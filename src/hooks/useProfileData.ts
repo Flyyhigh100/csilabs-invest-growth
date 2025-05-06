@@ -16,6 +16,7 @@ export const useProfileData = () => {
     queryFn: async () => {
       if (!user) return null;
       
+      // Using parameterized query to prevent SQL injection
       const { data, error } = await supabase
         .from('profiles')
         .select('first_name, last_name, wallet_address')
