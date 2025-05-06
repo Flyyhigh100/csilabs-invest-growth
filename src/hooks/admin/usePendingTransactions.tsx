@@ -4,6 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
 import { useState } from 'react';
 
+// Define type for Supabase SelectQueryError
+type SelectQueryError = {
+  error: true;
+  message?: string;
+};
+
 // Update the interface to better handle null/error cases with profiles
 export interface PendingTransactionWithProfile extends Transaction {
   profiles: {
@@ -58,8 +64,15 @@ export const usePendingTransactions = () => {
           };
         }
         
-        // Case 2: profiles is an error object
-        if (tx.profiles && typeof tx.profiles === 'object' && 'error' in tx.profiles) {
+        // Case 2: profiles is an error object - first convert to unknown, then check
+        // This addresses the TS2352 error
+        const profileData = tx.profiles as unknown;
+        
+        // Check if it's an error object by checking for presence of 'error' property
+        if (profileData !== null && 
+            typeof profileData === 'object' && 
+            profileData && 
+            'error' in profileData) {
           return {
             ...tx,
             profiles: null
@@ -67,16 +80,15 @@ export const usePendingTransactions = () => {
         }
         
         // Case 3: profiles exists but may not have all required properties
-        // Use type assertion after validation to help TypeScript understand the structure
-        const profileData = tx.profiles as Record<string, unknown> | null;
-        
-        if (profileData) {
+        // At this point we can safely cast to Record<string, unknown>
+        if (profileData !== null && typeof profileData === 'object') {
+          const safeProfileData = profileData as Record<string, unknown>;
           return {
             ...tx,
             profiles: {
-              first_name: typeof profileData.first_name === 'string' ? profileData.first_name : null,
-              last_name: typeof profileData.last_name === 'string' ? profileData.last_name : null,
-              email: typeof profileData.email === 'string' ? profileData.email : null
+              first_name: typeof safeProfileData.first_name === 'string' ? safeProfileData.first_name : null,
+              last_name: typeof safeProfileData.last_name === 'string' ? safeProfileData.last_name : null,
+              email: typeof safeProfileData.email === 'string' ? safeProfileData.email : null
             }
           };
         }
