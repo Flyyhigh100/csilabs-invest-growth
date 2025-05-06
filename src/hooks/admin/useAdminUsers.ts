@@ -30,7 +30,7 @@ export const useAdminUsers = () => {
       // Use the edge function to get all users
       const { data, error } = await supabase.functions.invoke('admin-operations', {
         body: {
-          action: 'getAllUsers',
+          operation: 'getAllUsers', // Changed from 'action' to 'operation'
           data: {}
         }
       });
