@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { RefreshCw, TrendingUp, AlertCircle, Info } from 'lucide-react';
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface TokenPriceHeaderProps {
   className?: string;
@@ -103,18 +104,70 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
                 </Badge>
               )}
             </div>
-            <p className="text-lg font-bold text-cbis-blue">
-              {isLoading ? (
-                <span className="flex items-center">
-                  <Spinner className="h-4 w-4 mr-2" />
-                  Loading...
-                </span>
-              ) : currentPrice ? (
-                `$${currentPrice.toFixed(5)} USD`
-              ) : (
-                'Price unavailable'
+            <div className="flex items-center">
+              <p className="text-lg font-bold text-cbis-blue">
+                {isLoading ? (
+                  <span className="flex items-center">
+                    <Spinner className="h-4 w-4 mr-2" />
+                    Loading...
+                  </span>
+                ) : currentPrice ? (
+                  `$${currentPrice.toFixed(5)} USD`
+                ) : (
+                  'Price unavailable'
+                )}
+              </p>
+              
+              {dataSource?.includes('on-chain') && !isLoading && currentPrice && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="ml-2 cursor-help">
+                        <Info className="h-4 w-4 text-blue-400" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[250px] p-3">
+                      <p className="text-sm font-medium mb-1">What is TWAP?</p>
+                      <p className="text-xs text-gray-600 mb-2">
+                        This price is a <strong>Time-Weighted Average Price</strong> calculated over a 15-minute period.
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        TWAP provides a more stable price than instant spot prices, making it resistant to short-term price manipulation and volatility.
+                      </p>
+                      
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="link" size="sm" className="h-auto p-0 text-xs text-blue-500 mt-2">
+                            Learn more
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                          <div className="space-y-2">
+                            <h4 className="font-medium text-sm">About Time-Weighted Average Price (TWAP)</h4>
+                            <p className="text-xs text-gray-600">
+                              TWAP is calculated by averaging price data points over a 15-minute window, giving equal weight to each time interval.
+                            </p>
+                            <div className="space-y-1 mt-2">
+                              <p className="text-xs font-medium">Why TWAP may differ from chart prices:</p>
+                              <ul className="text-xs text-gray-600 space-y-1 pl-4 list-disc">
+                                <li>Charts often show spot prices (instantaneous prices)</li>
+                                <li>TWAP smooths out short-term price fluctuations</li>
+                                <li>During volatile markets, the difference can be significant</li>
+                              </ul>
+                            </div>
+                            <div className="mt-2 pt-2 border-t border-gray-100">
+                              <p className="text-xs text-gray-600">
+                                <strong>Why we use TWAP:</strong> It provides a fair pricing mechanism that reduces the impact of temporary price swings and market manipulation attempts.
+                              </p>
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
-            </p>
+            </div>
             {error && (
               <p className="text-xs text-amber-600 flex items-center mt-1">
                 <AlertCircle className="h-3 w-3 mr-1" />

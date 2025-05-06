@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Clock, RefreshCw, Loader2, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface CurrentPriceCardProps {
   currentPrice: number | null;
@@ -74,6 +75,8 @@ const CurrentPriceCard: React.FC<CurrentPriceCardProps> = ({
     }
   };
 
+  const isTwapSource = dataSource?.includes('on-chain') && dataSource?.includes('TWAP');
+
   return (
     <Card>
       <CardHeader>
@@ -87,14 +90,69 @@ const CurrentPriceCard: React.FC<CurrentPriceCardProps> = ({
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="text-center">
-          <div className="text-4xl font-bold text-blue-600">
+          <div className="text-4xl font-bold text-blue-600 flex items-center justify-center">
             {isPriceLoading ? (
               <div className="flex items-center justify-center">
                 <Loader2 className="h-6 w-6 mr-2 animate-spin" />
                 Loading...
               </div>
             ) : currentPrice ? (
-              `$${currentPrice.toFixed(5)}`
+              <>
+                <span>${currentPrice.toFixed(5)}</span>
+                
+                {isTwapSource && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="ml-2 cursor-help">
+                          <Info className="h-5 w-5 text-blue-400" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[300px] p-3">
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-sm">Time-Weighted Average Price (TWAP)</h4>
+                          <p className="text-xs">
+                            This price represents a 15-minute TWAP calculated directly from the Uniswap V3 pool on the blockchain.
+                          </p>
+                          <p className="text-xs">
+                            TWAP reduces the impact of short-term price manipulation and volatility by averaging price over time.
+                          </p>
+                          
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="link" size="sm" className="h-auto p-0 text-xs text-blue-500">
+                                Technical details
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80">
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-sm">How TWAP Works</h4>
+                                <p className="text-xs text-gray-600">
+                                  TWAP uses Uniswap's built-in time-accumulator mechanism to calculate the average price over a time window, in our case 15 minutes (900 seconds).
+                                </p>
+                                <div className="space-y-1 mt-2">
+                                  <p className="text-xs font-medium">Technical details:</p>
+                                  <ul className="text-xs text-gray-600 space-y-1 pl-4 list-disc">
+                                    <li>Uses the pool's tickCumulatives to calculate average tick</li>
+                                    <li>Converts average tick to price using the formula: price = 1.0001^tick</li>
+                                    <li>Applies decimal adjustments based on token decimals</li>
+                                    <li>Handles token ordering in the pool (CSL/USDC)</li>
+                                  </ul>
+                                </div>
+                                <div className="mt-2 pt-2 border-t border-gray-100">
+                                  <p className="text-xs text-gray-600">
+                                    <strong>Why charts may show different prices:</strong> Charts typically display spot prices from individual trades, which can vary significantly from the TWAP, especially during volatile periods.
+                                  </p>
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </>
             ) : (
               'Not available'
             )}
@@ -143,6 +201,12 @@ const CurrentPriceCard: React.FC<CurrentPriceCardProps> = ({
               <span>Cache duration:</span>
               <span className="font-medium">60 seconds</span>
             </div>
+            {dataSource?.includes('TWAP') && (
+              <div className="flex justify-between">
+                <span>TWAP window:</span>
+                <span className="font-medium">15 minutes</span>
+              </div>
+            )}
           </AlertDescription>
         </Alert>
 
