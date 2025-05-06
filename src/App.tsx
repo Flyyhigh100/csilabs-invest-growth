@@ -27,6 +27,7 @@ import ResearchDocuments from './pages/ResearchDocuments';
 import TokenInfo from './pages/TokenInfo';
 import KYCVerificationPage from './pages/Dashboard/KYCVerification/KYCVerificationPage';
 import Profile from './pages/Dashboard/Profile';
+import Documents from './pages/Dashboard/Documents';
 import DashboardHome from './pages/Dashboard/DashboardHome';
 
 // Import Legal pages
@@ -80,7 +81,7 @@ export default function App() {
                     <Route path="/dashboard/kyc" element={<KYCVerificationPage />} />
                     <Route path="/dashboard/transactions" element={<Transactions />} />
                     <Route path="/dashboard/profile" element={<Profile />} />
-                    {/* Removed Documents route */}
+                    <Route path="/dashboard/documents" element={<Documents />} />
                     <Route path="/dashboard/wallet" element={<div>Wallet</div>} />
                     <Route path="/dashboard/payments" element={<Payments />} />
                   </Route>
