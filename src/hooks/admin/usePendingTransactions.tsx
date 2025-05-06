@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
 import { useState } from 'react';
 
-// Update the interface to make profiles nullable or possibly contain an error
+// Update the interface to properly handle profile errors
 export interface PendingTransactionWithProfile extends Transaction {
   profiles: {
     first_name: string | null;
@@ -48,16 +48,32 @@ export const usePendingTransactions = () => {
       
       console.log(`Fetched ${data?.length || 0} pending transactions`);
       
-      // Ensure each transaction has a valid profiles property or null
+      // Properly handle errors in the profiles join by explicitly casting
+      // and validating the data before returning it
       const validatedData = data?.map(tx => {
-        // If profiles is an error or invalid format, set it to null
-        if (tx.profiles && 'error' in tx.profiles) {
+        // Check if profiles is an error object (like when join fails)
+        if (tx.profiles && typeof tx.profiles === 'object' && 'error' in tx.profiles) {
           return {
             ...tx,
             profiles: null
           };
         }
-        return tx;
+        
+        // Ensure profiles has the expected structure, or set to null if invalid
+        if (tx.profiles && typeof tx.profiles === 'object') {
+          // Ensure profiles is valid or null
+          return {
+            ...tx,
+            profiles: {
+              first_name: tx.profiles.first_name || null,
+              last_name: tx.profiles.last_name || null,
+              email: tx.profiles.email || null
+            }
+          };
+        }
+        
+        // If profiles is not as expected, set it to null
+        return { ...tx, profiles: null };
       }) as PendingTransactionWithProfile[];
       
       return validatedData;
