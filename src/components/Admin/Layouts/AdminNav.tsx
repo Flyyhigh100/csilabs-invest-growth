@@ -1,9 +1,7 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   HomeIcon, 
-  UsersIcon, 
   CheckCircleIcon,
   CreditCardIcon,
   BellIcon,
@@ -39,11 +37,6 @@ export const getAdminNavItems = (): NavItem[] => {
       title: 'Token Pricing',
       path: '/admin/token-pricing',
       icon: <BarChart2 className="h-5 w-5" />,
-    },
-    {
-      title: 'Users',
-      path: '/admin/users',
-      icon: <UsersIcon className="h-5 w-5" />,
     },
     {
       title: 'Notifications',

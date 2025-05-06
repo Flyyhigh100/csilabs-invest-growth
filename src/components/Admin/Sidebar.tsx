@@ -1,10 +1,8 @@
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
   HomeIcon,
-  UsersIcon,
   ShieldCheckIcon,
   CreditCardIcon,
   SettingsIcon,
@@ -26,11 +24,6 @@ const Sidebar = ({ className, ...props }: SidebarProps) => {
       title: 'KYC Verification',
       href: '/admin/kyc',
       icon: <ShieldCheckIcon className="w-4 h-4 mr-3" />,
-    },
-    {
-      title: 'Users',
-      href: '/admin/users',
-      icon: <UsersIcon className="w-4 h-4 mr-3" />,
     },
     {
       title: 'Token Distribution',

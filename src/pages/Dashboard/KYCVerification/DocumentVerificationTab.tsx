@@ -32,6 +32,9 @@ const DocumentVerificationTab: React.FC<DocumentVerificationTabProps> = ({
   onManualRefresh,
   debugInfo
 }) => {
+  // Only pass debug info in development mode
+  const devModeDebugInfo = process.env.NODE_ENV === 'development' ? debugInfo : undefined;
+  
   return (
     <DocumentVerification
       hasIdFront={hasIdFront}
@@ -44,7 +47,7 @@ const DocumentVerificationTab: React.FC<DocumentVerificationTabProps> = ({
       onUpload={onUpload}
       onManualRefresh={onManualRefresh} // Pass the manual refresh handler
       clarificationMessage={kycData?.clarification_message}
-      debugInfo={debugInfo}
+      debugInfo={devModeDebugInfo}
     />
   );
 };

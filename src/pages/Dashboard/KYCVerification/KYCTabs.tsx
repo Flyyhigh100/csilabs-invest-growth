@@ -64,7 +64,7 @@ const KYCTabs: React.FC<KYCTabsProps> = ({ kycData }) => {
         hasSelfie
       }
     }
-  } : debugInfo;
+  } : undefined;
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
