@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { showSmartNotification } from '@/utils/notification/smartNotifications';
 
 interface KycApproveFormProps {
   onApprove: () => void;
@@ -17,32 +17,16 @@ const KycApproveForm: React.FC<KycApproveFormProps> = ({
     e.preventDefault();
     
     if (isPending) {
-      toast.info('Already processing your request, please wait');
+      showSmartNotification(
+        'Info', 
+        'Already processing your request, please wait',
+        { type: 'kyc_action', priority: 'medium' }
+      );
       return;
     }
     
-    // Clear any previous toast with this ID
-    toast.dismiss('approve-processing-toast');
-    
-    // Show a new processing toast with a timeout
-    toast.loading('Processing approval request...', { 
-      id: 'approve-processing-toast',
-      duration: 10000 // 10 second timeout
-    });
-    
     console.log('Triggering KYC approval');
     onApprove();
-    
-    // Set a timeout to dismiss the infinite loading state if it takes too long
-    const timeoutId = setTimeout(() => {
-      if (isPending) {
-        toast.dismiss('approve-processing-toast');
-        toast.error('Approval request is taking longer than expected. Please try again.');
-      }
-    }, 15000); // 15 seconds timeout
-    
-    // Clear timeout when component unmounts
-    return () => clearTimeout(timeoutId);
   };
 
   return (

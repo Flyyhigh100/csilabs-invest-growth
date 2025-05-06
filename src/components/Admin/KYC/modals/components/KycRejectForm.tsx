@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { showSmartNotification } from '@/utils/notification/smartNotifications';
 
 interface KycRejectFormProps {
   rejectionReason: string;
@@ -33,37 +33,25 @@ const KycRejectForm: React.FC<KycRejectFormProps> = ({
     e.preventDefault();
     
     if (!rejectionReason.trim()) {
-      toast.error('Please provide a rejection reason');
+      showSmartNotification(
+        'Error', 
+        'Please provide a rejection reason',
+        { type: 'kyc_action', priority: 'high' }
+      );
       return;
     }
     
     if (isPending) {
-      toast.info('Already processing your request, please wait');
+      showSmartNotification(
+        'Info', 
+        'Already processing your request, please wait',
+        { type: 'kyc_action', priority: 'medium' }
+      );
       return;
     }
     
-    // Clear any previous toast with this ID
-    toast.dismiss('reject-processing-toast');
-    
-    // Show a new processing toast with a timeout
-    toast.loading('Processing rejection request...', { 
-      id: 'reject-processing-toast',
-      duration: 10000 // 10 second timeout
-    });
-    
     console.log('Triggering rejection with reason:', rejectionReason);
     onReject();
-    
-    // Set a timeout to dismiss the infinite loading state if it takes too long
-    const timeoutId = setTimeout(() => {
-      if (isPending) {
-        toast.dismiss('reject-processing-toast');
-        toast.error('Rejection request is taking longer than expected. Please try again.');
-      }
-    }, 15000); // 15 seconds timeout
-    
-    // Clear timeout when component unmounts
-    return () => clearTimeout(timeoutId);
   };
 
   return (

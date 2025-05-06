@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { HelpCircle, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { showSmartNotification } from '@/utils/notification/smartNotifications';
 
 interface KycClarifyFormProps {
   clarificationMessage: string;
@@ -31,37 +31,25 @@ const KycClarifyForm: React.FC<KycClarifyFormProps> = ({
     e.preventDefault();
     
     if (!clarificationMessage || !clarificationMessage.trim()) {
-      toast.error('Please provide clarification details');
+      showSmartNotification(
+        'Error', 
+        'Please provide clarification details',
+        { type: 'kyc_action', priority: 'high' }
+      );
       return;
     }
     
     if (isPending) {
-      toast.info('Already processing your request, please wait');
+      showSmartNotification(
+        'Info', 
+        'Already processing your request, please wait',
+        { type: 'kyc_action', priority: 'medium' }
+      );
       return;
     }
     
-    // Clear any previous toast with this ID
-    toast.dismiss('clarify-processing-toast');
-    
-    // Show a new processing toast with a timeout
-    toast.loading('Sending clarification request...', { 
-      id: 'clarify-processing-toast', 
-      duration: 10000 
-    });
-    
     console.log('Triggering clarification request with message:', clarificationMessage);
     onRequestClarification();
-    
-    // Set a timeout to dismiss the infinite loading state if it takes too long
-    const timeoutId = setTimeout(() => {
-      if (isPending) {
-        toast.dismiss('clarify-processing-toast');
-        toast.error('Clarification request is taking longer than expected. Please try again.');
-      }
-    }, 15000); // 15 seconds timeout
-    
-    // Clear timeout when component unmounts
-    return () => clearTimeout(timeoutId);
   };
 
   return (
