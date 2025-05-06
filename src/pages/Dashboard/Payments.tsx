@@ -1,4 +1,3 @@
-
 import React from 'react';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { useKycVerification } from '@/hooks/kyc/useKycVerification';
@@ -16,8 +15,8 @@ const Payments = () => {
   const { walletAddress, isLoadingWallet, handleWalletUpdated } = useWalletAddress();
   
   const isKycApproved = kycData?.status === 'approved';
-  // For production - we're requiring KYC approval
-  const allowPaymentsWithoutKYC = false;
+  // Allow token purchases below regulatory threshold without prior KYC
+  const allowPaymentsWithoutKYC = true;
   
   return (
     <DashboardLayout title="Payments">
