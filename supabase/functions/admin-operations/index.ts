@@ -1,6 +1,6 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
+import { userOperations } from "./user-operations.ts";
 
 // CORS headers for preflight requests
 const corsHeaders = {
@@ -78,6 +78,11 @@ serve(async (req) => {
         
       case 'requestKycClarification':
         return await handleRequestKycClarification(supabase, requestBody, user.id);
+        
+      case 'getAllUsers':
+        // Fetch all users and wrap in success response
+        const usersData = await userOperations.getAllUsers(requestBody.data || {}, supabase);
+        return createSuccessResponse(usersData);
         
       default:
         return createErrorResponse(`Unknown operation: ${operation}`, 400);
