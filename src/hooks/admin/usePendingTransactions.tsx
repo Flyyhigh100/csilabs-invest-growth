@@ -4,12 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
 import { useState } from 'react';
 
-// Define type for Supabase SelectQueryError
-type SelectQueryError = {
-  error: true;
-  message?: string;
-};
-
 // Update the interface to better handle null/error cases with profiles
 export interface PendingTransactionWithProfile extends Transaction {
   profiles: {
@@ -26,11 +20,12 @@ export const usePendingTransactions = () => {
     console.log('Fetching pending transactions with includeTestData:', includeTestData);
     
     try {
+      // Use explicit join instead of implicit join
       let query = supabase
         .from('transactions')
         .select(`
           *,
-          profiles (
+          profiles:user_id(
             first_name,
             last_name,
             email
@@ -54,41 +49,42 @@ export const usePendingTransactions = () => {
       
       console.log(`Fetched ${data?.length || 0} pending transactions`);
       
-      // Properly handle all possible cases for the profiles join
+      // Process the data to ensure consistent structure regardless of join success
       const validatedData = data?.map(tx => {
         // Case 1: profiles is null
-        if (tx.profiles === null) {
+        if (!tx.profiles) {
           return {
             ...tx,
             profiles: null
           };
         }
         
-        // Case 2: profiles is an error object - first convert to unknown, then check
-        // This addresses the TS2352 error
-        const profileData = tx.profiles as unknown;
-        
-        // Check if it's an error object by checking for presence of 'error' property
-        if (profileData !== null && 
-            typeof profileData === 'object' && 
-            profileData && 
-            'error' in profileData) {
+        // Case 2: profiles array is empty (join returned no results)
+        if (Array.isArray(tx.profiles) && tx.profiles.length === 0) {
           return {
             ...tx,
             profiles: null
           };
         }
         
-        // Case 3: profiles exists but may not have all required properties
-        // At this point we can safely cast to Record<string, unknown>
-        if (profileData !== null && typeof profileData === 'object') {
-          const safeProfileData = profileData as Record<string, unknown>;
+        // Case 3: profiles is an error object
+        if (typeof tx.profiles === 'object' && tx.profiles && 'error' in tx.profiles) {
+          return {
+            ...tx,
+            profiles: null
+          };
+        }
+        
+        // Case 4: profiles exists but may be in various formats due to the join
+        const profileData = Array.isArray(tx.profiles) ? tx.profiles[0] : tx.profiles;
+        
+        if (profileData && typeof profileData === 'object') {
           return {
             ...tx,
             profiles: {
-              first_name: typeof safeProfileData.first_name === 'string' ? safeProfileData.first_name : null,
-              last_name: typeof safeProfileData.last_name === 'string' ? safeProfileData.last_name : null,
-              email: typeof safeProfileData.email === 'string' ? safeProfileData.email : null
+              first_name: typeof profileData.first_name === 'string' ? profileData.first_name : null,
+              last_name: typeof profileData.last_name === 'string' ? profileData.last_name : null,
+              email: typeof profileData.email === 'string' ? profileData.email : null
             }
           };
         }
