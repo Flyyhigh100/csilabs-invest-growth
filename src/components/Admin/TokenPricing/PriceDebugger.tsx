@@ -3,13 +3,15 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTokenPrice } from '@/context/TokenPriceContext';
-import { TOKEN_ADDRESS, CHAIN_ID, UNISWAP_V4_POOL } from '@/services/api/config';
-import { RefreshCw, AlertCircle, Clock, Info, ExternalLink, Server } from 'lucide-react';
+import { TOKEN_ADDRESS, CHAIN_ID, UNISWAP_V3_POOL } from '@/services/api/config';
+import { RefreshCw, AlertCircle, Clock, Info, ExternalLink, Server, Lock } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useSupabase } from '@/hooks/useSupabase'; // Import the Supabase hook for admin check
+import { supabase } from "@/integrations/supabase/client";
 
 export const PriceDebugger = () => {
   const { 
@@ -24,14 +26,52 @@ export const PriceDebugger = () => {
   const [diagnosticsData, setDiagnosticsData] = useState<any>(null);
   const [isLoadingDiagnostics, setIsLoadingDiagnostics] = useState<boolean>(false);
   const [diagnosticsError, setDiagnosticsError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   
   const isDemoData = error !== null;
   
+  // Function to check if current user is an admin
+  useEffect(() => {
+    async function checkAdminStatus() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setIsAdmin(false);
+          return;
+        }
+        
+        // Check if user is in admins table
+        const { data, error } = await supabase
+          .from('admins')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (error || !data) {
+          // Try checking by email
+          const { data: dataByEmail, error: errorByEmail } = await supabase
+            .from('admins')
+            .select('*')
+            .eq('email', user.email)
+            .single();
+          
+          setIsAdmin(!!dataByEmail && !errorByEmail);
+        } else {
+          setIsAdmin(true);
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      }
+    }
+    
+    checkAdminStatus();
+  }, []);
+
   // Helper function to get source display name
   const getSourceDisplayName = (source: string | null) => {
     switch(source) {
-      case 'on-chain': return "Uniswap V4 TWAP";
-      case 'on-chain-v4': return "Uniswap V4 Spot";
       case 'on-chain-v3': return "Uniswap V3 TWAP";
       case 'defined.fi': return "Defined.fi API";
       case 'dexscreener': return "DexScreener API";
@@ -43,8 +83,6 @@ export const PriceDebugger = () => {
   // Helper function to get badge variant based on source
   const getSourceBadgeVariant = (source: string | null) => {
     switch(source) {
-      case 'on-chain':
-      case 'on-chain-v4':
       case 'on-chain-v3':
         return "success";
       case 'defined.fi':
@@ -59,11 +97,20 @@ export const PriceDebugger = () => {
 
   // Fetch diagnostics data from edge function
   const fetchDiagnostics = async () => {
+    if (!isAdmin) {
+      setDiagnosticsError("Only admins can access diagnostic information");
+      return;
+    }
+    
     setIsLoadingDiagnostics(true);
     setDiagnosticsError(null);
     
     try {
-      const response = await fetch('https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/internal-twap-status');
+      const response = await fetch('https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/internal-twap-status/diagnostics', {
+        headers: {
+          'x-admin-access': 'true'
+        }
+      });
       
       if (!response.ok) {
         throw new Error(`Error fetching diagnostics: ${response.status} ${response.statusText}`);
@@ -79,15 +126,59 @@ export const PriceDebugger = () => {
     }
   };
   
-  // Fetch diagnostics on initial load
+  // Fetch diagnostics on initial load if admin
   useEffect(() => {
-    fetchDiagnostics();
-    
-    // Also set up interval to refresh diagnostics
-    const intervalId = setInterval(fetchDiagnostics, 30000);
-    return () => clearInterval(intervalId);
-  }, []);
+    if (isAdmin) {
+      fetchDiagnostics();
+      
+      // Also set up interval to refresh diagnostics
+      const intervalId = setInterval(fetchDiagnostics, 30000);
+      return () => clearInterval(intervalId);
+    }
+  }, [isAdmin]);
   
+  // Non-admin view - basic information
+  if (!isAdmin) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Token Price Information</span>
+          </CardTitle>
+          <CardDescription>
+            Current token price information
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-500">Current Price:</span>
+              <span className="font-mono">${currentPrice?.toFixed(8) || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-500">Last Updated:</span>
+              <span className="font-mono">{lastUpdated?.toLocaleString() || 'Never'}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-500">Data Source:</span>
+              <Badge variant={getSourceBadgeVariant(dataSource)}>
+                {getSourceDisplayName(dataSource)}
+              </Badge>
+            </div>
+          </div>
+          
+          <Alert className="bg-blue-50 border-blue-200 mt-4">
+            <Lock className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              Detailed diagnostic information is only available to administrators.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Admin view with detailed diagnostics
   return (
     <Card>
       <CardHeader>
@@ -98,7 +189,7 @@ export const PriceDebugger = () => {
           )}
         </CardTitle>
         <CardDescription>
-          Debug information for price updates
+          Debug information for price updates (Admin Only)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -137,7 +228,7 @@ export const PriceDebugger = () => {
                     </TooltipTrigger>
                     <TooltipContent side="left" align="center">
                       <p className="text-xs max-w-xs">
-                        {dataSource?.includes('on-chain') ? 
+                        {dataSource === 'on-chain-v3' ? 
                           'Price data comes directly from the blockchain - highest reliability' :
                           dataSource === 'defined.fi' || dataSource === 'dexscreener' ?
                           'Price data comes from third-party API - medium reliability' :
@@ -164,7 +255,7 @@ export const PriceDebugger = () => {
               </div>
               
               <Alert className={`mt-4 ${
-                dataSource?.includes('on-chain') ? 'bg-green-50 border-green-200' :
+                dataSource === 'on-chain-v3' ? 'bg-green-50 border-green-200' :
                 dataSource === 'defined.fi' || dataSource === 'dexscreener' ? 'bg-yellow-50 border-yellow-200' :
                 'bg-blue-50 border-blue-200'
               }`}>
@@ -172,9 +263,10 @@ export const PriceDebugger = () => {
                   <div className="space-y-1">
                     <p><strong>Token Address:</strong> {TOKEN_ADDRESS}</p>
                     <p><strong>Chain ID:</strong> {CHAIN_ID}</p>
+                    <p><strong>V3 Pool Address:</strong> {UNISWAP_V3_POOL}</p>
                     <p><strong>Cache Duration:</strong> 60s</p>
                     <p><strong>Primary Data Source:</strong> {getSourceDisplayName(dataSource)}</p>
-                    <p><strong>Fallback Order:</strong> V4 TWAP → V4 Spot → V3 TWAP → Defined.fi → DexScreener</p>
+                    <p><strong>Fallback Order:</strong> V3 TWAP → V3 Spot → Defined.fi → DexScreener</p>
                   </div>
                 </AlertDescription>
               </Alert>
@@ -195,7 +287,7 @@ export const PriceDebugger = () => {
           <TabsContent value="diagnostics">
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-sm font-medium">Uniswap V4 Diagnostics</h3>
+                <h3 className="text-sm font-medium">Uniswap V3 Diagnostics</h3>
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -289,9 +381,9 @@ export const PriceDebugger = () => {
                 <div className="space-y-3">
                   <div className="flex flex-col">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Uniswap V4 Subgraph:</span>
+                      <span className="text-sm font-medium">Uniswap V3 Subgraph:</span>
                       <a 
-                        href="https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-polygon" 
+                        href="https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon" 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:underline text-xs flex items-center"
@@ -300,15 +392,15 @@ export const PriceDebugger = () => {
                       </a>
                     </div>
                     <code className="text-xs bg-gray-100 p-1.5 mt-1 rounded-sm overflow-x-auto">
-                      {import.meta.env.VITE_V4_SUBGRAPH_ENDPOINT || 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-polygon'}
+                      https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon
                     </code>
                   </div>
                   
                   <div className="flex flex-col">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">V4 Pool ID:</span>
+                      <span className="text-sm font-medium">V3 Pool ID:</span>
                       <a 
-                        href={`https://app.uniswap.org/explore/polygon/pool/${UNISWAP_V4_POOL}`} 
+                        href={`https://app.uniswap.org/explore/polygon/pool/${UNISWAP_V3_POOL}`} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:underline text-xs flex items-center"
@@ -317,7 +409,7 @@ export const PriceDebugger = () => {
                       </a>
                     </div>
                     <code className="text-xs bg-gray-100 p-1.5 mt-1 rounded-sm overflow-x-auto">
-                      {UNISWAP_V4_POOL}
+                      {UNISWAP_V3_POOL}
                     </code>
                   </div>
                   
@@ -343,7 +435,7 @@ export const PriceDebugger = () => {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="text-xs">
-                  Ensure the Uniswap V4 pool exists and is active. If you see "Pool not found" errors, verify the pool ID.
+                  Admin access required to view full diagnostic information.
                 </AlertDescription>
               </Alert>
             </div>

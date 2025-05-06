@@ -1,430 +1,159 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { RefreshCw, Info, AlertCircle } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { UNISWAP_V3_POOL, UNISWAP_V3_URL } from '@/services/api/config';
+import { RefreshCw } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { UNISWAP_V4_POOL, UNISWAP_V4_ENDPOINTS } from '@/services/api/config';
-
-interface PriceSourceProps {
-  name: string;
-  isWorking: boolean | null;
-  latestPrice: number | null;
-  lastError: string | null;
-  lastAttempt: string | null;
-  onTest: () => void;
-  isTesting: boolean;
-}
-
-// Define interface for the source state to avoid type errors
-interface SourceState {
-  isWorking: boolean | null;
-  latestPrice: number | null;
-  lastError: string | null;
-  lastAttempt: string | null;
-  isTesting: boolean;
-  endpoint: string;
-}
-
-// Define interface for all sources
-interface SourcesState {
-  v4Subgraph: SourceState;
-  v4EdgeProxy: SourceState;
-  v3Twap: SourceState;
-  definedfi: SourceState;
-  dexscreener: SourceState;
-}
-
-const PriceSource: React.FC<PriceSourceProps> = ({
-  name,
-  isWorking,
-  latestPrice,
-  lastError,
-  lastAttempt,
-  onTest,
-  isTesting
-}) => {
-  return (
-    <div className="p-4 border rounded-lg">
-      <div className="flex justify-between items-center mb-3">
-        <div className="flex items-center">
-          <div className={`w-3 h-3 rounded-full mr-2 ${
-            isWorking === null ? 'bg-gray-300' : 
-            isWorking ? 'bg-green-500' : 'bg-red-500'
-          }`}></div>
-          <h3 className="font-medium text-sm">{name}</h3>
-        </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={onTest}
-          disabled={isTesting}
-        >
-          <RefreshCw className={`h-3 w-3 mr-1 ${isTesting ? 'animate-spin' : ''}`} />
-          Test
-        </Button>
-      </div>
-      
-      <div className="space-y-1">
-        <div className="flex justify-between text-xs">
-          <span className="text-gray-500">Latest Price:</span>
-          <span className="font-mono">{latestPrice ? `$${latestPrice.toFixed(8)}` : 'N/A'}</span>
-        </div>
-        
-        {lastAttempt && (
-          <div className="flex justify-between text-xs">
-            <span className="text-gray-500">Last Checked:</span>
-            <span>{new Date(lastAttempt).toLocaleString()}</span>
-          </div>
-        )}
-        
-        {lastError && (
-          <Alert variant="destructive" className="mt-2 py-1.5 text-xs">
-            <AlertCircle className="h-3 w-3" />
-            <AlertDescription className="text-xs text-red-700">{lastError}</AlertDescription>
-          </Alert>
-        )}
-      </div>
-    </div>
-  );
-};
+import { supabase } from '@/integrations/supabase/client';
 
 const PriceSourceDiagnostic = () => {
-  const initialSourceState: SourceState = {
-    isWorking: null,
-    latestPrice: null,
-    lastError: null,
-    lastAttempt: null,
-    isTesting: false,
-    endpoint: "none"
-  };
-
-  const [sources, setSources] = React.useState<SourcesState>({
-    v4Subgraph: {...initialSourceState},
-    v4EdgeProxy: {...initialSourceState},
-    v3Twap: {...initialSourceState},
-    definedfi: {...initialSourceState},
-    dexscreener: {...initialSourceState}
-  });
-
-  // Test the V4 subgraph directly
-  const testV4Subgraph = async () => {
-    setSources(prev => ({ 
-      ...prev, 
-      v4Subgraph: { ...prev.v4Subgraph, isTesting: true } 
-    }));
-
-    let usedEndpoint = "";
-    
-    try {
-      // Try each endpoint in the list until one works
-      for (const endpoint of UNISWAP_V4_ENDPOINTS) {
-        try {
-          console.log(`Trying V4 subgraph endpoint: ${endpoint}`);
-          
-          // Use the GraphQL query directly
-          const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              query: `{
-                pool(id: "${UNISWAP_V4_POOL}") {
-                  sqrtPriceX96
-                  token0 { id symbol decimals }
-                  token1 { id symbol decimals }
-                }
-              }`
-            })
-          });
-          
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`HTTP error ${response.status}: ${errorText}`);
-          }
-          
-          const data = await response.json();
-          
-          if (data.errors) {
-            throw new Error(data.errors[0]?.message || 'GraphQL error');
-          }
-          
-          if (!data.data?.pool) {
-            throw new Error('Pool not found');
-          }
-          
-          // Calculate price from sqrtPriceX96
-          const sqrtPriceX96 = BigInt(data.data.pool.sqrtPriceX96);
-          const decimals0 = parseInt(data.data.pool.token0.decimals);
-          const decimals1 = parseInt(data.data.pool.token1.decimals);
-          const price = Number((sqrtPriceX96 * sqrtPriceX96 >> 192n)) / 10**(decimals1 - decimals0);
-          
-          // This endpoint worked
-          usedEndpoint = endpoint;
-          
-          setSources(prev => ({ 
-            ...prev, 
-            v4Subgraph: { 
-              isWorking: true,
-              latestPrice: price, 
-              lastError: null, 
-              lastAttempt: new Date().toISOString(),
-              isTesting: false,
-              endpoint: usedEndpoint
-            } 
-          }));
-          
-          return; // Exit after successful endpoint
-        } catch (endpointError) {
-          console.warn(`Endpoint ${endpoint} failed:`, endpointError);
-          // Continue to next endpoint
+  const [apiStatus, setApiStatus] = useState<{isConnected: boolean, details?: string}>({isConnected: false});
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Check if user is admin
+  useEffect(() => {
+    async function checkAdminStatus() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setIsAdmin(false);
+          return;
         }
+        
+        // Check if user is in admins table
+        const { data, error } = await supabase
+          .from('admins')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (error || !data) {
+          // Try checking by email
+          const { data: dataByEmail, error: errorByEmail } = await supabase
+            .from('admins')
+            .select('*')
+            .eq('email', user.email)
+            .single();
+          
+          setIsAdmin(!!dataByEmail && !errorByEmail);
+        } else {
+          setIsAdmin(true);
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
       }
-      
-      // If we reach here, all endpoints failed
-      throw new Error("All V4 subgraph endpoints failed");
-    } catch (error) {
-      setSources(prev => ({ 
-        ...prev, 
-        v4Subgraph: { 
-          ...prev.v4Subgraph,
-          isWorking: false, 
-          latestPrice: null,
-          lastError: error instanceof Error ? error.message : String(error), 
-          lastAttempt: new Date().toISOString(),
-          isTesting: false,
-          endpoint: usedEndpoint || "none"
-        } 
-      }));
-    }
-  };
-  
-  // Test the Edge Function proxy
-  const testV4EdgeProxy = async () => {
-    setSources(prev => ({ 
-      ...prev, 
-      v4EdgeProxy: { ...prev.v4EdgeProxy, isTesting: true } 
-    }));
-
-    try {
-      // Use the edge function proxy
-      const response = await fetch(`https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/internal-twap-status/test-connection?poolId=${UNISWAP_V4_POOL}`);
-      
-      if (!response.ok) {
-        throw new Error(`Edge function error: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Edge function proxy failed');
-      }
-      
-      if (!data.data?.data?.pool) {
-        throw new Error('No pool data returned');
-      }
-      
-      // Get price from pool data
-      const pool = data.data.data.pool;
-      const sqrtPriceX96 = BigInt(pool.sqrtPriceX96);
-      const decimals0 = parseInt(pool.token0.decimals);
-      const decimals1 = parseInt(pool.token1.decimals);
-      const price = Number((sqrtPriceX96 * sqrtPriceX96 >> 192n)) / 10**(decimals1 - decimals0);
-      
-      const endpoint = data.endpoint || 'unknown';
-      
-      setSources(prev => ({ 
-        ...prev, 
-        v4EdgeProxy: { 
-          isWorking: true,
-          latestPrice: price, 
-          lastError: null, 
-          lastAttempt: new Date().toISOString(),
-          isTesting: false,
-          endpoint: endpoint
-        } 
-      }));
-    } catch (error) {
-      setSources(prev => ({ 
-        ...prev, 
-        v4EdgeProxy: { 
-          ...prev.v4EdgeProxy,
-          isWorking: false, 
-          latestPrice: null,
-          lastError: error instanceof Error ? error.message : String(error), 
-          lastAttempt: new Date().toISOString(),
-          isTesting: false,
-          endpoint: prev.v4EdgeProxy.endpoint
-        } 
-      }));
-    }
-  };
-  
-  // Test status endpoint
-  const testStatusEndpoint = async () => {
-    setSources(prev => ({ 
-      ...prev, 
-      v4EdgeProxy: { ...prev.v4EdgeProxy, isTesting: true } 
-    }));
-
-    try {
-      const response = await fetch('https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/internal-twap-status');
-      
-      if (!response.ok) {
-        throw new Error(`Status endpoint error: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      setSources(prev => ({ 
-        ...prev, 
-        v4EdgeProxy: { 
-          isWorking: true,
-          latestPrice: data.lastPrice, 
-          lastError: data.lastError || null, 
-          lastAttempt: data.lastAttempt || new Date().toISOString(),
-          isTesting: false,
-          endpoint: data.endpoint || prev.v4EdgeProxy.endpoint
-        } 
-      }));
-    } catch (error) {
-      setSources(prev => ({ 
-        ...prev, 
-        v4EdgeProxy: { 
-          ...prev.v4EdgeProxy,
-          isWorking: false, 
-          latestPrice: null,
-          lastError: error instanceof Error ? error.message : String(error), 
-          lastAttempt: new Date().toISOString(),
-          isTesting: false
-        } 
-      }));
-    }
-  };
-
-  // Generic test function for other sources
-  const testSource = async (source: keyof typeof sources) => {
-    // Skip if it's one of our special handlers
-    if (source === 'v4Subgraph') {
-      return testV4Subgraph();
-    } else if (source === 'v4EdgeProxy') {
-      return testV4EdgeProxy();
     }
     
-    // Set source as testing
-    setSources(prev => ({ 
-      ...prev, 
-      [source]: { ...prev[source], isTesting: true } 
-    }));
-
+    checkAdminStatus();
+  }, []);
+  
+  const checkApiStatus = async () => {
+    if (!isAdmin) return;
+    
     try {
-      // For other sources, simulate a test
-      let isWorking = Math.random() > 0.3;
-      let price = isWorking ? 1 + (Math.random() * 0.1) : null;
-      let error = isWorking ? null : "Test not implemented yet";
+      setIsLoading(true);
+      // Simple test to check if Uniswap Subgraph is accessible
+      const response = await fetch(UNISWAP_V3_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: `{ _meta { block { number } } }`
+        })
+      });
       
-      setSources(prev => ({ 
-        ...prev, 
-        [source]: { 
-          ...prev[source], 
-          isWorking, 
-          latestPrice: price, 
-          lastError: error, 
-          lastAttempt: new Date().toISOString(),
-          isTesting: false 
-        } 
-      }));
-    } catch (error) {
-      setSources(prev => ({ 
-        ...prev, 
-        [source]: { 
-          ...prev[source], 
-          isWorking: false, 
-          latestPrice: null,
-          lastError: error instanceof Error ? error.message : String(error), 
-          lastAttempt: new Date().toISOString(),
-          isTesting: false 
-        } 
-      }));
+      const data = await response.json();
+      
+      if (response.ok && data?.data?._meta) {
+        setApiStatus({ 
+          isConnected: true, 
+          details: `Connected to Uniswap V3 Subgraph. Latest block: ${data.data._meta.block.number}`
+        });
+      } else {
+        setApiStatus({
+          isConnected: false,
+          details: `Error connecting to Uniswap: ${data?.errors?.[0]?.message || 'Unknown error'}`
+        });
+      }
+    } catch (error: any) {
+      console.error('Error checking API status:', error);
+      setApiStatus({
+        isConnected: false,
+        details: `Exception: ${error.message || "Unknown error"}`
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
   
-  // Run initial tests on component mount
-  React.useEffect(() => {
-    testV4Subgraph();
-    testStatusEndpoint();
-    // Test other sources
-    setTimeout(() => testSource('v3Twap'), 500);
-    setTimeout(() => testSource('definedfi'), 1000);
-    setTimeout(() => testSource('dexscreener'), 1500);
-  }, []);
+  useEffect(() => {
+    if (isAdmin) {
+      checkApiStatus();
+    }
+  }, [isAdmin]);
+  
+  if (!isAdmin) {
+    return null; // Don't render anything for non-admins
+  }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Price Source Diagnostics</CardTitle>
-        <CardDescription>
-          Test individual price sources to identify failures
-        </CardDescription>
+        <CardTitle>Price Source Status</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <Alert className="bg-blue-50 border-blue-200">
-          <Info className="h-4 w-4" />
-          <AlertDescription className="text-xs">
-            The system will try each price source in order until it finds one that works. 
-            Testing individual sources can help identify where failures are occurring.
-            V4 endpoints are tried in sequence: {UNISWAP_V4_ENDPOINTS.slice(0, 2).join(", ")}...
-          </AlertDescription>
-        </Alert>
-        
-        <PriceSource 
-          name="Uniswap V4 Subgraph (Primary)" 
-          isWorking={sources.v4Subgraph.isWorking}
-          latestPrice={sources.v4Subgraph.latestPrice}
-          lastError={sources.v4Subgraph.lastError ? `${sources.v4Subgraph.lastError} ${sources.v4Subgraph.endpoint ? `(Endpoint: ${sources.v4Subgraph.endpoint})` : ''}` : null}
-          lastAttempt={sources.v4Subgraph.lastAttempt}
-          onTest={() => testSource('v4Subgraph')}
-          isTesting={sources.v4Subgraph.isTesting}
-        />
-        
-        <PriceSource 
-          name="Edge Function Proxy" 
-          isWorking={sources.v4EdgeProxy.isWorking}
-          latestPrice={sources.v4EdgeProxy.latestPrice}
-          lastError={sources.v4EdgeProxy.lastError ? `${sources.v4EdgeProxy.lastError} ${sources.v4EdgeProxy.endpoint ? `(Endpoint: ${sources.v4EdgeProxy.endpoint})` : ''}` : null}
-          lastAttempt={sources.v4EdgeProxy.lastAttempt}
-          onTest={() => testSource('v4EdgeProxy')}
-          isTesting={sources.v4EdgeProxy.isTesting}
-        />
-        
-        <PriceSource 
-          name="Uniswap V3 TWAP (Fallback 1)" 
-          isWorking={sources.v3Twap.isWorking}
-          latestPrice={sources.v3Twap.latestPrice}
-          lastError={sources.v3Twap.lastError}
-          lastAttempt={sources.v3Twap.lastAttempt}
-          onTest={() => testSource('v3Twap')}
-          isTesting={sources.v3Twap.isTesting}
-        />
-        
-        <PriceSource 
-          name="Defined.fi (Fallback 2)" 
-          isWorking={sources.definedfi.isWorking}
-          latestPrice={sources.definedfi.latestPrice}
-          lastError={sources.definedfi.lastError}
-          lastAttempt={sources.definedfi.lastAttempt}
-          onTest={() => testSource('definedfi')}
-          isTesting={sources.definedfi.isTesting}
-        />
-        
-        <PriceSource 
-          name="DexScreener (Fallback 3)" 
-          isWorking={sources.dexscreener.isWorking}
-          latestPrice={sources.dexscreener.latestPrice}
-          lastError={sources.dexscreener.lastError}
-          lastAttempt={sources.dexscreener.lastAttempt}
-          onTest={() => testSource('dexscreener')}
-          isTesting={sources.dexscreener.isTesting}
-        />
+      <CardContent>
+        <div className="space-y-4">
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+            <h3 className="font-medium text-sm text-gray-700 mb-2">Uniswap V3 API Status</h3>
+            <div className="flex items-center">
+              <div className={`w-3 h-3 rounded-full mr-2 ${
+                apiStatus.isConnected
+                  ? 'bg-green-500' 
+                  : 'bg-red-500'
+              }`}></div>
+              <span>
+                {apiStatus.isConnected
+                  ? 'Connected' 
+                  : 'Not Connected'}
+              </span>
+            </div>
+            {apiStatus.details && (
+              <p className="text-xs text-gray-500 mt-1">{apiStatus.details}</p>
+            )}
+            <Button
+              variant="ghost" 
+              size="sm"
+              onClick={checkApiStatus}
+              disabled={isLoading}
+              className="w-full mt-2 text-xs"
+            >
+              <RefreshCw className={`h-3 w-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh Status
+            </Button>
+          </div>
+          
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+            <h3 className="font-medium text-sm text-gray-700 mb-2">V3 Pool Information</h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Pool Address:</span>
+                <span className="font-mono">{UNISWAP_V3_POOL}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Chain:</span>
+                <span className="font-medium">Polygon</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Subgraph:</span>
+                <span className="font-mono truncate max-w-[200px]">{UNISWAP_V3_URL}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

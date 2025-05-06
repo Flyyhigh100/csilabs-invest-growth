@@ -2,15 +2,23 @@
 import { ethers } from 'ethers';
 import IUniswapV3PoolABI from '@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json';
 import { isValidPrice } from './utils/priceValidation';
-import { ENABLE_LOGGING, TOKEN_ADDRESS, COUNTER_TOKEN_SYMBOL } from './config';
+import { 
+  ENABLE_LOGGING, 
+  UNISWAP_V3_POOL, 
+  V3_TOKEN0, 
+  V3_TOKEN1, 
+  V3_TOKEN0_DECIMALS, 
+  V3_TOKEN1_DECIMALS, 
+  COUNTER_TOKEN_SYMBOL 
+} from './config';
 import { setCachedPrice } from './utils/priceCache';
 
 const provider = new ethers.providers.JsonRpcProvider(import.meta.env.VITE_POLYGON_RPC || 'https://polygon-rpc.com');
-const poolAddr = (import.meta.env.VITE_V3_POOL as string)?.toLowerCase() || '0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f4';
+const poolAddr = UNISWAP_V3_POOL;
 const WINDOW_SEC = Number(import.meta.env.VITE_TWAP_WINDOW) || 900; // 15 minutes by default
 
 // CSL token address
-const CSL = TOKEN_ADDRESS.toLowerCase();
+const CSL = V3_TOKEN0.toLowerCase();
 
 // Configure retry mechanism
 const MAX_RETRIES = 3;
@@ -42,32 +50,38 @@ export async function fetchOnchainTwap(): Promise<number> {
         console.log(`Raw tick average: ${tickAvg}`);
       }
 
-      // Calculate raw price (token1 per token0, which is CSL per USDC/USDT)
+      // Calculate raw price (token1 per token0)
       const priceToken1PerToken0 = Math.pow(1.0001, Number(tickAvg));
       
-      // Determine token ordering and invert if CSL is token1 (which it should be based on address ordering)
-      const token0 = (await pool.token0()).toLowerCase();
+      // Verify token ordering from the pool
+      const token0Address = (await pool.token0()).toLowerCase();
+      const token1Address = (await pool.token1()).toLowerCase();
       
-      // Get token decimals to normalize the price
-      const token0Decimals = token0 === CSL ? 18 : 6; // USDC/USDT has 6 decimals, CSL has 18
-      const token1Decimals = token0 === CSL ? 6 : 18;
+      if (ENABLE_LOGGING) {
+        console.log(`Pool token0: ${token0Address}, Our V3_TOKEN0: ${V3_TOKEN0}`);
+        console.log(`Pool token1: ${token1Address}, Our V3_TOKEN1: ${V3_TOKEN1}`);
+      }
       
-      // Calculate the decimal adjustment factor
+      // Calculate the decimal adjustment factor based on actual pool tokens
+      const token0Decimals = token0Address === CSL ? V3_TOKEN0_DECIMALS : V3_TOKEN1_DECIMALS; 
+      const token1Decimals = token0Address === CSL ? V3_TOKEN1_DECIMALS : V3_TOKEN0_DECIMALS;
+      
       const decimalAdjustment = Math.pow(10, token1Decimals - token0Decimals);
       
       // Calculate final price with decimal adjustment
       let priceCslInStablecoin;
-      if (token0 === CSL) {
-        // If CSL is token0 (unlikely in this case)
-        priceCslInStablecoin = priceToken1PerToken0 * decimalAdjustment;
-      } else {
-        // If CSL is token1 (which is our case) - invert the price
+      if (token0Address === CSL) {
+        // If CSL is token0, price is (1/priceToken1PerToken0) adjusted for decimals
         priceCslInStablecoin = (1 / priceToken1PerToken0) * decimalAdjustment;
+      } else {
+        // If CSL is token1, price is just priceToken1PerToken0 adjusted for decimals
+        priceCslInStablecoin = priceToken1PerToken0 * decimalAdjustment;
       }
       
       if (ENABLE_LOGGING) {
         console.log(`TWAP price calculation complete: ${priceCslInStablecoin} ${COUNTER_TOKEN_SYMBOL} per CSL`);
-        console.log(`Token0: ${token0}, CSL is ${token0 === CSL ? 'token0' : 'token1'}`);
+        console.log(`Token0: ${token0Address}, CSL is ${token0Address === CSL ? 'token0' : 'token1'}`);
+        console.log(`Decimal adjustment: 10^(${token1Decimals} - ${token0Decimals}) = ${decimalAdjustment}`);
       }
       
       // Validate price
@@ -87,7 +101,7 @@ export async function fetchOnchainTwap(): Promise<number> {
         throw error;
       }
       
-      console.warn(`TWAP fetch attempt ${retries} failed, retrying in ${RETRY_DELAY}ms:`, error);
+      console.warn(`TWAP fetch attempt ${retries} failed, retrying in ${RETRY_DELAY * retries}ms:`, error);
       await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retries));
     }
   }

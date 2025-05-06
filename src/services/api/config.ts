@@ -1,3 +1,4 @@
+
 /**
  * API Configuration for Token Data
  */
@@ -6,38 +7,22 @@
 export const TOKEN_ADDRESS = '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0';  // CSL token address
 export const CHAIN_ID = '137';  // Polygon mainnet
 
-// Uniswap Pool Configuration - Updated for V4's different format
-export const UNISWAP_V3_POOL = (import.meta.env?.VITE_V3_POOL as string | undefined)?.toLowerCase() || '0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f4';
+// Uniswap V3 Pool Configuration with the new pool
+export const UNISWAP_V3_POOL = (import.meta.env?.VITE_V3_POOL as string | undefined)?.toLowerCase() || '0xb85372c56884a906ab33c0e99fea572c7c6ad7eb';
 
-// V4 Pool - Now supporting both formats: direct pool ID or tokenA-tokenB
-// We prioritize direct pool ID if provided
-export const UNISWAP_V4_POOL = (import.meta.env?.VITE_V4_POOL as string | undefined) || 
-  '0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f5';
-
-// For backward compatibility, keep the token pair format
-export const V4_POOL_FORMAT = (import.meta.env?.VITE_V4_POOL_FORMAT as string | undefined) || 
-  '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0-0x3c499c542cef5e3811e1192ce70d8cc03d5c3359';
+// Token configuration
+export const V3_TOKEN0 = (import.meta.env?.VITE_V3_TOKEN0 as string | undefined)?.toLowerCase() || '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0';
+export const V3_TOKEN1 = (import.meta.env?.VITE_V3_TOKEN1 as string | undefined)?.toLowerCase() || '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359';
+export const V3_TOKEN0_DECIMALS = parseInt(import.meta.env?.VITE_V3_TOKEN0_DECIMALS as string || '18');
+export const V3_TOKEN1_DECIMALS = parseInt(import.meta.env?.VITE_V3_TOKEN1_DECIMALS as string || '6');
 
 export const COUNTER_TOKEN_SYMBOL = (import.meta.env?.VITE_COUNTER_TOKEN_SYMBOL as string | undefined) || 'USDC';
 export const COUNTER_TOKEN_DECIMALS = 6;
 
-// Updated Uniswap V4 endpoints
-export const UNISWAP_V4_ENDPOINTS = [
-  // Primary new endpoints
-  import.meta.env?.VITE_V4_SUBGRAPH_ENDPOINT || 
-  'https://api.studio.thegraph.com/query/48211/uniswap-v4-polygon/version/latest',
-  'https://gateway-arbitrum.network.thegraph.com/api/subgraphs/name/uniswap/uniswap-v4',
-  'https://gateway.thegraph.com/api/subgraphs/name/uniswap/uniswap-v4-polygon',
-  // Legacy endpoint - now removed
-  'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-polygon'
-];
-
-// Use the first endpoint by default
-export const UNISWAP_V4_URL = UNISWAP_V4_ENDPOINTS[0];
-
+// Uniswap V3 endpoint
 export const UNISWAP_V3_URL = import.meta.env?.VITE_V3_URL || 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon';
 
-// Legacy constant used by existing services (points to V3 by default)
+// Legacy constant used by existing services (points to V3)
 export const UNISWAP_SUBGRAPH_URL = UNISWAP_V3_URL;
 
 // Time range settings

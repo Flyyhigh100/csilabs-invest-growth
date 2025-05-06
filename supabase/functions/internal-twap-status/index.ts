@@ -2,8 +2,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { corsHeaders } from "./utils.ts";
 
-// Create a connection to the V4 TWAP service - simulating a connection
-// since we can't directly import code from the frontend
+// Last status check variables
 let lastStatusCheck = null;
 let statusCache = null;
 const STATUS_CACHE_TTL = 5000; // 5 seconds
@@ -11,168 +10,6 @@ const STATUS_CACHE_TTL = 5000; // 5 seconds
 // Helper function to get debug value from environment
 function isDebugEnabled() {
   return Deno.env.get("DEBUG_TWAP") === "true";
-}
-
-// List of potential V4 subgraph endpoints to try
-const SUBGRAPH_ENDPOINTS = [
-  // Primary endpoints
-  'https://api.studio.thegraph.com/query/48211/uniswap-v4-polygon/version/latest', // Updated URL
-  'https://gateway-arbitrum.network.thegraph.com/api/subgraphs/name/uniswap/uniswap-v4',
-  'https://gateway.thegraph.com/api/subgraphs/name/uniswap/uniswap-v4-polygon',
-  // Legacy endpoint - now removed
-  'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-polygon'
-];
-
-// Helper function to determine if the pool identifier is a direct ID or token pair
-function isDirectPoolId(poolIdentifier: string): boolean {
-  return !poolIdentifier.includes('-');
-}
-
-// Helper function to proxy requests to the V4 subgraph - will try multiple endpoints
-async function proxySubgraphRequest(poolIdentifier) {
-  const errors = [];
-  const isDirectId = isDirectPoolId(poolIdentifier);
-  
-  let queryParams: any;
-  let queryString = '';
-  
-  // Check if we're using the tokenA-tokenB format or a specific pool ID
-  if (!isDirectId) {
-    // We're using token addresses
-    const tokenAddresses = poolIdentifier.split('-');
-    queryParams = { tokens: tokenAddresses };
-    queryString = `
-      query ($tokens: [String!]) {
-        pools(where: { tokens_contains: $tokens }) {
-          id
-          token0 { id symbol decimals }
-          token1 { id symbol decimals }
-          sqrtPriceX96
-        }
-      }`;
-  } else {
-    // Using a specific pool ID
-    queryParams = { id: poolIdentifier };
-    queryString = `
-      query ($id: ID!) {
-        pool(id: $id) {
-          token0 { id symbol decimals }
-          token1 { id symbol decimals }
-          sqrtPriceX96
-        }
-      }`;
-  }
-  
-  // Try each endpoint in order until one succeeds
-  for (const endpoint of SUBGRAPH_ENDPOINTS) {
-    try {
-      if (isDebugEnabled()) {
-        console.log(`[DEBUG] Trying V4 subgraph endpoint: ${endpoint}`);
-        console.log(`[DEBUG] Query:`, queryString);
-        console.log(`[DEBUG] Variables:`, queryParams);
-        console.log(`[DEBUG] Pool identifier type: ${isDirectId ? 'Direct ID' : 'Token pair'}`);
-      }
-      
-      // Send the GraphQL query
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: queryString,
-          variables: queryParams
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Subgraph status: ${response.status} ${response.statusText} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.errors) {
-        throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
-      }
-      
-      // Check based on query type
-      if (!isDirectId) {
-        // Using token addresses format, we expect pools array
-        if (!data.data?.pools || data.data.pools.length === 0) {
-          throw new Error(`No pools found containing tokens ${poolIdentifier} in subgraph at ${endpoint}`);
-        }
-        
-        // Use the first pool that contains both tokens
-        console.log(`Successfully retrieved data from endpoint: ${endpoint}`);
-        return {
-          data,
-          source: endpoint
-        };
-      } else {
-        // Using pool ID format, we expect a single pool
-        if (!data.data?.pool) {
-          throw new Error(`Pool ${poolIdentifier} not found in subgraph at ${endpoint}`);
-        }
-        
-        console.log(`Successfully retrieved data from endpoint: ${endpoint}`);
-        return {
-          data,
-          source: endpoint
-        };
-      }
-    } catch (error) {
-      console.warn(`Error using endpoint ${endpoint}:`, error);
-      errors.push({
-        endpoint,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      // Continue to next endpoint
-    }
-  }
-
-  // If we've tried all endpoints and none worked, throw a detailed error
-  throw new Error(`All V4 subgraph endpoints failed: ${JSON.stringify(errors)}`);
-}
-
-// Helper function to use a fallback endpoint when the main one fails
-async function tryFallbackEndpoint(poolIdentifier) {
-  try {
-    // Since we now try multiple endpoints in proxySubgraphRequest,
-    // this function will generate mock data as a last resort
-    console.log("All subgraph endpoints failed. Generating mock data...");
-    
-    const isDirectId = isDirectPoolId(poolIdentifier);
-    
-    // Check if we're using the token addresses format or pool ID format
-    if (!isDirectId) {
-      // Using token addresses format
-      return {
-        data: {
-          pools: [{
-            id: "mock-pool-id",
-            sqrtPriceX96: "1234567890123456789012345678901234567890",
-            token0: { id: "0x123", symbol: "TOKEN0", decimals: "18" },
-            token1: { id: "0x456", symbol: "TOKEN1", decimals: "6" }
-          }]
-        },
-        source: "mock-data" 
-      };
-    } else {
-      // Using pool ID format
-      return {
-        data: {
-          pool: {
-            sqrtPriceX96: "1234567890123456789012345678901234567890",
-            token0: { id: "0x123", symbol: "TOKEN0", decimals: "18" },
-            token1: { id: "0x456", symbol: "TOKEN1", decimals: "6" }
-          }
-        },
-        source: "mock-data" 
-      };
-    }
-  } catch (fallbackError) {
-    console.error("Even fallback endpoint failed:", fallbackError);
-    throw fallbackError;
-  }
 }
 
 // Helper function to convert sqrtPriceX96 to actual price
@@ -191,34 +28,99 @@ function convertSqrtPriceToPrice(sqrtPriceX96, decimals0 = 18, decimals1 = 6) {
   }
 }
 
-// Helper function to fetch TWAP status from the V4 pool
+// Helper function to fetch pool data from the Uniswap V3 subgraph
+async function fetchV3PoolData(poolAddress) {
+  try {
+    const subgraphEndpoint = 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon';
+    
+    if (isDebugEnabled()) {
+      console.log(`[DEBUG] Fetching data for V3 pool: ${poolAddress}`);
+    }
+    
+    const response = await fetch(subgraphEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `
+          query ($id: ID!) {
+            pool(id: $id) {
+              token0 { id symbol decimals }
+              token1 { id symbol decimals }
+              sqrtPrice
+              token0Price
+              token1Price
+            }
+          }
+        `,
+        variables: { id: poolAddress.toLowerCase() }
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Subgraph status: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.errors) {
+      throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
+    }
+    
+    if (!data.data?.pool) {
+      throw new Error(`Pool ${poolAddress} not found in V3 subgraph`);
+    }
+    
+    return {
+      data,
+      source: subgraphEndpoint
+    };
+  } catch (error) {
+    console.error("Error fetching V3 pool data:", error);
+    throw error;
+  }
+}
+
+// Helper function to generate mock data for testing
+function generateMockData(poolAddress) {
+  return {
+    data: {
+      pool: {
+        sqrtPrice: "1234567890123456789012345678901234567890",
+        token0Price: "0.5",
+        token1Price: "2.0",
+        token0: { id: "0xcba5ca199bca0af3f6046da01169035f2c6a7ff0", symbol: "CSL", decimals: "18" },
+        token1: { id: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359", symbol: "USDC", decimals: "6" }
+      }
+    },
+    source: "mock-data"
+  };
+}
+
+// Helper function to fetch TWAP status from the V3 pool
 async function fetchTwapStatus() {
   try {
     // We'll use the environmental variables if available
-    const V4_POOL = Deno.env.get("VITE_V4_POOL") || 
-      (Deno.env.get("VITE_V4_POOL_FORMAT") || 
-       '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0-0x3c499c542cef5e3811e1192ce70d8cc03d5c3359');
+    const V3_POOL = Deno.env.get("VITE_V3_POOL") || '0xb85372c56884a906ab33c0e99fea572c7c6ad7eb';
     
     if (isDebugEnabled()) {
-      console.log(`[DEBUG] Fetching status for V4 pool: ${V4_POOL}`);
-      console.log(`[DEBUG] Pool ID type: ${isDirectPoolId(V4_POOL) ? 'Direct ID' : 'Token Pair'}`);
+      console.log(`[DEBUG] Fetching status for V3 pool: ${V3_POOL}`);
     }
 
     let result;
-    let dataSource = "v4Subgraph";
+    let dataSource = "v3Subgraph";
     
     try {
-      // First try the main endpoints
-      result = await proxySubgraphRequest(V4_POOL);
-      dataSource = "v4Subgraph";
+      // Try to fetch data from the V3 subgraph
+      result = await fetchV3PoolData(V3_POOL);
+      dataSource = "v3Subgraph";
       
       if (isDebugEnabled()) {
         console.log(`[DEBUG] Successfully retrieved data from ${result.source}`);
       }
-    } catch (mainEndpointError) {
-      console.warn("All primary endpoints failed, using fallback mock data:", mainEndpointError);
-      // If all main endpoints fail, use mock data
-      result = await tryFallbackEndpoint(V4_POOL);
+    } catch (mainError) {
+      console.warn("V3 subgraph query failed, using mock data:", mainError);
+      // If the main endpoint fails, use mock data
+      result = generateMockData(V3_POOL);
       dataSource = "mockData";
     }
     
@@ -226,32 +128,26 @@ async function fetchTwapStatus() {
       console.log("[DEBUG] Subgraph response:", JSON.stringify(result.data));
     }
 
-    // Get data from result based on query format
+    // Get data from result
     const data = result.data;
-    let pool;
-    const isDirectId = isDirectPoolId(V4_POOL);
+    const pool = data.data?.pool;
     
-    if (!isDirectId) {
-      // Using token addresses format
-      if (data.data?.pools && data.data.pools.length > 0) {
-        pool = data.data.pools[0];
-      } else {
-        throw new Error(`No pool data found for ${V4_POOL}`);
-      }
-    } else {
-      // Using pool ID format
-      if (data.data?.pool) {
-        pool = data.data.pool;
-      } else {
-        throw new Error(`No pool data found for ${V4_POOL}`);
-      }
+    if (!pool) {
+      throw new Error(`No pool data found for ${V3_POOL}`);
     }
 
-    // Return diagnostic information
-    const sqrtPriceX96 = pool.sqrtPriceX96;
-    const rawPrice = convertSqrtPriceToPrice(sqrtPriceX96, 
-      parseInt(pool.token0.decimals), 
-      parseInt(pool.token1.decimals));
+    // Get price data
+    const token0Price = parseFloat(pool.token0Price);
+    const token1Price = parseFloat(pool.token1Price);
+    const token0Address = pool.token0.id.toLowerCase();
+    const token1Address = pool.token1.id.toLowerCase();
+    const cslAddress = '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0'.toLowerCase();
+    
+    // Determine if CSL is token0 or token1
+    const isCslToken0 = token0Address === cslAddress;
+    
+    // Calculate the actual price
+    const rawPrice = isCslToken0 ? token1Price : token0Price;
     
     return {
       lastAttempt: new Date().toISOString(),
@@ -260,15 +156,14 @@ async function fetchTwapStatus() {
       source: dataSource,
       endpoint: result.source,
       diagnostics: {
-        poolId: isDirectId ? V4_POOL : null,
-        poolFormat: !isDirectId ? V4_POOL : null,
-        isDirectId,
+        poolId: V3_POOL,
         endpoint: result.source,
-        sqrtPriceX96: sqrtPriceX96,
+        token0Price: pool.token0Price,
+        token1Price: pool.token1Price,
         rawCalculatedPrice: rawPrice,
         token0: pool.token0,
         token1: pool.token1,
-        poolId: pool.id || (isDirectId ? V4_POOL : null)
+        isCslToken0
       }
     };
   } catch (error) {
@@ -287,21 +182,21 @@ async function fetchTwapStatus() {
   }
 }
 
-// Add an endpoint to directly test the subgraph
-async function testSubgraphConnection(poolIdentifier) {
+// Add an endpoint to directly test the V3 subgraph connection
+async function testV3Connection(poolAddress) {
   try {
     let data;
     let endpoint = "";
     
     try {
-      // First try with main endpoints
-      const result = await proxySubgraphRequest(poolIdentifier);
+      // Try to fetch data from the V3 subgraph
+      const result = await fetchV3PoolData(poolAddress);
       data = result.data;
       endpoint = result.source;
-    } catch (mainError) {
-      console.warn("All main endpoints failed, using fallback:", mainError);
-      // If all endpoints fail, try the fallback
-      const result = await tryFallbackEndpoint(poolIdentifier);
+    } catch (error) {
+      console.warn("V3 endpoint failed, using mock data:", error);
+      // If the endpoint fails, use mock data
+      const result = generateMockData(poolAddress);
       data = result.data;
       endpoint = result.source;
     }
@@ -310,7 +205,6 @@ async function testSubgraphConnection(poolIdentifier) {
       success: true,
       data,
       endpoint,
-      poolIdentifierType: isDirectPoolId(poolIdentifier) ? 'Direct ID' : 'Token pair',
       timestamp: new Date().toISOString()
     };
   } catch (error) {
@@ -322,28 +216,44 @@ async function testSubgraphConnection(poolIdentifier) {
   }
 }
 
-// Handle the GET /internal/twap-status route
+// Main function to handle requests
 serve(async (req) => {
   // Handle preflight CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+  
+  // Check if request comes from admin
+  const isAdmin = req.headers.get("x-admin-access") === "true";
+  const url = new URL(req.url);
+  const path = url.pathname.split('/').pop();
+  
+  // Non-admin users cannot access diagnostics
+  if (!isAdmin && (path === 'diagnostics' || path === 'test-connection')) {
+    return new Response(
+      JSON.stringify({
+        error: "Access denied",
+        message: "Only admins can access diagnostic information",
+        timestamp: new Date().toISOString()
+      }),
+      {
+        status: 403,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+  }
 
   try {
-    const url = new URL(req.url);
-    const path = url.pathname.split('/').pop();
-    
     // Check if this is a direct test request
-    if (path === 'test-connection') {
-      // Get either a pool ID or tokens parameter
-      const poolId = url.searchParams.get('poolId');
-      const tokens = url.searchParams.get('tokens');
+    if (path === 'test-connection' && isAdmin) {
+      // Get pool address
+      const poolAddress = url.searchParams.get('pool') || Deno.env.get("VITE_V3_POOL") || 
+        '0xb85372c56884a906ab33c0e99fea572c7c6ad7eb';
       
-      // Use the first available parameter - prioritize poolId if both are provided
-      const queryParam = poolId || tokens || Deno.env.get("VITE_V4_POOL") || 
-        '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0-0x3c499c542cef5e3811e1192ce70d8cc03d5c3359';
-      
-      const testResult = await testSubgraphConnection(queryParam);
+      const testResult = await testV3Connection(poolAddress);
       
       return new Response(
         JSON.stringify(testResult),
@@ -355,8 +265,25 @@ serve(async (req) => {
         }
       );
     }
+    
+    // Check if this is a diagnostics request
+    if (path === 'diagnostics' && isAdmin) {
+      // Force refresh status cache for diagnostics requests
+      statusCache = await fetchTwapStatus();
+      lastStatusCheck = Date.now();
+      
+      return new Response(
+        JSON.stringify(statusCache),
+        {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+    }
 
-    // Check if we need to refresh the cache
+    // Check if we need to refresh the cache for standard requests
     const now = Date.now();
     if (!lastStatusCheck || !statusCache || now - lastStatusCheck > STATUS_CACHE_TTL) {
       statusCache = await fetchTwapStatus();
@@ -364,15 +291,24 @@ serve(async (req) => {
       
       if (isDebugEnabled()) {
         console.log(`[DEBUG] Updated TWAP status cache at ${new Date().toISOString()}`);
-        console.log(`[DEBUG] Status data:`, JSON.stringify(statusCache));
       }
     } else if (isDebugEnabled()) {
       console.log(`[DEBUG] Using cached TWAP status from ${new Date(lastStatusCheck).toISOString()}`);
     }
 
-    // Return the status in JSON format
+    // For non-admin requests, remove sensitive diagnostic details
+    const responseData = isAdmin 
+      ? statusCache 
+      : {
+          lastAttempt: statusCache.lastAttempt,
+          lastPrice: statusCache.lastPrice,
+          source: statusCache.source,
+          lastError: statusCache.lastError ? "An error occurred" : null
+        };
+
+    // Return the status
     return new Response(
-      JSON.stringify(statusCache),
+      JSON.stringify(responseData),
       {
         headers: {
           ...corsHeaders,

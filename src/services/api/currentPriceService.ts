@@ -2,15 +2,14 @@
 import { fetchDexScreenerPrice } from './dexScreenerPriceService';
 import { fetchDefinedPrice } from './definedPriceService';
 import { fetchOnchainTwap } from './twapPriceService';
-import { fetchUniswapV4Twap } from './uniswapV4TwapService';
-import { fetchUniswapV4Price } from './uniswapV4PriceService';
+import { fetchUniswapV3Price } from './uniswapV3PriceService';
 import { getCachedPrice, setCachedPrice, shouldRefreshPrice } from './utils/priceCache';
 import { ENABLE_LOGGING, FORCE_REFRESH_CACHE } from './config';
 
 // Define the return type with source information
 export interface PriceResult {
   price: number;
-  source: 'on-chain' | 'on-chain-v4' | 'on-chain-v3' | 'defined.fi' | 'dexscreener' | 'cache';
+  source: 'on-chain-v3' | 'defined.fi' | 'dexscreener' | 'cache';
 }
 
 export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Promise<PriceResult> => {
@@ -33,67 +32,52 @@ export const fetchCurrentTokenPrice = async (forceRefresh: boolean = false): Pro
       console.log('Fetching current token price, force refresh:', forceRefresh);
     }
     
-    // Primary source: Uniswap V4 subgraph price
+    // Primary source: On-chain V3 TWAP
     try {
-      const v4SubgraphPrice = await fetchUniswapV4Twap();
+      const twapPrice = await fetchOnchainTwap();
       if (ENABLE_LOGGING) {
-        console.log('Successfully fetched Uniswap V4 subgraph price:', v4SubgraphPrice);
+        console.log('Successfully fetched on-chain V3 TWAP price:', twapPrice);
       }
-      setCachedPrice(v4SubgraphPrice);
+      setCachedPrice(twapPrice);
       return {
-        price: v4SubgraphPrice,
-        source: 'on-chain'
+        price: twapPrice,
+        source: 'on-chain-v3'
       };
-    } catch (v4SubgraphError) {
-      console.warn('Failed to fetch Uniswap V4 subgraph price, falling back to V4 spot price:', v4SubgraphError);
+    } catch (twapError) {
+      console.warn('Failed to fetch on-chain V3 TWAP price, falling back to V3 spot price:', twapError);
       
-      // First fallback: Uniswap V4 spot price
+      // First fallback: Uniswap V3 spot price
       try {
-        const v4SpotPrice = await fetchUniswapV4Price();
+        const v3SpotPrice = await fetchUniswapV3Price();
         if (ENABLE_LOGGING) {
-          console.log('Successfully fetched Uniswap V4 spot price:', v4SpotPrice);
+          console.log('Successfully fetched Uniswap V3 spot price:', v3SpotPrice);
         }
-        setCachedPrice(v4SpotPrice);
+        setCachedPrice(v3SpotPrice);
         return {
-          price: v4SpotPrice,
-          source: 'on-chain-v4'
+          price: v3SpotPrice,
+          source: 'on-chain-v3'
         };
-      } catch (v4SpotError) {
-        console.warn('Failed to fetch Uniswap V4 spot price, falling back to V3 TWAP:', v4SpotError);
+      } catch (v3SpotError) {
+        console.warn('Failed to fetch V3 spot price, falling back to Defined.fi:', v3SpotError);
         
-        // Second fallback: On-chain V3 TWAP
+        // Second fallback: Defined.fi
         try {
-          const twapPrice = await fetchOnchainTwap();
-          if (ENABLE_LOGGING) {
-            console.log('Successfully fetched on-chain V3 TWAP price:', twapPrice);
-          }
-          setCachedPrice(twapPrice);
+          const definedPrice = await fetchDefinedPrice();
+          setCachedPrice(definedPrice);
           return {
-            price: twapPrice,
-            source: 'on-chain-v3'
+            price: definedPrice,
+            source: 'defined.fi'
           };
-        } catch (twapError) {
-          console.warn('Failed to fetch on-chain V3 TWAP price, falling back to Defined.fi:', twapError);
+        } catch (definedError) {
+          console.warn('Failed to fetch from Defined.fi, falling back to DexScreener:', definedError);
           
-          // Third fallback: Defined.fi
-          try {
-            const definedPrice = await fetchDefinedPrice();
-            setCachedPrice(definedPrice);
-            return {
-              price: definedPrice,
-              source: 'defined.fi'
-            };
-          } catch (definedError) {
-            console.warn('Failed to fetch from Defined.fi, falling back to DexScreener:', definedError);
-            
-            // Fourth fallback: DexScreener
-            const dexScreenerPrice = await fetchDexScreenerPrice();
-            setCachedPrice(dexScreenerPrice);
-            return {
-              price: dexScreenerPrice,
-              source: 'dexscreener'
-            };
-          }
+          // Third fallback: DexScreener
+          const dexScreenerPrice = await fetchDexScreenerPrice();
+          setCachedPrice(dexScreenerPrice);
+          return {
+            price: dexScreenerPrice,
+            source: 'dexscreener'
+          };
         }
       }
     }
