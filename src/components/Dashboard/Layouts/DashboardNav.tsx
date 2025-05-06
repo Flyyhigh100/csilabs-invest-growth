@@ -1,48 +1,86 @@
 
-import React from 'react';
-import { Home, Wallet, FileText, User, ShieldCheck } from 'lucide-react';
+import { Home, User, FileText, Wallet, CreditCard, ShoppingBag, Settings, Shield, Database, LineChart, BookOpenText } from 'lucide-react';
 
 export interface NavItem {
   title: string;
-  path: string;
-  icon?: React.ReactNode;
-  description?: string;
+  href: string;
+  icon: React.ElementType;
+  submenu?: NavItem[];
+  admin?: boolean;
 }
 
 export const getDashboardNavItems = (): NavItem[] => {
   return [
     {
       title: 'Dashboard',
-      path: '/dashboard',
-      icon: <Home className="h-5 w-5" />,
-      description: 'Overview of your account and activities'
+      href: '/dashboard',
+      icon: Home,
     },
     {
-      title: 'Buy Tokens',
-      path: '/dashboard/payments',
-      icon: <Wallet className="h-5 w-5" />,
-      description: 'Purchase CSI tokens using different payment methods'
+      title: 'KYC Verification',
+      href: '/dashboard/kyc',
+      icon: Shield,
     },
     {
       title: 'Transactions',
-      path: '/dashboard/transactions',
-      icon: <FileText className="h-5 w-5" />,
-      description: 'View your transaction history'
+      href: '/dashboard/transactions',
+      icon: CreditCard,
+    },
+    {
+      title: 'Payments',
+      href: '/dashboard/payments',
+      icon: ShoppingBag,
     },
     {
       title: 'Profile',
-      path: '/dashboard/profile',
-      icon: <User className="h-5 w-5" />,
-      description: 'Manage your account settings'
+      href: '/dashboard/profile',
+      icon: User,
     },
+    {
+      title: 'Wallet',
+      href: '/dashboard/wallet',
+      icon: Wallet,
+    }
   ];
 };
 
 export const getAdminNavItem = (): NavItem => {
   return {
-    title: 'Admin Portal',
-    path: '/admin',
-    icon: <ShieldCheck className="h-5 w-5" />,
-    description: 'Access administrative tools and settings'
+    title: 'Admin Panel',
+    href: '/admin',
+    icon: Settings,
+    admin: true,
+    submenu: [
+      {
+        title: 'Dashboard',
+        href: '/admin',
+        icon: LineChart,
+      },
+      {
+        title: 'KYC Verifications',
+        href: '/admin/kyc',
+        icon: Shield,
+      },
+      {
+        title: 'Transactions',
+        href: '/admin/transactions',
+        icon: CreditCard,
+      },
+      {
+        title: 'Users',
+        href: '/admin/users',
+        icon: User,
+      },
+      {
+        title: 'Research Documents',
+        href: '/admin/research-documents',
+        icon: BookOpenText,
+      },
+      {
+        title: 'Settings',
+        href: '/admin/settings',
+        icon: Settings,
+      },
+    ]
   };
 };
