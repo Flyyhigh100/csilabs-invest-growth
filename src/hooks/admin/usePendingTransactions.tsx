@@ -41,14 +41,27 @@ export const usePendingTransactions = () => {
           t.created_at DESC
       `;
       
-      const { data, error } = await supabase.rpc('execute_sql', { sql_query: sql });
+      // Use a direct query instead of the RPC function that isn't in TypeScript types yet
+      const { data, error } = await supabase
+        .from('transactions')
+        .select(`
+          *,
+          profiles:user_id (
+            first_name,
+            last_name,
+            email
+          )
+        `)
+        .eq('status', 'completed')
+        .eq('token_sent', false)
+        .order('created_at', { ascending: false });
         
       if (error) {
         console.error('Error fetching pending transactions:', error);
         throw error;
       }
       
-      console.log(`Fetched ${data?.length || 0} pending transactions using direct SQL`);
+      console.log(`Fetched ${data?.length || 0} pending transactions using direct join query`);
       
       // Process the data to ensure consistent structure
       const validatedData = data?.map(tx => {
@@ -60,21 +73,28 @@ export const usePendingTransactions = () => {
           };
         }
         
+        // Handle array result (sometimes Supabase returns array)
+        const profileData = Array.isArray(tx.profiles) ? tx.profiles[0] : tx.profiles;
+        
         // Ensure we have a properly formatted profiles object
         return {
           ...tx,
           profiles: {
-            first_name: tx.profiles.first_name || null,
-            last_name: tx.profiles.last_name || null,
-            email: tx.profiles.email || null
+            first_name: profileData?.first_name || null,
+            last_name: profileData?.last_name || null,
+            email: profileData?.email || null
           }
         };
       }) as PendingTransactionWithProfile[];
       
+      if (!includeTestData) {
+        return (validatedData || []).filter(tx => !tx.is_test);
+      }
+      
       return validatedData || [];
     } catch (error) {
-      // If the execute_sql RPC function isn't available, fall back to a direct join approach
-      console.error('Error with SQL approach, trying fallback method:', error);
+      // If the first approach failed, try the fallback method
+      console.error('Error with direct query approach, trying fallback method:', error);
       return fetchPendingTransactionsFallback();
     }
   };
