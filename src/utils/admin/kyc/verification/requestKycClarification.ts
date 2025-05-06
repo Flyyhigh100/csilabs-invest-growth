@@ -101,6 +101,7 @@ export const requestKycClarification = async (
       notifyRetryAttempt(currentRetry, maxRetries);
       
       try {
+        // Updated payload structure to match the expected format in the edge function
         const payload = {
           action: 'requestKycClarification',
           data: {

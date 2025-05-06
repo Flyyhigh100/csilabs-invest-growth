@@ -190,7 +190,7 @@ export const usePendingTransactions = () => {
   } = useQuery({
     queryKey: ['pending-transactions', includeTestData],
     queryFn: fetchPendingTransactions,
-    refetchInterval: 10000,
+    refetchInterval: 10000, // Keep the 10-second refetch interval, but we'll control toast frequency
   });
   
   return {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,7 +10,7 @@ import SubmissionControls from './components/SubmissionControls';
 import SuccessMessage from './components/SuccessMessage';
 import { Button } from '@/components/ui/button';
 import { RefreshCcw } from 'lucide-react';
-import { showInfoToast } from '@/utils/admin/kyc/verification/utils/toastManager';
+import { showSmartNotification } from '@/utils/notification/smartNotifications';
 
 interface DocumentVerificationProps {
   hasIdFront: boolean;
@@ -82,7 +81,7 @@ const DocumentVerification: React.FC<DocumentVerificationProps> = ({
 
   const handleManualRefresh = async () => {
     if (isRefreshing) {
-      showInfoToast('Already refreshing, please wait...');
+      showSmartNotification('Info', 'Already refreshing, please wait...', { type: 'info', priority: 'medium' });
       return;
     }
     

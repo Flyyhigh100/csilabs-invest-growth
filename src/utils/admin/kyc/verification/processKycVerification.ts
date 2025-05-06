@@ -100,6 +100,8 @@ export const processKycVerification = async (
     // Process KYC verification
     return await executeWithRetry(
       async () => {
+        // Prepare the payload in the format expected by the edge function
+        // This is the critical fix - matching the exact structure expected by the server
         const payload = {
           action: 'processKyc',
           data: {
