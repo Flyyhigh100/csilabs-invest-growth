@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { shouldShowNotification, clearNotificationTimer } from './throttle';
 
@@ -30,7 +29,15 @@ export function showSmartNotification(
   const { type, priority = 'medium', duration, id } = options;
   const toastId = id || `${type}-${Date.now()}`;
 
-  // Check if we should show this notification
+  // Prevent admin/KYC-specific toasts from leaking into the public portal
+  const adminOnlyTypes = ['kyc_action', 'kyc_error', 'kyc_update', 'admin_access'];
+  const isAdminRoute = window.location.pathname.startsWith('/admin');
+  if (adminOnlyTypes.includes(type) && !isAdminRoute) {
+    console.log(`🔇 Suppressing ${type} notification outside admin pages`);
+    return;
+  }
+
+  // Check throttling rules
   if (!shouldShowNotification(type, message)) {
     console.log(`🔇 Skipping notification due to throttling: ${title} - ${message}`);
     return;

@@ -30,25 +30,9 @@ export const useAdminVerification = () => {
             const isCachedAdmin = cachedAdminStatus === 'true';
             setIsAdmin(isCachedAdmin);
             
-            // Only show notification on initial page load
-            const pageLoadKey = 'admin_page_load_' + Date.now().toString().substring(0, 8);
-            if (!sessionStorage.getItem(pageLoadKey)) {
-              sessionStorage.setItem(pageLoadKey, 'true');
-              
-              if (!isCachedAdmin) {
-                showSmartNotification(
-                  'Access Denied', 
-                  'You do not have admin permissions to view KYC verifications',
-                  { type: 'admin_access', priority: 'high', duration: 8000 }
-                );
-              } else {
-                showSmartNotification(
-                  'Admin Access', 
-                  'Admin access verified - you can view all KYC submissions',
-                  { type: 'admin_access', priority: 'medium', duration: 5000 }
-                );
-              }
-            }
+            // No need for custom page-load guard; the smart notification system already
+            // throttles `admin_access` messages to once every 24 h. So we can simply rely on it.
+            sendOneTimeNotification(isCachedAdmin ? 'granted' : 'denied');
             
             return;
           }
@@ -66,33 +50,41 @@ export const useAdminVerification = () => {
         console.log(`✅ Admin status verified via API: ${isAdminUser}`);
         
         // Show notification based on status
-        if (!isAdminUser) {
-          showSmartNotification(
-            'Access Denied', 
-            'You do not have admin permissions to view KYC verifications',
-            { type: 'admin_access', priority: 'high', duration: 8000 }
-          );
-        } else {
-          showSmartNotification(
-            'Admin Access', 
-            'Admin access verified - you can view all KYC submissions',
-            { type: 'admin_access', priority: 'medium', duration: 5000 }
-          );
-        }
+        sendOneTimeNotification(isAdminUser ? 'granted' : 'denied');
       } catch (error) {
         console.error('❌ Error checking admin access:', error);
         setIsAdmin(false);
         
-        showSmartNotification(
-          'Access Error', 
-          'Failed to verify admin permissions. Please try again later.',
-          { type: 'admin_access', priority: 'high', duration: 8000 }
-        );
+        sendOneTimeNotification('denied');
       }
     };
     
     checkAdminAccess();
   }, []);
+  
+  // Helper to ensure we only notify once per tab session to avoid
+  // React Strict-Mode double-mount or multiple component instances.
+  const sendOneTimeNotification = (type: 'granted' | 'denied') => {
+    const sessionKey = 'admin_notification_shown';
+    if (sessionStorage.getItem(sessionKey)) {
+      return; // Already notified this session
+    }
+    sessionStorage.setItem(sessionKey, 'true');
+
+    if (type === 'denied') {
+      showSmartNotification(
+        'Access Denied',
+        'You do not have admin permissions to view KYC verifications',
+        { type: 'admin_access', priority: 'high', duration: 8000 }
+      );
+    } else {
+      showSmartNotification(
+        'Admin Access',
+        'Admin access verified - you can view all KYC submissions',
+        { type: 'admin_access', priority: 'medium', duration: 5000 }
+      );
+    }
+  };
   
   return { isAdmin };
 };

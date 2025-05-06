@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { checkAdminByEmail, checkAdminById } from './adminCheckers';
@@ -35,7 +34,7 @@ export const isUserAdmin = async (): Promise<boolean> => {
         await updateAdminRecord(userId, userEmail);
       }
       
-      toast.success('Admin access granted for chris.d.conley@gmail.com');
+      // Removed direct toast to avoid duplicate notifications; rely on higher-level smart notification.
       return true;
     }
     

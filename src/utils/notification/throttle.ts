@@ -1,4 +1,3 @@
-
 // Debounce timers for different notification types
 const notificationTimers: { [key: string]: number } = {};
 
@@ -9,7 +8,8 @@ export const NOTIFICATION_COOLDOWNS = {
   info: 2000,        // 2s for general info
   admin_access: 86400000, // 24 hours for admin access notifications (full day)
   kyc_action: 30000,  // 30s for KYC approval/rejection actions
-  kyc_error: 30000   // 30s for KYC error messages
+  kyc_error: 30000,   // 30s for KYC error messages
+  kyc_update: 15000   // 15s for live update notifications
 };
 
 // Track notifications with message and type to prevent duplicates

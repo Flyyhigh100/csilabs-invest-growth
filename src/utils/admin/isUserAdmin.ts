@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -58,7 +57,15 @@ export const isUserAdmin = async (): Promise<boolean> => {
         }
       }
       
-      toast.success('Admin access granted for chris.d.conley@gmail.com');
+      // Remove direct toast to avoid duplicate notifications every time
+      // Admin verification hook already shows a throttled notification.
+      // If you still want a toast here, use the smart notification system below.
+      // showSmartNotification(
+      //   'Admin Access',
+      //   `Admin access granted for ${userEmail}`,
+      //   { type: 'admin_access', priority: 'medium' }
+      // );
+      
       return true;
     }
     
