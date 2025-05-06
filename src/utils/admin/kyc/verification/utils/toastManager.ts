@@ -38,3 +38,11 @@ export const showSuccessToast = (message: string, id?: string) => {
 export const showErrorToast = (message: string, id?: string) => {
   return toast.error(message, { id });
 };
+
+/**
+ * Show an info toast
+ */
+export const showInfoToast = (message: string, id?: string) => {
+  return toast.info(message, { id });
+};
+
