@@ -20,9 +20,72 @@ export const usePendingTransactions = () => {
     console.log('Fetching pending transactions with includeTestData:', includeTestData);
     
     try {
-      // Use explicit join instead of implicit join
-      let query = supabase
-        .from('transactions')
+      // Use a raw SQL query approach instead of relying on Supabase's relationship detection
+      const sql = `
+        SELECT 
+          t.*,
+          json_build_object(
+            'first_name', p.first_name,
+            'last_name', p.last_name,
+            'email', p.email
+          ) as profiles
+        FROM 
+          transactions t
+        LEFT JOIN 
+          profiles p ON t.user_id = p.id
+        WHERE 
+          t.status = 'completed' 
+          AND t.token_sent = false
+          ${includeTestData ? '' : 'AND t.is_test = false'}
+        ORDER BY 
+          t.created_at DESC
+      `;
+      
+      const { data, error } = await supabase.rpc('execute_sql', { sql_query: sql });
+        
+      if (error) {
+        console.error('Error fetching pending transactions:', error);
+        throw error;
+      }
+      
+      console.log(`Fetched ${data?.length || 0} pending transactions using direct SQL`);
+      
+      // Process the data to ensure consistent structure
+      const validatedData = data?.map(tx => {
+        // Handle case where profiles might be null or invalid
+        if (!tx.profiles) {
+          return {
+            ...tx,
+            profiles: null
+          };
+        }
+        
+        // Ensure we have a properly formatted profiles object
+        return {
+          ...tx,
+          profiles: {
+            first_name: tx.profiles.first_name || null,
+            last_name: tx.profiles.last_name || null,
+            email: tx.profiles.email || null
+          }
+        };
+      }) as PendingTransactionWithProfile[];
+      
+      return validatedData || [];
+    } catch (error) {
+      // If the execute_sql RPC function isn't available, fall back to a direct join approach
+      console.error('Error with SQL approach, trying fallback method:', error);
+      return fetchPendingTransactionsFallback();
+    }
+  };
+  
+  // Fallback method using direct query builder approach
+  const fetchPendingTransactionsFallback = async (): Promise<PendingTransactionWithProfile[]> => {
+    try {
+      console.log('Using fallback method to fetch pending transactions');
+      
+      // Build the query
+      let query = supabase.from('transactions')
         .select(`
           *,
           profiles:user_id(
@@ -34,24 +97,24 @@ export const usePendingTransactions = () => {
         .eq('status', 'completed')
         .eq('token_sent', false)
         .order('created_at', { ascending: false });
-        
+      
       // Filter out test data if not included
       if (!includeTestData) {
         query = query.eq('is_test', false);
       }
-        
+      
       const { data, error } = await query;
-        
+      
       if (error) {
-        console.error('Error fetching pending transactions:', error);
+        console.error('Error in fallback method:', error);
         throw error;
       }
       
-      console.log(`Fetched ${data?.length || 0} pending transactions`);
+      console.log(`Fallback method fetched ${data?.length || 0} transactions`);
       
-      // Process the data to ensure consistent structure regardless of join success
+      // Process the data to ensure consistent structure
       const validatedData = data?.map(tx => {
-        // Case 1: profiles is null
+        // Case 1: profiles is null or undefined
         if (!tx.profiles) {
           return {
             ...tx,
@@ -59,25 +122,10 @@ export const usePendingTransactions = () => {
           };
         }
         
-        // Case 2: profiles array is empty (join returned no results)
-        if (Array.isArray(tx.profiles) && tx.profiles.length === 0) {
-          return {
-            ...tx,
-            profiles: null
-          };
-        }
-        
-        // Case 3: profiles is an error object
-        if (typeof tx.profiles === 'object' && tx.profiles && 'error' in tx.profiles) {
-          return {
-            ...tx,
-            profiles: null
-          };
-        }
-        
-        // Case 4: profiles exists but may be in various formats due to the join
+        // Case 2: Handle array result (sometimes Supabase returns array)
         const profileData = Array.isArray(tx.profiles) ? tx.profiles[0] : tx.profiles;
         
+        // Case 3: Handle valid profile data
         if (profileData && typeof profileData === 'object') {
           return {
             ...tx,
@@ -89,14 +137,28 @@ export const usePendingTransactions = () => {
           };
         }
         
-        // Default case: profiles data is invalid or unexpected format
+        // Default case: invalid data format
         return { ...tx, profiles: null };
       }) as PendingTransactionWithProfile[];
       
       return validatedData || [];
     } catch (error) {
-      console.error('Exception in fetchPendingTransactions:', error);
-      throw error;
+      console.error('Fatal error in fallback method:', error);
+      
+      // As a last resort, fetch just transactions without profiles
+      console.log('Trying last resort - fetching just transactions without profiles');
+      const { data } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('status', 'completed')
+        .eq('token_sent', false)
+        .order('created_at', { ascending: false });
+      
+      // Return transactions with null profiles
+      return (data || []).map(tx => ({
+        ...tx,
+        profiles: null
+      })) as PendingTransactionWithProfile[];
     }
   };
   
