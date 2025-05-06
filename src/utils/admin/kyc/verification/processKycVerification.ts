@@ -35,9 +35,12 @@ export const processKycVerification = async (
   status: 'approved' | 'rejected' | 'needs_clarification',
   message?: string
 ): Promise<boolean> => {
+  // Generate a unique operation ID for tracing through logs
+  const operationId = `kyc-${status}-${Date.now()}`;
+  
   // Prevent multiple simultaneous calls for the same KYC ID
   if (isKycLocked(kycId)) {
-    console.log(`🔒 Already processing KYC ${kycId} (${status}). Please wait...`);
+    console.log(`🔒 [${operationId}] Already processing KYC ${kycId} (${status}). Please wait...`);
     showSmartNotification(
       'Operation in Progress', 
       'Already processing this KYC verification. Please wait...',
@@ -57,23 +60,23 @@ export const processKycVerification = async (
   dismissAllToasts();
 
   try {
-    console.log(`🔍 Processing KYC verification ${kycId} with status: ${status}, message: ${message || 'none'}`);
+    console.log(`🔍 [${operationId}] Processing KYC verification ${kycId} with status: ${status}, message: ${message || 'none'}`);
     
     if (!kycId) {
-      showSmartNotification('Error', 'KYC ID is required', { type: 'kyc_action', priority: 'high' });
+      showSmartNotification('Error', 'KYC ID is required', { type: 'kyc_error', priority: 'high' });
       releaseKycLock(kycId);
       return false;
     }
     
     // Pre-validate required fields based on status
     if (status === 'rejected' && (!message || !message.trim())) {
-      showSmartNotification('Error', 'Rejection reason is required', { type: 'kyc_action', priority: 'high' });
+      showSmartNotification('Error', 'Rejection reason is required', { type: 'kyc_error', priority: 'high' });
       releaseKycLock(kycId);
       return false;
     }
     
     // Show a new loading toast with a reasonable timeout
-    showLoadingToast(`Processing KYC verification (${status})...`, loadingToastId, 10000);
+    showLoadingToast(`Processing KYC verification (${status})...`, loadingToastId, 15000);
     
     // Set up listeners
     setupVerificationListeners();
@@ -90,7 +93,7 @@ export const processKycVerification = async (
         showSmartNotification(
           'Access Denied', 
           'Admin permission verification failed', 
-          { type: 'admin_access', priority: 'high' }
+          { type: 'kyc_error', priority: 'high' }
         );
         notifyAdminPermissionStatus('failed');
         releaseKycLock(kycId);
@@ -103,7 +106,7 @@ export const processKycVerification = async (
       showSmartNotification(
         'Access Error', 
         `Failed to verify admin permissions: ${(adminErr as Error).message}`,
-        { type: 'admin_access', priority: 'high' }
+        { type: 'kyc_error', priority: 'high' }
       );
       notifyAdminPermissionStatus('failed');
       releaseKycLock(kycId);
@@ -113,9 +116,10 @@ export const processKycVerification = async (
     // Process KYC verification
     return await executeWithRetry(
       async () => {
-        // CRITICAL FIX: Explicitly match the payload structure expected by the edge function
+        // CRITICAL FIX: Match the exact payload structure expected by the edge function
+        // Directly compare with the structure expected in src/edge-functions/admin-operations/kyc-operations.ts
         const payload = {
-          action: 'processKyc',
+          action: 'processKyc',  // This is the key that the edge function checks for
           data: {
             kycId,
             status,
@@ -123,7 +127,7 @@ export const processKycVerification = async (
           }
         };
 
-        console.log('🚀 Sending payload to admin-operations function:', JSON.stringify(payload));
+        console.log(`📤 [${operationId}] Sending payload to admin-operations function:`, JSON.stringify(payload));
 
         const response = await withTimeout(
           supabase.functions.invoke('admin-operations', { body: payload }),
@@ -131,20 +135,20 @@ export const processKycVerification = async (
           'Request timed out'
         ) as EdgeFunctionResponse;
 
-        console.log('📥 Response from admin-operations:', JSON.stringify(response));
+        console.log(`📥 [${operationId}] Response from admin-operations:`, JSON.stringify(response));
 
         if (response.error) {
-          console.error('❌ Error from admin-operations:', response.error);
+          console.error(`❌ [${operationId}] Error from admin-operations:`, response.error);
           throw new Error(response.error.message || 'Error from admin-operations function');
         }
 
         if (!response.data?.kyc) {
-          console.error('❌ Invalid response format:', response);
+          console.error(`❌ [${operationId}] Invalid response format:`, response);
           throw new Error('Invalid response format from server');
         }
 
         if (response.data.kyc.status !== status) {
-          console.error(`❌ Status mismatch: got ${response.data.kyc.status}, expected ${status}`);
+          console.error(`❌ [${operationId}] Status mismatch: got ${response.data.kyc.status}, expected ${status}`);
           throw new Error(`Status update failed: got ${response.data.kyc.status}, expected ${status}`);
         }
 
@@ -160,7 +164,7 @@ export const processKycVerification = async (
         
         return true;
       },
-      1,  // maxRetries
+      2,  // maxRetries - increased from 1 to 2
       2000  // retryDelay
     ).catch(error => {
       // Handle errors from the retry process
@@ -168,9 +172,9 @@ export const processKycVerification = async (
       showSmartNotification(
         'Error', 
         `Failed to process KYC verification: ${error.message || 'Unknown error'}`,
-        { type: 'kyc_action', priority: 'high', id: `kyc-error-${kycId}` }
+        { type: 'kyc_error', priority: 'high', id: `kyc-error-${kycId}` }
       );
-      console.error('❌ Error in processKycVerification:', error);
+      console.error(`❌ [${operationId}] Error in processKycVerification:`, error);
       return false;
     }).finally(() => {
       // Always clean up
@@ -178,11 +182,11 @@ export const processKycVerification = async (
       releaseKycLock(kycId);
     });
   } catch (error) {
-    console.error('❌ Fatal error in processKycVerification:', error);
+    console.error(`❌ [${operationId}] Fatal error in processKycVerification:`, error);
     showSmartNotification(
       'Error',
       `Fatal error: ${(error as Error).message}`,
-      { type: 'kyc_action', priority: 'high', id: `kyc-fatal-${kycId}` }
+      { type: 'kyc_error', priority: 'high', id: `kyc-fatal-${kycId}` }
     );
     
     // Clean up

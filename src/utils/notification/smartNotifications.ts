@@ -32,7 +32,7 @@ export function showSmartNotification(
 
   // Check if we should show this notification
   if (!shouldShowNotification(type, message)) {
-    console.log(`Skipping notification due to throttling: ${title} - ${message}`);
+    console.log(`🔇 Skipping notification due to throttling: ${title} - ${message}`);
     return;
   }
 
@@ -43,6 +43,7 @@ export function showSmartNotification(
   if (activeToastIds.has(toastId)) {
     toast.dismiss(toastId);
     activeToastIds.delete(toastId);
+    console.log(`🔄 Replacing existing toast with ID: ${toastId}`);
   }
 
   // Determine toast duration based on priority
@@ -52,13 +53,18 @@ export function showSmartNotification(
   activeToastIds.add(toastId);
 
   // Show toast based on priority
+  console.log(`📢 Showing toast: "${title}" - "${message}" (priority: ${priority}, duration: ${toastDuration}ms)`);
+  
   switch (priority) {
     case 'high':
       toast.error(title, { 
         id: toastId,
         description: message, 
         duration: toastDuration,
-        onDismiss: () => activeToastIds.delete(toastId)
+        onDismiss: () => {
+          console.log(`🧹 Dismissed toast: ${toastId}`);
+          activeToastIds.delete(toastId);
+        }
       });
       break;
     case 'medium':
@@ -66,7 +72,10 @@ export function showSmartNotification(
         id: toastId,
         description: message, 
         duration: toastDuration,
-        onDismiss: () => activeToastIds.delete(toastId)
+        onDismiss: () => {
+          console.log(`🧹 Dismissed toast: ${toastId}`);
+          activeToastIds.delete(toastId);
+        }
       });
       break;
     case 'low':
@@ -74,21 +83,28 @@ export function showSmartNotification(
         id: toastId,
         description: message, 
         duration: toastDuration,
-        onDismiss: () => activeToastIds.delete(toastId)
+        onDismiss: () => {
+          console.log(`🧹 Dismissed toast: ${toastId}`);
+          activeToastIds.delete(toastId);
+        }
       });
       break;
   }
   
   // Automatically remove from tracking after duration
   setTimeout(() => {
-    activeToastIds.delete(toastId);
-  }, toastDuration + 500);
+    if (activeToastIds.has(toastId)) {
+      console.log(`⏰ Auto-removing toast from tracking: ${toastId}`);
+      activeToastIds.delete(toastId);
+    }
+  }, toastDuration + 1000);
 }
 
 /**
  * Dismiss all active toasts
  */
 export function dismissAllToasts() {
+  console.log(`🧹 Dismissing all ${activeToastIds.size} active toasts`);
   toast.dismiss();
   activeToastIds.clear();
 }
@@ -97,6 +113,7 @@ export function dismissAllToasts() {
  * Dismiss a specific toast by ID
  */
 export function dismissToast(id: string) {
+  console.log(`🧹 Dismissing specific toast: ${id}`);
   toast.dismiss(id);
   activeToastIds.delete(id);
 }
