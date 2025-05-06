@@ -46,7 +46,20 @@ export const usePendingTransactions = () => {
       }
       
       console.log(`Fetched ${data?.length || 0} pending transactions`);
-      return data as PendingTransactionWithProfile[];
+      
+      // Ensure each transaction has a valid profiles property or null
+      const validatedData = data?.map(tx => {
+        // If profiles is an error or invalid format, set it to null
+        if (tx.profiles && 'error' in tx.profiles) {
+          return {
+            ...tx,
+            profiles: null
+          };
+        }
+        return tx;
+      }) as PendingTransactionWithProfile[];
+      
+      return validatedData;
     } catch (error) {
       console.error('Exception in fetchPendingTransactions:', error);
       throw error;
