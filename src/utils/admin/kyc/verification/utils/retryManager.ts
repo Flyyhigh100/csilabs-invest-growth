@@ -1,62 +1,65 @@
 
 /**
- * Utility for managing retry attempts for KYC verification
+ * Execute a function with retry logic
  */
-import { notifyRetryAttempt } from './listenerManager';
-
-/**
- * Execute function with retry logic
- * @param fn Function to execute with retry logic
- * @param maxRetries Maximum number of retries
- * @param retryDelay Delay between retries in ms
- */
-export const executeWithRetry = async<T>(
+export const executeWithRetry = async <T>(
   fn: () => Promise<T>,
-  maxRetries: number = 1,
-  retryDelay: number = 2000
+  maxRetries = 3,
+  retryDelay = 1000
 ): Promise<T> => {
-  let currentRetry = 0;
-  let lastError: Error | null = null;
-
-  while (currentRetry <= maxRetries) {
-    notifyRetryAttempt(currentRetry, maxRetries);
-
+  let lastError: Error;
+  
+  // Get the retry listener from the global scope if available
+  const retryListener = (window as any).kycRetryListener;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
+      // Notify listener about the retry attempt
+      if (retryListener && typeof retryListener === 'function') {
+        retryListener(attempt, maxRetries);
+      }
+      
+      // Execute the function
       return await fn();
     } catch (error) {
       lastError = error as Error;
-      console.error(`Attempt ${currentRetry + 1} failed:`, error);
-
-      // Only retry on specific network errors
-      if (currentRetry < maxRetries && 
-          ((error as Error).message.includes('timeout') || 
-           (error as Error).message.includes('network'))) {
-        currentRetry++;
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
-        continue;
+      console.error(`Retry attempt ${attempt}/${maxRetries} failed:`, error);
+      
+      // Break if this is the last attempt
+      if (attempt === maxRetries) {
+        break;
       }
-
-      // Non-retryable error or max retries reached
-      break;
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
     }
   }
-
-  // If we get here, all retries failed
-  throw lastError || new Error('Operation failed after multiple attempts');
+  
+  // If we got here, all retries failed
+  throw lastError!;
 };
 
 /**
- * Promise with timeout
+ * Execute a promise with a timeout
  */
 export const withTimeout = <T>(
   promise: Promise<T>,
   timeoutMs: number,
-  errorMessage = 'Request timed out'
+  errorMessage = 'Operation timed out'
 ): Promise<T> => {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => 
-      setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
-    )
-  ]);
+  return new Promise<T>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error(errorMessage));
+    }, timeoutMs);
+    
+    promise
+      .then(result => {
+        clearTimeout(timeout);
+        resolve(result);
+      })
+      .catch(error => {
+        clearTimeout(timeout);
+        reject(error);
+      });
+  });
 };

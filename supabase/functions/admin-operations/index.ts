@@ -72,6 +72,12 @@ serve(async (req) => {
     switch (operation) {
       case 'update_coinpayments_config':
         return await handleUpdateCoinPaymentsConfig(supabase, requestBody, user.id);
+
+      case 'processKyc':
+        return await handleProcessKyc(supabase, requestBody, user.id);
+        
+      case 'requestKycClarification':
+        return await handleRequestKycClarification(supabase, requestBody, user.id);
         
       default:
         return createErrorResponse(`Unknown operation: ${operation}`, 400);
@@ -199,6 +205,216 @@ async function handleUpdateCoinPaymentsConfig(supabase, requestBody, adminUserId
   } catch (error) {
     console.error('Error updating CoinPayments configuration:', error);
     return createErrorResponse(`Failed to update configuration: ${error.message}`, 500);
+  }
+}
+
+/**
+ * Process a KYC verification (approve or reject)
+ */
+async function handleProcessKyc(supabase, requestBody, adminUserId) {
+  try {
+    const { kycId, status, rejectionReason } = requestBody.data;
+    
+    if (!kycId) {
+      return createErrorResponse('Missing KYC ID', 400);
+    }
+    
+    if (!['approved', 'rejected'].includes(status)) {
+      return createErrorResponse('Invalid status. Must be "approved" or "rejected"', 400);
+    }
+    
+    // If status is 'rejected', require a rejection reason
+    if (status === 'rejected' && (!rejectionReason || rejectionReason.trim() === '')) {
+      return createErrorResponse('Rejection reason is required', 400);
+    }
+    
+    console.log(`Admin ${adminUserId} is processing KYC ${kycId} with status: ${status}`);
+    
+    // Prepare the update data based on status
+    const updateData = {
+      status: status,
+      reviewed_at: new Date().toISOString(),
+      approved_by: adminUserId,
+    };
+    
+    // Add rejection reason if status is 'rejected'
+    if (status === 'rejected') {
+      updateData.rejection_reason = rejectionReason;
+    }
+    
+    // If status is 'approved', set approved_at
+    if (status === 'approved') {
+      updateData.approved_at = new Date().toISOString();
+    }
+    
+    // Update the KYC verification in the database
+    const { data, error } = await supabase
+      .from('kyc_verifications')
+      .update(updateData)
+      .eq('id', kycId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating KYC verification:', error);
+      return createErrorResponse(`Failed to update KYC verification: ${error.message}`, 500);
+    }
+    
+    // If KYC was approved, check if there are any pending transactions that need updating
+    if (status === 'approved') {
+      try {
+        // This is a background task, we don't need to wait for it
+        updatePendingTransactions(supabase, data.user_id);
+      } catch (error) {
+        console.error('Error updating pending transactions:', error);
+        // Don't fail the main operation if this background task fails
+      }
+    }
+    
+    // Create notification for the user
+    try {
+      const notificationTitle = status === 'approved' 
+        ? 'KYC Verification Approved' 
+        : 'KYC Verification Rejected';
+        
+      const notificationMessage = status === 'approved'
+        ? 'Your identity verification has been approved. You can now make purchases.'
+        : `Your identity verification was rejected. Reason: ${rejectionReason}`;
+        
+      await supabase.from('notifications').insert({
+        user_id: data.user_id,
+        title: notificationTitle,
+        message: notificationMessage,
+        type: 'kyc',
+      });
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      // Don't fail the main operation if notification creation fails
+    }
+    
+    // Return success response with updated KYC data
+    return createSuccessResponse({
+      message: `KYC verification ${status} successfully`,
+      kyc: data
+    });
+  } catch (error) {
+    console.error('Error processing KYC verification:', error);
+    return createErrorResponse(`Failed to process KYC verification: ${error.message}`, 500);
+  }
+}
+
+/**
+ * Request clarification for a KYC verification
+ */
+async function handleRequestKycClarification(supabase, requestBody, adminUserId) {
+  try {
+    const { kycId, message } = requestBody.data;
+    
+    if (!kycId) {
+      return createErrorResponse('Missing KYC ID', 400);
+    }
+    
+    if (!message || message.trim() === '') {
+      return createErrorResponse('Clarification message is required', 400);
+    }
+    
+    console.log(`Admin ${adminUserId} is requesting clarification for KYC ${kycId}`);
+    
+    // Get the current KYC verification to check if it exists
+    const { data: existingKyc, error: fetchError } = await supabase
+      .from('kyc_verifications')
+      .select('user_id')
+      .eq('id', kycId)
+      .single();
+    
+    if (fetchError) {
+      console.error('Error fetching KYC verification:', fetchError);
+      return createErrorResponse(`KYC verification not found: ${fetchError.message}`, 404);
+    }
+    
+    // Update the KYC verification in the database
+    const updateData = {
+      status: 'needs_clarification',
+      reviewed_at: new Date().toISOString(),
+      clarification_message: message,
+    };
+    
+    const { data, error } = await supabase
+      .from('kyc_verifications')
+      .update(updateData)
+      .eq('id', kycId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating KYC verification for clarification:', error);
+      return createErrorResponse(`Failed to update KYC verification: ${error.message}`, 500);
+    }
+    
+    // Create notification for the user
+    try {
+      await supabase.from('notifications').insert({
+        user_id: existingKyc.user_id,
+        title: 'KYC Verification Needs Clarification',
+        message: `Your identity verification requires more information: ${message}`,
+        type: 'kyc',
+      });
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      // Don't fail the main operation if notification creation fails
+    }
+    
+    // Return success response with updated KYC data
+    return createSuccessResponse({
+      message: 'Clarification request sent successfully',
+      kyc: data
+    });
+  } catch (error) {
+    console.error('Error requesting KYC clarification:', error);
+    return createErrorResponse(`Failed to request clarification: ${error.message}`, 500);
+  }
+}
+
+/**
+ * Helper function to update pending transactions after KYC approval
+ */
+async function updatePendingTransactions(supabase, userId) {
+  try {
+    // Find high-value transactions that needed KYC approval
+    const { data: transactions, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('high_value_approval_required', true)
+      .eq('approval_status', 'pending')
+      .select();
+    
+    if (error) {
+      console.error('Error fetching pending transactions:', error);
+      return;
+    }
+    
+    if (!transactions || transactions.length === 0) {
+      console.log('No pending transactions found for user:', userId);
+      return;
+    }
+    
+    console.log(`Found ${transactions.length} pending transactions to update for user ${userId}`);
+    
+    // Update each transaction
+    for (const transaction of transactions) {
+      await supabase
+        .from('transactions')
+        .update({
+          approval_status: 'approved',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', transaction.id);
+    }
+    
+    console.log(`Updated ${transactions.length} transactions to approved status`);
+  } catch (error) {
+    console.error('Error in background transaction update task:', error);
   }
 }
 
