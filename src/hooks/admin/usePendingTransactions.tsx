@@ -61,13 +61,13 @@ export const usePendingTransactions = () => {
         
         // Ensure profiles has the expected structure, or set to null if invalid
         if (tx.profiles && typeof tx.profiles === 'object') {
-          // Ensure profiles is valid or null
+          // Ensure profiles is valid - use optional chaining to safely access properties
           return {
             ...tx,
             profiles: {
-              first_name: tx.profiles.first_name || null,
-              last_name: tx.profiles.last_name || null,
-              email: tx.profiles.email || null
+              first_name: tx.profiles?.first_name || null,
+              last_name: tx.profiles?.last_name || null,
+              email: tx.profiles?.email || null
             }
           };
         }
