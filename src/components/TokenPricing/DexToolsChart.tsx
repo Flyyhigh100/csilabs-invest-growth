@@ -26,11 +26,12 @@ const DexToolsChart: React.FC = () => {
           sandbox="allow-scripts allow-same-origin allow-popups"
         />
         
-        {/* Fallback button in case iframe doesn't load */}
-        <div className="absolute bottom-4 right-4">
+        {/* Moved button to top-right with semi-transparent background */}
+        <div className="absolute top-3 right-3 z-10">
           <Button 
             onClick={handleViewOnDexTools} 
-            className="flex items-center gap-2 bg-cbis-blue hover:bg-cbis-blue/90"
+            className="flex items-center gap-2 bg-white/80 text-black border border-gray-200 backdrop-blur-sm hover:bg-white"
+            size="sm"
           >
             View on DexTools <ExternalLink size={16} />
           </Button>

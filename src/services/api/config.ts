@@ -34,10 +34,10 @@ export const DAYS_TO_INCLUDE = 90;
 export const PRICE_CACHE_DURATION = 10000; // 10 seconds to match polling interval
 export const ENABLE_LOGGING = true;
 
-// Validation thresholds
+// Validation thresholds - updated based on expected CSL price range
 export const MAX_PRICE_CHANGE_PERCENTAGE = 50; // Maximum allowed price change (50%)
 export const MIN_VALID_PRICE = 0.00001; // Minimum valid price
-export const MAX_VALID_PRICE = 1000; // Maximum valid price
+export const MAX_VALID_PRICE = 100; // Maximum valid price (updated from 1000 to a more reasonable value for CSL)
 
 // Max retries for API calls
 export const MAX_RETRIES = 3;
