@@ -7,7 +7,7 @@
 export const TOKEN_ADDRESS = '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0';  // CSL token address
 export const CHAIN_ID = '137';  // Polygon mainnet
 
-// Uniswap V3 Pool Configuration with the new pool
+// Uniswap V3 Pool Configuration
 export const UNISWAP_V3_POOL = (import.meta.env?.VITE_V3_POOL as string | undefined)?.toLowerCase() || '0xb85372c56884a906ab33c0e99fea572c7c6ad7eb';
 
 // Token configuration

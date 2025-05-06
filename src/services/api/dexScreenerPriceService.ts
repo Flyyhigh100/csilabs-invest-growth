@@ -1,9 +1,9 @@
 
-import { UNISWAP_V4_POOL } from './config';
+import { UNISWAP_V3_POOL } from './config';
 
 export const fetchDexScreenerPrice = async (): Promise<number> => {
-  // Use V4 pool address as the default pair address
-  const PAIR = import.meta.env.VITE_PAIR_ADDRESS?.toLowerCase() || UNISWAP_V4_POOL;
+  // Use V3 pool address as the default pair address
+  const PAIR = import.meta.env.VITE_PAIR_ADDRESS?.toLowerCase() || UNISWAP_V3_POOL;
   
   console.log('Fetching current price from DexScreener for pair:', PAIR);
   

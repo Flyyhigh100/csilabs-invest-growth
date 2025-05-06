@@ -1,13 +1,13 @@
 
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { UNISWAP_V4_POOL } from '@/services/api/config';
+import { UNISWAP_V3_POOL } from '@/services/api/config';
 import { ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const DexToolsChart: React.FC = () => {
-  // Use the V4 pool from our config
-  const poolAddress = UNISWAP_V4_POOL;
+  // Use the V3 pool from our config
+  const poolAddress = UNISWAP_V3_POOL;
   
   const handleViewOnDexTools = () => {
     // Open in a new tab when clicked
