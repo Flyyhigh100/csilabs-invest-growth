@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
 import { useState } from 'react';
 
-// Update the interface to properly handle profile errors
+// Update the interface to better handle null/error cases with profiles
 export interface PendingTransactionWithProfile extends Transaction {
   profiles: {
     first_name: string | null;
@@ -48,10 +48,17 @@ export const usePendingTransactions = () => {
       
       console.log(`Fetched ${data?.length || 0} pending transactions`);
       
-      // Properly handle errors in the profiles join by explicitly casting
-      // and validating the data before returning it
+      // Properly handle all possible cases for the profiles join
       const validatedData = data?.map(tx => {
-        // Check if profiles is an error object (like when join fails)
+        // Case 1: profiles is null
+        if (tx.profiles === null) {
+          return {
+            ...tx,
+            profiles: null
+          };
+        }
+        
+        // Case 2: profiles is an error object
         if (tx.profiles && typeof tx.profiles === 'object' && 'error' in tx.profiles) {
           return {
             ...tx,
@@ -59,24 +66,26 @@ export const usePendingTransactions = () => {
           };
         }
         
-        // Ensure profiles has the expected structure, or set to null if invalid
-        if (tx.profiles && typeof tx.profiles === 'object') {
-          // Ensure profiles is valid - use optional chaining to safely access properties
+        // Case 3: profiles exists but may not have all required properties
+        // Use type assertion after validation to help TypeScript understand the structure
+        const profileData = tx.profiles as Record<string, unknown> | null;
+        
+        if (profileData) {
           return {
             ...tx,
             profiles: {
-              first_name: tx.profiles && 'first_name' in tx.profiles ? tx.profiles.first_name : null,
-              last_name: tx.profiles && 'last_name' in tx.profiles ? tx.profiles.last_name : null,
-              email: tx.profiles && 'email' in tx.profiles ? tx.profiles.email : null
+              first_name: typeof profileData.first_name === 'string' ? profileData.first_name : null,
+              last_name: typeof profileData.last_name === 'string' ? profileData.last_name : null,
+              email: typeof profileData.email === 'string' ? profileData.email : null
             }
           };
         }
         
-        // If profiles is not as expected, set it to null
+        // Default case: profiles data is invalid or unexpected format
         return { ...tx, profiles: null };
       }) as PendingTransactionWithProfile[];
       
-      return validatedData;
+      return validatedData || [];
     } catch (error) {
       console.error('Exception in fetchPendingTransactions:', error);
       throw error;
