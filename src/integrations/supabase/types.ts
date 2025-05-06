@@ -326,6 +326,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      execute_sql: {
+        Args: { sql_query: string }
+        Returns: Json[]
+      }
       get_secret: {
         Args: { secret_name: string }
         Returns: string

@@ -20,7 +20,7 @@ export const usePendingTransactions = () => {
     console.log('Fetching pending transactions with includeTestData:', includeTestData);
     
     try {
-      // Use a raw SQL query approach instead of relying on Supabase's relationship detection
+      // Build the SQL query for the admin function
       const sql = `
         SELECT 
           t.*,
@@ -41,7 +41,7 @@ export const usePendingTransactions = () => {
           t.created_at DESC
       `;
       
-      // Use a direct query instead of the RPC function that isn't in TypeScript types yet
+      // Use the standard Supabase query builder with proper typing instead of the RPC function
       const { data, error } = await supabase
         .from('transactions')
         .select(`
