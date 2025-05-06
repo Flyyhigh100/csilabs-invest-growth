@@ -65,9 +65,9 @@ export const usePendingTransactions = () => {
           return {
             ...tx,
             profiles: {
-              first_name: tx.profiles?.first_name || null,
-              last_name: tx.profiles?.last_name || null,
-              email: tx.profiles?.email || null
+              first_name: tx.profiles && 'first_name' in tx.profiles ? tx.profiles.first_name : null,
+              last_name: tx.profiles && 'last_name' in tx.profiles ? tx.profiles.last_name : null,
+              email: tx.profiles && 'email' in tx.profiles ? tx.profiles.email : null
             }
           };
         }
