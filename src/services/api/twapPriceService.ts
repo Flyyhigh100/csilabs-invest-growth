@@ -17,9 +17,8 @@ const provider = new ethers.providers.JsonRpcProvider(import.meta.env.VITE_POLYG
 const poolAddr = UNISWAP_V3_POOL;
 const WINDOW_SEC = Number(import.meta.env.VITE_TWAP_WINDOW) || 900; // 15 minutes by default
 
-// CSL token address (case-insensitive comparison)
-const CSL = V3_TOKEN0.toLowerCase();
-const USDC = V3_TOKEN1.toLowerCase();
+// Debug flag
+const DEBUG_TWAP = import.meta.env.VITE_DEBUG_TWAP === 'true';
 
 // Configure retry mechanism
 const MAX_RETRIES = 3;
@@ -34,7 +33,7 @@ export async function fetchOnchainTwap(): Promise<number> {
   
   while (retries <= MAX_RETRIES) {
     try {
-      if (ENABLE_LOGGING) {
+      if (ENABLE_LOGGING || DEBUG_TWAP) {
         console.log(`Fetching on-chain TWAP from pool ${poolAddr} with window ${WINDOW_SEC}s`);
       }
       
@@ -45,17 +44,23 @@ export async function fetchOnchainTwap(): Promise<number> {
       const token0Address = (await pool.token0()).toLowerCase();
       const token1Address = (await pool.token1()).toLowerCase();
       
-      if (ENABLE_LOGGING) {
+      if (ENABLE_LOGGING || DEBUG_TWAP) {
         console.log(`Pool token0: ${token0Address}, Our V3_TOKEN0: ${V3_TOKEN0.toLowerCase()}`);
         console.log(`Pool token1: ${token1Address}, Our V3_TOKEN1: ${V3_TOKEN1.toLowerCase()}`);
       }
       
-      // Determine token ordering in the pool (which is token0 and which is token1)
-      const cslIsToken0 = token0Address === CSL.toLowerCase();
-      const usdcIsToken0 = token0Address === USDC.toLowerCase();
+      // USDC and CSL token addresses (lowercase for case-insensitive comparison)
+      const cslTokenAddress = V3_TOKEN1.toLowerCase(); // CSL token address
+      const usdcTokenAddress = V3_TOKEN0.toLowerCase(); // USDC token address
       
-      if (!cslIsToken0 && !usdcIsToken0) {
-        console.warn(`Token not found in pool: CSL=${CSL}, USDC=${USDC}, token0=${token0Address}, token1=${token1Address}`);
+      // Determine token ordering in the pool (which is token0 and which is token1)
+      const cslIsToken0 = token0Address === cslTokenAddress;
+      const cslIsToken1 = token1Address === cslTokenAddress;
+      
+      // Validate that one of our tokens is found in the pool
+      if (!cslIsToken0 && !cslIsToken1) {
+        console.warn(`CSL token not found in pool: CSL=${cslTokenAddress}, token0=${token0Address}, token1=${token1Address}`);
+        throw new Error('Token configuration mismatch with pool');
       }
 
       // Get tick cumulatives from the pool
@@ -64,7 +69,7 @@ export async function fetchOnchainTwap(): Promise<number> {
       const [tickCumulatives] = await pool.observe([WINDOW_SEC, 0]);
       const tickAvg = (tickCumulatives[1].sub(tickCumulatives[0])).div(WINDOW_SEC);
       
-      if (ENABLE_LOGGING) {
+      if (ENABLE_LOGGING || DEBUG_TWAP) {
         console.log(`Raw tick average: ${tickAvg}`);
       }
 
@@ -72,31 +77,32 @@ export async function fetchOnchainTwap(): Promise<number> {
       const priceToken1PerToken0 = Math.pow(1.0001, Number(tickAvg));
       
       // Get the correct decimal values based on token positions
-      const token0Decimals = cslIsToken0 ? V3_TOKEN0_DECIMALS : V3_TOKEN1_DECIMALS;
-      const token1Decimals = cslIsToken0 ? V3_TOKEN1_DECIMALS : V3_TOKEN0_DECIMALS;
+      const token0Decimals = cslIsToken0 ? V3_TOKEN1_DECIMALS : V3_TOKEN0_DECIMALS;
+      const token1Decimals = cslIsToken0 ? V3_TOKEN0_DECIMALS : V3_TOKEN1_DECIMALS;
       
-      // Calculate the decimal adjustment factor
-      const decimalAdjustment = Math.pow(10, token1Decimals - token0Decimals);
+      // Calculate the decimal adjustment factor (exponents flipped due to division)
+      const decimalAdjustment = Math.pow(10, token0Decimals - token1Decimals);
       
       // Calculate final price with decimal adjustment
       let priceCslInUsd;
       
       if (cslIsToken0) {
-        // If CSL is token0, price is token1 per token0, which means USDC per CSL
-        priceCslInUsd = priceToken1PerToken0 * decimalAdjustment;
-      } else {
-        // If CSL is token1, price is 1/priceToken1PerToken0, which is 1/(USDC per CSL)
+        // If CSL is token0, price is 1/priceToken1PerToken0 (inverse of USDC per CSL)
+        // We flip because we want CSL price in terms of USDC
         priceCslInUsd = (1 / priceToken1PerToken0) * decimalAdjustment;
+      } else {
+        // If CSL is token1, price is priceToken1PerToken0 (CSL per USDC)
+        priceCslInUsd = priceToken1PerToken0 * decimalAdjustment;
       }
       
-      if (ENABLE_LOGGING) {
+      if (ENABLE_LOGGING || DEBUG_TWAP) {
         console.log(`TWAP calculation complete: ${priceCslInUsd} ${COUNTER_TOKEN_SYMBOL} per CSL`);
         console.log(`Token positions: CSL is ${cslIsToken0 ? 'token0' : 'token1'}`);
-        console.log(`Decimal adjustment: 10^(${token1Decimals} - ${token0Decimals}) = ${decimalAdjustment}`);
+        console.log(`Decimal adjustment: 10^(${token0Decimals} - ${token1Decimals}) = ${decimalAdjustment}`);
       }
       
       // Sanity check the price value to catch extremely large or small values
-      if (priceCslInUsd > 1e10 || priceCslInUsd < 1e-10) {
+      if (priceCslInUsd > 10 || priceCslInUsd < 0.1) {
         throw new Error(`Calculated price is out of reasonable range: ${priceCslInUsd}`);
       }
       
