@@ -1,7 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 interface DashboardStats {
@@ -14,16 +14,24 @@ interface DashboardStats {
   };
   pendingTokensCount: number;
   totalTransactionValue: number;
+  includeTestData: boolean;
 }
 
-const fetchDashboardStats = async (): Promise<DashboardStats> => {
-  console.log('Fetching dashboard stats...');
+const fetchDashboardStats = async (includeTestData: boolean = false): Promise<DashboardStats> => {
+  console.log(`Fetching dashboard stats... (includeTestData: ${includeTestData})`);
   
   try {
     // CRITICAL FIX: Fetch counts for KYC verifications by status with enhanced logging
-    const { data: kycData, error: kycError } = await supabase
+    const kycQuery = supabase
       .from('kyc_verifications')
       .select('*');
+      
+    // Filter out test data if not included
+    if (!includeTestData) {
+      kycQuery.eq('is_test', false);
+    }
+    
+    const { data: kycData, error: kycError } = await kycQuery;
     
     if (kycError) {
       console.error('Error fetching KYC stats:', kycError);
@@ -75,11 +83,18 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
     }
     
     // CRITICAL FIX: Fetch counts for pending token transfers
-    const { count: pendingTokensCount, error: pendingError } = await supabase
+    const pendingTokensQuery = supabase
       .from('transactions')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'completed')
       .eq('token_sent', false);
+      
+    // Filter out test data if not included
+    if (!includeTestData) {
+      pendingTokensQuery.eq('is_test', false);
+    }
+    
+    const { count: pendingTokensCount, error: pendingError } = await pendingTokensQuery;
     
     if (pendingError) {
       console.error('Error fetching pending tokens count:', pendingError);
@@ -87,10 +102,17 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
     }
     
     // CRITICAL FIX: Fetch total transaction value
-    const { data: transactionData, error: transactionError } = await supabase
+    const transactionsQuery = supabase
       .from('transactions')
       .select('amount')
       .eq('status', 'completed');
+      
+    // Filter out test data if not included
+    if (!includeTestData) {
+      transactionsQuery.eq('is_test', false);
+    }
+    
+    const { data: transactionData, error: transactionError } = await transactionsQuery;
     
     if (transactionError) {
       console.error('Error fetching transaction data:', transactionError);
@@ -103,9 +125,16 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
       : 0;
     
     // For debugging, log direct database query with counts
-    const { data: kycDebug, error: kycDebugError } = await supabase
+    const kycDebugQuery = supabase
       .from('kyc_verifications')
       .select('*');
+      
+    // Filter out test data if not included
+    if (!includeTestData) {
+      kycDebugQuery.eq('is_test', false);
+    }
+    
+    const { data: kycDebug, error: kycDebugError } = await kycDebugQuery;
       
     if (kycDebugError) {
       console.error('Error in direct KYC debug query:', kycDebugError);
@@ -134,7 +163,8 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
     return {
       kycCounts,
       pendingTokensCount: pendingTokensCount || 0,
-      totalTransactionValue: totalValue
+      totalTransactionValue: totalValue,
+      includeTestData
     };
   } catch (error) {
     console.error('Exception in fetchDashboardStats:', error);
@@ -143,14 +173,16 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
 };
 
 export const useDashboardStats = () => {
+  const [includeTestData, setIncludeTestData] = useState(false);
+  
   const { 
     data, 
     isLoading, 
     error, 
     refetch 
   } = useQuery({
-    queryKey: ['admin-dashboard-stats'],
-    queryFn: fetchDashboardStats,
+    queryKey: ['admin-dashboard-stats', includeTestData],
+    queryFn: () => fetchDashboardStats(includeTestData),
     // CRITICAL FIX: More aggressive refetching settings
     refetchInterval: 3000, // Refresh more frequently
     staleTime: 1000, // Consider data stale after just 1 second
@@ -195,6 +227,8 @@ export const useDashboardStats = () => {
     data,
     isLoading,
     error,
-    refetch
+    refetch,
+    includeTestData,
+    setIncludeTestData
   };
 };

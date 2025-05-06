@@ -86,6 +86,7 @@ export type Database = {
           id: string
           id_back_url: string | null
           id_front_url: string | null
+          is_test: boolean
           last_name: string | null
           nationality: string | null
           postal_code: string | null
@@ -110,6 +111,7 @@ export type Database = {
           id?: string
           id_back_url?: string | null
           id_front_url?: string | null
+          is_test?: boolean
           last_name?: string | null
           nationality?: string | null
           postal_code?: string | null
@@ -134,6 +136,7 @@ export type Database = {
           id?: string
           id_back_url?: string | null
           id_front_url?: string | null
+          is_test?: boolean
           last_name?: string | null
           nationality?: string | null
           postal_code?: string | null
@@ -151,6 +154,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_test: boolean
           message: string
           read: boolean
           title: string
@@ -161,6 +165,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_test?: boolean
           message: string
           read?: boolean
           title: string
@@ -171,6 +176,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_test?: boolean
           message?: string
           read?: boolean
           title?: string
@@ -252,6 +258,7 @@ export type Database = {
           external_transaction_id: string | null
           high_value_approval_required: boolean | null
           id: string
+          is_test: boolean
           kyc_verification_id: string | null
           payment_address: string | null
           payment_method: string
@@ -275,6 +282,7 @@ export type Database = {
           external_transaction_id?: string | null
           high_value_approval_required?: boolean | null
           id?: string
+          is_test?: boolean
           kyc_verification_id?: string | null
           payment_address?: string | null
           payment_method: string
@@ -298,6 +306,7 @@ export type Database = {
           external_transaction_id?: string | null
           high_value_approval_required?: boolean | null
           id?: string
+          is_test?: boolean
           kyc_verification_id?: string | null
           payment_address?: string | null
           payment_method?: string
@@ -328,6 +337,10 @@ export type Database = {
       is_admin_for_storage: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      mark_data_as_test: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
     }
     Enums: {

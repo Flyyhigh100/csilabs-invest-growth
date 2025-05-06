@@ -23,6 +23,7 @@ interface TransactionsTableProps {
   selectedTransactions: PendingTransactionWithProfile[];
   onSelectTransaction: (tx: PendingTransactionWithProfile, isSelected: boolean) => void;
   onSelectAll: (isSelected: boolean) => void;
+  includeTestData?: boolean;
 }
 
 const TransactionsTable = ({ 
@@ -31,7 +32,8 @@ const TransactionsTable = ({
   onTransactionUpdated,
   selectedTransactions,
   onSelectTransaction,
-  onSelectAll
+  onSelectAll,
+  includeTestData = false
 }: TransactionsTableProps) => {
   // Group transactions by wallet
   const walletGroups = groupTransactionsByWallet(transactions);
@@ -112,7 +114,10 @@ const TransactionsTable = ({
                 {txs.map((tx, index) => (
                   <TableRow 
                     key={tx.id}
-                    className={index > 0 ? "border-t-0 border-dashed" : ""}
+                    className={
+                      `${index > 0 ? "border-t-0 border-dashed" : ""} 
+                      ${tx.is_test ? "bg-amber-50 dark:bg-amber-950/10" : ""}`
+                    }
                   >
                     <TableCell>
                       <Checkbox 
@@ -124,8 +129,13 @@ const TransactionsTable = ({
                       {new Date(tx.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium">
+                      <div className="font-medium flex items-center gap-2">
                         {getUserName(tx)}
+                        {tx.is_test && (
+                          <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 text-[10px]">
+                            TEST
+                          </Badge>
+                        )}
                       </div>
                       <div className="text-xs text-gray-500">{getUserEmail(tx)}</div>
                     </TableCell>
@@ -141,9 +151,9 @@ const TransactionsTable = ({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className="bg-amber-500">
+                      <Badge className={`${tx.is_test ? "bg-amber-500" : "bg-blue-500"}`}>
                         <Clock className="h-3 w-3 mr-1" />
-                        Pending Distribution
+                        {tx.is_test ? "Test Pending" : "Pending Distribution"}
                       </Badge>
                       {tx.status === 'pending' && tx.payment_method === 'stripe' && (
                         <div className="mt-1">
@@ -159,6 +169,7 @@ const TransactionsTable = ({
                       <Button 
                         size="sm"
                         onClick={() => onMarkAsSent(tx)}
+                        variant={tx.is_test ? "outline" : "default"}
                       >
                         Mark as Sent
                       </Button>

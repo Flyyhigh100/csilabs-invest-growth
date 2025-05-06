@@ -20,6 +20,10 @@ import DistributionGuide from './PendingTransactions/DistributionGuide';
 import DistributionStats from './PendingTransactions/DistributionStats';
 import BulkActionsBar from './PendingTransactions/BulkActionsBar';
 import SyncAllTransactionsBar from './PendingTransactions/SyncAllTransactionsBar';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { AlertTriangle } from 'lucide-react';
 
 const PendingTransactions = () => {
   const [selectedTx, setSelectedTx] = useState<PendingTransactionWithProfile | null>(null);
@@ -28,7 +32,14 @@ const PendingTransactions = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTransactions, setSelectedTransactions] = useState<PendingTransactionWithProfile[]>([]);
 
-  const { data: transactions, isLoading, error, refetch } = usePendingTransactions();
+  const { 
+    data: transactions, 
+    isLoading, 
+    error, 
+    refetch, 
+    includeTestData, 
+    setIncludeTestData 
+  } = usePendingTransactions();
 
   const openDialog = (tx: PendingTransactionWithProfile) => {
     setSelectedTx(tx);
@@ -117,6 +128,18 @@ const PendingTransactions = () => {
       {/* Sync All Transactions Bar */}
       <SyncAllTransactionsBar onSyncComplete={refetch} />
       
+      {/* Test Data Toggle */}
+      <div className="flex items-center justify-end space-x-2">
+        <Label htmlFor="include-test-data" className="text-sm font-medium">
+          Include test data
+        </Label>
+        <Switch 
+          id="include-test-data" 
+          checked={includeTestData} 
+          onCheckedChange={setIncludeTestData}
+        />
+      </div>
+      
       {/* Main Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -126,9 +149,17 @@ const PendingTransactions = () => {
               Send tokens to user wallets and mark transactions as completed
             </CardDescription>
           </div>
-          {transactions && transactions.length > 0 && (
-            <DownloadCSVButton transactions={transactions} />
-          )}
+          <div className="flex items-center space-x-4">
+            {includeTestData && (
+              <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Showing Test Data
+              </Badge>
+            )}
+            {transactions && transactions.length > 0 && (
+              <DownloadCSVButton transactions={transactions} />
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {/* Distribution Statistics */}
@@ -158,6 +189,7 @@ const PendingTransactions = () => {
               selectedTransactions={selectedTransactions}
               onSelectTransaction={handleSelectTransaction}
               onSelectAll={handleSelectAll}
+              includeTestData={includeTestData}
             />
           )}
         </CardContent>
