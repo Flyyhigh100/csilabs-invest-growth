@@ -34,29 +34,43 @@ const initialNodes: Node[] = [
     className: 'bg-background border-2'
   },
   
-  // Payment Method Selection
+  // Acquisition Method Selection
   {
-    id: 'payment-choice',
-    data: { label: 'Choose Payment Method' },
+    id: 'acquisition-choice',
+    data: { label: 'Choose Acquisition Method' },
     position: { x: 0, y: 300 },
     className: 'bg-background border-2'
   },
   {
     id: 'coinpayments',
-    data: { label: 'CoinPayments\n(USDT, USDC)' },
-    position: { x: -200, y: 400 },
+    data: { label: 'Direct Purchase via CoinPayments' },
+    position: { x: -250, y: 400 },
     className: 'bg-background border-2'
   },
   {
-    id: 'stripe-crypto',
-    data: { label: 'Stripe Crypto Onramp' },
-    position: { x: 0, y: 400 },
+    id: 'dex-path',
+    data: { label: 'Purchase on DEX' },
+    position: { x: 250, y: 400 },
+    className: 'bg-background border-2'
+  },
+  
+  // Wallet Funding Flow
+  {
+    id: 'has-crypto',
+    data: { label: 'Has Crypto in Wallet?' },
+    position: { x: 250, y: 500 },
+    className: 'bg-background border-2 border-warning'
+  },
+  {
+    id: 'fund-wallet',
+    data: { label: 'Fund Wallet with Stripe Crypto Onramp' },
+    position: { x: 400, y: 600 },
     className: 'bg-background border-2'
   },
   {
-    id: 'card-payment',
-    data: { label: 'Card Payment\n(Credit/Debit)' },
-    position: { x: 200, y: 400 },
+    id: 'dex-purchase',
+    data: { label: 'Complete Purchase on DEX' },
+    position: { x: 250, y: 700 },
     className: 'bg-background border-2'
   },
   
@@ -64,45 +78,45 @@ const initialNodes: Node[] = [
   {
     id: 'kyc-required',
     data: { label: 'KYC Required?\n($10,000+ purchase)' },
-    position: { x: 0, y: 500 },
+    position: { x: -250, y: 500 },
     className: 'bg-background border-2 border-warning'
   },
   {
     id: 'kyc-submit',
     data: { label: 'Submit KYC Documents\n(ID & Address Verification)' },
-    position: { x: -200, y: 600 },
+    position: { x: -400, y: 600 },
     className: 'bg-background border-2'
   },
   {
     id: 'kyc-review',
     data: { label: 'Admin KYC Review' },
-    position: { x: -200, y: 700 },
+    position: { x: -400, y: 700 },
     className: 'bg-background border-2 border-destructive'
   },
   {
     id: 'kyc-decision',
     data: { label: 'KYC Decision' },
-    position: { x: -200, y: 800 },
+    position: { x: -400, y: 800 },
     className: 'bg-background border-2 border-warning'
   },
   {
     id: 'kyc-clarification',
     data: { label: 'Request Clarification' },
-    position: { x: -350, y: 700 },
+    position: { x: -550, y: 700 },
     className: 'bg-background border-2 border-warning'
   },
   
-  // Payment Processing
+  // Payment Processing for CoinPayments
   {
     id: 'payment-pending',
     data: { label: 'Payment Processing' },
-    position: { x: 200, y: 600 },
+    position: { x: -250, y: 600 },
     className: 'bg-background border-2'
   },
   {
     id: 'payment-confirm',
     data: { label: 'Payment Confirmed' },
-    position: { x: 200, y: 700 },
+    position: { x: -250, y: 700 },
     className: 'bg-background border-2 border-success'
   },
   
@@ -110,26 +124,32 @@ const initialNodes: Node[] = [
   {
     id: 'admin-queue',
     data: { label: 'Token Distribution Queue' },
-    position: { x: 0, y: 900 },
+    position: { x: -250, y: 900 },
     className: 'bg-background border-2'
   },
   {
     id: 'admin-send',
     data: { label: 'Admin Token Distribution' },
-    position: { x: 0, y: 1000 },
+    position: { x: -250, y: 1000 },
     className: 'bg-background border-2 border-destructive'
   },
   {
     id: 'tx-recording',
     data: { label: 'Record Blockchain TX ID' },
-    position: { x: 0, y: 1100 },
+    position: { x: -250, y: 1100 },
     className: 'bg-background border-2'
   },
   {
-    id: 'complete',
+    id: 'direct-complete',
+    data: { label: 'Tokens Received\n(CoinPayments Path)' },
+    position: { x: -250, y: 1200 },
+    className: 'bg-background border-2 border-success'
+  },
+  {
+    id: 'dex-complete',
     type: 'output',
-    data: { label: 'Tokens Received' },
-    position: { x: 0, y: 1200 },
+    data: { label: 'Tokens Acquired\n(DEX Path)' },
+    position: { x: 250, y: 800 },
     className: 'bg-background border-2 border-success'
   },
   
@@ -137,7 +157,7 @@ const initialNodes: Node[] = [
   {
     id: 'notification',
     data: { label: 'User Notification' },
-    position: { x: 350, y: 800 },
+    position: { x: 0, y: 900 },
     className: 'bg-background border-2 border-info'
   },
 ];
@@ -146,38 +166,41 @@ const initialEdges: Edge[] = [
   // Initial flow
   { id: 'e1', source: 'user-start', target: 'wallet-setup' },
   { id: 'e2', source: 'wallet-setup', target: 'token-purchase' },
-  { id: 'e3', source: 'token-purchase', target: 'payment-choice' },
+  { id: 'e3', source: 'token-purchase', target: 'acquisition-choice' },
   
-  // Payment method selection
-  { id: 'e4', source: 'payment-choice', target: 'coinpayments', label: 'Crypto' },
-  { id: 'e5', source: 'payment-choice', target: 'stripe-crypto', label: 'Crypto Onramp' },
-  { id: 'e6', source: 'payment-choice', target: 'card-payment', label: 'Card' },
+  // Acquisition method selection
+  { id: 'e4', source: 'acquisition-choice', target: 'coinpayments', label: 'Direct Purchase' },
+  { id: 'e5', source: 'acquisition-choice', target: 'dex-path', label: 'DEX Purchase' },
   
-  // All payment methods flow to KYC check
-  { id: 'e7', source: 'coinpayments', target: 'kyc-required' },
-  { id: 'e8', source: 'stripe-crypto', target: 'kyc-required' },
-  { id: 'e9', source: 'card-payment', target: 'kyc-required' },
+  // Wallet Funding Flow
+  { id: 'e6', source: 'dex-path', target: 'has-crypto' },
+  { id: 'e7', source: 'has-crypto', target: 'fund-wallet', label: 'No' },
+  { id: 'e8', source: 'has-crypto', target: 'dex-purchase', label: 'Yes' },
+  { id: 'e9', source: 'fund-wallet', target: 'dex-purchase' },
+  { id: 'e10', source: 'dex-purchase', target: 'dex-complete' },
+  { id: 'e11', source: 'dex-purchase', target: 'notification', label: 'Purchase Completed' },
   
-  // KYC flow
-  { id: 'e10', source: 'kyc-required', target: 'kyc-submit', label: '$10,000+' },
-  { id: 'e11', source: 'kyc-required', target: 'payment-pending', label: 'Under $10,000' },
-  { id: 'e12', source: 'kyc-submit', target: 'kyc-review' },
-  { id: 'e13', source: 'kyc-review', target: 'kyc-decision' },
-  { id: 'e14', source: 'kyc-decision', target: 'kyc-clarification', label: 'Need Info' },
-  { id: 'e15', source: 'kyc-clarification', target: 'kyc-submit' },
-  { id: 'e16', source: 'kyc-decision', target: 'payment-pending', label: 'Approved' },
-  { id: 'e17', source: 'kyc-decision', target: 'notification', label: 'Rejected' },
+  // KYC flow for CoinPayments
+  { id: 'e12', source: 'coinpayments', target: 'kyc-required' },
+  { id: 'e13', source: 'kyc-required', target: 'kyc-submit', label: '$10,000+' },
+  { id: 'e14', source: 'kyc-required', target: 'payment-pending', label: 'Under $10,000' },
+  { id: 'e15', source: 'kyc-submit', target: 'kyc-review' },
+  { id: 'e16', source: 'kyc-review', target: 'kyc-decision' },
+  { id: 'e17', source: 'kyc-decision', target: 'kyc-clarification', label: 'Need Info' },
+  { id: 'e18', source: 'kyc-clarification', target: 'kyc-submit' },
+  { id: 'e19', source: 'kyc-decision', target: 'payment-pending', label: 'Approved' },
+  { id: 'e20', source: 'kyc-decision', target: 'notification', label: 'Rejected' },
   
-  // Payment processing
-  { id: 'e18', source: 'payment-pending', target: 'payment-confirm' },
-  { id: 'e19', source: 'payment-pending', target: 'notification', label: 'Status Updates' },
+  // Payment processing for CoinPayments
+  { id: 'e21', source: 'payment-pending', target: 'payment-confirm' },
+  { id: 'e22', source: 'payment-pending', target: 'notification', label: 'Status Updates' },
   
-  // Admin distribution
-  { id: 'e20', source: 'payment-confirm', target: 'admin-queue' },
-  { id: 'e21', source: 'admin-queue', target: 'admin-send' },
-  { id: 'e22', source: 'admin-send', target: 'tx-recording' },
-  { id: 'e23', source: 'tx-recording', target: 'complete' },
-  { id: 'e24', source: 'tx-recording', target: 'notification', label: 'Completion Notice' },
+  // Admin distribution for CoinPayments
+  { id: 'e23', source: 'payment-confirm', target: 'admin-queue' },
+  { id: 'e24', source: 'admin-queue', target: 'admin-send' },
+  { id: 'e25', source: 'admin-send', target: 'tx-recording' },
+  { id: 'e26', source: 'tx-recording', target: 'direct-complete' },
+  { id: 'e27', source: 'tx-recording', target: 'notification', label: 'Completion Notice' },
 ];
 
 const SystemFlowChart = () => {

@@ -55,10 +55,14 @@ const SystemFlowCard = () => {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            This diagram illustrates the complete token purchase flow from initial user visit through wallet setup, 
-            payment selection, KYC verification (for purchases over $10,000), payment processing, and admin token distribution.
-            The system includes multiple payment methods, a comprehensive KYC review process with clarification requests, 
-            and automated notifications at key points in the user journey.
+            This diagram illustrates the two primary paths for acquiring CSI tokens:
+          </p>
+          <ul className="text-sm text-muted-foreground mt-2 space-y-2 list-disc pl-4">
+            <li><strong>Direct Purchase Path:</strong> Users can purchase tokens directly through CoinPayments, with KYC verification required for purchases over $10,000. This path includes admin review for KYC and manual token distribution.</li>
+            <li><strong>DEX Purchase Path:</strong> Users can acquire tokens via a decentralized exchange. If they don't already have cryptocurrency, they can fund their wallet using Stripe Crypto Onramp before proceeding with their DEX purchase.</li>
+          </ul>
+          <p className="text-sm text-muted-foreground mt-2">
+            Both paths begin with wallet configuration and include automated notifications at key points in the user journey. The system supports comprehensive KYC review with clarification requests for the direct purchase path.
           </p>
         </CardContent>
       </Card>
