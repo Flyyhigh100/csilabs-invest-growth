@@ -53,13 +53,13 @@ const TopNavigation = ({
           {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center space-x-1 h-full">
             {navItems.map((item) => {
-              const isActive = location.pathname === item.path || 
-                (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+              const isActive = location.pathname === item.href || 
+                (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
               
               return (
                 <Link
-                  key={item.path}
-                  to={item.path}
+                  key={item.href}
+                  to={item.href}
                   className={`
                     h-full flex items-center px-4 text-sm font-medium border-b-2 transition-colors
                     ${isActive 
@@ -74,7 +74,7 @@ const TopNavigation = ({
             
             {(isAdmin || email === 'chris.d.conley@gmail.com') && adminNavItem && (
               <Link
-                to={adminNavItem.path}
+                to={adminNavItem.href}
                 className={`
                   h-full flex items-center px-4 text-sm font-medium border-b-2 transition-colors
                   ${location.pathname.startsWith('/admin') 
@@ -116,13 +116,13 @@ const TopNavigation = ({
             
             <nav className="flex-1 p-4 space-y-1">
               {navItems.map((item) => {
-                const isActive = location.pathname === item.path || 
-                  (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+                const isActive = location.pathname === item.href || 
+                  (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
                 
                 return (
                   <Link
-                    key={item.path}
-                    to={item.path}
+                    key={item.href}
+                    to={item.href}
                     className={`
                       flex items-center gap-3 p-3 rounded-md text-sm font-medium
                       ${isActive 
@@ -131,7 +131,7 @@ const TopNavigation = ({
                     `}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    {item.icon}
+                    {React.createElement(item.icon, { className: "h-5 w-5" })}
                     <span>{item.title}</span>
                   </Link>
                 );
@@ -139,7 +139,7 @@ const TopNavigation = ({
               
               {(isAdmin || email === 'chris.d.conley@gmail.com') && adminNavItem && (
                 <Link
-                  to={adminNavItem.path}
+                  to={adminNavItem.href}
                   className={`
                     flex items-center gap-3 p-3 rounded-md text-sm font-medium
                     ${location.pathname.startsWith('/admin') 
@@ -148,7 +148,7 @@ const TopNavigation = ({
                   `}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {adminNavItem.icon}
+                  {React.createElement(adminNavItem.icon, { className: "h-5 w-5" })}
                   <span>{adminNavItem.title}</span>
                 </Link>
               )}
