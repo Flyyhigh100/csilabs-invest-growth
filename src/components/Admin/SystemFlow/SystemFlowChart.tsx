@@ -27,10 +27,26 @@ const initialNodes: Node[] = [
     position: { x: 0, y: 100 },
     className: 'bg-background border-2'
   },
+  
+  // Wallet Funding Flow - Moved up in the process
+  {
+    id: 'has-crypto',
+    data: { label: 'Has Crypto in Wallet?' },
+    position: { x: 0, y: 200 },
+    className: 'bg-background border-2 border-warning'
+  },
+  {
+    id: 'fund-wallet',
+    data: { label: 'Fund Wallet with Stripe Crypto Onramp' },
+    position: { x: 200, y: 300 },
+    className: 'bg-background border-2'
+  },
+  
+  // Token Purchase Selection
   {
     id: 'token-purchase',
     data: { label: 'Select Token Purchase Amount' },
-    position: { x: 0, y: 200 },
+    position: { x: 0, y: 400 },
     className: 'bg-background border-2'
   },
   
@@ -38,35 +54,23 @@ const initialNodes: Node[] = [
   {
     id: 'acquisition-choice',
     data: { label: 'Choose Acquisition Method' },
-    position: { x: 0, y: 300 },
+    position: { x: 0, y: 500 },
     className: 'bg-background border-2'
   },
   {
     id: 'coinpayments',
     data: { label: 'Direct Purchase via CoinPayments' },
-    position: { x: -250, y: 400 },
+    position: { x: -250, y: 600 },
     className: 'bg-background border-2'
   },
   {
     id: 'dex-path',
     data: { label: 'Purchase on DEX' },
-    position: { x: 250, y: 400 },
+    position: { x: 250, y: 600 },
     className: 'bg-background border-2'
   },
   
-  // Wallet Funding Flow
-  {
-    id: 'has-crypto',
-    data: { label: 'Has Crypto in Wallet?' },
-    position: { x: 250, y: 500 },
-    className: 'bg-background border-2 border-warning'
-  },
-  {
-    id: 'fund-wallet',
-    data: { label: 'Fund Wallet with Stripe Crypto Onramp' },
-    position: { x: 400, y: 600 },
-    className: 'bg-background border-2'
-  },
+  // DEX Purchase Completion
   {
     id: 'dex-purchase',
     data: { label: 'Complete Purchase on DEX' },
@@ -78,31 +82,31 @@ const initialNodes: Node[] = [
   {
     id: 'kyc-required',
     data: { label: 'KYC Required?\n($10,000+ purchase)' },
-    position: { x: -250, y: 500 },
+    position: { x: -250, y: 700 },
     className: 'bg-background border-2 border-warning'
   },
   {
     id: 'kyc-submit',
     data: { label: 'Submit KYC Documents\n(ID & Address Verification)' },
-    position: { x: -400, y: 600 },
+    position: { x: -400, y: 800 },
     className: 'bg-background border-2'
   },
   {
     id: 'kyc-review',
     data: { label: 'Admin KYC Review' },
-    position: { x: -400, y: 700 },
+    position: { x: -400, y: 900 },
     className: 'bg-background border-2 border-destructive'
   },
   {
     id: 'kyc-decision',
     data: { label: 'KYC Decision' },
-    position: { x: -400, y: 800 },
+    position: { x: -400, y: 1000 },
     className: 'bg-background border-2 border-warning'
   },
   {
     id: 'kyc-clarification',
     data: { label: 'Request Clarification' },
-    position: { x: -550, y: 700 },
+    position: { x: -550, y: 900 },
     className: 'bg-background border-2 border-warning'
   },
   
@@ -110,13 +114,13 @@ const initialNodes: Node[] = [
   {
     id: 'payment-pending',
     data: { label: 'Payment Processing' },
-    position: { x: -250, y: 600 },
+    position: { x: -250, y: 800 },
     className: 'bg-background border-2'
   },
   {
     id: 'payment-confirm',
     data: { label: 'Payment Confirmed' },
-    position: { x: -250, y: 700 },
+    position: { x: -250, y: 900 },
     className: 'bg-background border-2 border-success'
   },
   
@@ -124,25 +128,25 @@ const initialNodes: Node[] = [
   {
     id: 'admin-queue',
     data: { label: 'Token Distribution Queue' },
-    position: { x: -250, y: 900 },
+    position: { x: -250, y: 1000 },
     className: 'bg-background border-2'
   },
   {
     id: 'admin-send',
     data: { label: 'Admin Token Distribution' },
-    position: { x: -250, y: 1000 },
+    position: { x: -250, y: 1100 },
     className: 'bg-background border-2 border-destructive'
   },
   {
     id: 'tx-recording',
     data: { label: 'Record Blockchain TX ID' },
-    position: { x: -250, y: 1100 },
+    position: { x: -250, y: 1200 },
     className: 'bg-background border-2'
   },
   {
     id: 'direct-complete',
     data: { label: 'Tokens Received\n(CoinPayments Path)' },
-    position: { x: -250, y: 1200 },
+    position: { x: -250, y: 1300 },
     className: 'bg-background border-2 border-success'
   },
   {
@@ -157,7 +161,7 @@ const initialNodes: Node[] = [
   {
     id: 'notification',
     data: { label: 'User Notification' },
-    position: { x: 0, y: 900 },
+    position: { x: 0, y: 1000 },
     className: 'bg-background border-2 border-info'
   },
 ];
@@ -165,18 +169,22 @@ const initialNodes: Node[] = [
 const initialEdges: Edge[] = [
   // Initial flow
   { id: 'e1', source: 'user-start', target: 'wallet-setup' },
-  { id: 'e2', source: 'wallet-setup', target: 'token-purchase' },
-  { id: 'e3', source: 'token-purchase', target: 'acquisition-choice' },
+  
+  // Wallet Funding Flow - New connections for the revised flow
+  { id: 'e2', source: 'wallet-setup', target: 'has-crypto' },
+  { id: 'e3', source: 'has-crypto', target: 'fund-wallet', label: 'No' },
+  { id: 'e4', source: 'has-crypto', target: 'token-purchase', label: 'Yes' },
+  { id: 'e5', source: 'fund-wallet', target: 'token-purchase' },
+  
+  // Continue with token purchase flow
+  { id: 'e6', source: 'token-purchase', target: 'acquisition-choice' },
   
   // Acquisition method selection
-  { id: 'e4', source: 'acquisition-choice', target: 'coinpayments', label: 'Direct Purchase' },
-  { id: 'e5', source: 'acquisition-choice', target: 'dex-path', label: 'DEX Purchase' },
+  { id: 'e7', source: 'acquisition-choice', target: 'coinpayments', label: 'Direct Purchase' },
+  { id: 'e8', source: 'acquisition-choice', target: 'dex-path', label: 'DEX Purchase' },
   
-  // Wallet Funding Flow
-  { id: 'e6', source: 'dex-path', target: 'has-crypto' },
-  { id: 'e7', source: 'has-crypto', target: 'fund-wallet', label: 'No' },
-  { id: 'e8', source: 'has-crypto', target: 'dex-purchase', label: 'Yes' },
-  { id: 'e9', source: 'fund-wallet', target: 'dex-purchase' },
+  // DEX purchase completion
+  { id: 'e9', source: 'dex-path', target: 'dex-purchase' },
   { id: 'e10', source: 'dex-purchase', target: 'dex-complete' },
   { id: 'e11', source: 'dex-purchase', target: 'notification', label: 'Purchase Completed' },
   
