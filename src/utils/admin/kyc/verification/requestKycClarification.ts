@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { verifyAdminPermissions } from './adminVerifier';
 import { isKycLocked, setKycLock, releaseKycLock } from './utils/lockManager';
@@ -80,7 +79,7 @@ export const requestKycClarification = async (
     
     // CRITICAL FIX: Match the exact payload structure expected by the edge function
     const payload = {
-      action: 'requestKycClarification',  // This is the key that the edge function checks for
+      operation: 'requestKycClarification',  // Must match switch case in admin-operations edge function
       data: {
         kycId,
         message

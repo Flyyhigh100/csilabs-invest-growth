@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { verifyAdminPermissions } from './adminVerifier';
@@ -118,8 +117,12 @@ export const processKycVerification = async (
       async () => {
         // CRITICAL FIX: Match the exact payload structure expected by the edge function
         // Directly compare with the structure expected in src/edge-functions/admin-operations/kyc-operations.ts
+        // NOTE: The edge function expects an "operation" field that determines the handler.
+        // We previously used "action", which caused the function to fall through the
+        // switch statement and return an "Unknown operation" error.
+        // Switching to the correct "operation" key fixes the problem.
         const payload = {
-          action: 'processKyc',  // This is the key that the edge function checks for
+          operation: 'processKyc',  // Must match switch case in admin-operations edge function
           data: {
             kycId,
             status,

@@ -1,7 +1,6 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showSmartNotification } from '@/utils/notification/smartNotifications';
 
 /**
  * Hook for setting up realtime subscription for KYC verifications
@@ -32,28 +31,35 @@ export const useKycRealtimeUpdates = (isAdmin: boolean | null, refetch: () => vo
           // Always refetch when we get an update
           refetch();
           
-          // Show informative toast notification
+          // Show informative smart notification with throttling to avoid spam
           const eventType = payload.eventType;
-          
           if (eventType === 'INSERT') {
-            toast.info('New KYC verification submitted');
+            showSmartNotification(
+              'New KYC Submission',
+              'A new KYC verification was submitted.',
+              { type: 'kyc_update', priority: 'low' }
+            );
           } else if (eventType === 'UPDATE') {
             const newRecord = payload.new as any;
             const oldRecord = payload.old as any;
-            
+
+            let message = 'KYC verification updated';
             if (newRecord.status && newRecord.status !== oldRecord.status) {
               const statusMap: Record<string, string> = {
-                'approved': 'Approved',
-                'rejected': 'Rejected',
-                'pending': 'Pending',
-                'needs_clarification': 'Needs clarification'
+                approved: 'Approved',
+                rejected: 'Rejected',
+                pending: 'Pending',
+                needs_clarification: 'Needs clarification'
               };
-              
               const statusText = statusMap[newRecord.status] || newRecord.status;
-              toast.info(`KYC verification updated: ${statusText}`);
-            } else {
-              toast.info('KYC verification updated');
+              message = `KYC verification updated: ${statusText}`;
             }
+
+            showSmartNotification(
+              'KYC Update',
+              message,
+              { type: 'kyc_update', priority: 'low' }
+            );
           }
         }
       )
