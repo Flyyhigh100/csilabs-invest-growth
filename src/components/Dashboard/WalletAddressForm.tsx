@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -6,6 +7,7 @@ import { Wallet, Copy, CheckCircle, HelpCircle, Eye, EyeOff } from 'lucide-react
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { Link } from 'react-router-dom';
 
 import {
   Form,
@@ -272,7 +274,12 @@ const WalletAddressForm = ({ existingWalletAddress, onWalletUpdated }: {
           </div>
           <div className="flex items-start gap-2">
             <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-            <p className="font-bold uppercase">DOUBLE-CHECK YOUR ADDRESS BEFORE SAVING. TRANSACTIONS SENT TO INCORRECT ADDRESSES CANNOT BE RECOVERED.</p>
+            <p className="font-bold uppercase">
+              DOUBLE-CHECK YOUR ADDRESS BEFORE SAVING. TRANSACTIONS SENT TO INCORRECT ADDRESSES CANNOT BE RECOVERED.{" "}
+              <Link to="/legal/terms-and-conditions#wallet-control" className="text-blue-600 hover:underline">
+                [DISCLAIMER]
+              </Link>
+            </p>
           </div>
         </div>
       </div>
