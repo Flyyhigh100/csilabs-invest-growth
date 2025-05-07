@@ -34,7 +34,7 @@ const PurchaseMethodCard: React.FC<PurchaseMethodCardProps> = ({
 }) => {
   // Special case for direct charitable contribution
   const finalButtonLabel = title === "Direct Charitable Contribution" 
-    ? "Choose Contribute Amount" 
+    ? "Choose Contribution Amount" 
     : buttonLabel;
 
   return (
