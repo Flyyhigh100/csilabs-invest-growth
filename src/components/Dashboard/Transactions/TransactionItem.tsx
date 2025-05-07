@@ -1,9 +1,11 @@
 
 import React from 'react';
 import { Transaction } from '@/types/transactions';
-import { formatCurrency } from '@/utils/format'; // Updated import path
+import { formatCurrency } from '@/utils/format';
+import { formatDateWithTime } from '@/utils/date';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Clock } from 'lucide-react';
 
 interface TransactionItemProps {
   transaction: Transaction;
@@ -32,6 +34,10 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
         </div>
         <div className="text-sm text-gray-500">
           {formatCurrency(transaction.amount)}
+        </div>
+        <div className="text-xs text-gray-400 flex items-center mt-1">
+          <Clock className="h-3 w-3 mr-1" />
+          {formatDateWithTime(transaction.created_at)}
         </div>
       </div>
       <Badge 
