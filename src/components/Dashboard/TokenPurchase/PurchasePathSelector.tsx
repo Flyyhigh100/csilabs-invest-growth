@@ -42,7 +42,7 @@ const PurchasePathSelector: React.FC<PurchasePathSelectorProps> = ({
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <PurchaseMethodCard
-          title="Direct Company Purchase"
+          title="Direct Charitable Contribution"
           description="Purchase directly from CSi using CoinPayments. Funds support company operations and development."
           icon={<DollarSign className="h-6 w-6" />}
           onClick={handleSelectCoinPayments}
@@ -68,7 +68,7 @@ const PurchasePathSelector: React.FC<PurchasePathSelectorProps> = ({
       <Separator className="my-4" />
       
       <div className="bg-gray-50 p-4 rounded-lg">
-        <h4 className="font-medium text-sm mb-2">Why choose Direct Company Purchase?</h4>
+        <h4 className="font-medium text-sm mb-2">Why choose Direct Charitable Contribution?</h4>
         <ul className="text-sm text-gray-600 space-y-1">
           <li>• Funds directly support company operations and development</li>
           <li>• Simplified process with guided support</li>

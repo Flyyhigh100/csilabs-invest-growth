@@ -21,7 +21,7 @@ const CompanyPurchaseMethods: React.FC<CompanyPurchaseMethodsProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-1 mb-2">
-        <h3 className="text-lg font-medium">Direct Purchase Options</h3>
+        <h3 className="text-lg font-medium">Direct Charitable Contribution Options</h3>
         <p className="text-sm text-gray-600">
           These official purchase methods directly support company operations and development.
         </p>
