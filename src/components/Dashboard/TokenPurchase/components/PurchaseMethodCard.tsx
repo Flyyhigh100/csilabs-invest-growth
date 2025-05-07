@@ -32,6 +32,11 @@ const PurchaseMethodCard: React.FC<PurchaseMethodCardProps> = ({
   className,
   children
 }) => {
+  // Special case for direct charitable contribution
+  const finalButtonLabel = title === "Direct Charitable Contribution" 
+    ? "Choose Contribute Amount" 
+    : buttonLabel;
+
   return (
     <Card className={cn(
       "transition-all", 
@@ -68,7 +73,7 @@ const PurchaseMethodCard: React.FC<PurchaseMethodCardProps> = ({
           )}
           variant={highlight ? "default" : "outline"}
         >
-          {buttonLabel}
+          {finalButtonLabel}
         </Button>
       </CardContent>
     </Card>
