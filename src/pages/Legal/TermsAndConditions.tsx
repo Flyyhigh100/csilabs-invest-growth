@@ -1,9 +1,30 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Container } from '@/components/ui/container';
+import { useLocation } from 'react-router-dom';
 
 const TermsOfService: React.FC = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Check if there's a hash in the URL
+    if (location.hash) {
+      // Remove the # character
+      const id = location.hash.substring(1);
+      
+      // Find the element with the matching ID
+      const element = document.getElementById(id);
+      
+      // If found, scroll to it with a slight delay to ensure DOM is ready
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    }
+  }, [location]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
