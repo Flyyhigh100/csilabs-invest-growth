@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -88,6 +87,93 @@ const TermsOfService: React.FC = () => {
               <h3 className="text-xl font-semibold mb-3 mt-6">14. Electronic Communications</h3>
               <p className="mb-4">
                 When you visit this Site and when you communicate with 1MS electronically, you consent to receive communications from us electronically. You agree that all notices, disclosures, and other communications that 1MS provides to you electronically satisfy any legal requirement that such communications be in writing. You agree that you have the ability to store such electronic communications such that they remain accessible to you in an unchanged form. BY USING THE SITE YOU CONSENT TO RECIVE ALL ELECTRONIC NOTIFICATIONS FROM THE SITE INCLUDING, BUT NOT LIMITED TO, TICKER TREND EMAILS, POP UPS, ALERTS, BROWSER AND MOBILE NOTIFICATIONS.
+              </p>
+
+              <h3 className="text-xl font-semibold mb-3 mt-6">15. Wallet Control</h3>
+              <p className="mb-4">
+                <strong>Risks of Incorrect Addresses and Private Key Mismanagement</strong>
+              </p>
+              <p className="mb-4">
+                When dealing with cryptocurrencies, maintaining control over your wallet is paramount. Two critical aspects of wallet control are ensuring the accuracy of wallet addresses and safeguarding private keys. Mistakes in either area can lead to irreversible losses. Below, we outline the risks associated with providing the wrong wallet address or failing to properly preserve private keys.
+              </p>
+
+              <h4 className="text-lg font-semibold mb-2 mt-4">1. Providing the Wrong Wallet Address</h4>
+              <p className="mb-4">
+                Sending cryptocurrency to an incorrect wallet address is one of the most common and costly mistakes in the crypto space. Here's why it's so risky:
+              </p>
+              <p className="mb-2">
+                <strong>Irreversible Transactions:</strong>
+              </p>
+              <p className="mb-4">
+                Cryptocurrency transactions are immutable once confirmed on the blockchain. If you send funds to the wrong address, there is no way to reverse or recover them.
+              </p>
+              <p className="mb-2">
+                <strong>Loss of Funds:</strong>
+              </p>
+              <p className="mb-4">
+                If the incorrect address belongs to someone else, the funds are effectively gone unless the recipient voluntarily returns them—a highly unlikely scenario.
+              </p>
+              <p className="mb-2">
+                <strong>Non-Existent Addresses:</strong>
+              </p>
+              <p className="mb-4">
+                If the address is invalid or doesn't exist, the transaction may fail, but in some cases, the funds could be lost forever, depending on the blockchain's protocol.
+              </p>
+              <p className="mb-2">
+                <strong>Human Error:</strong>
+              </p>
+              <p className="mb-4">
+                Typos or copy-paste mistakes are common when manually entering wallet addresses. Always double-check the address before confirming a transaction.
+              </p>
+              <p className="mb-2">
+                <strong>Best Practices:</strong>
+              </p>
+              <ul className="list-disc pl-6 mb-4">
+                <li>Use copy-paste to avoid typing errors.</li>
+                <li>Verify the first and last few characters of the address.</li>
+                <li>Send a small test transaction before transferring larger amounts.</li>
+              </ul>
+
+              <h4 className="text-lg font-semibold mb-2 mt-4">2. Failing to Preserve Private Keys</h4>
+              <p className="mb-4">
+                Your private key is the ultimate control mechanism for your cryptocurrency wallet. Losing or mishandling it can have severe consequences:
+              </p>
+              <p className="mb-2">
+                <strong>Permanent Loss of Access:</strong>
+              </p>
+              <p className="mb-4">
+                If you lose your private key, you lose access to your wallet and the funds stored in it. There is no "forgot password" option in cryptocurrency.
+              </p>
+              <p className="mb-2">
+                <strong>Vulnerability to Theft:</strong>
+              </p>
+              <p className="mb-4">
+                If someone gains access to your private key, they can transfer your funds to their own wallet without your consent. Never share your private key with anyone.
+              </p>
+              <p className="mb-2">
+                <strong>No Recovery Mechanism:</strong>
+              </p>
+              <p className="mb-4">
+                Unlike traditional banking systems, there is no central authority to help recover lost private keys. You are solely responsible for their safekeeping.
+              </p>
+              <p className="mb-2">
+                <strong>Improper Storage:</strong>
+              </p>
+              <p className="mb-4">
+                Storing private keys on insecure devices (e.g., unencrypted computers or phones) or writing them down in easily accessible places increases the risk of theft or loss.
+              </p>
+              <p className="mb-2">
+                <strong>Best Practices:</strong>
+              </p>
+              <ul className="list-disc pl-6 mb-4">
+                <li>Use hardware wallets or secure offline storage (e.g., paper wallets) for private keys.</li>
+                <li>Create multiple backups and store them in secure, separate locations.</li>
+                <li>Consider using a mnemonic phrase (seed phrase) to recover your wallet if the private key is lost, but ensure the phrase is stored securely.</li>
+              </ul>
+
+              <h4 className="text-lg font-semibold mb-2 mt-4">Conclusion</h4>
+              <p className="mb-4">
+                Wallet control is a fundamental aspect of cryptocurrency ownership. Always verify wallet addresses before sending funds and prioritize the secure storage of private keys. By following best practices, you can minimize the risks of losing access to your funds or falling victim to theft. Remember, in the world of crypto, you are your own bank, and with that comes the responsibility of safeguarding your assets.
               </p>
             </div>
           </div>
