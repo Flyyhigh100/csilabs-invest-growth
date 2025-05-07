@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -273,7 +272,7 @@ const WalletAddressForm = ({ existingWalletAddress, onWalletUpdated }: {
           </div>
           <div className="flex items-start gap-2">
             <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-            <p>Double-check your address before saving. Transactions sent to incorrect addresses cannot be recovered.</p>
+            <p className="font-bold uppercase">DOUBLE-CHECK YOUR ADDRESS BEFORE SAVING. TRANSACTIONS SENT TO INCORRECT ADDRESSES CANNOT BE RECOVERED.</p>
           </div>
         </div>
       </div>
