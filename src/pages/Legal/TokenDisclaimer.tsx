@@ -1,12 +1,9 @@
-
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Container } from '@/components/ui/container';
-
 const TokenDisclaimer: React.FC = () => {
-  return (
-    <div className="min-h-screen flex flex-col">
+  return <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-grow pt-24 pb-16">
         <Container>
@@ -19,18 +16,12 @@ const TokenDisclaimer: React.FC = () => {
                 should conduct their own thorough research and consult with financial professionals to 
                 assess the risks involved before purchasing digital assets.
               </p>
-              <p className="mb-4">
-                We advise prudence and caution when participating in the cryptocurrency market. 
-                CBIS coin is a meme coin sold as fun way to support cancer research and makes no promises 
-                of return on investment, profit share, or other guarantees of money making potential.
-              </p>
+              <p className="mb-4">We advise prudence and caution when participating in the cryptocurrency market. CBIS coin is a meme coin sold as a fun way to support cancer research and makes no promises of return on investment, profit share, or other guarantees of money making potential.</p>
             </div>
           </div>
         </Container>
       </main>
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default TokenDisclaimer;
