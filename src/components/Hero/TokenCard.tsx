@@ -40,7 +40,7 @@ const TokenCard: React.FC<TokenCardProps> = ({
     <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white">
       <div className="rounded-xl overflow-hidden bg-gradient-to-br from-cbis-blue/10 to-cbis-teal/10">
         <div className="p-4 sm:p-6 md:p-8">
-          <div className="text-center mb-6">
+          <div className="text-center mb-4 sm:mb-6">
             <div className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent mb-3">$CSi-EDP/Labs</div>
             <p className="text-cbis-dark">CSi Labs Token (CSL)</p>
             {currentPrice && (
@@ -110,11 +110,15 @@ const TokenCard: React.FC<TokenCardProps> = ({
             )}
           </div>
           
-          <div className="h-[400px] mb-6">
+          {/* Chart container with responsive height and padding */}
+          <div className="h-auto mb-8 sm:mb-10">
             <DexToolsChart />
           </div>
           
-          <TokenInfo tokenInfo={tokenInfo} isLoading={isLoading} />
+          {/* Increased spacing before TokenInfo */}
+          <div className="mt-8 pt-2 sm:mt-10">
+            <TokenInfo tokenInfo={tokenInfo} isLoading={isLoading} />
+          </div>
         </div>
       </div>
       
