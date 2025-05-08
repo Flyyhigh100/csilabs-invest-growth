@@ -4,6 +4,7 @@ import HeroContent from './HeroContent';
 import TokenCard from './TokenCard';
 import { useTokenData } from '@/hooks/useTokenData';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TokenPriceProvider } from '@/context/TokenPriceContext';
 
 const Hero: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -48,15 +49,17 @@ const Hero: React.FC = () => {
           </div>
 
           {/* Right Column: Token Card */}
-          <TokenCard 
-            isLoaded={isLoaded}
-            priceData={priceData}
-            volumeData={volumeData}
-            currentPrice={currentPrice}
-            tokenInfo={tokenInfo}
-            isLoading={isLoading}
-            hasError={!!hasError}
-          />
+          <TokenPriceProvider>
+            <TokenCard 
+              isLoaded={isLoaded}
+              priceData={priceData}
+              volumeData={volumeData}
+              currentPrice={currentPrice}
+              tokenInfo={tokenInfo}
+              isLoading={isLoading}
+              hasError={!!hasError}
+            />
+          </TokenPriceProvider>
         </div>
 
         {/* Bottom Section: Hero Content with Image */}
