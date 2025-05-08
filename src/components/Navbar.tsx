@@ -55,7 +55,7 @@ const Navbar: React.FC = () => {
             {user ? (
               <Link to="/dashboard/payments">Contribute Now</Link>
             ) : (
-              <Link to="/register">Contribute Now</Link>
+              <Link to="/signup">Contribute Now</Link>
             )}
           </Button>
           
@@ -151,7 +151,7 @@ const Navbar: React.FC = () => {
             {user ? (
               <Link to="/dashboard/payments">Contribute Now</Link>
             ) : (
-              <Link to="/register">Contribute Now</Link>
+              <Link to="/signup">Contribute Now</Link>
             )}
           </Button>
           
