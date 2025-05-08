@@ -22,6 +22,8 @@ const TooltipContent = React.forwardRef<
       className
     )}
     {...props}
+    collisionPadding={10}
+    avoidCollisions={true}
   />
 ))
 TooltipContent.displayName = TooltipPrimitive.Content.displayName

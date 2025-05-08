@@ -49,13 +49,18 @@ const TokenCard: React.FC<TokenCardProps> = ({
                 
                 {isOnChainSource && (
                   <TooltipProvider>
-                    <Tooltip>
+                    <Tooltip delayDuration={300}>
                       <TooltipTrigger asChild>
                         <div className="cursor-help">
                           <Info className="h-4 w-4 text-blue-400" />
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-[250px] p-3">
+                      <TooltipContent 
+                        side="bottom" 
+                        sideOffset={15} 
+                        align="center" 
+                        className="max-w-[300px] p-3 z-[100] bg-white shadow-xl border border-gray-200"
+                      >
                         <p className="text-sm font-medium mb-1">What is TWAP?</p>
                         <p className="text-xs text-gray-600 mb-2">
                           This price is a <strong>Time-Weighted Average Price</strong> calculated over a 15-minute period.
@@ -70,7 +75,12 @@ const TokenCard: React.FC<TokenCardProps> = ({
                               Learn more
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-80">
+                          <PopoverContent 
+                            className="w-80 z-[150]" 
+                            side="bottom" 
+                            sideOffset={5}
+                            align="start"
+                          >
                             <div className="space-y-2">
                               <h4 className="font-medium text-sm">About Time-Weighted Average Price (TWAP)</h4>
                               <p className="text-xs text-gray-600">
