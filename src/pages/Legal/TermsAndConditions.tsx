@@ -1,3 +1,4 @@
+
 import React from 'react';
 import LegalPageLayout from '@/components/Legal/LegalPageLayout';
 
@@ -82,7 +83,7 @@ const TermsOfService: React.FC = () => {
           When you visit this Site and when you communicate with 1MS electronically, you consent to receive communications from us electronically. You agree that all notices, disclosures, and other communications that 1MS provides to you electronically satisfy any legal requirement that such communications be in writing. You agree that you have the ability to store such electronic communications such that they remain accessible to you in an unchanged form. BY USING THE SITE YOU CONSENT TO RECIVE ALL ELECTRONIC NOTIFICATIONS FROM THE SITE INCLUDING, BUT NOT LIMITED TO, TICKER TREND EMAILS, POP UPS, ALERTS, BROWSER AND MOBILE NOTIFICATIONS.
         </p>
 
-        <h3 id="wallet-control" className="text-xl font-semibold mb-3 mt-6" id="wallet-control">15. Wallet Control</h3>
+        <h3 className="text-xl font-semibold mb-3 mt-6" id="wallet-control">15. Wallet Control</h3>
         <p className="mb-4">
           <strong>Risks of Incorrect Addresses and Private Key Mismanagement</strong>
         </p>
