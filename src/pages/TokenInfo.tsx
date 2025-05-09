@@ -159,28 +159,36 @@ const TokenInfo: React.FC = () => {
                 </p>
                 <div className="space-y-4">
                   <div className="flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold">1</div>
+                    <div className="w-10 h-10 rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold text-base border border-blue-100 shadow-sm">
+                      <span>1</span>
+                    </div>
                     <div>
                       <h4 className="font-medium mb-1">Registration</h4>
                       <p className="text-sm text-blue-50">Create your account to begin the contribution process.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold">2</div>
+                    <div className="w-10 h-10 rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold text-base border border-blue-100 shadow-sm">
+                      <span>2</span>
+                    </div>
                     <div>
                       <h4 className="font-medium mb-1">KYC Verification</h4>
                       <p className="text-sm text-blue-50">Complete identity verification if applicable.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold">3</div>
+                    <div className="w-10 h-10 rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold text-base border border-blue-100 shadow-sm">
+                      <span>3</span>
+                    </div>
                     <div>
                       <h4 className="font-medium mb-1">Token Purchase</h4>
                       <p className="text-sm text-blue-50">Store your wallet address, fund it with cryptocurrency, and make your token contribution.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold">4</div>
+                    <div className="w-10 h-10 rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold text-base border border-blue-100 shadow-sm">
+                      <span>4</span>
+                    </div>
                     <div>
                       <h4 className="font-medium mb-1">Token Distribution</h4>
                       <p className="text-sm text-blue-50">Receive your tokens in your specified wallet address.</p>
