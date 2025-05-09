@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -152,7 +153,7 @@ const TokenInfo: React.FC = () => {
 
             <FadeInSection delay={400} className="md:col-span-2 lg:col-span-1">
               <div className="glass-card p-6 rounded-xl h-full bg-gradient-to-br from-cbis-blue to-cbis-teal text-white">
-                <h3 className="text-xl font-semibold mb-4">Investment Journey</h3>
+                <h3 className="text-xl font-semibold mb-4">Contribution Journey</h3>
                 <p className="text-blue-50 mb-6">
                   Your journey from registration to receiving CSi Labs tokens is straightforward and secure.
                 </p>
@@ -161,21 +162,21 @@ const TokenInfo: React.FC = () => {
                     <div className="w-8 h-8 rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold">1</div>
                     <div>
                       <h4 className="font-medium mb-1">Registration</h4>
-                      <p className="text-sm text-blue-50">Create your account to begin the investment process.</p>
+                      <p className="text-sm text-blue-50">Create your account to begin the contribution process.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
                     <div className="w-8 h-8 rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold">2</div>
                     <div>
                       <h4 className="font-medium mb-1">KYC Verification</h4>
-                      <p className="text-sm text-blue-50">Complete identity verification through WorldKYC.</p>
+                      <p className="text-sm text-blue-50">Complete identity verification if applicable.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
                     <div className="w-8 h-8 rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold">3</div>
                     <div>
                       <h4 className="font-medium mb-1">Token Purchase</h4>
-                      <p className="text-sm text-blue-50">Purchase tokens via credit card or cryptocurrency.</p>
+                      <p className="text-sm text-blue-50">Store your wallet address, fund it with cryptocurrency, and make your token contribution.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -189,7 +190,7 @@ const TokenInfo: React.FC = () => {
                 <div className="mt-6">
                   <Button variant="secondary" className="w-full bg-white text-cbis-blue hover:bg-opacity-90" asChild>
                     <Link to="/register">
-                      Start Your Investment
+                      Start Your Contribution
                     </Link>
                   </Button>
                 </div>
