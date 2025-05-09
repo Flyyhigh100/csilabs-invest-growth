@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { cn } from '@/lib/utils';
 import FadeInSection from './FadeInSection';
@@ -11,8 +12,11 @@ const TokenDetails: React.FC = () => {
         <FadeInSection>
           <div className="text-center mb-16 max-w-3xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-cbis-dark">
-              $CSi-EDP/Labs FC Token
+              $CSi-EDP/Labs FC Meme Token
             </h2>
+            <p className="text-gray-600">
+              Our innovative meme token is the catalyst for the CSi ecosystem, creating a fun way to support serious cancer research.
+            </p>
           </div>
         </FadeInSection>
 
@@ -23,7 +27,7 @@ const TokenDetails: React.FC = () => {
                 <Shield className="h-6 w-6 text-cbis-blue" />
               </div>
               <h3 className="text-xl font-semibold mb-3 text-cbis-dark">Token Security</h3>
-              <p className="text-gray-600 mb-4">Built on the Polygon blockchain, our token provides enhanced security, lower transaction costs, and faster settlement compared to traditional approaches vehicles.</p>
+              <p className="text-gray-600 mb-4">Built on the Polygon blockchain, our meme token provides enhanced security, lower transaction costs, and faster settlement compared to traditional approaches vehicles.</p>
               <div className="mt-auto">
                 <ul className="space-y-2">
                   <li className="flex items-start">
@@ -36,7 +40,7 @@ const TokenDetails: React.FC = () => {
                   </li>
                   <li className="flex items-start">
                     <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">Secure payment processing</span>
+                    <span className="text-gray-700">Community-powered meme token economics</span>
                   </li>
                 </ul>
               </div>
@@ -48,8 +52,8 @@ const TokenDetails: React.FC = () => {
               <div className="mb-4 p-3 bg-blue-50 rounded-lg inline-block">
                 <TrendingUp className="h-6 w-6 text-cbis-blue" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-cbis-dark">Project Potential</h3>
-              <p className="text-gray-600 mb-4">The CSi Labs token ecosystem is designed for potential public trading on upper markets through future offerings based on the growth of our Lab Series funding, FDA research, and drug development success.</p>
+              <h3 className="text-xl font-semibold mb-3 text-cbis-dark">The Lab Series Meme Token Model</h3>
+              <p className="text-gray-600 mb-4">The CSi Labs meme token ecosystem is designed for community engagement through our Lab Series funding model, supporting FDA research and drug development while making cancer research accessible and engaging for everyone.</p>
               <div className="mt-auto">
                 <ul className="space-y-2">
                   <li className="flex items-start">

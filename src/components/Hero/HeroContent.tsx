@@ -20,12 +20,12 @@ const HeroContent: React.FC<HeroContentProps> = ({
         <span className="bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">Low-Cost</span> Cancer-Killing Treatments Without Side Effects
       </h1>
       <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed max-w-lg font-normal">
-        CSi Labs is making cancer treatments affordable and accessible for millions of patients who cannot afford today's high-cost drugs. Our cannabinoid-based treatments eliminate cancer cells without the harsh side effects of chemical therapies.
+        CSi Labs is making cancer treatments affordable and accessible for millions of patients through our innovative fundraising meme token. Our cannabinoid-based treatments eliminate cancer cells without the harsh side effects of chemical therapies.
       </p>
       <div className="flex flex-col sm:flex-row gap-4">
         <Button asChild size="lg" className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity flex-shrink-0">
           <Link to="/register">
-            Contribute Now <ArrowRight className="ml-2 h-4 w-4" />
+            Get Our Meme Token <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
         <Button asChild variant="outline" size="lg" className="border-cbis-blue text-cbis-blue hover:bg-cbis-blue/5 transition-colors flex-shrink-0">
