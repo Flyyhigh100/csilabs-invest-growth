@@ -153,44 +153,44 @@ const TokenInfo: React.FC = () => {
 
             <FadeInSection delay={400} className="md:col-span-2 lg:col-span-1">
               <div className="glass-card p-6 rounded-xl h-full bg-gradient-to-br from-cbis-blue to-cbis-teal text-white">
-                <h3 className="text-xl font-semibold mb-4">Contribution Journey</h3>
+                <h3 className="text-xl font-semibold mb-6">Contribution Journey</h3>
                 <p className="text-blue-50 mb-6">
                   Your journey from registration to receiving CSi Labs tokens is straightforward and secure.
                 </p>
-                <div className="space-y-4">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold text-base border border-blue-100 shadow-sm">
-                      <span>1</span>
+                <div className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="min-w-[48px] h-[32px] rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold text-lg px-4 shadow-sm">
+                      1
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">Registration</h4>
+                      <h4 className="font-medium text-lg mb-1">Registration</h4>
                       <p className="text-sm text-blue-50">Create your account to begin the contribution process.</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold text-base border border-blue-100 shadow-sm">
-                      <span>2</span>
+                  <div className="flex items-center gap-4">
+                    <div className="min-w-[48px] h-[32px] rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold text-lg px-4 shadow-sm">
+                      2
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">KYC Verification</h4>
+                      <h4 className="font-medium text-lg mb-1">KYC Verification</h4>
                       <p className="text-sm text-blue-50">Complete identity verification if applicable.</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold text-base border border-blue-100 shadow-sm">
-                      <span>3</span>
+                  <div className="flex items-center gap-4">
+                    <div className="min-w-[48px] h-[32px] rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold text-lg px-4 shadow-sm">
+                      3
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">Token Purchase</h4>
+                      <h4 className="font-medium text-lg mb-1">Token Purchase</h4>
                       <p className="text-sm text-blue-50">Store your wallet address, fund it with cryptocurrency, and make your token contribution.</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold text-base border border-blue-100 shadow-sm">
-                      <span>4</span>
+                  <div className="flex items-center gap-4">
+                    <div className="min-w-[48px] h-[32px] rounded-full bg-white text-cbis-blue flex items-center justify-center font-bold text-lg px-4 shadow-sm">
+                      4
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">Token Distribution</h4>
+                      <h4 className="font-medium text-lg mb-1">Token Distribution</h4>
                       <p className="text-sm text-blue-50">Receive your tokens in your specified wallet address.</p>
                     </div>
                   </div>
