@@ -56,7 +56,7 @@ const TokenInfo: React.FC = () => {
                     Token Details
                   </div>
                   <h2 className="text-2xl md:text-3xl font-bold mb-4 text-cbis-dark">
-                    Polygon-Based Security Token
+                    Polygon-Based Token
                   </h2>
                   <p className="text-gray-600 mb-6">
                     CSi Labs token is built on the Polygon blockchain, offering enhanced security, lower transaction costs, and faster settlement compared to Ethereum mainnet.
