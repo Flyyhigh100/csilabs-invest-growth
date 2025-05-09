@@ -30,16 +30,16 @@ export const LegalAcknowledgment: React.FC<LegalAcknowledgmentProps> = ({
           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
         >
           I acknowledge that I have read and agree to the{' '}
-          <Link to="/legal/terms-and-conditions" className="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
+          <Link to="/legal/terms-and-conditions#top" className="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
             Terms & Conditions
           </Link>,{' '}
-          <Link to="/legal/token-disclaimer" className="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
+          <Link to="/legal/token-disclaimer#top" className="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
             Token Disclaimer
           </Link>,{' '}
-          <Link to="/legal/foundation-disclosure" className="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
+          <Link to="/legal/foundation-disclosure#top" className="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
             Foundation Disclosure
           </Link> and{' '}
-          <Link to="/legal/geographic-restrictions" className="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
+          <Link to="/legal/geographic-restrictions#top" className="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
             Geographic Restrictions
           </Link>.
         </label>

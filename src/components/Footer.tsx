@@ -50,22 +50,22 @@ const Footer: React.FC = () => {
             <h3 className="text-lg font-semibold mb-4">Legal</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/legal/terms-and-conditions" className="text-blue-100 hover:text-white transition-colors">
+                <Link to="/legal/terms-and-conditions#top" className="text-blue-100 hover:text-white transition-colors">
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link to="/legal/foundation-disclosure" className="text-blue-100 hover:text-white transition-colors">
+                <Link to="/legal/foundation-disclosure#top" className="text-blue-100 hover:text-white transition-colors">
                   Foundation Disclosure
                 </Link>
               </li>
               <li>
-                <Link to="/legal/geographic-restrictions" className="text-blue-100 hover:text-white transition-colors">
+                <Link to="/legal/geographic-restrictions#top" className="text-blue-100 hover:text-white transition-colors">
                   Geographic Restrictions
                 </Link>
               </li>
               <li>
-                <Link to="/legal/token-disclaimer" className="text-blue-100 hover:text-white transition-colors">
+                <Link to="/legal/token-disclaimer#top" className="text-blue-100 hover:text-white transition-colors">
                   Token Disclaimer
                 </Link>
               </li>
