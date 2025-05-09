@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -7,14 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ExternalLink, PieChart, TrendingUp, Shield, ArrowRight, DollarSign, ShieldCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-
 const TokenInfo: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-
-  return (
-    <div className="page-transition min-h-screen">
+  return <div className="page-transition min-h-screen">
       <Navbar />
 
       <div className="pt-24 pb-16 bg-gradient-to-b from-gray-50 to-white">
@@ -88,12 +84,7 @@ const TokenInfo: React.FC = () => {
                     </div>
                   </div>
                   <div className="mt-6">
-                    <a 
-                      href="https://polygonscan.com/token/0xcba5ca199bca0af3f6046da01169035f2c6a7ff0" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center text-cbis-blue hover:underline"
-                    >
+                    <a href="https://polygonscan.com/token/0xcba5ca199bca0af3f6046da01169035f2c6a7ff0" target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-cbis-blue hover:underline">
                       View on Polygonscan
                       <ExternalLink className="ml-1 h-4 w-4" />
                     </a>
@@ -227,9 +218,7 @@ const TokenInfo: React.FC = () => {
 
           <FadeInSection>
             <div className="text-center">
-              <h2 className="text-2xl md:text-3xl font-bold mb-4 text-cbis-dark">
-                Ready to Join Our Meme Token Community?
-              </h2>
+              <h2 className="text-2xl md:text-3xl font-bold mb-4 text-cbis-dark">Ready to Join Our Token Community?</h2>
               <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
                 Join our meme token community to help fund low-cost cancer treatments without harsh side effects, making them accessible to millions of patients worldwide.
               </p>
@@ -244,8 +233,6 @@ const TokenInfo: React.FC = () => {
       </div>
 
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default TokenInfo;
