@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
@@ -84,7 +85,7 @@ const WalletFundingStep: React.FC<WalletFundingStepProps> = ({
         </Button>
         <Button variant="outline" onClick={handleWalletFunded} className="sm:flex-1" disabled={isProcessing}>
           <CheckCircle className="mr-2 h-4 w-4" />
-          I've already funded my wallet
+          My wallet is funded
         </Button>
       </div>
     </div>;
