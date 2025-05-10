@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+
 interface WalletFundingStepProps {
   onComplete: () => void;
   onStartFunding: () => void;
@@ -69,7 +69,7 @@ const WalletFundingStep: React.FC<WalletFundingStepProps> = ({
       <Alert variant="default" className="bg-amber-50 border-amber-200">
         <AlertCircle className="h-4 w-4 text-amber-500" />
         <AlertDescription className="text-amber-700">
-          Note: Some contributors may need to present identity documents to comply with our AML/KYC Policy.
+          Note: Some contributors may need to present identity documents to comply with Stripe's AML/KYC Policy.
         </AlertDescription>
       </Alert>
       
