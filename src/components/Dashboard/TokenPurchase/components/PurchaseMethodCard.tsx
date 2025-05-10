@@ -1,10 +1,8 @@
-
 import React, { ReactNode } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-
 interface PurchaseMethodCardProps {
   title: string;
   description: string;
@@ -19,7 +17,6 @@ interface PurchaseMethodCardProps {
   className?: string;
   children?: ReactNode;
 }
-
 const PurchaseMethodCard: React.FC<PurchaseMethodCardProps> = ({
   title,
   description,
@@ -34,12 +31,7 @@ const PurchaseMethodCard: React.FC<PurchaseMethodCardProps> = ({
   className,
   children
 }) => {
-  return (
-    <Card className={cn(
-      "transition-all h-full", 
-      highlight && "border-cbis-blue shadow-md",
-      className
-    )}>
+  return <Card className={cn("transition-all h-full", highlight && "border-cbis-blue shadow-md", className)}>
       <CardContent className="p-5 space-y-4 flex flex-col h-full">
         <div className="flex items-start gap-4">
           <div className={`p-3 rounded-full flex-shrink-0 ${highlight ? 'bg-cbis-blue text-white' : 'bg-blue-50 text-cbis-blue'}`}>
@@ -49,11 +41,7 @@ const PurchaseMethodCard: React.FC<PurchaseMethodCardProps> = ({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <h3 className="font-medium text-lg">{title}</h3>
-              {badgeText && (
-                <Badge variant={badgeVariant} className="ml-auto whitespace-nowrap text-xs">
-                  {badgeText}
-                </Badge>
-              )}
+              {badgeText}
             </div>
             <p className="text-gray-600 mt-1 break-normal hyphens-manual">
               {description}
@@ -64,22 +52,12 @@ const PurchaseMethodCard: React.FC<PurchaseMethodCardProps> = ({
         {children && <div className="mt-2">{children}</div>}
         
         <div className="mt-auto pt-2">
-          <Button 
-            onClick={onClick} 
-            disabled={disabled} 
-            className={cn(
-              "w-full mt-auto", 
-              highlight && "bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white"
-            )}
-            variant={highlight ? "default" : "outline"}
-          >
+          <Button onClick={onClick} disabled={disabled} className={cn("w-full mt-auto", highlight && "bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white")} variant={highlight ? "default" : "outline"}>
             <span className="inline-block">{buttonLabel}</span>
             {buttonSuffix && <span className="ml-1 inline-block">{buttonSuffix}</span>}
           </Button>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default PurchaseMethodCard;
