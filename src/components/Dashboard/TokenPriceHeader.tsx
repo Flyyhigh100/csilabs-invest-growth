@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useTokenPrice } from '@/context/TokenPriceContext';
 import { Card } from "@/components/ui/card";
@@ -7,32 +6,27 @@ import { Badge } from "@/components/ui/badge";
 import { RefreshCw, TrendingUp, AlertCircle, Info } from 'lucide-react';
 import { Spinner } from "@/components/ui/spinner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-
 interface TokenPriceHeaderProps {
   className?: string;
 }
-
-const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) => {
-  const { 
-    currentPrice, 
-    isLoading, 
-    lastUpdated, 
+const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({
+  className = ""
+}) => {
+  const {
+    currentPrice,
+    isLoading,
+    lastUpdated,
     refreshPrice,
     error,
-    dataSource 
+    dataSource
   } = useTokenPrice();
-  
   console.log('TokenPriceHeader rendering with price:', currentPrice, 'loading:', isLoading, 'source:', dataSource);
-  
-  const formattedLastUpdated = lastUpdated 
-    ? lastUpdated.toLocaleTimeString() 
-    : 'Not yet updated';
-
+  const formattedLastUpdated = lastUpdated ? lastUpdated.toLocaleTimeString() : 'Not yet updated';
   const isFallbackData = error !== null;
 
   // Determine source badge color
   const getSourceBadgeVariant = () => {
-    switch(dataSource) {
+    switch (dataSource) {
       case 'on-chain':
       case 'on-chain-v4':
       case 'on-chain-v3':
@@ -42,20 +36,28 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
         return "warning";
       case 'cache':
         return "outline";
-      default: return "secondary";
+      default:
+        return "secondary";
     }
   };
 
   // Format the data source name for display
   const getSourceDisplayName = () => {
-    switch(dataSource) {
-      case 'on-chain': return "Uniswap V4 TWAP";
-      case 'on-chain-v4': return "Uniswap V4 Spot";
-      case 'on-chain-v3': return "Uniswap V3 TWAP";
-      case 'defined.fi': return "Defined.fi API";
-      case 'dexscreener': return "DexScreener API";
-      case 'cache': return "Cached Data";
-      default: return "Unknown Source";
+    switch (dataSource) {
+      case 'on-chain':
+        return "Uniswap V4 TWAP";
+      case 'on-chain-v4':
+        return "Uniswap V4 Spot";
+      case 'on-chain-v3':
+        return "Uniswap V3 TWAP";
+      case 'defined.fi':
+        return "Defined.fi API";
+      case 'dexscreener':
+        return "DexScreener API";
+      case 'cache':
+        return "Cached Data";
+      default:
+        return "Unknown Source";
     }
   };
 
@@ -71,78 +73,43 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
       return "Source information unavailable";
     }
   };
-
-  return (
-    <Card className={`flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-blue-100 ${className}`}>
+  return <Card className={`flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-blue-100 ${className}`}>
       <div className="flex items-center space-x-3">
         <div className="flex items-center">
           <TrendingUp className="h-5 w-5 text-cbis-blue mr-2" />
           <div>
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium text-gray-600">Current CSi Token Price</p>
-              {dataSource && (
-                <Popover>
+              {dataSource && <Popover>
                   <PopoverTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="h-6 w-6 p-0 rounded-full hover:bg-blue-50 focus-visible:ring-1 focus-visible:ring-blue-400"
-                      aria-label="Price Source Information"
-                    >
-                      <Badge variant={getSourceBadgeVariant()} className="text-xs mr-0.5">
-                        {getSourceDisplayName()}
-                      </Badge>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 p-0 rounded-full hover:bg-blue-50 focus-visible:ring-1 focus-visible:ring-blue-400" aria-label="Price Source Information">
+                      
                       <Info className="h-3.5 w-3.5 opacity-70" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent 
-                    side="bottom"
-                    sideOffset={10}
-                    align="start"
-                    className="z-[100] bg-white shadow-lg"
-                  >
+                  <PopoverContent side="bottom" sideOffset={10} align="start" className="z-[100] bg-white shadow-lg">
                     <p className="text-xs">{getSourceTooltip()}</p>
                   </PopoverContent>
-                </Popover>
-              )}
-              {isFallbackData && (
-                <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
+                </Popover>}
+              {isFallbackData && <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
                   Historical Data
-                </Badge>
-              )}
+                </Badge>}
             </div>
             <div className="flex items-center">
               <p className="text-lg font-bold text-cbis-blue">
-                {isLoading ? (
-                  <span className="flex items-center">
+                {isLoading ? <span className="flex items-center">
                     <Spinner className="h-4 w-4 mr-2" />
                     Loading...
-                  </span>
-                ) : currentPrice ? (
-                  `$${currentPrice.toFixed(5)} USD`
-                ) : (
-                  'Price unavailable'
-                )}
+                  </span> : currentPrice ? `$${currentPrice.toFixed(5)} USD` : 'Price unavailable'}
               </p>
               
-              {dataSource?.includes('on-chain') && !isLoading && currentPrice && (
-                <Popover>
+              {dataSource?.includes('on-chain') && !isLoading && currentPrice && <Popover>
                   <PopoverTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6 p-0 ml-2 rounded-full hover:bg-blue-50 focus-visible:ring-1 focus-visible:ring-blue-400"
-                      aria-label="Time-Weighted Average Price Information"
-                    >
+                    <Button variant="ghost" size="icon" className="h-6 w-6 p-0 ml-2 rounded-full hover:bg-blue-50 focus-visible:ring-1 focus-visible:ring-blue-400" aria-label="Time-Weighted Average Price Information">
                       <Info className="h-4 w-4 text-blue-400" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent 
-                    side="bottom" 
-                    sideOffset={15} 
-                    align="start"
-                    className="max-w-[300px] p-3 z-[100] bg-white shadow-xl border border-gray-200"
-                  >
+                  <PopoverContent side="bottom" sideOffset={15} align="start" className="max-w-[300px] p-3 z-[100] bg-white shadow-xl border border-gray-200">
                     <p className="text-sm font-medium mb-1">What is TWAP?</p>
                     <p className="text-xs text-gray-600 mb-2">
                       This price is a <strong>Time-Weighted Average Price</strong> calculated over a 15-minute period.
@@ -157,12 +124,7 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
                           Learn more
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent 
-                        className="w-80 z-[150]" 
-                        side="bottom" 
-                        sideOffset={5}
-                        align="start"
-                      >
+                      <PopoverContent className="w-80 z-[150]" side="bottom" sideOffset={5} align="start">
                         <div className="space-y-2">
                           <h4 className="font-medium text-sm">About Time-Weighted Average Price (TWAP)</h4>
                           <p className="text-xs text-gray-600">
@@ -185,43 +147,26 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({ className = "" }) =
                       </PopoverContent>
                     </Popover>
                   </PopoverContent>
-                </Popover>
-              )}
+                </Popover>}
             </div>
-            {error && (
-              <p className="text-xs text-amber-600 flex items-center mt-1">
+            {error && <p className="text-xs text-amber-600 flex items-center mt-1">
                 <AlertCircle className="h-3 w-3 mr-1" />
                 Using latest historical price
-              </p>
-            )}
+              </p>}
           </div>
         </div>
       </div>
       
       <div className="flex flex-col items-end">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={refreshPrice}
-          disabled={isLoading}
-          className="mb-1"
-        >
+        <Button variant="outline" size="sm" onClick={refreshPrice} disabled={isLoading} className="mb-1">
           <RefreshCw className={`h-3 w-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
         <div className="text-xs text-gray-500">
           <span>Last updated: {formattedLastUpdated}</span>
-          {dataSource && (
-            <span className={`ml-2 ${
-              dataSource?.includes('on-chain') ? 'text-green-600' :
-              dataSource === 'defined.fi' || dataSource === 'dexscreener' ? 'text-amber-600' : 
-              'text-blue-600'
-            }`}>via {getSourceDisplayName()}</span>
-          )}
+          {dataSource && <span className={`ml-2 ${dataSource?.includes('on-chain') ? 'text-green-600' : dataSource === 'defined.fi' || dataSource === 'dexscreener' ? 'text-amber-600' : 'text-blue-600'}`}>via {getSourceDisplayName()}</span>}
         </div>
       </div>
-    </Card>
-  );
+    </Card>;
 };
-
 export default TokenPriceHeader;
