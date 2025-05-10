@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Copy, ExternalLink, CheckCircle2, Clock, Link, CircleDollarSign, RefreshCw } from 'lucide-react';
+import { Copy, ExternalLink, CheckCircle2, Clock, Link, CircleDollarSign, RefreshCw, Coins } from 'lucide-react';
 import { Transaction } from '@/types/transactions';
 import {
   Tooltip,
@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import SyncCryptoPaymentButton from './SyncCryptoPaymentButton';
 import ManualSyncButton from './ManualSyncButton';
+import { formatCurrency } from '@/utils/format';
 
 interface TransactionDetailsProps {
   transaction: Transaction;
@@ -34,6 +35,11 @@ const TransactionDetails = ({ transaction, onRefresh }: TransactionDetailsProps)
 
   // Check if this is a CoinPayments transaction where we should show sync buttons
   const showCryptoSyncButtons = transaction.payment_method === 'coinpayments' && !transaction.token_sent;
+  
+  // Get token amount (if available) or calculate it based on price
+  const tokenAmount = transaction.token_amount || 
+    (transaction.token_price && transaction.token_price > 0 ? 
+      transaction.amount / transaction.token_price : null);
 
   return (
     <Card key={`detail-${transaction.id}`} className="border-t-0 rounded-t-none bg-gray-50">
@@ -56,8 +62,22 @@ const TransactionDetails = ({ transaction, onRefresh }: TransactionDetailsProps)
                   </Button>
                 </div>
                 
-                <span className="font-medium text-gray-500">Amount:</span>
-                <span>${transaction.amount.toFixed(2)}</span>
+                <span className="font-medium text-gray-500">USD Amount:</span>
+                <span>{formatCurrency(transaction.amount)}</span>
+                
+                {(tokenAmount || transaction.token_amount) && (
+                  <>
+                    <span className="font-medium text-gray-500">CSL Tokens:</span>
+                    <div className="flex items-center">
+                      <span className="font-semibold text-cbis-blue">{(tokenAmount || transaction.token_amount)?.toFixed(2)} CSL</span>
+                      {transaction.token_price && (
+                        <span className="ml-2 text-xs text-gray-500">
+                          (at {formatCurrency(transaction.token_price)} per token)
+                        </span>
+                      )}
+                    </div>
+                  </>
+                )}
                 
                 <span className="font-medium text-gray-500">Date:</span>
                 <span>{new Date(transaction.created_at).toLocaleString()}</span>

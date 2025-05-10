@@ -7,14 +7,18 @@ import { PendingTransactionWithProfile } from "@/hooks/admin/usePendingTransacti
 export const downloadPendingDistributionsCSV = (transactions: PendingTransactionWithProfile[], simplified = false): void => {
   // Define CSV headers based on format type
   const headers = simplified 
-    ? ['Wallet Address', 'Amount'] 
-    : ['Date', 'User Name', 'Email', 'Amount', 'Wallet Address'];
+    ? ['Wallet Address', 'CSL Tokens'] 
+    : ['Date', 'User Name', 'Email', 'USD Amount', 'CSL Tokens', 'Token Price', 'Wallet Address'];
   
   // Format transaction data for CSV
   const rows = transactions.map(tx => {
+    // Calculate token amount if not directly available
+    const tokenAmount = tx.token_amount || 
+      (tx.token_price && tx.token_price > 0 ? tx.amount / tx.token_price : tx.amount);
+    
     if (simplified) {
-      // For simplified version - just wallet and amount
-      return [tx.wallet_address, tx.amount.toFixed(2)];
+      // For simplified version - just wallet and token amount (for Cryptosender)
+      return [tx.wallet_address, tokenAmount.toFixed(2)];
     } else {
       // For detailed version - all fields
       const userName = tx.profiles ? 
@@ -23,9 +27,11 @@ export const downloadPendingDistributionsCSV = (transactions: PendingTransaction
         
       const email = tx.profiles?.email || '';
       const date = new Date(tx.created_at).toLocaleDateString();
-      const amount = tx.amount.toFixed(2);
+      const usdAmount = tx.amount.toFixed(2);
+      const formattedTokenAmount = tokenAmount.toFixed(2);
+      const tokenPrice = tx.token_price ? tx.token_price.toFixed(2) : 'N/A';
       
-      return [date, userName, email, amount, tx.wallet_address];
+      return [date, userName, email, usdAmount, formattedTokenAmount, tokenPrice, tx.wallet_address];
     }
   });
   
@@ -63,8 +69,15 @@ export const downloadPendingDistributionsCSV = (transactions: PendingTransaction
  * Returns distribution statistics for the pending transactions
  */
 export const getDistributionStats = (transactions: PendingTransactionWithProfile[]) => {
-  // Calculate total amount
+  // Calculate total USD amount
   const totalAmount = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+  
+  // Calculate total token amount
+  const totalTokenAmount = transactions.reduce((sum, tx) => {
+    const tokenAmount = tx.token_amount || 
+      (tx.token_price && tx.token_price > 0 ? tx.amount / tx.token_price : tx.amount);
+    return sum + tokenAmount;
+  }, 0);
   
   // Count unique wallet addresses
   const uniqueWallets = new Set(transactions.map(tx => tx.wallet_address));
@@ -77,6 +90,7 @@ export const getDistributionStats = (transactions: PendingTransactionWithProfile
   
   return {
     totalAmount,
+    totalTokenAmount,
     totalTransactions: transactions.length,
     uniqueWalletCount,
     transactionsSaved,

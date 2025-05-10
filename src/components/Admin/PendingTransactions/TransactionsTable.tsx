@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Clock, ExternalLink } from 'lucide-react';
+import { Clock, ExternalLink, Coins } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -47,8 +47,24 @@ const TransactionsTable = ({
     return txs.reduce((sum, tx) => sum + tx.amount, 0);
   };
   
+  // Calculate wallet token totals
+  const getWalletTokenTotal = (txs: PendingTransactionWithProfile[]) => {
+    return txs.reduce((sum, tx) => {
+      const tokenAmount = tx.token_amount || 
+        (tx.token_price && tx.token_price > 0 ? tx.amount / tx.token_price : 0);
+      return sum + (tokenAmount || 0);
+    }, 0);
+  };
+  
   // Calculate grand total
   const grandTotal = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+  
+  // Calculate grand token total
+  const grandTokenTotal = transactions.reduce((sum, tx) => {
+    const tokenAmount = tx.token_amount || 
+      (tx.token_price && tx.token_price > 0 ? tx.amount / tx.token_price : 0);
+    return sum + (tokenAmount || 0);
+  }, 0);
   
   // Helper function to safely get user name from profiles
   const getUserName = (tx: PendingTransactionWithProfile): string => {
@@ -95,7 +111,8 @@ const TransactionsTable = ({
             </TableHead>
             <TableHead>Date</TableHead>
             <TableHead>User</TableHead>
-            <TableHead>Amount</TableHead>
+            <TableHead>USD Amount</TableHead>
+            <TableHead>CSL Tokens</TableHead>
             <TableHead>Wallet Address</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Action</TableHead>
@@ -104,87 +121,108 @@ const TransactionsTable = ({
         <TableBody>
           {transactions.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                 No pending token distributions found
               </TableCell>
             </TableRow>
           ) : (
             walletGroupsArray.map(([walletAddress, txs]) => (
               <React.Fragment key={walletAddress}>
-                {txs.map((tx, index) => (
-                  <TableRow 
-                    key={tx.id}
-                    className={
-                      `${index > 0 ? "border-t-0 border-dashed" : ""} 
-                      ${tx.is_test ? "bg-amber-50 dark:bg-amber-950/10" : ""}`
-                    }
-                  >
-                    <TableCell>
-                      <Checkbox 
-                        checked={isSelected(tx)} 
-                        onCheckedChange={(checked) => onSelectTransaction(tx, !!checked)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {new Date(tx.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium flex items-center gap-2">
-                        {getUserName(tx)}
-                        {tx.is_test && (
-                          <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 text-[10px]">
-                            TEST
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-500">{getUserEmail(tx)}</div>
-                    </TableCell>
-                    <TableCell>${tx.amount.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <div className="font-mono text-xs max-w-[150px] truncate">
-                        {txs.length > 1 && index === 0 ? (
-                          <Badge variant="outline" className="mr-1">x{txs.length}</Badge>
-                        ) : txs.length > 1 ? (
-                          <Badge variant="outline" className="mr-1 opacity-50">↑</Badge>
-                        ) : null}
-                        {tx.wallet_address}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`${tx.is_test ? "bg-amber-500" : "bg-blue-500"}`}>
-                        <Clock className="h-3 w-3 mr-1" />
-                        {tx.is_test ? "Test Pending" : "Pending Distribution"}
-                      </Badge>
-                      {tx.status === 'pending' && tx.payment_method === 'stripe' && (
-                        <div className="mt-1">
-                          <SyncWithStripeButton 
-                            transaction={tx} 
-                            onSyncComplete={handleSyncComplete}
-                            size="sm" 
-                          />
+                {txs.map((tx, index) => {
+                  // Get token amount (if available) or calculate it based on price
+                  const tokenAmount = tx.token_amount || 
+                    (tx.token_price && tx.token_price > 0 ? tx.amount / tx.token_price : null);
+                    
+                  return (
+                    <TableRow 
+                      key={tx.id}
+                      className={
+                        `${index > 0 ? "border-t-0 border-dashed" : ""} 
+                        ${tx.is_test ? "bg-amber-50 dark:bg-amber-950/10" : ""}`
+                      }
+                    >
+                      <TableCell>
+                        <Checkbox 
+                          checked={isSelected(tx)} 
+                          onCheckedChange={(checked) => onSelectTransaction(tx, !!checked)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {new Date(tx.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium flex items-center gap-2">
+                          {getUserName(tx)}
+                          {tx.is_test && (
+                            <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 text-[10px]">
+                              TEST
+                            </Badge>
+                          )}
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        size="sm"
-                        onClick={() => onMarkAsSent(tx)}
-                        variant={tx.is_test ? "outline" : "default"}
-                      >
-                        Mark as Sent
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        <div className="text-xs text-gray-500">{getUserEmail(tx)}</div>
+                      </TableCell>
+                      <TableCell>${tx.amount.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center text-cbis-blue font-medium">
+                          <Coins className="h-4 w-4 mr-1 text-cbis-blue/70" />
+                          {tokenAmount ? tokenAmount.toFixed(2) : '—'} CSL
+                        </div>
+                        {tx.token_price && (
+                          <div className="text-xs text-gray-500">
+                            @ ${tx.token_price.toFixed(2)}/token
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-mono text-xs max-w-[150px] truncate">
+                          {txs.length > 1 && index === 0 ? (
+                            <Badge variant="outline" className="mr-1">x{txs.length}</Badge>
+                          ) : txs.length > 1 ? (
+                            <Badge variant="outline" className="mr-1 opacity-50">↑</Badge>
+                          ) : null}
+                          {tx.wallet_address}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`${tx.is_test ? "bg-amber-500" : "bg-blue-500"}`}>
+                          <Clock className="h-3 w-3 mr-1" />
+                          {tx.is_test ? "Test Pending" : "Pending Distribution"}
+                        </Badge>
+                        {tx.status === 'pending' && tx.payment_method === 'stripe' && (
+                          <div className="mt-1">
+                            <SyncWithStripeButton 
+                              transaction={tx} 
+                              onSyncComplete={handleSyncComplete}
+                              size="sm" 
+                            />
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          size="sm"
+                          onClick={() => onMarkAsSent(tx)}
+                          variant={tx.is_test ? "outline" : "default"}
+                        >
+                          Mark as Sent
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
                 {/* Add wallet total row */}
                 {txs.length > 1 && (
                   <TableRow className="bg-muted/30">
                     <TableCell colSpan={3} className="font-medium text-right">
                       Wallet Total
                     </TableCell>
-                    <TableCell colSpan={4} className="font-medium">
+                    <TableCell className="font-medium">
                       ${getWalletTotal(txs).toFixed(2)}
                     </TableCell>
+                    <TableCell className="font-medium text-cbis-blue">
+                      {getWalletTokenTotal(txs).toFixed(2)} CSL
+                    </TableCell>
+                    <TableCell colSpan={3}></TableCell>
                   </TableRow>
                 )}
               </React.Fragment>
@@ -196,9 +234,13 @@ const TransactionsTable = ({
               <TableCell colSpan={3} className="text-right">
                 Grand Total
               </TableCell>
-              <TableCell colSpan={4}>
+              <TableCell>
                 ${grandTotal.toFixed(2)}
               </TableCell>
+              <TableCell className="text-cbis-blue">
+                {grandTokenTotal.toFixed(2)} CSL
+              </TableCell>
+              <TableCell colSpan={3}></TableCell>
             </TableRow>
           )}
         </TableBody>
