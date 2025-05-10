@@ -16,12 +16,12 @@ import CryptoPaymentTab from './TokenPurchase/CryptoPaymentTab';
 
 interface BuyTokensTabProps {
   walletAddress: string | null;
-  isDirectPurchase?: boolean; // Prop to indicate direct purchase flow
+  isDirectPurchase?: boolean;
 }
 
 const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
   walletAddress,
-  isDirectPurchase = false // Default to false if not provided
+  isDirectPurchase = false
 }) => {
   const [amount, setAmount] = useState<number>(100);
   const [selectedCurrency, setSelectedCurrency] = useState<string>("USDT");
