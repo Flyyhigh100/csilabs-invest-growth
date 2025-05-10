@@ -40,7 +40,7 @@ const PaymentInfoCard: React.FC<PaymentInfoCardProps> = ({
             
             <div className="flex items-center gap-2">
               <div className="bg-cbis-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">2</div>
-              <p className="text-sm text-gray-700">Choose your contribution amount</p>
+              <p className="text-sm text-gray-700">Fund Your Wallet</p>
             </div>
             
             <div className="flex items-center gap-2">
