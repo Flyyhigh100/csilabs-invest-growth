@@ -47,15 +47,17 @@ const PurchaseMethodCard: React.FC<PurchaseMethodCardProps> = ({
           </div>
           
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between flex-wrap gap-2">
+            <div className="flex items-start justify-between gap-2">
               <h3 className="font-medium text-lg">{title}</h3>
               {badgeText && (
-                <Badge variant={badgeVariant} className="ml-auto whitespace-nowrap">
+                <Badge variant={badgeVariant} className="ml-auto whitespace-nowrap text-xs">
                   {badgeText}
                 </Badge>
               )}
             </div>
-            <p className="text-gray-600 mt-1 break-words">{description}</p>
+            <p className="text-gray-600 mt-1 break-normal hyphens-manual">
+              {description}
+            </p>
           </div>
         </div>
         
@@ -71,8 +73,8 @@ const PurchaseMethodCard: React.FC<PurchaseMethodCardProps> = ({
             )}
             variant={highlight ? "default" : "outline"}
           >
-            <span className="truncate">{buttonLabel}</span>
-            {buttonSuffix && <span className="ml-1 whitespace-nowrap">{buttonSuffix}</span>}
+            <span className="inline-block">{buttonLabel}</span>
+            {buttonSuffix && <span className="ml-1 inline-block">{buttonSuffix}</span>}
           </Button>
         </div>
       </CardContent>

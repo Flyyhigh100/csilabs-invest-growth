@@ -28,22 +28,22 @@ const DexPurchaseOption: React.FC<DexPurchaseOptionProps> = ({ className }) => {
       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
         <h4 className="font-medium mb-3">Available exchanges:</h4>
         <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <div>
+          <div className="flex justify-between items-center flex-wrap gap-2">
+            <div className="min-w-0 flex-1">
               <p className="font-medium">QuickSwap (Polygon)</p>
               <p className="text-xs text-gray-600">Recommended DEX for Polygon network</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => window.open('https://quickswap.exchange/', '_blank')}>
+            <Button variant="outline" size="sm" onClick={() => window.open('https://quickswap.exchange/', '_blank')} className="flex-shrink-0">
               Visit <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </div>
           
-          <div className="flex justify-between items-center">
-            <div>
+          <div className="flex justify-between items-center flex-wrap gap-2">
+            <div className="min-w-0 flex-1">
               <p className="font-medium">Uniswap</p>
               <p className="text-xs text-gray-600">Popular multi-chain DEX</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => window.open('https://app.uniswap.org/', '_blank')}>
+            <Button variant="outline" size="sm" onClick={() => window.open('https://app.uniswap.org/', '_blank')} className="flex-shrink-0">
               Visit <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </div>
@@ -52,7 +52,7 @@ const DexPurchaseOption: React.FC<DexPurchaseOptionProps> = ({ className }) => {
       
       <div className="mt-4 text-xs text-gray-500">
         <p>For DEX trading, you'll need to have the token contract address:</p>
-        <p className="font-mono mt-1 bg-gray-100 p-2 rounded-sm border border-gray-200 text-gray-700 break-all">0xcba5ca199bca0af3f6046da01169035f2c6a7ff0</p>
+        <p className="font-mono mt-1 bg-gray-100 p-2 rounded-sm border border-gray-200 text-gray-700 overflow-auto whitespace-normal break-all">0xcba5ca199bca0af3f6046da01169035f2c6a7ff0</p>
       </div>
     </div>
   );
