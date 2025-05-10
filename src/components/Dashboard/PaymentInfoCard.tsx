@@ -1,33 +1,23 @@
-
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { X } from 'lucide-react';
-
 interface PaymentInfoCardProps {
   showInfoCard: boolean;
   setShowInfoCard: (show: boolean) => void;
 }
-
 const PaymentInfoCard: React.FC<PaymentInfoCardProps> = ({
   showInfoCard,
   setShowInfoCard
 }) => {
   if (!showInfoCard) return null;
-  
-  return (
-    <Card className="bg-white border border-blue-100 shadow-sm overflow-hidden">
+  return <Card className="bg-white border border-blue-100 shadow-sm overflow-hidden">
       <div className="bg-gradient-to-r from-blue-50 to-blue-100 h-2"></div>
       <CardContent className="p-5">
         <div className="flex flex-col space-y-3">
           <div className="flex justify-between items-start">
             <h3 className="text-lg font-semibold text-gray-800">How to Purchase CSi Tokens</h3>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full h-8 w-8 p-0"
-              onClick={() => setShowInfoCard(false)}
-            >
+            <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full h-8 w-8 p-0" onClick={() => setShowInfoCard(false)}>
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -45,7 +35,7 @@ const PaymentInfoCard: React.FC<PaymentInfoCardProps> = ({
             
             <div className="flex items-center gap-2">
               <div className="bg-cbis-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">3</div>
-              <p className="text-sm text-gray-700">Select your payment method</p>
+              <p className="text-sm text-gray-700">Purchase CSI Tokens</p>
             </div>
             
             <div className="flex items-center gap-2">
@@ -55,8 +45,6 @@ const PaymentInfoCard: React.FC<PaymentInfoCardProps> = ({
           </div>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default PaymentInfoCard;
