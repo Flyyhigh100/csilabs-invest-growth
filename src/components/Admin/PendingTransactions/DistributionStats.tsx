@@ -15,7 +15,10 @@ const DistributionStats: React.FC<DistributionStatsProps> = ({ transactions }) =
   return (
     <Card className="mb-6">
       <CardHeader className="pb-2">
-        <CardTitle>Distribution Details</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Coins className="h-5 w-5 text-cbis-blue" /> 
+          Distribution Details
+        </CardTitle>
         <CardDescription>Summary of pending token distributions</CardDescription>
       </CardHeader>
       <CardContent>
@@ -41,6 +44,7 @@ const DistributionStats: React.FC<DistributionStatsProps> = ({ transactions }) =
               <p className="text-xl font-semibold text-cbis-blue">
                 {stats.totalTokenAmount.toFixed(2)} CSL
               </p>
+              <p className="text-xs text-muted-foreground">Primary distribution metric</p>
             </div>
           </div>
           

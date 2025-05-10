@@ -1,3 +1,4 @@
+
 import React from 'react';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { useKycVerification } from '@/hooks/kyc/useKycVerification';
@@ -8,6 +9,8 @@ import { PaymentStatusCheck } from '@/components/Dashboard/Payments/StatusChecks
 import { useWalletAddress } from '@/components/Dashboard/Payments/useWalletAddress';
 import TokenPriceHeaderWithProvider from '@/components/Dashboard/TokenPriceHeaderWithProvider';
 import { TokenPurchaseSections } from '@/components/Dashboard/Payments/PaymentSections';
+import PaymentSidePanel from '@/components/Dashboard/Payments/PaymentSidePanel';
+import { cn } from '@/lib/utils';
 
 const Payments = () => {
   const { kycData } = useKycVerification();
@@ -26,31 +29,34 @@ const Payments = () => {
       {!isKycApproved && !allowPaymentsWithoutKYC ? (
         <KycWarning />
       ) : (
-        <>
-          <div className="flex justify-between items-center mb-6">
-            <TokenPriceHeaderWithProvider className="w-full" />
+        <div className={cn(
+          "grid grid-cols-1 md:grid-cols-5 gap-6",
+          "bg-gray-50 rounded-xl p-6"
+        )}>
+          {/* Left Column - Information Panel (40% width) */}
+          <div className="md:col-span-2 space-y-6">
+            <PaymentSidePanel 
+              kycData={kycData}
+              showInfoCard={showInfoCard}
+              setShowInfoCard={setShowInfoCard}
+            />
           </div>
           
-          <PaymentInfoCard 
-            showInfoCard={showInfoCard} 
-            setShowInfoCard={setShowInfoCard} 
-          />
-
-          <KycStatusAlerts 
-            kycData={kycData} 
-            amount={0} 
-            allowPaymentsWithoutKYC={allowPaymentsWithoutKYC} 
-          />
-          
-          <div className="space-y-6">
-            {/* Token Purchase Sections - Combined into one component */}
+          {/* Right Column - Purchase Flow (60% width) */}
+          <div className="md:col-span-3 space-y-6">
+            <KycStatusAlerts 
+              kycData={kycData} 
+              amount={0} 
+              allowPaymentsWithoutKYC={allowPaymentsWithoutKYC} 
+            />
+            
             <TokenPurchaseSections
               isLoadingWallet={isLoadingWallet}
               walletAddress={walletAddress}
               onWalletUpdated={handleWalletUpdated}
             />
           </div>
-        </>
+        </div>
       )}
     </DashboardLayout>
   );

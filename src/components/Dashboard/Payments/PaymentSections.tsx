@@ -11,6 +11,7 @@ import WalletRequiredAlert from '../WalletRequiredAlert';
 import PurchasePathSelector from '../TokenPurchase/PurchasePathSelector';
 import BuyTokensTab from '../BuyTokensTab';
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { RefreshCcw } from 'lucide-react';
 
 export const TokenPurchaseSections: React.FC<{
@@ -80,37 +81,45 @@ export const TokenPurchaseSections: React.FC<{
     }
     
     return (
-      <WalletAddressForm 
-        existingWalletAddress={walletAddress || undefined} 
-        onWalletUpdated={() => {
-          onWalletUpdated();
-          markWalletSetupComplete();
-          toast.success("Wallet address saved", {
-            description: "You can now proceed to the next step"
-          });
-          setActiveSection('funding');
-        }} 
-      />
+      <Card className="border-blue-100 bg-white">
+        <CardContent className="p-5">
+          <WalletAddressForm 
+            existingWalletAddress={walletAddress || undefined} 
+            onWalletUpdated={() => {
+              onWalletUpdated();
+              markWalletSetupComplete();
+              toast.success("Wallet address saved", {
+                description: "You can now proceed to the next step"
+              });
+              setActiveSection('funding');
+            }} 
+          />
+        </CardContent>
+      </Card>
     );
   };
   
   // Render the funding section content
   const renderFundingSectionContent = () => {
     return (
-      <WalletFundingStep 
-        walletAddress={walletAddress}
-        onComplete={() => {
-          markWalletFundingComplete();
-          toast.success("Wallet funding noted", {
-            description: "You can now purchase tokens"
-          });
-          setActiveSection('purchase');
-        }}
-        onStartFunding={() => {
-          markWalletFundingComplete();
-          setActiveSection('purchase');
-        }}
-      />
+      <Card className="border-blue-100 bg-white">
+        <CardContent className="p-5">
+          <WalletFundingStep 
+            walletAddress={walletAddress}
+            onComplete={() => {
+              markWalletFundingComplete();
+              toast.success("Wallet funding noted", {
+                description: "You can now purchase tokens"
+              });
+              setActiveSection('purchase');
+            }}
+            onStartFunding={() => {
+              markWalletFundingComplete();
+              setActiveSection('purchase');
+            }}
+          />
+        </CardContent>
+      </Card>
     );
   };
   
@@ -122,62 +131,60 @@ export const TokenPurchaseSections: React.FC<{
     
     if (!showCoinPaymentsOptions) {
       return (
-        <PurchasePathSelector 
-          amount={100} // Default amount
-          isProcessing={false}
-          isWalletMissing={!walletAddress}
-          onSelectCoinPayments={() => {
-            showCoinPayments();
-            setDirectPurchase(true);
-            toast.success("Payment options loaded");
-          }}
-          onSelectDex={() => {
-            window.open('https://app.uniswap.org/', '_blank');
-          }}
-          setDirectPurchase={setDirectPurchase}
-        />
+        <Card className="border-blue-100 bg-white">
+          <CardContent className="p-5">
+            <PurchasePathSelector 
+              amount={100} // Default amount
+              isProcessing={false}
+              isWalletMissing={!walletAddress}
+              onSelectCoinPayments={() => {
+                showCoinPayments();
+                setDirectPurchase(true);
+                toast.success("Payment options loaded");
+              }}
+              onSelectDex={() => {
+                window.open('https://app.uniswap.org/', '_blank');
+              }}
+              setDirectPurchase={setDirectPurchase}
+            />
+          </CardContent>
+        </Card>
       );
     }
     
     return <BuyTokensTab walletAddress={walletAddress} isDirectPurchase={isDirectPurchase} />;
   };
 
-  // console.log debug info
-  console.log("TokenPurchaseSections state:", { 
-    isNewToWallet, 
-    activeSection, 
-    sectionsCompleted, 
-    educationCompleted,
-    isDirectPurchase
-  });
-
   return (
-    <div className="space-y-6">
-      <div className="flex justify-end mb-4">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={resetFlow}
-          className="flex items-center gap-1"
-        >
-          <RefreshCcw className="h-3.5 w-3.5" />
-          <span>Reset Guide</span>
-        </Button>
-      </div>
+    <Card className="shadow-md border-cbis-blue/10">
+      <div className="h-2 bg-gradient-to-r from-cbis-blue to-cbis-teal"></div>
+      <CardContent className="p-6">
+        <div className="flex justify-end mb-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={resetFlow}
+            className="flex items-center gap-1"
+          >
+            <RefreshCcw className="h-3.5 w-3.5" />
+            <span>Reset Guide</span>
+          </Button>
+        </div>
+          
+        <CryptoOnboardingDialog onComplete={handleOnboardingComplete} />
         
-      <CryptoOnboardingDialog onComplete={handleOnboardingComplete} />
-      
-      <PurchaseStepsAccordion
-        key={`steps-accordion-${key}`}
-        activeSection={activeSection}
-        sectionsCompleted={sectionsCompleted}
-        onSectionChange={setActiveSection}
-        children={{
-          wallet: renderWalletSectionContent(),
-          funding: renderFundingSectionContent(),
-          purchase: renderPurchaseSectionContent()
-        }}
-      />
-    </div>
+        <PurchaseStepsAccordion
+          key={`steps-accordion-${key}`}
+          activeSection={activeSection}
+          sectionsCompleted={sectionsCompleted}
+          onSectionChange={setActiveSection}
+          children={{
+            wallet: renderWalletSectionContent(),
+            funding: renderFundingSectionContent(),
+            purchase: renderPurchaseSectionContent()
+          }}
+        />
+      </CardContent>
+    </Card>
   );
 };
