@@ -4,7 +4,8 @@ import { Link } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
 
 const Footer: React.FC = () => {
-  return <footer className="bg-cbis-blue text-white py-12">
+  return (
+    <footer className="bg-cbis-blue text-white py-12 mt-auto">
       <div className="container-custom">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
@@ -34,13 +35,13 @@ const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/register" className="text-blue-100 hover:text-white transition-colors">
-                  Register
+                <Link to="/dashboard" className="text-blue-100 hover:text-white transition-colors">
+                  Dashboard
                 </Link>
               </li>
               <li>
-                <Link to="/dashboard" className="text-blue-100 hover:text-white transition-colors">
-                  Dashboard
+                <Link to="/dashboard/payments" className="text-blue-100 hover:text-white transition-colors">
+                  Buy Tokens
                 </Link>
               </li>
             </ul>
@@ -100,7 +101,8 @@ const Footer: React.FC = () => {
           <p className="mt-2 text-sm">Important: Token contributions involve potential risk. Do your own research before contributing.</p>
         </div>
       </div>
-    </footer>;
+    </footer>
+  );
 };
 
 export default Footer;

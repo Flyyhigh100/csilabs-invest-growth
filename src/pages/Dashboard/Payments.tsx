@@ -31,7 +31,7 @@ const Payments = () => {
       ) : (
         <div className={cn(
           "grid grid-cols-1 md:grid-cols-5 gap-6",
-          "bg-gray-50 rounded-xl p-6"
+          "bg-gray-50 rounded-xl p-6 mb-6"
         )}>
           {/* Left Column - Information Panel (40% width) */}
           <div className="md:col-span-2 space-y-6">

@@ -6,6 +6,7 @@ import TopNavigation from './Layouts/TopNavigation';
 import { getDashboardNavItems, getAdminNavItem, NavItem } from './Layouts/DashboardNav';
 import { toast } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import Footer from '@/components/Footer';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -67,7 +68,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gray-50 flex">
+      <div className="min-h-screen bg-gray-50 flex flex-col">
         <TopNavigation 
           email={user?.email}
           isAdmin={isAdmin}
@@ -86,6 +87,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
             {children}
           </main>
         </div>
+        
+        {/* Footer */}
+        <Footer />
       </div>
     </TooltipProvider>
   );
