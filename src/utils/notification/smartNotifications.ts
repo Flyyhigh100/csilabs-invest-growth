@@ -65,6 +65,10 @@ export function showSmartNotification(
   
   // Special case for token delivery - always show as success with high priority
   if (type === 'tokens' && (title.includes('Delivered') || message.includes('sent to your wallet'))) {
+    // Determine if this is a Solana transaction by looking at the message
+    const isSolana = message.toLowerCase().includes('solscan');
+    const networkName = isSolana ? 'Solana' : 'Polygon';
+    
     toast.success(title, { 
       id: toastId,
       description: message, 

@@ -36,11 +36,15 @@ const TokenDistributionCard: React.FC<TokenDistributionCardProps> = ({
           </div>
           
           <div className="p-4 bg-gray-50 rounded-lg">
-            <h3 className="font-medium">Transaction Information</h3>
+            <h3 className="font-medium">Distribution Information</h3>
             <div className="grid grid-cols-2 gap-2 mt-2">
               <div className="text-sm">
                 <span className="text-gray-500">Total Value:</span>
                 <p className="font-bold">${isLoading ? '...' : totalTransactionValue.toFixed(2)}</p>
+              </div>
+              <div className="text-sm">
+                <span className="text-gray-500">Networks:</span>
+                <p className="font-medium">Polygon, Solana</p>
               </div>
             </div>
           </div>

@@ -50,7 +50,7 @@ const DownloadCSVButton: React.FC<DownloadCSVButtonProps> = ({
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleDownloadSimplified} className="flex gap-2">
           <Columns2 className="h-4 w-4" />
-          <span>Simplified Format (for Cryptosender)</span>
+          <span>Simplified Format (for MultiSender)</span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleDownloadDetailed} className="flex gap-2">
           <FileText className="h-4 w-4" />

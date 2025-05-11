@@ -38,13 +38,21 @@ export const markTokensSent = async ({ transactionId, blockchainTxId }, adminCli
         ? `${tokenAmount.toFixed(2)} CSI tokens`
         : "your tokens";
       
+      // Determine which blockchain explorer to use based on transaction data
+      // Note: This assumes you're storing blockchain network info somewhere or inferring it
+      const isSolana = blockchainTxId.startsWith('sol:') || 
+                      txData.payment_method?.toLowerCase().includes('solana');
+      
+      const explorerName = isSolana ? 'Solscan' : 'PolygonScan';
+      const txIdDisplay = blockchainTxId.slice(0, 8) + '...' + blockchainTxId.slice(-6);
+      
       const { error: notificationError } = await adminClient
         .from("notifications")
         .insert({
           user_id: txData.user_id,
           type: "tokens", // Use consistent type for token notifications
           title: "CSI Tokens Delivered",
-          message: `${tokenText} have been sent to your wallet. You can verify the transaction on PolygonScan with ID: ${blockchainTxId.slice(0, 8)}...${blockchainTxId.slice(-6)}`
+          message: `${tokenText} have been sent to your wallet. You can verify the transaction on ${explorerName} with ID: ${txIdDisplay}`
         });
         
       if (notificationError) {

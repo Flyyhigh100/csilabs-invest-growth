@@ -8,7 +8,7 @@ export const downloadPendingDistributionsCSV = (transactions: PendingTransaction
   // Define CSV headers based on format type
   const headers = simplified 
     ? ['Wallet Address', 'CSL Tokens'] 
-    : ['Date', 'User Name', 'Email', 'USD Amount', 'CSL Tokens', 'Token Price', 'Wallet Address'];
+    : ['Date', 'User Name', 'Email', 'USD Amount', 'CSL Tokens', 'Token Price', 'Wallet Address', 'Network'];
   
   // Format transaction data for CSV
   const rows = transactions.map(tx => {
@@ -16,9 +16,21 @@ export const downloadPendingDistributionsCSV = (transactions: PendingTransaction
     const tokenAmount = tx.token_amount || 
       (tx.token_price && tx.token_price > 0 ? tx.amount / tx.token_price : tx.amount);
     
+    // Determine if this is a Solana transaction based on available data
+    const isSolanaWallet = tx.wallet_address?.startsWith('sol:') || 
+                         tx.payment_method?.toLowerCase().includes('solana') ||
+                         tx.wallet_address?.length > 42; // Simple heuristic, Solana addresses are longer
+    
+    const network = isSolanaWallet ? 'Solana' : 'Polygon';
+    
+    // Clean the wallet address (remove any network prefixes)
+    const cleanWalletAddress = tx.wallet_address?.startsWith('sol:') 
+      ? tx.wallet_address.substring(4) 
+      : tx.wallet_address;
+    
     if (simplified) {
-      // For simplified version - just wallet and token amount (for Cryptosender)
-      return [tx.wallet_address, tokenAmount.toFixed(2)];
+      // For simplified version - just wallet and token amount (for MultiSender)
+      return [cleanWalletAddress, tokenAmount.toFixed(2)];
     } else {
       // For detailed version - all fields
       const userName = tx.profiles ? 
@@ -31,7 +43,7 @@ export const downloadPendingDistributionsCSV = (transactions: PendingTransaction
       const formattedTokenAmount = tokenAmount.toFixed(2);
       const tokenPrice = tx.token_price ? tx.token_price.toFixed(2) : 'N/A';
       
-      return [date, userName, email, usdAmount, formattedTokenAmount, tokenPrice, tx.wallet_address];
+      return [date, userName, email, usdAmount, formattedTokenAmount, tokenPrice, cleanWalletAddress, network];
     }
   });
   
@@ -50,7 +62,7 @@ export const downloadPendingDistributionsCSV = (transactions: PendingTransaction
   link.setAttribute('href', url);
   
   // Set filename based on format type
-  const filenameSuffix = simplified ? 'simplified' : 'detailed';
+  const filenameSuffix = simplified ? 'multisender-format' : 'detailed';
   link.setAttribute('download', `pending-distributions-${filenameSuffix}-${new Date().toISOString().split('T')[0]}.csv`);
   link.style.display = 'none';
   
@@ -83,6 +95,15 @@ export const getDistributionStats = (transactions: PendingTransactionWithProfile
   const uniqueWallets = new Set(transactions.map(tx => tx.wallet_address));
   const uniqueWalletCount = uniqueWallets.size;
   
+  // Count transactions by network
+  const polygonTransactions = transactions.filter(tx => 
+    !tx.wallet_address?.startsWith('sol:') && 
+    !tx.payment_method?.toLowerCase().includes('solana') &&
+    !(tx.wallet_address?.length > 42) // Simple heuristic
+  ).length;
+  
+  const solanaTransactions = transactions.length - polygonTransactions;
+  
   // Calculate potential gas savings (estimate: 0.001 ETH per transaction saved)
   // We save (all transactions - unique wallets) * gas cost
   const transactionsSaved = Math.max(0, transactions.length - uniqueWalletCount);
@@ -94,7 +115,9 @@ export const getDistributionStats = (transactions: PendingTransactionWithProfile
     totalTransactions: transactions.length,
     uniqueWalletCount,
     transactionsSaved,
-    estimatedGasSavings
+    estimatedGasSavings,
+    polygonTransactions,
+    solanaTransactions
   };
 };
 

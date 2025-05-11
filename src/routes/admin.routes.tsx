@@ -108,6 +108,11 @@ export const adminSidebarLinks = [
     icon: <TransactionIcon className="h-5 w-5" />,
   },
   {
+    title: 'Transaction Tools',
+    path: '/admin/transaction-tools',
+    icon: <WrenchIcon className="h-5 w-5" />,
+  },
+  {
     title: 'Notifications',
     path: '/admin/notifications',
     icon: <NotificationIcon className="h-5 w-5" />,

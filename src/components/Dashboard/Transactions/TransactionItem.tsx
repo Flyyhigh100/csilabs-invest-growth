@@ -19,8 +19,27 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
       transaction.amount / transaction.token_price : null);
 
   // Generate blockchain explorer link if available
-  const getPolygonScanUrl = (txId: string) => {
-    return `https://polygonscan.com/tx/${txId}`;
+  const getBlockchainExplorerUrl = (txId: string) => {
+    // Check if it's a Solana transaction
+    const isSolana = txId.startsWith('sol:') || 
+                    transaction.payment_method?.toLowerCase().includes('solana');
+    
+    // Remove any blockchain prefix if present
+    const cleanTxId = txId.startsWith('sol:') ? txId.substring(4) : txId;
+    
+    // Return the appropriate blockchain explorer URL
+    if (isSolana) {
+      return `https://solscan.io/tx/${cleanTxId}`;
+    } else {
+      return `https://polygonscan.com/tx/${cleanTxId}`;
+    }
+  };
+
+  // Get explorer name based on transaction type
+  const getExplorerName = (txId: string) => {
+    const isSolana = txId.startsWith('sol:') || 
+                    transaction.payment_method?.toLowerCase().includes('solana');
+    return isSolana ? 'Solscan' : 'PolygonScan';
   };
 
   return (
@@ -52,14 +71,14 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
         {transaction.blockchain_tx_id && (
           <div className="mt-2 text-xs">
             <a 
-              href={getPolygonScanUrl(transaction.blockchain_tx_id)} 
+              href={getBlockchainExplorerUrl(transaction.blockchain_tx_id)} 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-800 hover:underline flex items-center"
               onClick={(e) => e.stopPropagation()}
             >
               <span className="truncate max-w-[150px]">
-                Blockchain TX: {transaction.blockchain_tx_id.slice(0, 6)}...{transaction.blockchain_tx_id.slice(-4)}
+                {getExplorerName(transaction.blockchain_tx_id)}: {transaction.blockchain_tx_id.slice(0, 6)}...{transaction.blockchain_tx_id.slice(-4)}
               </span>
               <ExternalLink className="h-3 w-3 ml-1" />
             </a>
