@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import { shouldShowNotification, clearNotificationTimer } from './throttle';
 
@@ -61,6 +62,20 @@ export function showSmartNotification(
 
   // Show toast based on priority
   console.log(`📢 Showing toast: "${title}" - "${message}" (priority: ${priority}, duration: ${toastDuration}ms)`);
+  
+  // Special case for token delivery - always show as success with high priority
+  if (type === 'tokens' && (title.includes('Delivered') || message.includes('sent to your wallet'))) {
+    toast.success(title, { 
+      id: toastId,
+      description: message, 
+      duration: PRIORITY_DURATIONS.high, // Always high priority for token delivery
+      onDismiss: () => {
+        console.log(`🧹 Dismissed toast: ${toastId}`);
+        activeToastIds.delete(toastId);
+      }
+    });
+    return;
+  }
   
   switch (priority) {
     case 'high':

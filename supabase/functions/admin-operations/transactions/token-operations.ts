@@ -28,13 +28,23 @@ export const markTokensSent = async ({ transactionId, blockchainTxId }, adminCli
     
     // Create a notification for the user about the token transfer
     if (txData) {
+      // Calculate token amount if available
+      const tokenAmount = txData.token_amount || 
+        (txData.token_price && txData.token_price > 0 ? 
+          txData.amount / txData.token_price : null);
+      
+      // Format token amount for the message
+      const tokenText = tokenAmount 
+        ? `${tokenAmount.toFixed(2)} CSI tokens`
+        : "your tokens";
+      
       const { error: notificationError } = await adminClient
         .from("notifications")
         .insert({
           user_id: txData.user_id,
-          type: "tokens_sent",
-          title: "Tokens Sent",
-          message: `Your tokens have been sent to your wallet. Transaction ID: ${blockchainTxId}`
+          type: "tokens", // Use consistent type for token notifications
+          title: "CSI Tokens Delivered",
+          message: `${tokenText} have been sent to your wallet. You can verify the transaction on PolygonScan with ID: ${blockchainTxId.slice(0, 8)}...${blockchainTxId.slice(-6)}`
         });
         
       if (notificationError) {

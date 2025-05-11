@@ -13,16 +13,19 @@ const TokenBalanceCard: React.FC = () => {
   const { data: transactions, isLoading, error } = useTransactions(user?.id);
   const [isOpen, setIsOpen] = useState(false);
   
-  // Calculate total tokens transferred
-  const completedTransactions = transactions?.filter(tx => 
-    tx.status === 'completed' && tx.token_sent === true
-  ) || [];
+  // Calculate total tokens delivered (using token_sent flag rather than status)
+  const deliveredTransactions = transactions?.filter(tx => tx.token_sent === true) || [];
   
-  const totalTokens = completedTransactions.reduce((sum, tx) => sum + Number(tx.amount), 0);
+  const totalTokens = deliveredTransactions.reduce((sum, tx) => {
+    // Use token amount if available, otherwise calculate from price
+    const tokenAmount = tx.token_amount || 
+      (tx.token_price && tx.token_price > 0 ? tx.amount / tx.token_price : 0);
+    return sum + Number(tokenAmount || 0);
+  }, 0);
   
   // Find the most recent transaction date
-  const latestTransaction = completedTransactions.length > 0 
-    ? new Date(Math.max(...completedTransactions.map(tx => new Date(tx.updated_at).getTime())))
+  const latestTransaction = deliveredTransactions.length > 0 
+    ? new Date(Math.max(...deliveredTransactions.map(tx => new Date(tx.updated_at).getTime())))
     : null;
   
   return (
@@ -53,16 +56,16 @@ const TokenBalanceCard: React.FC = () => {
             
             {latestTransaction && (
               <div className="text-sm text-gray-500 flex justify-between">
-                <span>Latest transfer:</span>
+                <span>Latest delivery:</span>
                 <span>{latestTransaction.toLocaleDateString()}</span>
               </div>
             )}
             
-            {completedTransactions.length > 0 && (
+            {deliveredTransactions.length > 0 && (
               <div className="space-y-2">
                 <div className="text-sm text-gray-500 flex justify-between">
-                  <span>Transfers completed:</span>
-                  <span>{completedTransactions.length}</span>
+                  <span>Deliveries completed:</span>
+                  <span>{deliveredTransactions.length}</span>
                 </div>
                 
                 <Collapsible
@@ -86,27 +89,33 @@ const TokenBalanceCard: React.FC = () => {
                         <div>Transaction</div>
                       </div>
                       <div className="divide-y">
-                        {completedTransactions.map(tx => (
-                          <div key={tx.id} className="p-2 text-sm grid grid-cols-3 hover:bg-gray-50">
-                            <div>{format(new Date(tx.updated_at), 'MMM dd, yyyy HH:mm')}</div>
-                            <div className="font-medium">{Number(tx.amount).toFixed(2)} CSI</div>
-                            <div>
-                              {tx.blockchain_tx_id ? (
-                                <a 
-                                  href={`https://blockexplorer.com/tx/${tx.blockchain_tx_id}`} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="flex items-center text-blue-600 hover:text-blue-800 hover:underline"
-                                >
-                                  <span className="truncate max-w-[100px]">{tx.blockchain_tx_id.substring(0, 8)}...</span>
-                                  <ExternalLink size={12} className="ml-1 inline" />
-                                </a>
-                              ) : (
-                                <span className="text-gray-400 italic">No blockchain ID</span>
-                              )}
+                        {deliveredTransactions.map(tx => {
+                          // Calculate token amount consistently
+                          const tokenAmount = tx.token_amount || 
+                            (tx.token_price && tx.token_price > 0 ? tx.amount / tx.token_price : 0);
+                            
+                          return (
+                            <div key={tx.id} className="p-2 text-sm grid grid-cols-3 hover:bg-gray-50">
+                              <div>{format(new Date(tx.updated_at), 'MMM dd, yyyy HH:mm')}</div>
+                              <div className="font-medium">{Number(tokenAmount).toFixed(2)} CSI</div>
+                              <div>
+                                {tx.blockchain_tx_id ? (
+                                  <a 
+                                    href={`https://polygonscan.com/tx/${tx.blockchain_tx_id}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="flex items-center text-blue-600 hover:text-blue-800 hover:underline"
+                                  >
+                                    <span className="truncate max-w-[100px]">{tx.blockchain_tx_id.substring(0, 8)}...</span>
+                                    <ExternalLink size={12} className="ml-1 inline" />
+                                  </a>
+                                ) : (
+                                  <span className="text-gray-400 italic">No blockchain ID</span>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   </CollapsibleContent>
@@ -114,9 +123,9 @@ const TokenBalanceCard: React.FC = () => {
               </div>
             )}
             
-            {completedTransactions.length === 0 && (
+            {deliveredTransactions.length === 0 && (
               <div className="text-center py-2 text-sm text-gray-500">
-                No tokens have been transferred to your wallet yet
+                No tokens have been delivered to your wallet yet
               </div>
             )}
           </div>

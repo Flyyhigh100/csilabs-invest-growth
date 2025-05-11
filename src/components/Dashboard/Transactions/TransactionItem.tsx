@@ -5,31 +5,23 @@ import { formatCurrency } from '@/utils/format';
 import { formatDateWithTime } from '@/utils/date';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Clock, Coins, DollarSign } from 'lucide-react';
+import { Clock, Coins, DollarSign, ExternalLink } from 'lucide-react';
+import StatusBadge from './StatusBadge';
 
 interface TransactionItemProps {
   transaction: Transaction;
 }
 
 const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
-  // Determine badge color based on transaction status
-  const getStatusBadgeVariant = () => {
-    switch (transaction.status) {
-      case 'pending':
-        return 'warning';
-      case 'completed':
-        return 'success';
-      case 'failed':
-        return 'destructive';
-      default:
-        return 'secondary';
-    }
-  };
-
   // Get token amount (if available) or calculate it based on price
   const tokenAmount = transaction.token_amount || 
     (transaction.token_price && transaction.token_price > 0 ? 
       transaction.amount / transaction.token_price : null);
+
+  // Generate blockchain explorer link if available
+  const getPolygonScanUrl = (txId: string) => {
+    return `https://polygonscan.com/tx/${txId}`;
+  };
 
   return (
     <div className="flex justify-between items-start p-4 bg-white rounded-lg shadow-sm border hover:border-cbis-blue/20 hover:shadow transition-all">
@@ -47,7 +39,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
           {tokenAmount && (
             <div className="flex items-center font-medium text-cbis-blue text-sm">
               <Coins className="h-3 w-3 mr-1" />
-              {tokenAmount.toFixed(2)} CSL
+              {tokenAmount.toFixed(2)} CSI
             </div>
           )}
         </div>
@@ -56,15 +48,27 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
           <Clock className="h-3 w-3 mr-1" />
           {formatDateWithTime(transaction.created_at)}
         </div>
+        
+        {transaction.blockchain_tx_id && (
+          <div className="mt-2 text-xs">
+            <a 
+              href={getPolygonScanUrl(transaction.blockchain_tx_id)} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 hover:underline flex items-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="truncate max-w-[150px]">
+                Blockchain TX: {transaction.blockchain_tx_id.slice(0, 6)}...{transaction.blockchain_tx_id.slice(-4)}
+              </span>
+              <ExternalLink className="h-3 w-3 ml-1" />
+            </a>
+          </div>
+        )}
       </div>
       
       <div className="flex flex-col items-end gap-2">
-        <Badge 
-          variant={getStatusBadgeVariant()} 
-          className="capitalize"
-        >
-          {transaction.status}
-        </Badge>
+        <StatusBadge transaction={transaction} />
         
         {transaction.token_price && (
           <div className="text-xs text-gray-500">
