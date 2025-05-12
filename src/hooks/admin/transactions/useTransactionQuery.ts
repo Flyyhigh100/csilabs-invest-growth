@@ -1,93 +1,64 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Transaction } from '@/types/transactions';
 import { UseUserTransactionsProps } from './types';
 
-// Hook to fetch transaction data with filters
-export const useTransactionQuery = ({
-  userId,
-  dateRange,
-  status,
-  paymentMethod,
-  minAmount,
-  maxAmount,
-  searchQuery
-}: UseUserTransactionsProps = {}) => {
+export const useTransactionQuery = (props: UseUserTransactionsProps = {}) => {
+  const { userId, status, startDate, endDate, minAmount, maxAmount, paymentMethod, limit = 100, sortBy = 'created_at', sortOrder = 'desc' } = props;
+  
   return useQuery({
-    queryKey: ['user-transactions', userId, dateRange, status, paymentMethod, minAmount, maxAmount, searchQuery],
+    queryKey: ['admin-transactions', userId, status, startDate, endDate, minAmount, maxAmount, paymentMethod, limit, sortBy, sortOrder],
     queryFn: async () => {
-      try {
-        if (!userId) return [];
-
-        console.log(`Fetching transactions for user ${userId} with filters:`, {
-          dateRange,
-          status,
-          paymentMethod,
-          minAmount,
-          maxAmount,
-          searchQuery
-        });
-
-        // Start with the base query
-        let query = supabase
-          .from('transactions')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        // Apply filters
-        if (userId) {
-          query = query.eq('user_id', userId);
-        }
-
-        if (dateRange?.from) {
-          query = query.gte('created_at', dateRange.from.toISOString());
-        }
-
-        if (dateRange?.to) {
-          query = query.lte('created_at', dateRange.to.toISOString());
-        }
-
-        if (status) {
-          query = query.eq('status', status);
-        }
-
-        if (paymentMethod) {
-          query = query.eq('payment_method', paymentMethod);
-        }
-
-        if (minAmount !== undefined) {
-          query = query.gte('amount', minAmount);
-        }
-
-        if (maxAmount !== undefined) {
-          query = query.lte('amount', maxAmount);
-        }
-
-        // Execute the query
-        const { data, error } = await query;
-
-        if (error) throw error;
-
-        // Apply search filtering in memory (since we can't easily do this in the database query)
-        let filteredData = data;
-        if (searchQuery) {
-          const lowerSearchQuery = searchQuery.toLowerCase();
-          filteredData = data.filter(tx => 
-            tx.transaction_id?.toLowerCase().includes(lowerSearchQuery) ||
-            tx.payment_method?.toLowerCase().includes(lowerSearchQuery) ||
-            tx.wallet_address?.toLowerCase().includes(lowerSearchQuery) ||
-            tx.admin_notes?.toLowerCase().includes(lowerSearchQuery)
-          );
-        }
-
-        console.log(`Found ${filteredData.length} transactions for user ${userId}`);
-        return filteredData as Transaction[];
-      } catch (err) {
-        console.error("Error fetching user transactions:", err);
-        throw err;
+      console.log(`Fetching transactions for ${userId ? 'user: ' + userId : 'all users'}`);
+      
+      // Start building the query
+      let query = supabase
+        .from('transactions')
+        .select('*');
+      
+      // Apply filters
+      if (userId) {
+        query = query.eq('user_id', userId);
       }
-    },
-    enabled: !!userId,
+      
+      if (status) {
+        query = query.eq('status', status);
+      }
+      
+      if (startDate) {
+        query = query.gte('created_at', startDate.toISOString());
+      }
+      
+      if (endDate) {
+        query = query.lte('created_at', endDate.toISOString());
+      }
+      
+      if (minAmount !== undefined) {
+        query = query.gte('amount', minAmount);
+      }
+      
+      if (maxAmount !== undefined) {
+        query = query.lte('amount', maxAmount);
+      }
+      
+      if (paymentMethod) {
+        query = query.eq('payment_method', paymentMethod);
+      }
+      
+      // Apply sorting and limits
+      query = query
+        .order(sortBy, { ascending: sortOrder === 'asc' })
+        .limit(limit);
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching transactions:', error);
+        throw error;
+      }
+      
+      console.log(`Fetched ${data?.length || 0} transactions`);
+      return data || [];
+    }
   });
 };

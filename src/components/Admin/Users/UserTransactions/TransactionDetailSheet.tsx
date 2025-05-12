@@ -1,122 +1,142 @@
 
 import React from 'react';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/utils/format';
-import { Transaction } from '@/types/transactions';
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
-  SheetTitle, 
-  SheetDescription,
-  SheetClose
-} from '@/components/ui/sheet';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ExternalLink, Copy, CheckCircle } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 
-interface TransactionDetailProps {
-  transaction: Transaction | null;
+interface TransactionDetailSheetProps {
+  transaction: any | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const TransactionDetailSheet: React.FC<TransactionDetailProps> = ({
-  transaction,
-  open,
-  onOpenChange
-}) => {
-  const [copied, setCopied] = React.useState<string | null>(null);
-
+const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({ transaction, open, onOpenChange }) => {
   if (!transaction) return null;
-
-  const copyToClipboard = (value: string, field: string) => {
-    navigator.clipboard.writeText(value);
-    setCopied(field);
-    setTimeout(() => setCopied(null), 2000);
+  
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
   };
-
-  const renderDetailRow = (label: string, value: string | number | null | undefined, field: string) => {
-    if (value === null || value === undefined) return null;
-    
-    return (
-      <div className="flex flex-col space-y-1 py-2 border-b">
-        <span className="text-sm text-muted-foreground">{label}</span>
-        <div className="flex items-center gap-2">
-          <span className="font-medium break-all text-sm">{value}</span>
-          <button 
-            onClick={() => copyToClipboard(String(value), field)}
-            className="text-gray-400 hover:text-gray-600"
-            title="Copy to clipboard"
-          >
-            {copied === field ? (
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            ) : (
-              <Copy className="h-4 w-4" />
-            )}
-          </button>
-        </div>
-      </div>
-    );
+  
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+      case 'failed':
+        return <Badge className="bg-red-100 text-red-800">Failed</Badge>;
+      case 'processing':
+        return <Badge className="bg-blue-100 text-blue-800">Processing</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
   };
-
+  
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-lg overflow-y-auto">
-        <SheetHeader className="mb-4">
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader>
           <SheetTitle>Transaction Details</SheetTitle>
           <SheetDescription>
-            ID: {transaction.transaction_id}
+            Transaction ID: {transaction.id}
           </SheetDescription>
         </SheetHeader>
-        
-        <div className="space-y-6">
-          <Card className="p-4 space-y-2">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-semibold">Payment Information</h3>
-              <div className="text-sm">
-                {new Date(transaction.created_at).toLocaleString()}
+        <div className="mt-6">
+          <div className="space-y-6">
+            {/* Status and Amount */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Status</p>
+                {getStatusBadge(transaction.status || 'Unknown')}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Amount</p>
+                <p className="font-mono text-lg font-bold">
+                  {formatCurrency(transaction.amount || 0)}
+                </p>
               </div>
             </div>
             
-            {renderDetailRow("Amount", formatCurrency(transaction.amount), "amount")}
-            {renderDetailRow("Status", transaction.status, "status")}
-            {renderDetailRow("Payment Method", transaction.payment_method, "paymentMethod")}
-            {renderDetailRow("Payment Address", transaction.payment_address, "paymentAddress")}
-            {renderDetailRow("External Transaction ID", transaction.external_transaction_id, "externalTransactionId")}
-          </Card>
-          
-          <Card className="p-4 space-y-2">
-            <h3 className="text-lg font-semibold mb-2">Token Information</h3>
-            {renderDetailRow("Wallet Address", transaction.wallet_address, "walletAddress")}
-            {renderDetailRow("Token Amount", transaction.token_amount, "tokenAmount")}
-            {renderDetailRow("Token Price", transaction.token_price ? `$${transaction.token_price}` : null, "tokenPrice")}
-            {renderDetailRow("Token Sent", transaction.token_sent ? "Yes" : "No", "tokenSent")}
-            {renderDetailRow("Blockchain Tx ID", transaction.blockchain_tx_id, "blockchainTxId")}
-          </Card>
-          
-          <Card className="p-4 space-y-2">
-            <h3 className="text-lg font-semibold mb-2">Additional Information</h3>
-            {renderDetailRow("Admin Notes", transaction.admin_notes || "No notes", "adminNotes")}
-            {renderDetailRow("Approval Status", transaction.approval_status, "approvalStatus")}
-            {renderDetailRow("High Value Approval Required", transaction.high_value_approval_required ? "Yes" : "No", "highValueApproval")}
-          </Card>
-          
-          {transaction.blockchain_tx_id && (
-            <div className="flex justify-end">
-              <Button
-                variant="outline"
-                className="flex items-center gap-2"
-                onClick={() => window.open(`https://polygonscan.com/tx/${transaction.blockchain_tx_id}`, '_blank')}
-              >
-                <ExternalLink className="h-4 w-4" />
-                View on Blockchain
-              </Button>
+            {/* Token Details */}
+            {transaction.token_amount && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Token Amount</p>
+                  <p className="font-mono">{transaction.token_amount}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Token Price</p>
+                  <p className="font-mono">{formatCurrency(transaction.token_price || 0)}</p>
+                </div>
+              </div>
+            )}
+            
+            {/* Payment Details */}
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-muted-foreground">Payment Details</p>
+              <div className="bg-gray-50 p-3 rounded-md space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm">Method</span>
+                  <span className="text-sm font-medium">{transaction.payment_method || 'Not specified'}</span>
+                </div>
+                {transaction.currency && (
+                  <div className="flex justify-between">
+                    <span className="text-sm">Currency</span>
+                    <span className="text-sm font-medium">{transaction.currency}</span>
+                  </div>
+                )}
+                {transaction.payment_address && (
+                  <div>
+                    <span className="text-sm block">Payment Address</span>
+                    <span className="text-sm font-mono break-all">{transaction.payment_address}</span>
+                  </div>
+                )}
+                {transaction.blockchain_tx_id && (
+                  <div>
+                    <span className="text-sm flex items-center">
+                      Blockchain Transaction
+                      <ExternalLink className="h-3 w-3 ml-1" />
+                    </span>
+                    <span className="text-sm font-mono break-all">{transaction.blockchain_tx_id}</span>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-          
-          <SheetClose asChild>
-            <Button className="w-full" variant="outline">Close</Button>
-          </SheetClose>
+            
+            {/* Timestamps */}
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-muted-foreground">Timeline</p>
+              <div className="bg-gray-50 p-3 rounded-md space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm">Created</span>
+                  <span className="text-sm">{formatDate(transaction.created_at)}</span>
+                </div>
+                {transaction.updated_at && (
+                  <div className="flex justify-between">
+                    <span className="text-sm">Last Updated</span>
+                    <span className="text-sm">{formatDate(transaction.updated_at)}</span>
+                  </div>
+                )}
+                {transaction.completed_at && (
+                  <div className="flex justify-between">
+                    <span className="text-sm">Completed</span>
+                    <span className="text-sm">{formatDate(transaction.completed_at)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Admin Notes */}
+            {transaction.admin_notes && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Admin Notes</p>
+                <p className="text-sm bg-gray-50 p-3 rounded-md whitespace-pre-wrap">
+                  {transaction.admin_notes}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </SheetContent>
     </Sheet>

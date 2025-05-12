@@ -1,26 +1,39 @@
 
-// Types for the transaction hooks
+// Types for transaction related hooks
+
 export interface UserTransactionSummary {
   totalCount: number;
   totalValue: number;
-  latestDate: string | null;
-  successRate: number;
-  paymentMethods: {
+  completedCount: number;
+  pendingCount: number;
+  averageTransactionValue: number;
+  largestTransaction: number;
+  paymentMethods: Array<{
     method: string;
     count: number;
-  }[];
-  statusBreakdown: {
+    value: number;
+  }>;
+  statusBreakdown: Array<{
     status: string;
     count: number;
-  }[];
+    value: number;
+  }>;
+  monthlyTrends: Array<{
+    month: string;
+    count: number;
+    value: number;
+  }>;
 }
 
 export interface UseUserTransactionsProps {
   userId?: string;
-  dateRange?: { from: Date; to: Date };
   status?: string;
-  paymentMethod?: string;
+  startDate?: Date;
+  endDate?: Date;
   minAmount?: number;
   maxAmount?: number;
-  searchQuery?: string;
+  paymentMethod?: string;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }

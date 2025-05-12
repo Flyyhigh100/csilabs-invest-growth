@@ -1,21 +1,25 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users as UsersIcon } from 'lucide-react';
+import { Users as UsersIcon, BarChart2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Import the enhanced components
 import EnhancedUsersTable from './EnhancedUsersTable';
 import UsersToolbar from './UsersToolbar';
 import UsersError from './UsersError';
 import UsersLoading from './UsersLoading';
+import UserStats from './Dashboard/UserStats';
 
 // Import the hook for admin users
 import { useAdminUsers } from '@/hooks/admin/useAdminUsers';
 
 const AdminUsersPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<string>('table');
+  
   const { 
     users, 
     isLoading, 
@@ -104,29 +108,57 @@ const AdminUsersPage: React.FC = () => {
             View and manage all users and their transaction data
           </CardDescription>
         </CardHeader>
+        
         <CardContent className="p-3 md:p-6">
-          <UsersToolbar 
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            onRefresh={handleRefresh}
-            onTestDbConnection={() => {}}
-          />
-          
-          <div className="overflow-x-auto -mx-3 md:mx-0">
-            {isLoading ? (
-              <UsersLoading />
-            ) : error ? (
-              <UsersError error={error as Error} onRetry={handleRefresh} />
-            ) : (
-              <div className="min-w-full px-3 md:px-0">
-                <EnhancedUsersTable 
-                  users={users} 
-                  onCheckKyc={checkUserKyc} 
-                  searchQuery={searchQuery}
-                />
+          <Tabs defaultValue="table" value={activeTab} onValueChange={setActiveTab}>
+            <div className="flex justify-between items-center mb-6">
+              <TabsList>
+                <TabsTrigger value="table">
+                  <UsersIcon className="h-4 w-4 mr-2" />
+                  Users Table
+                </TabsTrigger>
+                <TabsTrigger value="dashboard">
+                  <BarChart2 className="h-4 w-4 mr-2" />
+                  User Analytics
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <TabsContent value="table" className="m-0">
+              <UsersToolbar 
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onRefresh={handleRefresh}
+                onTestDbConnection={() => {}}
+              />
+              
+              <div className="overflow-x-auto -mx-3 md:mx-0 mt-4">
+                {isLoading ? (
+                  <UsersLoading />
+                ) : error ? (
+                  <UsersError error={error as Error} onRetry={handleRefresh} />
+                ) : (
+                  <div className="min-w-full px-3 md:px-0">
+                    <EnhancedUsersTable 
+                      users={users} 
+                      onCheckKyc={checkUserKyc} 
+                      searchQuery={searchQuery}
+                    />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </TabsContent>
+            
+            <TabsContent value="dashboard" className="m-0">
+              {isLoading ? (
+                <UsersLoading />
+              ) : error ? (
+                <UsersError error={error as Error} onRetry={handleRefresh} />
+              ) : (
+                <UserStats users={users} />
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </AdminLayout>

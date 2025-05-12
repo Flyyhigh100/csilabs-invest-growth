@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { RefreshCw } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface UsersErrorProps {
@@ -10,15 +10,15 @@ interface UsersErrorProps {
 
 const UsersError: React.FC<UsersErrorProps> = ({ error, onRetry }) => {
   return (
-    <div className="p-6 bg-red-50 text-red-800 rounded-md">
-      <h3 className="font-bold mb-2">Error loading users</h3>
-      <p className="mb-4">{error.message}</p>
-      <Button 
-        variant="destructive" 
-        onClick={onRetry} 
-        className="flex items-center gap-2"
-      >
-        <RefreshCw className="h-4 w-4" />
+    <div className="flex flex-col items-center justify-center py-10 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+        <AlertCircle className="h-6 w-6 text-red-600" />
+      </div>
+      <h3 className="mt-4 text-lg font-medium text-gray-900">Error loading users</h3>
+      <p className="mt-2 text-sm text-gray-500 max-w-md">
+        {error.message || 'An unexpected error occurred while loading user data.'}
+      </p>
+      <Button onClick={onRetry} variant="outline" className="mt-6">
         Retry
       </Button>
     </div>
