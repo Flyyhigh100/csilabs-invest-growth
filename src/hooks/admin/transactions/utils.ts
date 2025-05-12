@@ -18,7 +18,9 @@ export const calculateSummary = (transactions: Transaction[]): UserTransactionSu
     testCount: 0,
     testValue: 0,
     largestTransaction: 0,
-    largestCompletedTransaction: 0
+    largestCompletedTransaction: 0,
+    paymentMethods: [],
+    statusBreakdown: []
   };
   
   // Process each transaction
@@ -60,6 +62,48 @@ export const calculateSummary = (transactions: Transaction[]): UserTransactionSu
       }
     }
   });
+  
+  // Generate payment methods breakdown
+  const paymentMethodMap = new Map<string, { count: number, value: number }>();
+  transactions.forEach(tx => {
+    const method = tx.payment_method || 'Unknown';
+    const amount = Number(tx.amount) || 0;
+    
+    if (!paymentMethodMap.has(method)) {
+      paymentMethodMap.set(method, { count: 0, value: 0 });
+    }
+    
+    const current = paymentMethodMap.get(method)!;
+    paymentMethodMap.set(method, {
+      count: current.count + 1,
+      value: current.value + amount
+    });
+  });
+  
+  summary.paymentMethods = Array.from(paymentMethodMap.entries()).map(
+    ([method, { count, value }]) => ({ method, count, value })
+  );
+  
+  // Generate status breakdown
+  const statusMap = new Map<string, { count: number, value: number }>();
+  transactions.forEach(tx => {
+    const status = tx.status || 'Unknown';
+    const amount = Number(tx.amount) || 0;
+    
+    if (!statusMap.has(status)) {
+      statusMap.set(status, { count: 0, value: 0 });
+    }
+    
+    const current = statusMap.get(status)!;
+    statusMap.set(status, {
+      count: current.count + 1,
+      value: current.value + amount
+    });
+  });
+  
+  summary.statusBreakdown = Array.from(statusMap.entries()).map(
+    ([status, { count, value }]) => ({ status, count, value })
+  );
   
   return summary;
 };

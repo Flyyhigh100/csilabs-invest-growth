@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { UserTransactionSummary } from '@/hooks/admin/useUserTransactions';
+import { UserTransactionSummary } from '@/hooks/admin/transactions/types';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface TransactionChartsProps {

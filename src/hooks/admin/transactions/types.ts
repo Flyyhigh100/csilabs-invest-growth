@@ -37,6 +37,19 @@ export interface UserTransactionSummary {
   // Largest transactions
   largestTransaction: number;
   largestCompletedTransaction: number;
+  
+  // Charts data
+  paymentMethods: Array<{
+    method: string;
+    count: number;
+    value: number;
+  }>;
+  
+  statusBreakdown: Array<{
+    status: string;
+    count: number;
+    value: number;
+  }>;
 }
 
 export interface GroupedTransactions {
