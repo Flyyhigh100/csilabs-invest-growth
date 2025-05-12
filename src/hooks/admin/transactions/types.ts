@@ -1,29 +1,5 @@
 
-// Types for transaction related hooks
-
-export interface UserTransactionSummary {
-  totalCount: number;
-  totalValue: number;
-  completedCount: number;
-  pendingCount: number;
-  averageTransactionValue: number;
-  largestTransaction: number;
-  paymentMethods: Array<{
-    method: string;
-    count: number;
-    value: number;
-  }>;
-  statusBreakdown: Array<{
-    status: string;
-    count: number;
-    value: number;
-  }>;
-  monthlyTrends: Array<{
-    month: string;
-    count: number;
-    value: number;
-  }>;
-}
+import { Transaction } from "@/types/transactions";
 
 export interface UseUserTransactionsProps {
   userId?: string;
@@ -36,4 +12,36 @@ export interface UseUserTransactionsProps {
   limit?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+}
+
+export interface UserTransactionSummary {
+  // Total stats (all non-test transactions)
+  totalCount: number;
+  totalValue: number;
+  
+  // Completed stats (non-test, status=completed)
+  completedCount: number;
+  completedValue: number;
+  
+  // Pending stats (non-test, status!=completed)
+  pendingCount: number;
+  pendingValue: number;
+  
+  // Failed stats
+  failedCount: number;
+  
+  // Test stats (all is_test=true)
+  testCount: number;
+  testValue: number;
+  
+  // Largest transactions
+  largestTransaction: number;
+  largestCompletedTransaction: number;
+}
+
+export interface GroupedTransactions {
+  completed: Transaction[];
+  pending: Transaction[];
+  failed: Transaction[];
+  test: Transaction[];
 }

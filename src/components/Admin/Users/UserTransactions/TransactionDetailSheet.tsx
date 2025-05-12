@@ -3,7 +3,7 @@ import React from 'react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/utils/format';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, CheckCircle } from 'lucide-react';
 import { TestIconLucide } from '@/components/icons/TestIcon';
 
 interface TransactionDetailSheetProps {
@@ -19,10 +19,21 @@ const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({ transac
     return new Date(dateString).toLocaleString();
   };
   
-  const getStatusBadge = (status: string) => {
+  const isCompleted = transaction?.status?.toLowerCase() === 'completed';
+  const isRealValue = isCompleted && !transaction?.is_test;
+  
+  const getStatusBadge = (status: string, isTest: boolean) => {
+    if (isTest) {
+      return <Badge className="bg-amber-100 text-amber-800 flex gap-1 items-center">
+        <TestIconLucide className="h-3 w-3" /> Test {status}
+      </Badge>;
+    }
+    
     switch (status.toLowerCase()) {
       case 'completed':
-        return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
+        return <Badge className="bg-green-100 text-green-800 flex gap-1 items-center">
+          <CheckCircle className="h-3 w-3" /> Completed
+        </Badge>;
       case 'pending':
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
       case 'failed':
@@ -56,18 +67,32 @@ const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({ transac
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Status</p>
-                {getStatusBadge(transaction.status || 'Unknown')}
+                {getStatusBadge(transaction.status || 'Unknown', transaction.is_test)}
+                
+                {isRealValue && (
+                  <div className="mt-2 text-xs text-green-600 flex items-center">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Counts toward real value
+                  </div>
+                )}
+                
+                {isCompleted && transaction.is_test && (
+                  <div className="mt-2 text-xs text-amber-600">
+                    Test data (not counted in real value)
+                  </div>
+                )}
+                
+                {!isCompleted && !transaction.is_test && (
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Not counted in real value until completed
+                  </div>
+                )}
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Amount</p>
-                <p className={`font-mono text-lg font-bold ${transaction.is_test ? 'text-amber-600' : ''}`}>
+                <p className={`font-mono text-lg font-bold ${transaction.is_test ? 'text-amber-600' : isCompleted ? 'text-green-600' : ''}`}>
                   {formatCurrency(transaction.amount || 0)}
                 </p>
-                {transaction.is_test && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    Test data (excluded from real volume)
-                  </p>
-                )}
               </div>
             </div>
             
@@ -158,6 +183,24 @@ const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({ transac
                 <p className="text-sm text-amber-800 flex items-center">
                   <TestIconLucide className="h-4 w-4 mr-2" />
                   This is a test transaction and should be excluded from real volume calculations.
+                </p>
+              </div>
+            )}
+            
+            {/* Real Value Info */}
+            {isRealValue && (
+              <div className="p-3 bg-green-50 border border-green-100 rounded-md">
+                <p className="text-sm text-green-800 flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  This transaction is counted in the real value calculations.
+                </p>
+              </div>
+            )}
+            
+            {!isCompleted && !transaction.is_test && (
+              <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-md">
+                <p className="text-sm text-yellow-800">
+                  This transaction will be counted in real value once it is completed.
                 </p>
               </div>
             )}

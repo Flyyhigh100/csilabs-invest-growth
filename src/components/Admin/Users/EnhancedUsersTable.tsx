@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Eye, Wallet, RefreshCw, BeakerIcon } from 'lucide-react';
+import { AlertCircle, Eye, Wallet, RefreshCw } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/format';
@@ -40,20 +40,41 @@ interface User {
 }
 
 interface TransactionStats {
+  // Total counts for all non-test transactions
   count: number;
   value: number;
   latest?: string;
+  
+  // Completed non-test transactions (real value)
+  completed_count: number;
+  completed_value: number;
+  
+  // Pending non-test transactions
+  pending_count: number;
+  pending_value: number;
+  
+  // Test transactions
   test_count: number;
   test_value: number;
   test_latest?: string; 
+  
+  // Test completed transactions
+  test_completed_count: number;
+  test_completed_value: number;
 }
 
 interface EnhancedUser extends User {
   transaction_count: number;
   transaction_value: number;
+  completed_transaction_count: number;
+  completed_transaction_value: number;
+  pending_transaction_count: number;
+  pending_transaction_value: number;
   latest_transaction?: string;
   test_transaction_count: number;
   test_transaction_value: number;
+  test_completed_count: number;
+  test_completed_value: number;
   test_latest_transaction?: string;
   has_test_data: boolean;
 }
@@ -79,7 +100,7 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
     queryFn: async () => {
       setIsLoadingTransactionStats(true);
       try {
-        console.log("Fetching transaction stats for all users with test/real separation");
+        console.log("Fetching transaction stats for all users with test/real and status separation");
         const { data, error } = await supabase
           .from('transactions')
           .select(`
@@ -94,16 +115,24 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
         
         const stats: Record<string, TransactionStats> = {};
         
-        // Process transaction data separating test and real transactions
+        // Process transaction data separating test/real and completed/pending
         data.forEach(tx => {
           if (!tx.user_id) return;
+          
+          const isCompleted = tx.status?.toLowerCase() === 'completed';
           
           if (!stats[tx.user_id]) {
             stats[tx.user_id] = { 
               count: 0, 
-              value: 0, 
-              test_count: 0, 
-              test_value: 0
+              value: 0,
+              completed_count: 0,
+              completed_value: 0, 
+              pending_count: 0,
+              pending_value: 0,
+              test_count: 0,
+              test_value: 0,
+              test_completed_count: 0,
+              test_completed_value: 0
             };
           }
           
@@ -112,15 +141,31 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
             stats[tx.user_id].test_count++;
             stats[tx.user_id].test_value += Number(tx.amount || 0);
             
+            // Track completed test transactions separately
+            if (isCompleted) {
+              stats[tx.user_id].test_completed_count++;
+              stats[tx.user_id].test_completed_value += Number(tx.amount || 0);
+            }
+            
             // Track latest test transaction
             if (!stats[tx.user_id].test_latest || 
                 new Date(tx.created_at) > new Date(stats[tx.user_id].test_latest!)) {
               stats[tx.user_id].test_latest = tx.created_at;
             }
           } else {
-            // Real transaction
+            // Real transaction (non-test)
             stats[tx.user_id].count++;
             stats[tx.user_id].value += Number(tx.amount || 0);
+            
+            if (isCompleted) {
+              // Completed real transaction
+              stats[tx.user_id].completed_count++;
+              stats[tx.user_id].completed_value += Number(tx.amount || 0);
+            } else {
+              // Pending real transaction
+              stats[tx.user_id].pending_count++;
+              stats[tx.user_id].pending_value += Number(tx.amount || 0);
+            }
             
             // Track latest real transaction
             if (!stats[tx.user_id].latest || 
@@ -130,7 +175,7 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
           }
         });
         
-        console.log(`Fetched transaction stats for ${Object.keys(stats).length} users with test/real separation`);
+        console.log(`Fetched transaction stats for ${Object.keys(stats).length} users with test/real and status separation`);
         return stats;
       } catch (err) {
         console.error('Error fetching transaction stats:', err);
@@ -171,18 +216,30 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
   const enhancedUsers: EnhancedUser[] = users.map(user => {
     const stats = transactionStats[user.id] || { 
       count: 0, 
-      value: 0, 
-      test_count: 0, 
-      test_value: 0 
+      value: 0,
+      completed_count: 0,
+      completed_value: 0,
+      pending_count: 0,
+      pending_value: 0,
+      test_count: 0,
+      test_value: 0,
+      test_completed_count: 0,
+      test_completed_value: 0
     };
     
     return {
       ...user,
       transaction_count: stats.count,
       transaction_value: stats.value,
+      completed_transaction_count: stats.completed_count,
+      completed_transaction_value: stats.completed_value,
+      pending_transaction_count: stats.pending_count,
+      pending_transaction_value: stats.pending_value,
       latest_transaction: stats.latest,
       test_transaction_count: stats.test_count,
       test_transaction_value: stats.test_value,
+      test_completed_count: stats.test_completed_count,
+      test_completed_value: stats.test_completed_value,
       test_latest_transaction: stats.test_latest,
       has_test_data: stats.test_count > 0
     };
@@ -221,7 +278,21 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
                   <RefreshCw className="h-3 w-3 inline-block animate-spin ml-1" />
                 )}
               </TableHead>
-              <TableHead>Value</TableHead>
+              <TableHead>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>Value <span className="text-xs text-green-600">(Real*)</span></div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <div className="text-xs">
+                        <div className="font-semibold">Value (Real*)</div>
+                        <div>Only completed, non-test transactions</div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -267,20 +338,36 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
                           <div className="text-xs">
                             <div className="font-semibold">Transaction Stats:</div>
                             <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-1">
-                              <div>Real transactions:</div>
+                              <div className="font-semibold text-green-600">Real (completed):</div>
+                              <div className="text-right text-green-600">{user.completed_transaction_count}</div>
+                              <div className="text-green-600">Real value:</div>
+                              <div className="text-right text-green-600">{formatCurrency(user.completed_transaction_value)}</div>
+                              
+                              {user.pending_transaction_count > 0 && (
+                                <>
+                                  <div className="text-amber-600">Pending transactions:</div>
+                                  <div className="text-right text-amber-600">{user.pending_transaction_count}</div>
+                                  <div className="text-amber-600">Pending value:</div>
+                                  <div className="text-right text-amber-600">{formatCurrency(user.pending_transaction_value)}</div>
+                                </>
+                              )}
+                              
+                              <div>Total transactions:</div>
                               <div className="text-right">{user.transaction_count}</div>
-                              <div>Real value:</div>
+                              <div>Total value:</div>
                               <div className="text-right">{formatCurrency(user.transaction_value)}</div>
+                              
                               {user.latest_transaction && (
                                 <>
                                   <div>Last real TX:</div>
                                   <div className="text-right">{new Date(user.latest_transaction).toLocaleDateString()}</div>
                                 </>
                               )}
+                              
                               {user.has_test_data && (
                                 <>
-                                  <div className="text-amber-600">Test transactions:</div>
-                                  <div className="text-amber-600 text-right">{user.test_transaction_count}</div>
+                                  <div className="text-amber-600 font-semibold mt-1">Test transactions:</div>
+                                  <div className="text-amber-600 text-right mt-1">{user.test_transaction_count}</div>
                                   <div className="text-amber-600">Test value:</div>
                                   <div className="text-amber-600 text-right">{formatCurrency(user.test_transaction_value)}</div>
                                 </>
@@ -301,19 +388,29 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="flex items-center gap-1">
-                            <span>{formatCurrency(user.transaction_value > 0 ? user.transaction_value : 0)}</span>
+                            <span className="text-green-600 font-medium">
+                              {formatCurrency(user.completed_transaction_value > 0 ? user.completed_transaction_value : 0)}
+                            </span>
+                            {user.pending_transaction_value > 0 && (
+                              <span className="text-xs text-amber-600">
+                                (+{formatCurrency(user.pending_transaction_value)} pending)
+                              </span>
+                            )}
                             {user.test_transaction_value > 0 && (
                               <span className="text-xs text-amber-500">
-                                (+{formatCurrency(user.test_transaction_value)})
+                                (+{formatCurrency(user.test_transaction_value)} test)
                               </span>
                             )}
                           </div>
                         </TooltipTrigger>
                         <TooltipContent side="top">
                           <div className="text-xs">
-                            <div>Real value: {formatCurrency(user.transaction_value)}</div>
+                            <div className="text-green-600 font-semibold">Real value (completed): {formatCurrency(user.completed_transaction_value)}</div>
+                            {user.pending_transaction_value > 0 && (
+                              <div className="text-amber-600">Pending value: {formatCurrency(user.pending_transaction_value)}</div>
+                            )}
                             {user.test_transaction_value > 0 && (
-                              <div className="text-amber-600">Test value: {formatCurrency(user.test_transaction_value)}</div>
+                              <div className="text-amber-500">Test value: {formatCurrency(user.test_transaction_value)}</div>
                             )}
                             <div className="font-semibold mt-1">
                               Total: {formatCurrency(user.transaction_value + user.test_transaction_value)}
@@ -353,6 +450,10 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
             )}
           </TableBody>
         </Table>
+      </div>
+      
+      <div className="mt-4 text-xs text-muted-foreground flex items-center">
+        <span className="text-green-600 font-semibold mr-1">*Real Value:</span> Only completed, non-test transactions are counted as real value.
       </div>
       
       {filteredUsers.length === 0 && searchQuery && (

@@ -13,6 +13,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { formatCurrency } from '@/utils/format';
 
 interface UserDetailProps {
   user: any;
@@ -101,6 +102,39 @@ const UserDetailView: React.FC<UserDetailProps> = ({ user, onCheckKyc }) => {
                   </div>
                 </div>
               </div>
+              
+              {/* Transaction Value Summary */}
+              {user.completed_transaction_value !== undefined && (
+                <div className="flex items-start gap-3">
+                  <div className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                  <div className="w-full">
+                    <p className="text-sm font-medium text-muted-foreground">Transaction Summary</p>
+                    <div className="mt-2 grid grid-cols-1 gap-2 text-sm">
+                      <div className="flex justify-between items-center bg-green-50 px-2 py-1 rounded-sm">
+                        <span className="text-green-700 font-medium">Real Value (Completed):</span>
+                        <span className="text-green-700 font-medium">{formatCurrency(user.completed_transaction_value || 0)}</span>
+                      </div>
+                      
+                      {user.pending_transaction_value > 0 && (
+                        <div className="flex justify-between items-center bg-amber-50 px-2 py-1 rounded-sm">
+                          <span className="text-amber-700">Pending Value:</span>
+                          <span className="text-amber-700">{formatCurrency(user.pending_transaction_value)}</span>
+                        </div>
+                      )}
+                      
+                      {user.test_transaction_value > 0 && (
+                        <div className="flex justify-between items-center bg-gray-50 px-2 py-1 rounded-sm">
+                          <span className="text-gray-500 flex items-center gap-1">
+                            <TestIconLucide className="h-3 w-3 text-amber-500" />
+                            Test Value:
+                          </span>
+                          <span className="text-gray-500">{formatCurrency(user.test_transaction_value)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {/* Test data indicator */}
               {user.has_test_data && (
