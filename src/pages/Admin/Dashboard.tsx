@@ -28,6 +28,8 @@ const AdminDashboard: React.FC = () => {
     queryKey: ['admin-dashboard-summary', includeTestData],
     queryFn: async () => {
       try {
+        console.log('Fetching admin dashboard summary with includeTestData:', includeTestData);
+        
         // Fetch user count with test data toggle
         let userQuery = supabase.from('profiles').select('*', { count: 'exact', head: true });
         
@@ -45,8 +47,11 @@ const AdminDashboard: React.FC = () => {
         
         if (kycError) throw kycError;
         
-        // Fetch transaction stats
-        let txQuery = supabase.from('transactions').select('status, amount');
+        // Fetch transaction stats - similar query to what's used in useTransactionAnalytics
+        let txQuery = supabase.from('transactions')
+          .select('status, amount')
+          .eq('status', 'completed');  // Only count completed transactions for the volume
+          
         if (!includeTestData) {
           txQuery = txQuery.eq('is_test', false);
         }
@@ -54,6 +59,9 @@ const AdminDashboard: React.FC = () => {
         const { data: txData, error: txError } = await txQuery;
         
         if (txError) throw txError;
+        
+        console.log(`Dashboard: Fetched ${txData?.length || 0} completed transactions`);
+        console.log('Dashboard: Transaction data sample:', txData?.slice(0, 3));
 
         // Fetch pending token transfers
         let pendingTokensQuery = supabase
@@ -72,8 +80,10 @@ const AdminDashboard: React.FC = () => {
         
         // Calculate stats
         const pendingKyc = kycData?.filter(k => k.status === 'pending').length || 0;
-        const completedTx = txData?.filter(tx => tx.status === 'completed').length || 0;
+        const completedTx = txData?.length || 0;
         const totalTxValue = txData?.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0) || 0;
+        
+        console.log('Dashboard: Calculated total transaction value:', totalTxValue);
         
         // Create realistic data for charts based on current date
         const userGrowthData = monthLabels.map((month, index) => ({

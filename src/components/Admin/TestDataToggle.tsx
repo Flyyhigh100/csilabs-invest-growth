@@ -40,7 +40,9 @@ const TestDataToggle: React.FC<TestDataToggleProps> = ({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className={`flex items-center ${compact ? 'gap-1.5' : 'gap-3'}`}>
+            <div className={`flex items-center ${compact ? 'gap-1.5' : 'gap-3'} 
+              ${includeTestData ? 'bg-amber-100 px-3 py-1.5 rounded-full' : ''}`}
+            >
               <Switch
                 id="test-data-toggle"
                 checked={includeTestData}
@@ -48,7 +50,10 @@ const TestDataToggle: React.FC<TestDataToggleProps> = ({
               />
               <Label 
                 htmlFor="test-data-toggle" 
-                className={`${compact ? 'text-xs' : 'text-sm'} ${includeTestData ? 'text-amber-600 font-medium' : ''}`}
+                className={`
+                  ${compact ? 'text-xs' : 'text-sm'} 
+                  ${includeTestData ? 'text-amber-700 font-medium' : ''}
+                `}
               >
                 {includeTestData ? 'Including Test Data' : 'Real Data Only'}
               </Label>

@@ -44,33 +44,55 @@ const TransactionAnalyticsPage = () => {
     maxAmount: undefined,
   });
 
-  const { 
-    data,
-    isLoading,
-    includeTestData
-  } = useTransactionAnalytics(filterParams);
-
-  const handleFilterChange = (newFilters) => {
-    setFilterParams(prev => ({ ...prev, ...newFilters }));
-  };
-
   // Handle breadcrumb source (whether we came from volume, completed transactions, etc.)
   const [breadcrumbSource, setBreadcrumbSource] = useState('dashboard');
   
+  // Process URL parameters on component mount
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const source = urlParams.get('source');
+    
+    console.log('Transaction Analytics loaded with source:', source);
+    
     if (source) {
       setBreadcrumbSource(source);
       
       // Apply filters based on the source
       if (source === 'volume') {
-        // Don't apply any special filters
+        // Don't apply any special filters for volume - we want to see all transactions
+        console.log('Volume source detected - showing all completed transactions');
+        setFilterParams(prev => ({ ...prev, status: '' }));
       } else if (source === 'completed') {
+        console.log('Completed source detected - filtering by completed status');
         setFilterParams(prev => ({ ...prev, status: 'completed' }));
       }
     }
   }, []);
+
+  const { 
+    data,
+    isLoading,
+    includeTestData,
+    rawTransactions
+  } = useTransactionAnalytics(filterParams);
+
+  // Log debug information about the data we're working with
+  useEffect(() => {
+    if (!isLoading && data) {
+      console.log('Transaction Analytics Data:', { 
+        totalVolume: data.totalVolume,
+        transactionCount: data.transactionCount,
+        includesTestData: includeTestData,
+        appliedFilters: filterParams,
+        rawTransactionCount: rawTransactions?.length || 0
+      });
+    }
+  }, [isLoading, data, includeTestData, filterParams, rawTransactions]);
+
+  const handleFilterChange = (newFilters) => {
+    console.log('Filters changed:', newFilters);
+    setFilterParams(prev => ({ ...prev, ...newFilters }));
+  };
 
   const getBreadcrumbText = () => {
     switch (breadcrumbSource) {
@@ -101,7 +123,7 @@ const TransactionAnalyticsPage = () => {
       {/* Toggle and Filters */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <TransactionAnalyticsFilter onFilterChange={handleFilterChange} />
-        <TestDataToggle compact className="self-end" />
+        <TestDataToggle showAlert compact className="self-end" />
       </div>
       
       {/* Stats Cards */}
