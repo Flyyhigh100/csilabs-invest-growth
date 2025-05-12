@@ -208,7 +208,13 @@ const TransactionAnalyticsPage = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
-                    <Tooltip formatter={(value) => formatCurrency(value)} />
+                    <Tooltip 
+                      formatter={(value) => {
+                        // Handle the case where value might be an array
+                        const actualValue = Array.isArray(value) ? value[0] : value;
+                        return formatCurrency(actualValue as number);
+                      }} 
+                    />
                     <Legend />
                     <Line type="monotone" dataKey="amount" stroke="#8884d8" />
                   </LineChart>
@@ -246,7 +252,13 @@ const TransactionAnalyticsPage = () => {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value, name) => [formatCurrency(value), name]} />
+                    <Tooltip 
+                      formatter={(value) => {
+                        // Handle the case where value might be an array
+                        const actualValue = Array.isArray(value) ? value[0] : value;
+                        return [formatCurrency(actualValue as number), ""];
+                      }} 
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               )}
