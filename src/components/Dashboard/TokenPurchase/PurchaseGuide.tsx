@@ -4,7 +4,7 @@ const PurchaseGuide: React.FC = () => {
       <h3 className="text-sm font-medium text-gray-700 mb-2">How purchasing works</h3>
       <ol className="text-sm text-gray-600 list-decimal pl-5 space-y-1.5">
         <li>Enter the amount you want to contribute</li>
-        <li>Choose your preferred payment method</li>
+        <li>Choose your preferred cryptocurrency for payment</li>
         <li>Complete the payment process</li>
         <li>CSi tokens will be sent to your wallet address</li>
       </ol>
