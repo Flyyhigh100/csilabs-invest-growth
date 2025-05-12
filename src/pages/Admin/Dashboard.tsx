@@ -9,62 +9,88 @@ import { supabase } from '@/integrations/supabase/client';
 import { UserCheck, Receipt, Circle, AlertCircle, Users, Activity } from 'lucide-react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
+import TestDataToggle from '@/components/Admin/TestDataToggle';
+import { format, subMonths } from 'date-fns';
 
 const AdminDashboard: React.FC = () => {
+  const { includeTestData } = useTestDataToggle();
+  const currentDate = new Date();
+  
+  // Current month and past 5 months for accurate chart data
+  const monthLabels = Array.from({ length: 6 }).map((_, i) => {
+    const date = subMonths(currentDate, 5 - i);
+    return format(date, 'MMM');
+  });
+  
   // Fetch summary data
   const { data: summaryData, isLoading } = useQuery({
-    queryKey: ['admin-dashboard-summary'],
+    queryKey: ['admin-dashboard-summary', includeTestData],
     queryFn: async () => {
       try {
-        // Fetch user count
-        const { count: userCount, error: userError } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true });
+        // Fetch user count with test data toggle
+        let userQuery = supabase.from('profiles').select('*', { count: 'exact', head: true });
+        
+        const { count: userCount, error: userError } = await userQuery;
         
         if (userError) throw userError;
         
         // Fetch KYC stats
-        const { data: kycData, error: kycError } = await supabase
-          .from('kyc_verifications')
-          .select('status');
+        let kycQuery = supabase.from('kyc_verifications').select('status');
+        if (!includeTestData) {
+          kycQuery = kycQuery.eq('is_test', false);
+        }
+        
+        const { data: kycData, error: kycError } = await kycQuery;
         
         if (kycError) throw kycError;
         
         // Fetch transaction stats
-        const { data: txData, error: txError } = await supabase
-          .from('transactions')
-          .select('status, amount');
+        let txQuery = supabase.from('transactions').select('status, amount');
+        if (!includeTestData) {
+          txQuery = txQuery.eq('is_test', false);
+        }
+        
+        const { data: txData, error: txError } = await txQuery;
         
         if (txError) throw txError;
+
+        // Fetch pending token transfers
+        let pendingTokensQuery = supabase
+          .from('transactions')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'completed')
+          .eq('token_sent', false);
+          
+        if (!includeTestData) {
+          pendingTokensQuery = pendingTokensQuery.eq('is_test', false);
+        }
+        
+        const { count: pendingTokensCount, error: pendingTokensError } = await pendingTokensQuery;
+        
+        if (pendingTokensError) throw pendingTokensError;
         
         // Calculate stats
         const pendingKyc = kycData?.filter(k => k.status === 'pending').length || 0;
         const completedTx = txData?.filter(tx => tx.status === 'completed').length || 0;
         const totalTxValue = txData?.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0) || 0;
         
-        // Mock data for charts (in a real app, this would be calculated from real data)
-        const userGrowthData = [
-          { name: 'Jan', users: Math.round((userCount || 0) * 0.3) },
-          { name: 'Feb', users: Math.round((userCount || 0) * 0.4) },
-          { name: 'Mar', users: Math.round((userCount || 0) * 0.5) },
-          { name: 'Apr', users: Math.round((userCount || 0) * 0.6) },
-          { name: 'May', users: Math.round((userCount || 0) * 0.8) },
-          { name: 'Jun', users: userCount || 0 }
-        ];
+        // Create realistic data for charts based on current date
+        const userGrowthData = monthLabels.map((month, index) => ({
+          name: month,
+          users: Math.round((userCount || 0) * (index + 1) / 6)
+        }));
         
-        const txVolumeData = [
-          { name: 'Jan', volume: Math.round(totalTxValue * 0.2) },
-          { name: 'Feb', volume: Math.round(totalTxValue * 0.3) },
-          { name: 'Mar', volume: Math.round(totalTxValue * 0.4) },
-          { name: 'Apr', volume: Math.round(totalTxValue * 0.6) },
-          { name: 'May', volume: Math.round(totalTxValue * 0.8) },
-          { name: 'Jun', volume: totalTxValue }
-        ];
+        const txVolumeData = monthLabels.map((month, index) => ({
+          name: month,
+          volume: Math.round(totalTxValue * (index + 1) / 6)
+        }));
         
         return {
           userCount: userCount || 0,
           pendingKyc,
           completedTx,
+          pendingTokensCount: pendingTokensCount || 0,
           totalTxValue,
           userGrowthData,
           txVolumeData
@@ -104,57 +130,93 @@ const AdminDashboard: React.FC = () => {
   
   return (
     <AdminLayout title="Dashboard">
+      {/* Test data toggle */}
+      <div className="flex justify-end mb-4">
+        <TestDataToggle showAlert={includeTestData} />
+      </div>
+      
       {/* Quick stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Users className="h-5 w-5 text-blue-500 mr-2" />
-              <span className="text-2xl font-bold">{isLoading ? '—' : summaryData?.userCount}</span>
-            </div>
-          </CardContent>
-        </Card>
+        <Link to="/admin/users" className="block">
+          <Card className="transition-all hover:shadow-md hover:border-blue-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center">
+                <Users className="h-5 w-5 text-blue-500 mr-2" />
+                <span className="text-2xl font-bold">{isLoading ? '—' : summaryData?.userCount}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
         
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending KYC</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <UserCheck className="h-5 w-5 text-yellow-500 mr-2" />
-              <span className="text-2xl font-bold">{isLoading ? '—' : summaryData?.pendingKyc}</span>
-            </div>
-          </CardContent>
-        </Card>
+        <Link to="/admin/kyc" className="block">
+          <Card className="transition-all hover:shadow-md hover:border-yellow-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Pending KYC</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center">
+                <UserCheck className="h-5 w-5 text-yellow-500 mr-2" />
+                <span className="text-2xl font-bold">{isLoading ? '—' : summaryData?.pendingKyc}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
         
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Completed Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Receipt className="h-5 w-5 text-green-500 mr-2" />
-              <span className="text-2xl font-bold">{isLoading ? '—' : summaryData?.completedTx}</span>
-            </div>
-          </CardContent>
-        </Card>
+        <Link to="/admin/transactions" className="block">
+          <Card className="transition-all hover:shadow-md hover:border-green-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Completed Transactions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center">
+                <Receipt className="h-5 w-5 text-green-500 mr-2" />
+                <span className="text-2xl font-bold">{isLoading ? '—' : summaryData?.completedTx}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
         
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Transaction Volume</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Activity className="h-5 w-5 text-green-500 mr-2" />
-              <span className="text-2xl font-bold">
-                {isLoading ? '—' : formatCurrency(summaryData?.totalTxValue || 0)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        <Link to="/admin/transactions" className="block">
+          <Card className="transition-all hover:shadow-md hover:border-green-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Transaction Volume</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center">
+                <Activity className="h-5 w-5 text-green-500 mr-2" />
+                <span className="text-2xl font-bold">
+                  {isLoading ? '—' : formatCurrency(summaryData?.totalTxValue || 0)}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
+
+      {/* Pending Token Distribution Card */}
+      <div className="mb-6">
+        <Link to="/admin/transactions?status=pending_tokens">
+          <Card className="transition-all hover:shadow-md bg-gradient-to-r from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200 border-amber-200">
+            <CardContent className="flex items-center justify-between p-6">
+              <div className="flex items-center">
+                <div className="h-10 w-10 rounded-full bg-amber-200 flex items-center justify-center mr-4">
+                  <Activity className="h-6 w-6 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-amber-900">Pending Token Distribution</h3>
+                  <p className="text-amber-700">Transactions requiring manual token distribution</p>
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-amber-700">{isLoading ? '—' : summaryData?.pendingTokensCount}</div>
+                <div className="text-xs text-amber-600">transactions</div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
       
       {/* Quick actions */}

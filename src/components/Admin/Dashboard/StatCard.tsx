@@ -1,9 +1,8 @@
 
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 interface StatCardProps {
   title: string;
@@ -11,6 +10,7 @@ interface StatCardProps {
   icon: React.ReactNode;
   linkTo: string;
   linkText: string;
+  highlight?: boolean;
 }
 
 const StatCard: React.FC<StatCardProps> = ({ 
@@ -18,33 +18,33 @@ const StatCard: React.FC<StatCardProps> = ({
   value, 
   icon, 
   linkTo, 
-  linkText 
+  linkText,
+  highlight = false
 }) => {
-  const navigate = useNavigate();
+  const cardClasses = highlight 
+    ? "border-amber-300 bg-gradient-to-r from-amber-50 to-amber-100 transition-all hover:shadow-md hover:border-amber-400" 
+    : "transition-all hover:shadow-md hover:border-gray-300";
 
   return (
-    <Card className="relative overflow-hidden">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex justify-between items-center">
-          <div className="text-2xl font-bold">
-            {value}
+    <Link to={linkTo} className="block">
+      <Card className={cardClasses}>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+              {icon}
+            </div>
+            <p className="text-xs font-medium text-muted-foreground">{title}</p>
           </div>
-          <div className="h-8 w-8">
-            {icon}
+          <div className="mt-3">
+            <h4 className="text-lg font-bold">{value}</h4>
+            <div className="flex items-center text-xs mt-1 text-muted-foreground">
+              <span className={highlight ? "text-amber-700" : ""}>{linkText}</span>
+              <ArrowRight className="h-3 w-3 ml-1" />
+            </div>
           </div>
-        </div>
-        <Button 
-          variant="link" 
-          className="p-0 h-auto text-sm mt-2"
-          onClick={() => navigate(linkTo)}
-        >
-          {linkText} <ArrowRight className="ml-1 h-3 w-3" />
-        </Button>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </Link>
   );
 };
 

@@ -1,8 +1,9 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
+import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
 
 interface DashboardStats {
   kycCounts: {
@@ -14,7 +15,6 @@ interface DashboardStats {
   };
   pendingTokensCount: number;
   totalTransactionValue: number;
-  includeTestData: boolean;
 }
 
 const fetchDashboardStats = async (includeTestData: boolean = false): Promise<DashboardStats> => {
@@ -41,11 +41,6 @@ const fetchDashboardStats = async (includeTestData: boolean = false): Promise<Da
     console.log('KYC data raw response:', kycData);
     console.log('KYC data count:', kycData?.length || 0);
     
-    // CRITICAL FIX: Log the first few KYC records for debugging
-    if (kycData && kycData.length > 0) {
-      console.log('First few KYC records:', kycData.slice(0, 3));
-    }
-    
     // Process KYC counts manually since groupBy is not available
     const kycCounts = {
       pending: 0,
@@ -57,7 +52,7 @@ const fetchDashboardStats = async (includeTestData: boolean = false): Promise<Da
     
     if (kycData && kycData.length > 0) {
       kycData.forEach(item => {
-        // CRITICAL FIX: Enhanced error handling and logging for KYC status
+        // Enhanced error handling and logging for KYC status
         const status = item.status as string;
         if (status in kycCounts) {
           kycCounts[status as keyof typeof kycCounts]++;
@@ -67,22 +62,9 @@ const fetchDashboardStats = async (includeTestData: boolean = false): Promise<Da
       });
       
       console.log('Processed KYC counts:', kycCounts);
-    } else {
-      console.warn('No KYC data found or empty array returned');
-      
-      // CRITICAL FIX: Do a direct check to verify if we can access the data
-      const { data: directCheck, error: directError } = await supabase
-        .from('kyc_verifications')
-        .select('id, status', { count: 'exact' });
-        
-      if (directError) {
-        console.error('Direct KYC data check failed:', directError);
-      } else {
-        console.log(`Direct KYC check found ${directCheck?.length || 0} records`);
-      }
     }
     
-    // CRITICAL FIX: Fetch counts for pending token transfers
+    // Fetch counts for pending token transfers
     const pendingTokensQuery = supabase
       .from('transactions')
       .select('*', { count: 'exact', head: true })
@@ -101,7 +83,7 @@ const fetchDashboardStats = async (includeTestData: boolean = false): Promise<Da
       throw pendingError;
     }
     
-    // CRITICAL FIX: Fetch total transaction value
+    // Fetch total transaction value
     const transactionsQuery = supabase
       .from('transactions')
       .select('amount')
@@ -124,47 +106,10 @@ const fetchDashboardStats = async (includeTestData: boolean = false): Promise<Da
       ? transactionData.reduce((sum, tx) => sum + Number(tx.amount), 0)
       : 0;
     
-    // For debugging, log direct database query with counts
-    const kycDebugQuery = supabase
-      .from('kyc_verifications')
-      .select('*');
-      
-    // Filter out test data if not included
-    if (!includeTestData) {
-      kycDebugQuery.eq('is_test', false);
-    }
-    
-    const { data: kycDebug, error: kycDebugError } = await kycDebugQuery;
-      
-    if (kycDebugError) {
-      console.error('Error in direct KYC debug query:', kycDebugError);
-    } else {
-      console.log(`Direct KYC debug query found ${kycDebug?.length || 0} records`);
-      
-      // Count by status for debugging
-      const debugCounts = {
-        pending: 0,
-        approved: 0,
-        rejected: 0,
-        not_started: 0,
-        needs_clarification: 0
-      };
-      
-      kycDebug?.forEach(item => {
-        if (item.status in debugCounts) {
-          debugCounts[item.status as keyof typeof debugCounts]++;
-        }
-      });
-      
-      console.log('Debug KYC counts by status:', debugCounts);
-      console.log('All KYC records:', kycDebug);
-    }
-    
     return {
       kycCounts,
       pendingTokensCount: pendingTokensCount || 0,
       totalTransactionValue: totalValue,
-      includeTestData
     };
   } catch (error) {
     console.error('Exception in fetchDashboardStats:', error);
@@ -173,7 +118,8 @@ const fetchDashboardStats = async (includeTestData: boolean = false): Promise<Da
 };
 
 export const useDashboardStats = () => {
-  const [includeTestData, setIncludeTestData] = useState(false);
+  // Use the shared test data toggle hook
+  const { includeTestData } = useTestDataToggle();
   
   const { 
     data, 
@@ -183,7 +129,7 @@ export const useDashboardStats = () => {
   } = useQuery({
     queryKey: ['admin-dashboard-stats', includeTestData],
     queryFn: () => fetchDashboardStats(includeTestData),
-    // CRITICAL FIX: More aggressive refetching settings
+    // More aggressive refetching settings
     refetchInterval: 3000, // Refresh more frequently
     staleTime: 1000, // Consider data stale after just 1 second
   });
@@ -210,25 +156,19 @@ export const useDashboardStats = () => {
       )
       .subscribe((status) => {
         console.log('Realtime subscription status for dashboard:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to realtime updates for admin dashboard');
-        } else {
-          console.log('❌ Failed to subscribe to realtime updates for admin dashboard');
-        }
       });
     
     return () => {
       // Clean up subscription when component unmounts
       supabase.removeChannel(channel);
     };
-  }, [refetch]);
+  }, [refetch, includeTestData]);
   
   return {
     data,
     isLoading,
     error,
     refetch,
-    includeTestData,
-    setIncludeTestData
+    includeTestData
   };
 };

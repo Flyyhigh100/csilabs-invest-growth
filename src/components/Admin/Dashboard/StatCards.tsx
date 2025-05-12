@@ -4,8 +4,10 @@ import {
   Clock, 
   CheckCircle, 
   CreditCard, 
-  DollarSign 
+  DollarSign, 
+  Activity 
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import StatCard from './StatCard';
 
 interface StatCardsProps {
@@ -25,12 +27,12 @@ const StatCards: React.FC<StatCardsProps> = ({
   isLoading 
 }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
       <StatCard
         title="Pending KYC Reviews"
         value={isLoading ? '...' : kycCounts.pending}
         icon={<Clock className="h-8 w-8 text-amber-500" />}
-        linkTo="/admin/kyc"
+        linkTo="/admin/kyc?status=pending"
         linkText="View pending reviews"
       />
       
@@ -38,15 +40,16 @@ const StatCards: React.FC<StatCardsProps> = ({
         title="Pending Token Transfers"
         value={isLoading ? '...' : pendingTokensCount}
         icon={<CreditCard className="h-8 w-8 text-blue-500" />}
-        linkTo="/admin/transactions"
+        linkTo="/admin/transactions?pending_tokens=true"
         linkText="Process transfers"
+        highlight={pendingTokensCount > 0}
       />
       
       <StatCard
         title="Approved KYCs"
         value={isLoading ? '...' : kycCounts.approved}
         icon={<CheckCircle className="h-8 w-8 text-green-500" />}
-        linkTo="/admin/kyc"
+        linkTo="/admin/kyc?status=approved"
         linkText="View all KYCs"
       />
       
@@ -56,6 +59,15 @@ const StatCards: React.FC<StatCardsProps> = ({
         icon={<DollarSign className="h-8 w-8 text-emerald-500" />}
         linkTo="/admin/transactions"
         linkText="View transactions"
+      />
+      
+      <StatCard
+        title="Transactions Ready for Distribution"
+        value={isLoading ? '...' : pendingTokensCount}
+        icon={<Activity className="h-8 w-8 text-purple-500" />}
+        linkTo="/admin/transactions?status=completed&tokens_sent=false"
+        linkText="Distribute tokens"
+        highlight={pendingTokensCount > 0}
       />
     </div>
   );

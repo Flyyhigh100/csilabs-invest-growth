@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, Info, Settings as SettingsIcon, Mail, Bell, Shield, WrenchIcon, Coins } from 'lucide-react';
+import { CheckCircle, Info, Settings as SettingsIcon, Mail, Bell, Shield, WrenchIcon, Coins, Database } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 import { useNavigate } from 'react-router-dom';
 import APIKeyValidator from '@/components/Admin/APIKeyValidator';
 import CoinPaymentsConfig from '@/components/Admin/CoinPayments/CoinPaymentsConfig';
+import TestDataToggle from '@/components/Admin/TestDataToggle';
 
 // For simplicity, we'll simulate settings state with React state
 // In a real app, this would be connected to the database
@@ -69,8 +70,12 @@ const AdminSettings: React.FC = () => {
         </Alert>
       </div>
 
-      <Tabs defaultValue="payments" className="space-y-4">
+      <Tabs defaultValue="data" className="space-y-4">
         <TabsList className="flex-wrap">
+          <TabsTrigger value="data">
+            <Database className="mr-2 h-4 w-4" />
+            Data Management
+          </TabsTrigger>
           <TabsTrigger value="notifications">
             <Bell className="mr-2 h-4 w-4" />
             Notifications
@@ -92,6 +97,46 @@ const AdminSettings: React.FC = () => {
             Transaction Tools
           </TabsTrigger>
         </TabsList>
+        
+        {/* Data Management Settings */}
+        <TabsContent value="data" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Test Data Management</CardTitle>
+              <CardDescription>
+                Control whether test data is included in your admin interface
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <Label htmlFor="test-data-toggle" className="text-base font-medium block mb-2">
+                    Include Test Data
+                  </Label>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    When enabled, test data will be included in all admin views, charts, and tables.
+                    This setting is synchronized across all your admin sessions.
+                  </p>
+                  
+                  <TestDataToggle />
+                </div>
+                
+                <Separator />
+                
+                <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
+                  <h3 className="font-medium text-amber-800 mb-2">About Test Data</h3>
+                  <p className="text-sm text-amber-700">
+                    Test data is marked with the <code className="bg-amber-100 px-1.5 py-0.5 rounded text-amber-900">is_test</code> flag
+                    in the database. This allows you to test features without affecting your real transaction and KYC data.
+                  </p>
+                  <p className="text-sm text-amber-700 mt-2">
+                    In production, you should typically keep this setting disabled to avoid confusion.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
         
         {/* Notifications Settings */}
         <TabsContent value="notifications" className="space-y-4">
