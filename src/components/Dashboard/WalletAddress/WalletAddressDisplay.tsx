@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Copy, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 interface WalletAddressDisplayProps {
   walletAddress: string;
@@ -27,7 +28,13 @@ const WalletAddressDisplay: React.FC<WalletAddressDisplayProps> = ({ walletAddre
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-base font-medium text-gray-700 mb-2">Your Polygon Wallet Address</h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-base font-medium text-gray-700">Your Polygon Wallet Address</h3>
+          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Confirmed
+          </Badge>
+        </div>
         <div className="flex items-center space-x-2">
           <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 flex-grow font-mono relative">
             {hideWalletAddress ? 
