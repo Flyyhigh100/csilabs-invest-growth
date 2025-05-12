@@ -1,8 +1,8 @@
 
-import { useTransactionQuery } from './analytics/useTransactionQuery';
-import { processTransactions } from './analytics/processTransactions';
-import { TransactionAnalyticsProps, TransactionAnalyticsResult } from './analytics/types';
-import { useTestDataToggle } from './useTestDataToggle';
+import { useTransactionQuery } from './useTransactionQuery';
+import { processTransactions } from './processTransactions';
+import { TransactionAnalyticsProps, TransactionAnalyticsResult } from './types';
+import { useTestDataToggle } from '../useTestDataToggle';
 import { startOfMonth, subMonths } from 'date-fns';
 
 /**
@@ -40,4 +40,4 @@ export const useTransactionAnalytics = (props: TransactionAnalyticsProps = {}): 
 };
 
 // Re-export types for external use
-export type { TransactionAnalyticsProps } from './analytics/types';
+export type { TransactionAnalyticsProps } from './types';
