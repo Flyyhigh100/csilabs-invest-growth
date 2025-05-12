@@ -1,20 +1,26 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface WalletFundingStepProps {
   onComplete: () => void;
   onStartFunding: () => void;
   walletAddress: string | null;
 }
+
 const WalletFundingStep: React.FC<WalletFundingStepProps> = ({
   onComplete,
   onStartFunding,
   walletAddress
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const isMobile = useIsMobile();
+  
   const handleWalletFunded = () => {
     setIsProcessing(true);
     console.log("User clicked 'I've already funded my wallet'");
@@ -25,6 +31,7 @@ const WalletFundingStep: React.FC<WalletFundingStepProps> = ({
       setIsProcessing(false);
     }, 300);
   };
+
   const handleStartFunding = async () => {
     setIsProcessing(true);
     console.log("User clicked 'Fund My Wallet with Stripe'");
@@ -47,7 +54,9 @@ const WalletFundingStep: React.FC<WalletFundingStepProps> = ({
       setIsProcessing(false);
     }
   };
-  return <div className="space-y-4">
+
+  return (
+    <div className="space-y-4">
       <div className="bg-blue-50 p-4 rounded-lg">
         <h3 className="font-medium text-blue-800 mb-2">How to Fund Your Wallet</h3>
         <ul className="space-y-3 text-sm text-blue-700">
@@ -73,21 +82,42 @@ const WalletFundingStep: React.FC<WalletFundingStepProps> = ({
         </AlertDescription>
       </Alert>
       
-      <div className="flex flex-col sm:flex-row gap-3 pt-2">
-        <Button onClick={handleStartFunding} className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white sm:flex-1" disabled={isProcessing}>
-          {isProcessing ? <>
+      <div className={cn(
+        "flex gap-3 pt-2",
+        isMobile ? "flex-col" : "flex-row"
+      )}>
+        <Button 
+          onClick={handleStartFunding} 
+          className={cn(
+            "bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white",
+            isMobile ? "w-full" : "flex-1"
+          )} 
+          disabled={isProcessing}
+        >
+          {isProcessing ? (
+            <>
               <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
               Processing...
-            </> : "Fund My Wallet with Stripe"}
+            </> 
+          ) : (
+            "Fund My Wallet with Stripe"
+          )}
         </Button>
-        <Button variant="outline" onClick={handleWalletFunded} className="sm:flex-1" disabled={isProcessing}>
+        <Button 
+          variant="outline" 
+          onClick={handleWalletFunded} 
+          className={isMobile ? "w-full" : "flex-1"} 
+          disabled={isProcessing}
+        >
           <CheckCircle className="mr-2 h-4 w-4" />
           My wallet is funded
         </Button>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default WalletFundingStep;

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PurchaseMethodCardProps {
   title: string;
@@ -34,6 +35,8 @@ const PurchaseMethodCard: React.FC<PurchaseMethodCardProps> = ({
   className,
   children
 }) => {
+  const isMobile = useIsMobile();
+  
   return (
     <Card className={cn(
       "transition-all h-full", 
@@ -41,7 +44,10 @@ const PurchaseMethodCard: React.FC<PurchaseMethodCardProps> = ({
       className
     )}>
       <CardContent className="p-5 space-y-4 flex flex-col h-full">
-        <div className="flex items-start gap-4">
+        <div className={cn(
+          "flex items-start gap-4",
+          isMobile && "flex-col"
+        )}>
           <div className={`p-3 rounded-full flex-shrink-0 ${highlight ? 'bg-cbis-blue text-white' : 'bg-blue-50 text-cbis-blue'}`}>
             {icon}
           </div>

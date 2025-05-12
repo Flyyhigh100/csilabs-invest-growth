@@ -11,11 +11,13 @@ import TokenPriceHeaderWithProvider from '@/components/Dashboard/TokenPriceHeade
 import { TokenPurchaseSections } from '@/components/Dashboard/Payments/PaymentSections';
 import PaymentSidePanel from '@/components/Dashboard/Payments/PaymentSidePanel';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Payments = () => {
   const { kycData } = useKycVerification();
   const [showInfoCard, setShowInfoCard] = React.useState(true);
   const { walletAddress, isLoadingWallet, handleWalletUpdated } = useWalletAddress();
+  const isMobile = useIsMobile();
   
   const isKycApproved = kycData?.status === 'approved';
   // Allow token purchases below regulatory threshold without prior KYC
@@ -31,10 +33,13 @@ const Payments = () => {
       ) : (
         <div className={cn(
           "grid grid-cols-1 md:grid-cols-5 gap-6",
-          "bg-gray-50 rounded-xl p-6 mb-6"
+          "bg-gray-50 rounded-xl p-4 md:p-6 mb-6"
         )}>
-          {/* Left Column - Information Panel (40% width) */}
-          <div className="md:col-span-2 space-y-6">
+          {/* Left Column - Information Panel (40% width on desktop, full width on mobile) */}
+          <div className={cn(
+            "md:col-span-2 space-y-4 md:space-y-6",
+            isMobile && "order-2" // On mobile, show the info panel after the purchase flow
+          )}>
             <PaymentSidePanel 
               kycData={kycData}
               showInfoCard={showInfoCard}
@@ -42,8 +47,11 @@ const Payments = () => {
             />
           </div>
           
-          {/* Right Column - Purchase Flow (60% width) */}
-          <div className="md:col-span-3 space-y-6">
+          {/* Right Column - Purchase Flow (60% width on desktop, full width on mobile) */}
+          <div className={cn(
+            "md:col-span-3 space-y-4 md:space-y-6",
+            isMobile && "order-1" // On mobile, show the purchase flow first
+          )}>
             <KycStatusAlerts 
               kycData={kycData} 
               amount={0} 

@@ -4,6 +4,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Card } from "@/components/ui/card";
 import { CheckCircle, Wallet, DollarSign, ArrowRightCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PurchaseStepsAccordionProps {
   activeSection: 'wallet' | 'funding' | 'purchase';
@@ -26,6 +27,8 @@ const PurchaseStepsAccordion: React.FC<PurchaseStepsAccordionProps> = ({
   onSectionChange,
   children
 }) => {
+  const isMobile = useIsMobile();
+  
   const handleValueChange = (value: string) => {
     if (value === 'wallet' || value === 'funding' || value === 'purchase') {
       onSectionChange(value);
@@ -53,8 +56,14 @@ const PurchaseStepsAccordion: React.FC<PurchaseStepsAccordionProps> = ({
               : "bg-gradient-to-r from-cbis-blue to-cbis-teal"
           )}></div>
           
-          <AccordionTrigger className="px-5 py-3 hover:no-underline">
-            <div className="flex items-center gap-3">
+          <AccordionTrigger className={cn(
+            "px-5 py-3 hover:no-underline",
+            isMobile && "flex-col items-start gap-2"
+          )}>
+            <div className={cn(
+              "flex items-center gap-3",
+              isMobile && "w-full"
+            )}>
               <div className={cn(
                 "p-2 rounded-full flex items-center justify-center",
                 sectionsCompleted.wallet 
@@ -78,7 +87,9 @@ const PurchaseStepsAccordion: React.FC<PurchaseStepsAccordionProps> = ({
             </div>
           </AccordionTrigger>
           
-          <AccordionContent className="px-5 pb-4">
+          <AccordionContent className={cn(
+            "px-3 md:px-5 pb-4",
+          )}>
             {children.wallet}
           </AccordionContent>
         </Card>
@@ -99,8 +110,14 @@ const PurchaseStepsAccordion: React.FC<PurchaseStepsAccordionProps> = ({
                 : "bg-gradient-to-r from-gray-300 to-gray-400"
           )}></div>
           
-          <AccordionTrigger className="px-5 py-3 hover:no-underline">
-            <div className="flex items-center gap-3">
+          <AccordionTrigger className={cn(
+            "px-5 py-3 hover:no-underline",
+            isMobile && "flex-col items-start gap-2"
+          )}>
+            <div className={cn(
+              "flex items-center gap-3",
+              isMobile && "w-full"
+            )}>
               <div className={cn(
                 "p-2 rounded-full flex items-center justify-center",
                 sectionsCompleted.funding 
@@ -126,7 +143,9 @@ const PurchaseStepsAccordion: React.FC<PurchaseStepsAccordionProps> = ({
             </div>
           </AccordionTrigger>
           
-          <AccordionContent className="px-5 pb-4">
+          <AccordionContent className={cn(
+            "px-3 md:px-5 pb-4",
+          )}>
             {children.funding}
           </AccordionContent>
         </Card>
@@ -147,8 +166,14 @@ const PurchaseStepsAccordion: React.FC<PurchaseStepsAccordionProps> = ({
                 : "bg-gradient-to-r from-gray-300 to-gray-400"
           )}></div>
           
-          <AccordionTrigger className="px-5 py-3 hover:no-underline">
-            <div className="flex items-center gap-3">
+          <AccordionTrigger className={cn(
+            "px-5 py-3 hover:no-underline",
+            isMobile && "flex-col items-start gap-2"
+          )}>
+            <div className={cn(
+              "flex items-center gap-3",
+              isMobile && "w-full"
+            )}>
               <div className={cn(
                 "p-2 rounded-full flex items-center justify-center",
                 sectionsCompleted.purchase 
@@ -174,7 +199,9 @@ const PurchaseStepsAccordion: React.FC<PurchaseStepsAccordionProps> = ({
             </div>
           </AccordionTrigger>
           
-          <AccordionContent className="px-5 pb-4">
+          <AccordionContent className={cn(
+            "px-3 md:px-5 pb-4",
+          )}>
             {children.purchase}
           </AccordionContent>
         </Card>

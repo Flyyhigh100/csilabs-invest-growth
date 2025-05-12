@@ -13,6 +13,9 @@ import BuyTokensTab from '../BuyTokensTab';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { RefreshCcw } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+import EnhancedPurchaseGuide from '../TokenPurchase/EnhancedPurchaseGuide';
 
 export const TokenPurchaseSections: React.FC<{
   isLoadingWallet: boolean;
@@ -36,6 +39,15 @@ export const TokenPurchaseSections: React.FC<{
   } = usePurchaseFlow();
   
   const [educationCompleted, setEducationCompleted] = useState(false);
+  const isMobile = useIsMobile();
+  
+  // Calculate current step for the EnhancedPurchaseGuide
+  const getCurrentStep = () => {
+    if (activeSection === 'wallet') return 1;
+    if (activeSection === 'funding') return 2;
+    if (activeSection === 'purchase') return 3;
+    return 1;
+  };
   
   // Force a re-render when state changes in usePurchaseFlow
   const [key, setKey] = useState(0);
@@ -82,7 +94,7 @@ export const TokenPurchaseSections: React.FC<{
     
     return (
       <Card className="border-blue-100 bg-white">
-        <CardContent className="p-5">
+        <CardContent className={cn("p-5", isMobile && "p-3")}>
           <WalletAddressForm 
             existingWalletAddress={walletAddress || undefined} 
             onWalletUpdated={() => {
@@ -103,7 +115,7 @@ export const TokenPurchaseSections: React.FC<{
   const renderFundingSectionContent = () => {
     return (
       <Card className="border-blue-100 bg-white">
-        <CardContent className="p-5">
+        <CardContent className={cn("p-5", isMobile && "p-3")}>
           <WalletFundingStep 
             walletAddress={walletAddress}
             onComplete={() => {
@@ -132,7 +144,7 @@ export const TokenPurchaseSections: React.FC<{
     if (!showCoinPaymentsOptions) {
       return (
         <Card className="border-blue-100 bg-white">
-          <CardContent className="p-5">
+          <CardContent className={cn("p-5", isMobile && "p-3")}>
             <PurchasePathSelector 
               amount={100} // Default amount
               isProcessing={false}
@@ -158,7 +170,7 @@ export const TokenPurchaseSections: React.FC<{
   return (
     <Card className="shadow-md border-cbis-blue/10">
       <div className="h-2 bg-gradient-to-r from-cbis-blue to-cbis-teal"></div>
-      <CardContent className="p-6">
+      <CardContent className={cn("p-6", isMobile && "p-3")}>
         <div className="flex justify-end mb-4">
           <Button 
             variant="outline" 
@@ -170,6 +182,10 @@ export const TokenPurchaseSections: React.FC<{
             <span>Reset Guide</span>
           </Button>
         </div>
+        
+        {isMobile && (
+          <EnhancedPurchaseGuide currentStep={getCurrentStep()} />
+        )}
           
         <CryptoOnboardingDialog onComplete={handleOnboardingComplete} />
         

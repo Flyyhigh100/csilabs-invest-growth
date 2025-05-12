@@ -3,6 +3,8 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { CreditCard, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface CardPaymentTabProps {
   amount: number;
@@ -17,6 +19,8 @@ const CardPaymentTab: React.FC<CardPaymentTabProps> = ({
   isProcessing,
   isWalletMissing
 }) => {
+  const isMobile = useIsMobile();
+  
   const handlePaymentClick = async () => {
     try {
       // Use a unique toast ID to prevent duplicates
@@ -48,7 +52,10 @@ const CardPaymentTab: React.FC<CardPaymentTabProps> = ({
         </div>
       </div>
       
-      <div className="bg-white p-4 rounded-lg border border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className={cn(
+        "bg-white p-4 rounded-lg border border-gray-200",
+        isMobile ? "flex flex-col gap-3" : "flex flex-row items-center justify-between gap-4"
+      )}>
         <div>
           <p className="text-sm text-gray-600">Total amount:</p>
           <p className="text-lg font-medium text-gray-800">${amount.toLocaleString()}</p>
@@ -56,7 +63,10 @@ const CardPaymentTab: React.FC<CardPaymentTabProps> = ({
         <Button 
           onClick={handlePaymentClick} 
           disabled={isProcessing || isWalletMissing}
-          className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white py-2 px-4 sm:w-auto w-full relative"
+          className={cn(
+            "bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white py-2 px-4 relative",
+            isMobile && "w-full"
+          )}
         >
           {isProcessing ? (
             <>
