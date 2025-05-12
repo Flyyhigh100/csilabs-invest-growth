@@ -2,6 +2,12 @@
 import { format, parseISO } from 'date-fns';
 import { AnalyticsData } from './types';
 
+interface DayData {
+  date: string;
+  amount: number;
+  count: number;
+}
+
 /**
  * Processes raw transaction data into analytics information
  */
@@ -38,7 +44,7 @@ export const processTransactions = (transactions: any[]): AnalyticsData => {
     : 0;
   
   // Group by day for time series
-  const volumeByDay: Record<string, { date: string; amount: number; count: number }> = volumeTransactions.reduce((acc, tx) => {
+  const volumeByDay: Record<string, DayData> = volumeTransactions.reduce((acc, tx) => {
     const day = format(parseISO(tx.created_at), 'yyyy-MM-dd');
     if (!acc[day]) {
       acc[day] = { date: format(parseISO(tx.created_at), 'MM/dd'), amount: 0, count: 0 };
@@ -46,10 +52,10 @@ export const processTransactions = (transactions: any[]): AnalyticsData => {
     acc[day].amount += Number(tx.amount) || 0;
     acc[day].count++;
     return acc;
-  }, {} as Record<string, { date: string; amount: number; count: number }>);
+  }, {} as Record<string, DayData>);
   
   // Sort days and convert to array
-  const volumeOverTime = Object.values(volumeByDay).sort((a, b) => 
+  const volumeOverTime: DayData[] = Object.values(volumeByDay).sort((a, b) => 
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
   
