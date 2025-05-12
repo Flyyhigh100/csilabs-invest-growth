@@ -35,8 +35,11 @@ import { ArrowUpRight, TrendingUp, CreditCard, Calendar } from 'lucide-react';
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#FF5733', '#C70039'];
 
 const TransactionAnalyticsPage = () => {
+  // Set default date range to start from March 1, 2025 (project start)
+  const projectStartDate = new Date(2025, 2, 1); // March 1, 2025
+  
   const [filterParams, setFilterParams] = useState({
-    startDate: null,
+    startDate: projectStartDate,
     endDate: null,
     status: '',
     paymentMethod: '',
@@ -61,10 +64,10 @@ const TransactionAnalyticsPage = () => {
       if (source === 'volume') {
         // Don't apply any special filters for volume - we want to see all transactions
         console.log('Volume source detected - showing all completed transactions');
-        setFilterParams(prev => ({ ...prev, status: '' }));
+        setFilterParams(prev => ({ ...prev, status: '', startDate: projectStartDate }));
       } else if (source === 'completed') {
         console.log('Completed source detected - filtering by completed status');
-        setFilterParams(prev => ({ ...prev, status: 'completed' }));
+        setFilterParams(prev => ({ ...prev, status: 'completed', startDate: projectStartDate }));
       }
     }
   }, []);
@@ -84,6 +87,7 @@ const TransactionAnalyticsPage = () => {
         transactionCount: data.transactionCount,
         includesTestData: includeTestData,
         appliedFilters: filterParams,
+        startDate: filterParams.startDate?.toISOString(),
         rawTransactionCount: rawTransactions?.length || 0
       });
     }
@@ -91,7 +95,15 @@ const TransactionAnalyticsPage = () => {
 
   const handleFilterChange = (newFilters) => {
     console.log('Filters changed:', newFilters);
-    setFilterParams(prev => ({ ...prev, ...newFilters }));
+    
+    // Ensure we never filter before project start date (March 1, 2025)
+    const adjustedFilters = { ...newFilters };
+    
+    if (adjustedFilters.startDate && adjustedFilters.startDate < projectStartDate) {
+      adjustedFilters.startDate = projectStartDate;
+    }
+    
+    setFilterParams(prev => ({ ...prev, ...adjustedFilters }));
   };
 
   const getBreadcrumbText = () => {
@@ -120,9 +132,16 @@ const TransactionAnalyticsPage = () => {
         </BreadcrumbList>
       </Breadcrumb>
       
+      {/* Date Range Note */}
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+        <p className="text-blue-700 text-sm">
+          <strong>Note:</strong> Analytics data starts from project launch in March 2025.
+        </p>
+      </div>
+      
       {/* Toggle and Filters */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <TransactionAnalyticsFilter onFilterChange={handleFilterChange} />
+        <TransactionAnalyticsFilter onFilterChange={handleFilterChange} defaultStartDate={projectStartDate} />
         <TestDataToggle showAlert compact className="self-end" />
       </div>
       

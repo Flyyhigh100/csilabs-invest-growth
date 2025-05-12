@@ -1,279 +1,257 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Label } from '@/components/ui/label';
+import { Calendar as CalendarIcon, Filter } from 'lucide-react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Filter, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { Slider } from '@/components/ui/slider';
+import { Badge } from '@/components/ui/badge';
 
 interface TransactionAnalyticsFilterProps {
   onFilterChange: (filters: any) => void;
+  defaultStartDate?: Date;
 }
 
-const TransactionAnalyticsFilter: React.FC<TransactionAnalyticsFilterProps> = ({ 
-  onFilterChange 
-}) => {
-  const [status, setStatus] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState<string>('');
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
-  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
-  const [minAmount, setMinAmount] = useState<string>('');
-  const [maxAmount, setMaxAmount] = useState<string>('');
+const TransactionAnalyticsFilter = ({ onFilterChange, defaultStartDate }: TransactionAnalyticsFilterProps) => {
+  const statusOptions = [
+    { value: '', label: 'All Statuses' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'failed', label: 'Failed' },
+    { value: 'refunded', label: 'Refunded' },
+  ];
+  
+  const paymentMethodOptions = [
+    { value: '', label: 'All Payment Methods' },
+    { value: 'card', label: 'Credit/Debit Card' },
+    { value: 'cryptocurrency', label: 'Cryptocurrency' },
+    { value: 'bank_transfer', label: 'Bank Transfer' },
+  ];
+  
+  const [startDate, setStartDate] = useState<Date | null>(defaultStartDate || null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [status, setStatus] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [minAmount, setMinAmount] = useState<number | undefined>(undefined);
+  const [maxAmount, setMaxAmount] = useState<number | undefined>(undefined);
+  const [amountRange, setAmountRange] = useState([0, 10000]);
+  const [isOpen, setIsOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   
-  const applyFilters = () => {
-    const filters: any = {};
-    const newActiveFilters: string[] = [];
+  const handleApplyFilters = () => {
+    const filters = {
+      startDate,
+      endDate,
+      status,
+      paymentMethod,
+      minAmount: amountRange[0] > 0 ? amountRange[0] : undefined,
+      maxAmount: amountRange[1] < 10000 ? amountRange[1] : undefined,
+    };
     
-    if (status) {
-      filters.status = status;
-      newActiveFilters.push(`Status: ${status}`);
-    }
+    // Update active filters list for badge display
+    const newActiveFilters = [];
     
-    if (paymentMethod) {
-      filters.paymentMethod = paymentMethod;
-      newActiveFilters.push(`Payment Method: ${paymentMethod}`);
-    }
-    
-    if (dateFrom) {
-      filters.startDate = dateFrom;
-      newActiveFilters.push(`From: ${format(dateFrom, 'PP')}`);
-    }
-    
-    if (dateTo) {
-      filters.endDate = dateTo;
-      newActiveFilters.push(`To: ${format(dateTo, 'PP')}`);
-    }
-    
-    if (minAmount) {
-      filters.minAmount = parseFloat(minAmount);
-      newActiveFilters.push(`Min Amount: $${minAmount}`);
-    }
-    
-    if (maxAmount) {
-      filters.maxAmount = parseFloat(maxAmount);
-      newActiveFilters.push(`Max Amount: $${maxAmount}`);
-    }
+    if (startDate) newActiveFilters.push('Date Range');
+    if (status) newActiveFilters.push('Status');
+    if (paymentMethod) newActiveFilters.push('Payment Method');
+    if (amountRange[0] > 0 || amountRange[1] < 10000) newActiveFilters.push('Amount');
     
     setActiveFilters(newActiveFilters);
     onFilterChange(filters);
+    setIsOpen(false);
   };
   
-  const clearFilters = () => {
+  const resetFilters = () => {
+    setStartDate(defaultStartDate);
+    setEndDate(null);
     setStatus('');
     setPaymentMethod('');
-    setDateFrom(undefined);
-    setDateTo(undefined);
-    setMinAmount('');
-    setMaxAmount('');
+    setAmountRange([0, 10000]);
     setActiveFilters([]);
+    
     onFilterChange({
+      startDate: defaultStartDate,
+      endDate: null,
       status: '',
       paymentMethod: '',
-      startDate: null,
-      endDate: null,
       minAmount: undefined,
-      maxAmount: undefined
+      maxAmount: undefined,
     });
+    
+    setIsOpen(false);
   };
   
-  const removeFilter = (filter: string) => {
-    const newActiveFilters = activeFilters.filter(f => f !== filter);
-    setActiveFilters(newActiveFilters);
-    
-    // Reset the corresponding state variable
-    if (filter.startsWith('Status:')) setStatus('');
-    if (filter.startsWith('Payment Method:')) setPaymentMethod('');
-    if (filter.startsWith('From:')) setDateFrom(undefined);
-    if (filter.startsWith('To:')) setDateTo(undefined);
-    if (filter.startsWith('Min Amount:')) setMinAmount('');
-    if (filter.startsWith('Max Amount:')) setMaxAmount('');
-    
-    // Apply the updated filters
-    applyFilters();
-  };
-
   return (
-    <div className="space-y-3 w-full">
-      <div className="flex flex-wrap gap-2">
-        <Popover>
+    <div>
+      <div className="flex items-center space-x-2">
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 gap-1">
-              <Filter className="h-3.5 w-3.5" />
-              <span>Filters</span>
+            <Button variant="outline" className="flex items-center">
+              <Filter className="h-4 w-4 mr-2" />
+              Filters
+              {activeFilters.length > 0 && (
+                <Badge variant="secondary" className="ml-2">
+                  {activeFilters.length}
+                </Badge>
+              )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80">
-            <div className="grid gap-4">
+          <PopoverContent className="w-[340px] p-4" align="start">
+            <div className="space-y-4">
+              <h3 className="font-medium">Filter Transactions</h3>
+              <Separator />
+              
               <div className="space-y-2">
-                <h4 className="font-medium leading-none">Transaction Filters</h4>
-                <p className="text-sm text-muted-foreground">
-                  Apply filters to analyze specific transaction data.
-                </p>
-              </div>
-              <div className="grid gap-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label htmlFor="status" className="text-xs">Status</label>
-                    <Select value={status} onValueChange={setStatus}>
-                      <SelectTrigger id="status">
-                        <SelectValue placeholder="Any status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Any Status</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="processing">Processing</SelectItem>
-                        <SelectItem value="failed">Failed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label htmlFor="payment" className="text-xs">Payment Method</label>
-                    <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                      <SelectTrigger id="payment">
-                        <SelectValue placeholder="Any method" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Any Method</SelectItem>
-                        <SelectItem value="stripe">Stripe</SelectItem>
-                        <SelectItem value="coinpayments">CoinPayments</SelectItem>
-                        <SelectItem value="manual">Manual</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label htmlFor="date-from" className="text-xs">Date From</label>
+                <Label>Date Range</Label>
+                <div className="flex gap-3">
+                  <div className="grid gap-2 flex-1">
+                    <Label htmlFor="start-date" className="text-xs">From</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
-                          id="date-from"
                           variant="outline"
                           className={cn(
                             "w-full justify-start text-left font-normal",
-                            !dateFrom && "text-muted-foreground"
+                            !startDate && "text-muted-foreground"
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {dateFrom ? format(dateFrom, "PPP") : "Pick a date"}
+                          {startDate ? format(startDate, 'MMM d, yyyy') : 'Select date'}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
                         <Calendar
                           mode="single"
-                          selected={dateFrom}
-                          onSelect={setDateFrom}
+                          selected={startDate || undefined}
+                          onSelect={setStartDate}
                           initialFocus
+                          disabled={(date) => {
+                            // Don't allow dates before project start (March 1, 2025)
+                            return date < (defaultStartDate || new Date(2025, 2, 1));
+                          }}
                         />
                       </PopoverContent>
                     </Popover>
                   </div>
                   
-                  <div>
-                    <label htmlFor="date-to" className="text-xs">Date To</label>
+                  <div className="grid gap-2 flex-1">
+                    <Label htmlFor="end-date" className="text-xs">To</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
-                          id="date-to"
                           variant="outline"
                           className={cn(
                             "w-full justify-start text-left font-normal",
-                            !dateTo && "text-muted-foreground"
+                            !endDate && "text-muted-foreground"
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {dateTo ? format(dateTo, "PPP") : "Pick a date"}
+                          {endDate ? format(endDate, 'MMM d, yyyy') : 'Select date'}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
                         <Calendar
                           mode="single"
-                          selected={dateTo}
-                          onSelect={setDateTo}
+                          selected={endDate || undefined}
+                          onSelect={setEndDate}
                           initialFocus
+                          disabled={(date) => {
+                            // Don't allow dates before start date or project start
+                            const minDate = startDate || (defaultStartDate || new Date(2025, 2, 1));
+                            return date < minDate;
+                          }}
                         />
                       </PopoverContent>
                     </Popover>
                   </div>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label htmlFor="min-amount" className="text-xs">Min Amount ($)</label>
-                    <Input
-                      id="min-amount"
-                      type="number"
-                      placeholder="0.00"
-                      value={minAmount}
-                      onChange={(e) => setMinAmount(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="max-amount" className="text-xs">Max Amount ($)</label>
-                    <Input
-                      id="max-amount"
-                      type="number"
-                      placeholder="0.00"
-                      value={maxAmount}
-                      onChange={(e) => setMaxAmount(e.target.value)}
-                    />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Status</SelectLabel>
+                      {statusOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Payment Method</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Payment Methods" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Payment Method</SelectLabel>
+                      {paymentMethodOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Amount Range</Label>
+                <div className="pt-4 px-2">
+                  <Slider
+                    value={amountRange}
+                    onValueChange={setAmountRange}
+                    max={10000}
+                    step={100}
+                  />
+                  <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+                    <span>${amountRange[0]}</span>
+                    <span>${amountRange[1] === 10000 ? '10,000+' : amountRange[1]}</span>
                   </div>
                 </div>
-                
-                <div className="flex justify-between pt-2">
-                  <Button variant="outline" size="sm" onClick={clearFilters}>
-                    Clear All
-                  </Button>
-                  <Button size="sm" onClick={applyFilters}>
-                    Apply Filters
-                  </Button>
-                </div>
+              </div>
+              
+              <div className="flex justify-between pt-4">
+                <Button variant="outline" onClick={resetFilters}>Reset</Button>
+                <Button onClick={handleApplyFilters}>Apply Filters</Button>
               </div>
             </div>
           </PopoverContent>
         </Popover>
+        
+        {activeFilters.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {activeFilters.map(filter => (
+              <Badge key={filter} variant="secondary" className="text-xs">
+                {filter}
+              </Badge>
+            ))}
+            <Button 
+              variant="ghost" 
+              className="h-auto text-xs py-1 px-2" 
+              onClick={resetFilters}
+            >
+              Clear
+            </Button>
+          </div>
+        )}
       </div>
-      
-      {activeFilters.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-2">
-          {activeFilters.map((filter) => (
-            <Badge key={filter} variant="outline" className="bg-muted">
-              {filter}
-              <button
-                className="ml-1 rounded-full outline-none"
-                onClick={() => removeFilter(filter)}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs"
-            onClick={clearFilters}
-          >
-            Clear All
-          </Button>
-        </div>
-      )}
     </div>
   );
 };

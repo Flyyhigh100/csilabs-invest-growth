@@ -1,5 +1,5 @@
 
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, subMonths, startOfMonth } from 'date-fns';
 import { AnalyticsData } from './types';
 
 interface DayData {
@@ -58,6 +58,24 @@ export const processTransactions = (transactions: any[]): AnalyticsData => {
   const volumeOverTime: DayData[] = Object.values(volumeByDay).sort((a, b) => 
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
+  
+  // If we have no data points, create placeholder months starting from March
+  if (volumeOverTime.length === 0) {
+    const currentDate = new Date();
+    const startDate = new Date(2025, 2, 1); // March 1, 2025
+    
+    // Generate monthly placeholders from March to current month
+    let currentMonth = startDate;
+    while (currentMonth <= currentDate) {
+      const monthLabel = format(currentMonth, 'MM/dd');
+      volumeOverTime.push({
+        date: monthLabel,
+        amount: 0,
+        count: 0
+      });
+      currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+    }
+  }
   
   // Find best day
   let bestDay = { date: 'N/A', volume: 0 };
