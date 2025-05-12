@@ -20,4 +20,6 @@ export interface Transaction {
   kyc_verification_id?: string;
   high_value_approval_required?: boolean;
   is_test?: boolean;
+  currency?: string;
+  completed_at?: string;
 }
