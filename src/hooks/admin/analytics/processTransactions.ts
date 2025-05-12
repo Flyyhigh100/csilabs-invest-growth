@@ -38,7 +38,7 @@ export const processTransactions = (transactions: any[]): AnalyticsData => {
     : 0;
   
   // Group by day for time series
-  const volumeByDay = volumeTransactions.reduce((acc, tx) => {
+  const volumeByDay: Record<string, { date: string; amount: number; count: number }> = volumeTransactions.reduce((acc, tx) => {
     const day = format(parseISO(tx.created_at), 'yyyy-MM-dd');
     if (!acc[day]) {
       acc[day] = { date: format(parseISO(tx.created_at), 'MM/dd'), amount: 0, count: 0 };
@@ -46,23 +46,23 @@ export const processTransactions = (transactions: any[]): AnalyticsData => {
     acc[day].amount += Number(tx.amount) || 0;
     acc[day].count++;
     return acc;
-  }, {});
+  }, {} as Record<string, { date: string; amount: number; count: number }>);
   
   // Sort days and convert to array
-  const volumeOverTime = Object.values(volumeByDay).sort((a: any, b: any) => 
+  const volumeOverTime = Object.values(volumeByDay).sort((a, b) => 
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
   
   // Find best day
   let bestDay = { date: 'N/A', volume: 0 };
-  Object.entries(volumeByDay).forEach(([day, data]: [string, any]) => {
+  Object.entries(volumeByDay).forEach(([day, data]) => {
     if (data.amount > bestDay.volume) {
       bestDay = { date: format(parseISO(day), 'MMM dd'), volume: data.amount };
     }
   });
   
   // Group by payment method
-  const methodCounts = transactions.reduce((acc, tx) => {
+  const methodCounts: Record<string, { name: string; value: number; count: number }> = transactions.reduce((acc, tx) => {
     const method = tx.payment_method || 'unknown';
     if (!acc[method]) {
       acc[method] = { name: method, value: 0, count: 0 };
@@ -70,11 +70,11 @@ export const processTransactions = (transactions: any[]): AnalyticsData => {
     acc[method].value += Number(tx.amount) || 0;
     acc[method].count++;
     return acc;
-  }, {});
+  }, {} as Record<string, { name: string; value: number; count: number }>);
   
   // Find preferred method
   let preferredMethod = { method: 'None', count: 0, percentage: 0 };
-  Object.entries(methodCounts).forEach(([method, data]: [string, any]) => {
+  Object.entries(methodCounts).forEach(([method, data]) => {
     if (data.count > preferredMethod.count) {
       preferredMethod = {
         method,
@@ -85,14 +85,14 @@ export const processTransactions = (transactions: any[]): AnalyticsData => {
   });
   
   // Group by status
-  const statusCounts = transactions.reduce((acc, tx) => {
+  const statusCounts: Record<string, { status: string; count: number }> = transactions.reduce((acc, tx) => {
     const status = tx.status || 'unknown';
     if (!acc[status]) {
       acc[status] = { status, count: 0 };
     }
     acc[status].count++;
     return acc;
-  }, {});
+  }, {} as Record<string, { status: string; count: number }>);
   
   return {
     totalVolume,
