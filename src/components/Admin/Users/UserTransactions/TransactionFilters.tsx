@@ -25,11 +25,11 @@ const TransactionFilters: React.FC<TransactionFiltersProps> = ({
   onFilterChange,
   onExportCSV
 }) => {
-  const [status, setStatus] = useState<string>('');
+  const [status, setStatus] = useState<string>('all');
   
   const handleStatusChange = (value: string) => {
     setStatus(value);
-    onFilterChange({ status: value });
+    onFilterChange({ status: value === 'all' ? '' : value });
   };
   
   return (
@@ -40,7 +40,7 @@ const TransactionFilters: React.FC<TransactionFiltersProps> = ({
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Statuses</SelectItem>
+            <SelectItem value="all">All Statuses</SelectItem>
             <SelectItem value="completed">Completed</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="processing">Processing</SelectItem>

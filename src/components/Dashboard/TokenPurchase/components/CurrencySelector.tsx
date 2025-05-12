@@ -45,7 +45,7 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({
       );
     }
     
-    // Filter out any currencies with empty codes
+    // Filter out any currencies with empty codes and use placeholder value if needed
     return Object.entries(currencies)
       .filter(([code]) => code && code.trim() !== '')
       .map(([code, data]) => (
@@ -58,6 +58,9 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({
         </SelectItem>
       ));
   };
+
+  // Make sure selectedCurrency is never empty
+  const safeSelectedCurrency = selectedCurrency || "default-currency";
 
   return (
     <div className="bg-white p-4 rounded-lg border border-gray-200">
@@ -78,7 +81,7 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({
       </div>
       
       <Select 
-        value={selectedCurrency} 
+        value={safeSelectedCurrency} 
         onValueChange={setSelectedCurrency} 
         disabled={isProcessing || isLoading || !hasCurrencies}
       >

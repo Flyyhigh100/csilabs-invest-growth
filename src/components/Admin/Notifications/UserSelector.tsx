@@ -44,7 +44,7 @@ const UserSelector: React.FC<UserSelectorProps> = ({
     <div className="space-y-2">
       <Label htmlFor="user">User</Label>
       <Select 
-        value={userId} 
+        value={userId || "select-user"} // Ensure we never have an empty value
         onValueChange={setUserId}
         disabled={loading}
       >
