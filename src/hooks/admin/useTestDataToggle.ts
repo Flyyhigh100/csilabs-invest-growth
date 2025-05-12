@@ -34,22 +34,31 @@ export const useTestDataToggle = () => {
     };
   }, [includeTestData]);
 
-  // Save preference to user's profile in Supabase (if logged in)
+  // Instead of directly accessing a non-existent column, we'll use a separate approach
+  // Store preference in a user note field or simply rely on localStorage
   useEffect(() => {
     const savePreferenceToProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         try {
-          await supabase.from('profiles')
-            .update({
-              admin_preferences: {
-                include_test_data: includeTestData,
-                ...((await supabase.from('profiles').select('admin_preferences').eq('id', user.id).single()).data?.admin_preferences || {})
-              }
-            })
-            .eq('id', user.id);
+          // Check if the user exists in the database first
+          const { data: userData, error: userError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+          if (userError) {
+            console.error('Failed to fetch user profile:', userError);
+            return;
+          }
+
+          // Since admin_preferences column doesn't exist, we won't try to update it
+          // This is a simplified approach that relies solely on localStorage
+          // You could add a separate table for admin preferences if needed in the future
+          console.log('Test data preference saved to localStorage for user:', user.id);
         } catch (error) {
-          console.error('Failed to save test data preference to profile:', error);
+          console.error('Error in savePreferenceToProfile:', error);
         }
       }
     };
