@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/utils/format';
 import { ExternalLink } from 'lucide-react';
+import { TestIconLucide } from '@/components/icons/TestIcon';
 
 interface TransactionDetailSheetProps {
   transaction: any | null;
@@ -37,7 +38,14 @@ const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({ transac
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Transaction Details</SheetTitle>
+          <SheetTitle className="flex items-center gap-2">
+            Transaction Details
+            {transaction.is_test && (
+              <Badge variant="outline" className="bg-amber-100 border-amber-200 text-amber-800 flex gap-1 items-center">
+                <TestIconLucide className="h-3 w-3" /> Test Transaction
+              </Badge>
+            )}
+          </SheetTitle>
           <SheetDescription>
             Transaction ID: {transaction.id}
           </SheetDescription>
@@ -52,9 +60,14 @@ const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({ transac
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Amount</p>
-                <p className="font-mono text-lg font-bold">
+                <p className={`font-mono text-lg font-bold ${transaction.is_test ? 'text-amber-600' : ''}`}>
                   {formatCurrency(transaction.amount || 0)}
                 </p>
+                {transaction.is_test && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Test data (excluded from real volume)
+                  </p>
+                )}
               </div>
             </div>
             
@@ -63,11 +76,13 @@ const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({ transac
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">Token Amount</p>
-                  <p className="font-mono">{transaction.token_amount}</p>
+                  <p className={`font-mono ${transaction.is_test ? 'text-amber-600' : ''}`}>{transaction.token_amount}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">Token Price</p>
-                  <p className="font-mono">{formatCurrency(transaction.token_price || 0)}</p>
+                  <p className={`font-mono ${transaction.is_test ? 'text-amber-600' : ''}`}>
+                    {formatCurrency(transaction.token_price || 0)}
+                  </p>
                 </div>
               </div>
             )}
@@ -133,6 +148,16 @@ const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({ transac
                 <p className="text-sm font-medium text-muted-foreground">Admin Notes</p>
                 <p className="text-sm bg-gray-50 p-3 rounded-md whitespace-pre-wrap">
                   {transaction.admin_notes}
+                </p>
+              </div>
+            )}
+            
+            {/* Test Data Warning */}
+            {transaction.is_test && (
+              <div className="p-3 bg-amber-50 border border-amber-100 rounded-md">
+                <p className="text-sm text-amber-800 flex items-center">
+                  <TestIconLucide className="h-4 w-4 mr-2" />
+                  This is a test transaction and should be excluded from real volume calculations.
                 </p>
               </div>
             )}

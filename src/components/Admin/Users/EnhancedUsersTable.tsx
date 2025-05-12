@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Eye, Wallet, RefreshCw } from 'lucide-react';
+import { AlertCircle, Eye, Wallet, RefreshCw, BeakerIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/format';
@@ -17,6 +17,13 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import UserDetailView from './UserDetailView';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { TestIconLucide } from '@/components/icons/TestIcon';
 
 interface User {
   id: string;
@@ -32,10 +39,23 @@ interface User {
   kyc_id?: string;
 }
 
+interface TransactionStats {
+  count: number;
+  value: number;
+  latest?: string;
+  test_count: number;
+  test_value: number;
+  test_latest?: string; 
+}
+
 interface EnhancedUser extends User {
   transaction_count: number;
   transaction_value: number;
   latest_transaction?: string;
+  test_transaction_count: number;
+  test_transaction_value: number;
+  test_latest_transaction?: string;
+  has_test_data: boolean;
 }
 
 interface EnhancedUsersTableProps {
@@ -53,49 +73,64 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isLoadingTransactionStats, setIsLoadingTransactionStats] = useState(false);
   
-  // Fetch transaction stats for all users
+  // Fetch transaction stats for all users with separate test and real data
   const { data: transactionStats = {} } = useQuery({
     queryKey: ['user-transaction-stats'],
     queryFn: async () => {
       setIsLoadingTransactionStats(true);
       try {
-        console.log("Fetching transaction stats for all users");
+        console.log("Fetching transaction stats for all users with test/real separation");
         const { data, error } = await supabase
           .from('transactions')
           .select(`
             user_id,
             amount,
             created_at,
-            status
+            status,
+            is_test
           `);
           
         if (error) throw error;
         
-        const stats: Record<string, { 
-          count: number; 
-          value: number;
-          latest?: string;
-        }> = {};
+        const stats: Record<string, TransactionStats> = {};
         
-        // Process transaction data
+        // Process transaction data separating test and real transactions
         data.forEach(tx => {
           if (!tx.user_id) return;
           
           if (!stats[tx.user_id]) {
-            stats[tx.user_id] = { count: 0, value: 0 };
+            stats[tx.user_id] = { 
+              count: 0, 
+              value: 0, 
+              test_count: 0, 
+              test_value: 0
+            };
           }
           
-          stats[tx.user_id].count++;
-          stats[tx.user_id].value += Number(tx.amount || 0);
-          
-          // Track latest transaction
-          if (!stats[tx.user_id].latest || 
-              new Date(tx.created_at) > new Date(stats[tx.user_id].latest!)) {
-            stats[tx.user_id].latest = tx.created_at;
+          if (tx.is_test) {
+            // Test transaction
+            stats[tx.user_id].test_count++;
+            stats[tx.user_id].test_value += Number(tx.amount || 0);
+            
+            // Track latest test transaction
+            if (!stats[tx.user_id].test_latest || 
+                new Date(tx.created_at) > new Date(stats[tx.user_id].test_latest!)) {
+              stats[tx.user_id].test_latest = tx.created_at;
+            }
+          } else {
+            // Real transaction
+            stats[tx.user_id].count++;
+            stats[tx.user_id].value += Number(tx.amount || 0);
+            
+            // Track latest real transaction
+            if (!stats[tx.user_id].latest || 
+                new Date(tx.created_at) > new Date(stats[tx.user_id].latest!)) {
+              stats[tx.user_id].latest = tx.created_at;
+            }
           }
         });
         
-        console.log(`Fetched transaction stats for ${Object.keys(stats).length} users`);
+        console.log(`Fetched transaction stats for ${Object.keys(stats).length} users with test/real separation`);
         return stats;
       } catch (err) {
         console.error('Error fetching transaction stats:', err);
@@ -134,12 +169,22 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
   };
 
   const enhancedUsers: EnhancedUser[] = users.map(user => {
-    const stats = transactionStats[user.id] || { count: 0, value: 0 };
+    const stats = transactionStats[user.id] || { 
+      count: 0, 
+      value: 0, 
+      test_count: 0, 
+      test_value: 0 
+    };
+    
     return {
       ...user,
       transaction_count: stats.count,
       transaction_value: stats.value,
-      latest_transaction: stats.latest
+      latest_transaction: stats.latest,
+      test_transaction_count: stats.test_count,
+      test_transaction_value: stats.test_value,
+      test_latest_transaction: stats.test_latest,
+      has_test_data: stats.test_count > 0
     };
   });
 
@@ -202,7 +247,49 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
                     {renderKycStatusBadge(user.kyc_status, user.has_kyc_record, user.kyc_complete)}
                   </TableCell>
                   <TableCell className="text-right font-medium">
-                    {user.transaction_count}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center justify-end gap-1">
+                            {/* Display the real transaction count */}
+                            <span>{user.transaction_count}</span>
+                            
+                            {/* Test data indicator */}
+                            {user.has_test_data && (
+                              <span className="inline-flex items-center">
+                                <TestIconLucide className="h-3.5 w-3.5 text-amber-500" />
+                                <span className="text-xs text-amber-500 ml-0.5">+{user.test_transaction_count}</span>
+                              </span>
+                            )}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <div className="text-xs">
+                            <div className="font-semibold">Transaction Stats:</div>
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-1">
+                              <div>Real transactions:</div>
+                              <div className="text-right">{user.transaction_count}</div>
+                              <div>Real value:</div>
+                              <div className="text-right">{formatCurrency(user.transaction_value)}</div>
+                              {user.latest_transaction && (
+                                <>
+                                  <div>Last real TX:</div>
+                                  <div className="text-right">{new Date(user.latest_transaction).toLocaleDateString()}</div>
+                                </>
+                              )}
+                              {user.has_test_data && (
+                                <>
+                                  <div className="text-amber-600">Test transactions:</div>
+                                  <div className="text-amber-600 text-right">{user.test_transaction_count}</div>
+                                  <div className="text-amber-600">Test value:</div>
+                                  <div className="text-amber-600 text-right">{formatCurrency(user.test_transaction_value)}</div>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     {user.latest_transaction && (
                       <span className="block text-xs text-muted-foreground">
                         Last: {new Date(user.latest_transaction).toLocaleDateString()}
@@ -210,7 +297,31 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
                     )}
                   </TableCell>
                   <TableCell>
-                    {user.transaction_value > 0 ? formatCurrency(user.transaction_value) : '-'}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-1">
+                            <span>{formatCurrency(user.transaction_value > 0 ? user.transaction_value : 0)}</span>
+                            {user.test_transaction_value > 0 && (
+                              <span className="text-xs text-amber-500">
+                                (+{formatCurrency(user.test_transaction_value)})
+                              </span>
+                            )}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <div className="text-xs">
+                            <div>Real value: {formatCurrency(user.transaction_value)}</div>
+                            {user.test_transaction_value > 0 && (
+                              <div className="text-amber-600">Test value: {formatCurrency(user.test_transaction_value)}</div>
+                            )}
+                            <div className="font-semibold mt-1">
+                              Total: {formatCurrency(user.transaction_value + user.test_transaction_value)}
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">

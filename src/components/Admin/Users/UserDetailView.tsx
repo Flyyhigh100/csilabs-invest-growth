@@ -4,8 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { UserCircle, Calendar, AtSign, Wallet } from 'lucide-react';
+import { UserCircle, Calendar, AtSign, Wallet, AlertTriangle } from 'lucide-react';
 import UserTransactionDashboard from './UserTransactions/UserTransactionDashboard';
+import { TestIconLucide } from '@/components/icons/TestIcon';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface UserDetailProps {
   user: any;
@@ -94,6 +101,31 @@ const UserDetailView: React.FC<UserDetailProps> = ({ user, onCheckKyc }) => {
                   </div>
                 </div>
               </div>
+              
+              {/* Test data indicator */}
+              {user.has_test_data && (
+                <div className="flex items-start gap-3">
+                  <TestIconLucide className="h-5 w-5 mt-0.5 text-amber-500" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-amber-600">Test Data Present</p>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <AlertTriangle className="h-4 w-4 text-amber-500" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            This user has test transactions which may affect volume calculations
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <p className="text-xs text-amber-600">
+                      User has test transactions that should be excluded from real volume calculations
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>

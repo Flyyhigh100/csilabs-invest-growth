@@ -9,6 +9,13 @@ import { formatCurrency } from '@/utils/format';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TestIconLucide } from '@/components/icons/TestIcon';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface TransactionTableProps {
   transactions: any[];
@@ -89,11 +96,33 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             transactions.map((transaction) => (
               <TableRow key={transaction.id}>
                 <TableCell className="font-mono text-xs">
-                  {transaction.id.substring(0, 8)}...
+                  <div className="flex items-center gap-1">
+                    {transaction.id.substring(0, 8)}...
+                    {transaction.is_test && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <TestIconLucide className="h-3.5 w-3.5 text-amber-500" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Test transaction (excluded from real volume)
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>{formatDate(transaction.created_at)}</TableCell>
-                <TableCell>{formatCurrency(transaction.amount || 0)}</TableCell>
-                <TableCell>{renderStatusBadge(transaction.status)}</TableCell>
+                <TableCell>
+                  <div className={transaction.is_test ? "text-amber-600" : ""}>
+                    {formatCurrency(transaction.amount || 0)}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    {renderStatusBadge(transaction.status)}
+                  </div>
+                </TableCell>
                 <TableCell>{transaction.payment_method || 'N/A'}</TableCell>
                 <TableCell className="text-right">
                   <Button

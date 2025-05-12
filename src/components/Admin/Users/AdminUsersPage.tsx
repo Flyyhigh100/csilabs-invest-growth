@@ -13,6 +13,7 @@ import UsersToolbar from './UsersToolbar';
 import UsersError from './UsersError';
 import UsersLoading from './UsersLoading';
 import UserStats from './Dashboard/UserStats';
+import TestDataToggle from '@/components/Admin/TestDataToggle';
 
 // Import the hook for admin users
 import { useAdminUsers } from '@/hooks/admin/useAdminUsers';
@@ -100,13 +101,18 @@ const AdminUsersPage: React.FC = () => {
     <AdminLayout title="Users">
       <Card className="mb-6 overflow-hidden">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-            <UsersIcon className="h-5 w-5" />
-            User Management
-          </CardTitle>
-          <CardDescription className="text-xs md:text-sm">
-            View and manage all users and their transaction data
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+                <UsersIcon className="h-5 w-5" />
+                User Management
+              </CardTitle>
+              <CardDescription className="text-xs md:text-sm">
+                View and manage all users and their transaction data
+              </CardDescription>
+            </div>
+            <TestDataToggle showAlert={true} />
+          </div>
         </CardHeader>
         
         <CardContent className="p-3 md:p-6">
