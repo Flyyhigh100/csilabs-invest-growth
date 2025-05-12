@@ -24,7 +24,7 @@ const Payments = () => {
   const allowPaymentsWithoutKYC = true;
   
   return (
-    <DashboardLayout title="Payments">
+    <DashboardLayout title="Buy Tokens">
       {/* Check payment status from URL params */}
       <PaymentStatusCheck />
       

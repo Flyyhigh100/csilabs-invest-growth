@@ -18,7 +18,7 @@ const TransactionHeader: React.FC<TransactionHeaderProps> = ({ isRefreshing, onR
       </div>
       <div>
         <Button asChild variant="outline">
-          <Link to="/dashboard/payments">Make a Purchase</Link>
+          <Link to="/dashboard/payments">Buy Tokens</Link>
         </Button>
       </div>
     </div>
