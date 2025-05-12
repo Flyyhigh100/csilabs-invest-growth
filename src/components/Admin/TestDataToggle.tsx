@@ -5,6 +5,12 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TestDataToggleProps {
   showAlert?: boolean;
@@ -31,16 +37,30 @@ const TestDataToggle: React.FC<TestDataToggleProps> = ({
         </Alert>
       )}
       
-      <div className={`flex items-center ${compact ? 'gap-1.5' : 'gap-3'}`}>
-        <Switch
-          id="test-data-toggle"
-          checked={includeTestData}
-          onCheckedChange={toggleTestData}
-        />
-        <Label htmlFor="test-data-toggle" className={compact ? 'text-xs' : 'text-sm'}>
-          {includeTestData ? 'Including Test Data' : 'Real Data Only'}
-        </Label>
-      </div>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className={`flex items-center ${compact ? 'gap-1.5' : 'gap-3'}`}>
+              <Switch
+                id="test-data-toggle"
+                checked={includeTestData}
+                onCheckedChange={toggleTestData}
+              />
+              <Label 
+                htmlFor="test-data-toggle" 
+                className={`${compact ? 'text-xs' : 'text-sm'} ${includeTestData ? 'text-amber-600 font-medium' : ''}`}
+              >
+                {includeTestData ? 'Including Test Data' : 'Real Data Only'}
+              </Label>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {includeTestData 
+              ? "Currently showing test data alongside real data" 
+              : "Toggle to include test data in views"}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 };

@@ -8,6 +8,7 @@ import { Toaster } from 'sonner';
 import { NavbarContextProvider } from './contexts/NavbarContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import TokenPricingPage from './pages/Admin/TokenPricing';
+import TransactionAnalyticsPage from './pages/Admin/TransactionAnalytics';
 
 // Import components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -95,6 +96,7 @@ export default function App() {
                     <Route path="/admin/kyc" element={<AdminKycPage />} />
                     <Route path="/admin/users" element={<AdminUsersPage />} />
                     <Route path="/admin/transactions" element={<AdminTransactionsPage />} />
+                    <Route path="/admin/transaction-analytics" element={<TransactionAnalyticsPage />} />
                     <Route path="/admin/transaction-tools" element={<AdminTransactionToolsPage />} />
                     <Route path="/admin/settings" element={<AdminSettingsPage />} />
                     <Route path="/admin/notifications" element={<AdminNotificationsPage />} />

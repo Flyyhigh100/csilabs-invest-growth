@@ -1,0 +1,293 @@
+
+import React, { useState, useEffect } from 'react';
+import AdminLayout from '@/components/Admin/Layout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
+import { useTransactionAnalytics } from '@/hooks/admin/useTransactionAnalytics';
+import TestDataToggle from '@/components/Admin/TestDataToggle';
+import { 
+  Breadcrumb, 
+  BreadcrumbItem, 
+  BreadcrumbLink, 
+  BreadcrumbList, 
+  BreadcrumbPage, 
+  BreadcrumbSeparator 
+} from '@/components/ui/breadcrumb';
+import TransactionAnalyticsFilter from '@/components/Admin/Analytics/TransactionAnalyticsFilter';
+import { formatCurrency } from '@/utils/format';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowUpRight, TrendingUp, CreditCard, Calendar } from 'lucide-react';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#FF5733', '#C70039'];
+
+const TransactionAnalyticsPage = () => {
+  const [filterParams, setFilterParams] = useState({
+    startDate: null,
+    endDate: null,
+    status: '',
+    paymentMethod: '',
+    minAmount: undefined,
+    maxAmount: undefined,
+  });
+
+  const { 
+    data,
+    isLoading,
+    includeTestData
+  } = useTransactionAnalytics(filterParams);
+
+  const handleFilterChange = (newFilters) => {
+    setFilterParams(prev => ({ ...prev, ...newFilters }));
+  };
+
+  // Handle breadcrumb source (whether we came from volume, completed transactions, etc.)
+  const [breadcrumbSource, setBreadcrumbSource] = useState('dashboard');
+  
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const source = urlParams.get('source');
+    if (source) {
+      setBreadcrumbSource(source);
+      
+      // Apply filters based on the source
+      if (source === 'volume') {
+        // Don't apply any special filters
+      } else if (source === 'completed') {
+        setFilterParams(prev => ({ ...prev, status: 'completed' }));
+      }
+    }
+  }, []);
+
+  const getBreadcrumbText = () => {
+    switch (breadcrumbSource) {
+      case 'volume':
+        return 'Transaction Volume';
+      case 'completed':
+        return 'Completed Transactions';
+      default:
+        return 'Transaction Analytics';
+    }
+  };
+
+  return (
+    <AdminLayout title="Transaction Analytics">
+      {/* Breadcrumbs */}
+      <Breadcrumb className="mb-6">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/admin">Dashboard</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{getBreadcrumbText()}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      
+      {/* Toggle and Filters */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <TransactionAnalyticsFilter onFilterChange={handleFilterChange} />
+        <TestDataToggle compact className="self-end" />
+      </div>
+      
+      {/* Stats Cards */}
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 mb-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+                <TrendingUp className="h-6 w-6 text-blue-600" />
+              </div>
+              <p className="text-xs font-medium text-muted-foreground">Total Volume</p>
+            </div>
+            <div className="mt-3">
+              <h4 className="text-lg font-bold">
+                {isLoading ? '...' : formatCurrency(data?.totalVolume || 0)}
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                {isLoading ? '...' : `${data?.transactionCount || 0} transactions`}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                <ArrowUpRight className="h-6 w-6 text-green-600" />
+              </div>
+              <p className="text-xs font-medium text-muted-foreground">Average Transaction</p>
+            </div>
+            <div className="mt-3">
+              <h4 className="text-lg font-bold">
+                {isLoading ? '...' : formatCurrency(data?.averageTransaction || 0)}
+              </h4>
+              <p className="text-xs text-muted-foreground">per transaction</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
+                <CreditCard className="h-6 w-6 text-purple-600" />
+              </div>
+              <p className="text-xs font-medium text-muted-foreground">Preferred Method</p>
+            </div>
+            <div className="mt-3">
+              <h4 className="text-lg font-bold capitalize">
+                {isLoading ? '...' : data?.preferredMethod || 'None'}
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                {isLoading ? '...' : `${data?.preferredMethodPercentage || 0}% of transactions`}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
+                <Calendar className="h-6 w-6 text-amber-600" />
+              </div>
+              <p className="text-xs font-medium text-muted-foreground">Best Day</p>
+            </div>
+            <div className="mt-3">
+              <h4 className="text-lg font-bold">
+                {isLoading ? '...' : data?.bestDay || 'N/A'}
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                {isLoading ? '...' : formatCurrency(data?.bestDayVolume || 0)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Charts */}
+      <Tabs defaultValue="volume" className="w-full">
+        <TabsList>
+          <TabsTrigger value="volume">Volume Over Time</TabsTrigger>
+          <TabsTrigger value="methods">Payment Methods</TabsTrigger>
+          <TabsTrigger value="status">Transaction Status</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="volume" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Transaction Volume Over Time</CardTitle>
+            </CardHeader>
+            <CardContent className="h-80">
+              {isLoading ? (
+                <div className="h-full w-full flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={data?.volumeOverTime || []}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => formatCurrency(value)} />
+                    <Legend />
+                    <Line type="monotone" dataKey="amount" stroke="#8884d8" />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="methods" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Method Distribution</CardTitle>
+            </CardHeader>
+            <CardContent className="h-80">
+              {isLoading ? (
+                <div className="h-full w-full flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={data?.paymentMethods || []}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                      nameKey="name"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {(data?.paymentMethods || []).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value, name) => [formatCurrency(value), name]} />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="status" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Transaction Status</CardTitle>
+            </CardHeader>
+            <CardContent className="h-80">
+              {isLoading ? (
+                <div className="h-full w-full flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={data?.statusBreakdown || []}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="status" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [`${value} transactions`, 'Count']} />
+                    <Bar dataKey="count">
+                      {(data?.statusBreakdown || []).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </AdminLayout>
+  );
+};
+
+export default TransactionAnalyticsPage;
