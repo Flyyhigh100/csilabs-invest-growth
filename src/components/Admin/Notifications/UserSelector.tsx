@@ -39,12 +39,15 @@ const UserSelector: React.FC<UserSelectorProps> = ({
 
   // Filter out any users with empty IDs
   const validUsers = displayUsers.filter(user => user.id && user.id.trim() !== '');
+  
+  // Default placeholder value when no user is selected
+  const SELECT_USER_PLACEHOLDER = "select-user";
 
   return (
     <div className="space-y-2">
       <Label htmlFor="user">User</Label>
       <Select 
-        value={userId || "select-user"} // Ensure we never have an empty value
+        value={userId || SELECT_USER_PLACEHOLDER} 
         onValueChange={setUserId}
         disabled={loading}
       >

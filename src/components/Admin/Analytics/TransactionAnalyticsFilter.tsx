@@ -14,14 +14,17 @@ interface TransactionAnalyticsFilterProps {
   defaultStartDate?: Date | null;
 }
 
+// Constants for filter values
+const ALL_VALUE = "all"; // Non-empty string for "all" filter options
+
 const TransactionAnalyticsFilter: React.FC<TransactionAnalyticsFilterProps> = ({ 
   onFilterChange,
   defaultStartDate = null
 }) => {
   // Initialize state with default date
   const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState('');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState(ALL_VALUE);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(ALL_VALUE);
   const [date, setDate] = useState<DateRange | undefined>({
     from: defaultStartDate,
     to: undefined
@@ -32,8 +35,8 @@ const TransactionAnalyticsFilter: React.FC<TransactionAnalyticsFilterProps> = ({
   // Apply filters
   const applyFilters = () => {
     onFilterChange({
-      status: selectedStatus,
-      paymentMethod: selectedPaymentMethod,
+      status: selectedStatus === ALL_VALUE ? '' : selectedStatus,
+      paymentMethod: selectedPaymentMethod === ALL_VALUE ? '' : selectedPaymentMethod,
       startDate: date?.from || null,
       endDate: date?.to || null,
       minAmount: minAmount ? parseFloat(minAmount) : undefined,
@@ -43,8 +46,8 @@ const TransactionAnalyticsFilter: React.FC<TransactionAnalyticsFilterProps> = ({
 
   // Reset filters
   const resetFilters = () => {
-    setSelectedStatus('');
-    setSelectedPaymentMethod('');
+    setSelectedStatus(ALL_VALUE);
+    setSelectedPaymentMethod(ALL_VALUE);
     setDate({
       from: defaultStartDate,
       to: undefined
@@ -127,7 +130,7 @@ const TransactionAnalyticsFilter: React.FC<TransactionAnalyticsFilterProps> = ({
                   <SelectValue placeholder="Any status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any status</SelectItem>
+                  <SelectItem value={ALL_VALUE}>Any status</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="failed">Failed</SelectItem>
@@ -142,7 +145,7 @@ const TransactionAnalyticsFilter: React.FC<TransactionAnalyticsFilterProps> = ({
                   <SelectValue placeholder="Any payment method" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any payment method</SelectItem>
+                  <SelectItem value={ALL_VALUE}>Any payment method</SelectItem>
                   <SelectItem value="stripe">Credit Card</SelectItem>
                   <SelectItem value="coinpayments">Cryptocurrency</SelectItem>
                 </SelectContent>
