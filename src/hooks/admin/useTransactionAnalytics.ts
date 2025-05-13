@@ -8,7 +8,7 @@ import { useTestDataToggle } from './useTestDataToggle';
  * Hook for transaction analytics that combines data fetching and processing
  */
 export const useTransactionAnalytics = (props: TransactionAnalyticsProps = {}): TransactionAnalyticsResult => {
-  const { includeTestData } = useTestDataToggle();
+  const { includeTestData, setIncludeTestData } = useTestDataToggle();
   
   const { 
     data: transactions, 
@@ -26,6 +26,7 @@ export const useTransactionAnalytics = (props: TransactionAnalyticsProps = {}): 
     error,
     refetch,
     includeTestData,
+    setIncludeTestData,
     rawTransactions: transactions // Expose raw transactions for debugging
   };
 };

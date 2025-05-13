@@ -14,11 +14,14 @@ import { useNavigate } from 'react-router-dom';
 import APIKeyValidator from '@/components/Admin/APIKeyValidator';
 import CoinPaymentsConfig from '@/components/Admin/CoinPayments/CoinPaymentsConfig';
 import TestDataToggle from '@/components/Admin/TestDataToggle';
+import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
 
 // For simplicity, we'll simulate settings state with React state
 // In a real app, this would be connected to the database
 const AdminSettings: React.FC = () => {
   const navigate = useNavigate();
+  const { includeTestData, setIncludeTestData } = useTestDataToggle();
+  
   // Notification settings
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [kycAlerts, setKycAlerts] = useState(true);
@@ -118,7 +121,10 @@ const AdminSettings: React.FC = () => {
                     This setting is synchronized across all your admin sessions.
                   </p>
                   
-                  <TestDataToggle />
+                  <TestDataToggle 
+                    checked={includeTestData}
+                    onCheckedChange={setIncludeTestData}
+                  />
                 </div>
                 
                 <Separator />

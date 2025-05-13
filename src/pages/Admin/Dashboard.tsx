@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,7 @@ import { format, startOfMonth, subMonths } from 'date-fns';
 import { useTransactionAnalytics } from '@/hooks/admin/useTransactionAnalytics';
 
 const AdminDashboard: React.FC = () => {
-  const { includeTestData } = useTestDataToggle();
+  const { includeTestData, setIncludeTestData } = useTestDataToggle();
   
   // Use March 2025 as the project start date - ensure we show real data only
   const projectStartDate = new Date(2025, 2, 1); // March 1, 2025
@@ -217,7 +216,11 @@ const AdminDashboard: React.FC = () => {
     <AdminLayout title="Dashboard">
       {/* Test data toggle */}
       <div className="flex justify-end mb-4">
-        <TestDataToggle showAlert={includeTestData} />
+        <TestDataToggle 
+          checked={includeTestData} 
+          onCheckedChange={setIncludeTestData} 
+          showAlert={includeTestData} 
+        />
       </div>
       
       {/* Quick stats */}

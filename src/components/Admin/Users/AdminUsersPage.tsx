@@ -17,9 +17,11 @@ import TestDataToggle from '@/components/Admin/TestDataToggle';
 
 // Import the hook for admin users
 import { useAdminUsers } from '@/hooks/admin/useAdminUsers';
+import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
 
 const AdminUsersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('table');
+  const { includeTestData, setIncludeTestData } = useTestDataToggle(false);
   
   const { 
     users, 
@@ -111,7 +113,11 @@ const AdminUsersPage: React.FC = () => {
                 View and manage all users and their transaction data
               </CardDescription>
             </div>
-            <TestDataToggle showAlert={true} />
+            <TestDataToggle 
+              checked={includeTestData}
+              onCheckedChange={setIncludeTestData}
+              showAlert={true} 
+            />
           </div>
         </CardHeader>
         
