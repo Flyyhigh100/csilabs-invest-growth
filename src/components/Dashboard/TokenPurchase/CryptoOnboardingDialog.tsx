@@ -37,7 +37,7 @@ const CryptoOnboardingDialog: React.FC<CryptoOnboardingDialogProps> = ({ onCompl
         handleUserResponse(false);
       }
     }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <HelpCircle className="h-5 w-5 text-cbis-blue" />
@@ -56,20 +56,20 @@ const CryptoOnboardingDialog: React.FC<CryptoOnboardingDialogProps> = ({ onCompl
           </div>
         </div>
         
-        <DialogFooter className="flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+        <DialogFooter className="flex-col sm:flex-row sm:flex-wrap space-y-2 sm:space-y-0 sm:space-x-2">
           <Button 
             onClick={() => handleUserResponse(true)}
             className="w-full sm:w-auto bg-gradient-to-r from-cbis-blue to-cbis-teal"
           >
             <Wallet className="mr-2 h-4 w-4" />
-            I'm new to crypto
+            <span className="truncate">I'm new to crypto</span>
           </Button>
           <Button 
             variant="outline"
             onClick={() => handleUserResponse(false)}
             className="w-full sm:w-auto"
           >
-            I'm experienced with crypto
+            <span className="truncate">I'm experienced with crypto</span>
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </DialogFooter>
