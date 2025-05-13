@@ -31,7 +31,7 @@ const DistributionGuide: React.FC = () => {
         <CollapsibleContent>
           <CardContent className="pt-0 pb-4">
             <div className="space-y-4">
-              {/* Reference Document Download */}
+              {/* Reference Document Download - Updated to use the updated version */}
               <div className="mb-6 bg-blue-50 rounded-lg p-4">
                 <div className="flex items-start mb-3">
                   <FileText className="h-5 w-5 text-blue-600 mt-0.5 mr-2" />
@@ -46,9 +46,9 @@ const DistributionGuide: React.FC = () => {
                   className="flex gap-2 border-blue-300 text-blue-700 hover:bg-blue-100"
                   asChild
                 >
-                  <a href="/Manual Order Process.docx" download>
+                  <a href="/Manual Order Process_updated.docx" download>
                     <Download className="h-4 w-4" />
-                    <span>Manual Order Process.docx</span>
+                    <span>Manual Order Process_updated.docx</span>
                   </a>
                 </Button>
               </div>
