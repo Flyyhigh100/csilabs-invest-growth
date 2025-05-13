@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { UserCheck, Receipt } from 'lucide-react';
+import { UserCheck, Receipt, BarChart2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../ui/button';
 
@@ -22,6 +22,12 @@ const AdminDashboard: React.FC = () => {
             <Link to="/admin/transactions">
               <Receipt className="mr-1.5 h-4 w-4" />
               Manage Transactions
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/admin/transaction-analytics">
+              <BarChart2 className="mr-1.5 h-4 w-4" />
+              Analytics
             </Link>
           </Button>
         </div>

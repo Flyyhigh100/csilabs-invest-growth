@@ -76,6 +76,7 @@ const TransactionAnalyticsPage = () => {
     data,
     isLoading,
     includeTestData,
+    setIncludeTestData,
     rawTransactions
   } = useTransactionAnalytics(filterParams);
 
@@ -142,7 +143,13 @@ const TransactionAnalyticsPage = () => {
       {/* Toggle and Filters */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <TransactionAnalyticsFilter onFilterChange={handleFilterChange} defaultStartDate={projectStartDate} />
-        <TestDataToggle showAlert compact className="self-end" />
+        <TestDataToggle 
+          checked={includeTestData} 
+          onCheckedChange={setIncludeTestData} 
+          showAlert 
+          compact 
+          className="self-end"
+        />
       </div>
       
       {/* Stats Cards */}
