@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,6 +32,7 @@ import { formatCurrency } from '@/utils/format';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowUpRight, TrendingUp, CreditCard, Calendar, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import TransactionTable from '@/components/Admin/Users/UserTransactions/TransactionTable';
+import TransactionDetailSheet from '@/components/Admin/Users/UserTransactions/TransactionDetailSheet';
 import { Button } from '@/components/ui/button';
 import { exportTransactionsToCSV } from '@/utils/admin/transactions/utils';
 
@@ -57,6 +59,9 @@ const TransactionAnalyticsPage = () => {
   
   // State for the selected transaction in the table
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+  
+  // State for the detail sheet visibility
+  const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   
   // Process URL parameters on component mount
   useEffect(() => {
@@ -138,7 +143,7 @@ const TransactionAnalyticsPage = () => {
 
   const handleSelectTransaction = (transaction) => {
     setSelectedTransaction(transaction);
-    // We could use this for a transaction detail view in the future
+    setIsDetailSheetOpen(true);
     console.log('Selected transaction:', transaction);
   };
 
@@ -456,6 +461,13 @@ const TransactionAnalyticsPage = () => {
           </div>
         )}
       </div>
+      
+      {/* Transaction Detail Sheet */}
+      <TransactionDetailSheet
+        transaction={selectedTransaction}
+        open={isDetailSheetOpen}
+        onOpenChange={setIsDetailSheetOpen}
+      />
     </AdminLayout>
   );
 };
