@@ -1,11 +1,9 @@
 
 import { Transaction } from '@/types/transactions';
 
-/**
- * Props for transaction analytics
- */
+// Input props for transaction analytics
 export interface TransactionAnalyticsProps {
-  startDate?: Date;
+  startDate?: Date | null;
   endDate?: Date | null;
   status?: string;
   paymentMethod?: string;
@@ -13,30 +11,26 @@ export interface TransactionAnalyticsProps {
   maxAmount?: number;
 }
 
-/**
- * Shape of processed analytics data
- */
-export interface ProcessedAnalyticsData {
+// Data structure for the transaction analytics results
+export interface TransactionAnalyticsData {
   totalVolume: number;
-  averageTransaction: number;
   transactionCount: number;
-  bestDay: string;
-  bestDayVolume: number;
+  averageTransaction: number;
   preferredMethod: string;
   preferredMethodPercentage: number;
-  paymentMethods: Array<{ name: string; value: number }>;
-  statusBreakdown: Array<{ status: string; count: number }>;
-  volumeOverTime: Array<{ date: string; amount: number }>;
+  bestDay: string;
+  bestDayVolume: number;
+  volumeOverTime: Array<{date: string; amount: number; count: number}>;
+  paymentMethods: Array<{name: string; value: number}>;
+  statusBreakdown: Array<{status: string; count: number}>;
 }
 
-/**
- * Result of using the transaction analytics hook
- */
+// Result returned by the useTransactionAnalytics hook
 export interface TransactionAnalyticsResult {
-  data: ProcessedAnalyticsData | null;
+  data: TransactionAnalyticsData | null;
   isLoading: boolean;
   error: Error | null;
-  refetch: () => Promise<any>;
+  refetch: () => void;
   includeTestData: boolean;
   setIncludeTestData: (value: boolean) => void;
   rawTransactions: Transaction[] | null;

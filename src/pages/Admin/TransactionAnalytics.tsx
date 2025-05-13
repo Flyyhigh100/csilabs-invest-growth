@@ -29,7 +29,10 @@ import {
 import TransactionAnalyticsFilter from '@/components/Admin/Analytics/TransactionAnalyticsFilter';
 import { formatCurrency } from '@/utils/format';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowUpRight, TrendingUp, CreditCard, Calendar } from 'lucide-react';
+import { ArrowUpRight, TrendingUp, CreditCard, Calendar, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import TransactionTable from '@/components/Admin/Users/UserTransactions/TransactionTable';
+import { Button } from '@/components/ui/button';
+import { exportTransactionsToCSV } from '@/utils/admin/transactions/utils';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#FF5733', '#C70039'];
 
@@ -48,6 +51,12 @@ const TransactionAnalyticsPage = () => {
 
   // Handle breadcrumb source (whether we came from volume, completed transactions, etc.)
   const [breadcrumbSource, setBreadcrumbSource] = useState('dashboard');
+  
+  // State for transaction table visibility
+  const [showTransactionTable, setShowTransactionTable] = useState(false);
+  
+  // State for the selected transaction in the table
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
   
   // Process URL parameters on component mount
   useEffect(() => {
@@ -115,6 +124,26 @@ const TransactionAnalyticsPage = () => {
       default:
         return 'Transaction Analytics';
     }
+  };
+
+  const handleExportCSV = () => {
+    if (!rawTransactions || rawTransactions.length === 0) {
+      console.log('No transactions to export');
+      return;
+    }
+    
+    console.log(`Exporting ${rawTransactions.length} transactions to CSV`);
+    exportTransactionsToCSV(rawTransactions);
+  };
+
+  const handleSelectTransaction = (transaction) => {
+    setSelectedTransaction(transaction);
+    // We could use this for a transaction detail view in the future
+    console.log('Selected transaction:', transaction);
+  };
+
+  const toggleTransactionTable = () => {
+    setShowTransactionTable(prevState => !prevState);
   };
 
   return (
@@ -229,7 +258,7 @@ const TransactionAnalyticsPage = () => {
       </div>
       
       {/* Charts */}
-      <Tabs defaultValue="volume" className="w-full">
+      <Tabs defaultValue="volume" className="w-full mb-6">
         <TabsList>
           <TabsTrigger value="volume">Volume Over Time</TabsTrigger>
           <TabsTrigger value="methods">Payment Methods</TabsTrigger>
@@ -345,6 +374,88 @@ const TransactionAnalyticsPage = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Transaction Data Section - New Addition */}
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-3">
+          <div className="flex items-center">
+            <h2 className="text-xl font-semibold">Transaction Data</h2>
+            {!isLoading && rawTransactions && (
+              <span className="ml-2 text-sm text-muted-foreground">
+                ({rawTransactions.length} transactions)
+              </span>
+            )}
+          </div>
+          
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={toggleTransactionTable}
+              className="flex items-center gap-1"
+            >
+              {showTransactionTable ? (
+                <>
+                  <ChevronUp className="h-4 w-4" />
+                  Hide Transactions
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4" />
+                  Show Transactions
+                </>
+              )}
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleExportCSV}
+              className="flex items-center gap-1"
+              disabled={isLoading || !rawTransactions || rawTransactions.length === 0}
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+          </div>
+        </div>
+        
+        {/* Filter summary */}
+        <div className="text-sm text-muted-foreground mb-3">
+          <p>
+            Applied filters: 
+            {filterParams.startDate && (
+              <span className="ml-1">
+                date from {filterParams.startDate.toLocaleDateString()}
+                {filterParams.endDate ? ` to ${filterParams.endDate.toLocaleDateString()}` : ''}
+              </span>
+            )}
+            {filterParams.status && <span className="ml-1">status: {filterParams.status}</span>}
+            {filterParams.paymentMethod && <span className="ml-1">method: {filterParams.paymentMethod}</span>}
+            {(filterParams.minAmount !== undefined || filterParams.maxAmount !== undefined) && (
+              <span className="ml-1">
+                amount: 
+                {filterParams.minAmount !== undefined ? ` min $${filterParams.minAmount}` : ''}
+                {filterParams.maxAmount !== undefined ? ` max $${filterParams.maxAmount}` : ''}
+              </span>
+            )}
+            {!filterParams.status && !filterParams.paymentMethod && 
+             filterParams.minAmount === undefined && filterParams.maxAmount === undefined && (
+              <span className="ml-1">showing all transactions</span>
+            )}
+          </p>
+        </div>
+
+        {showTransactionTable && (
+          <div className="border rounded-md">
+            <TransactionTable 
+              transactions={rawTransactions || []}
+              isLoading={isLoading}
+              onSelectTransaction={handleSelectTransaction}
+            />
+          </div>
+        )}
+      </div>
     </AdminLayout>
   );
 };
