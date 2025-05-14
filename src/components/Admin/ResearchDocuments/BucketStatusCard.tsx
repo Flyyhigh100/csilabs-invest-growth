@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface BucketStatusCardProps {
   bucketExists: boolean;
@@ -61,21 +62,19 @@ const BucketStatusCard: React.FC<BucketStatusCardProps> = ({
   };
 
   return bucketExists ? (
-    <Card className="bg-green-50 border-green-200">
-      <CardContent className="pt-6">
-        <p className="text-green-800">
-          Using storage bucket: '{bucketName}'
-        </p>
-      </CardContent>
-    </Card>
+    <Alert variant="success">
+      <AlertTitle>Storage Ready</AlertTitle>
+      <AlertDescription>
+        Using storage bucket: '{bucketName}'
+      </AlertDescription>
+    </Alert>
   ) : (
-    <Card className="bg-amber-50 border-amber-200">
-      <CardContent className="pt-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <p className="text-amber-800 mb-2">
-            Storage bucket '{bucketName}' not found. Available buckets: {availableBuckets.length > 0 ? availableBuckets.join(', ') : 'None'}
-          </p>
-          <p className="text-sm text-amber-700">
+    <Alert variant="warning">
+      <AlertTitle>Storage Bucket Not Found</AlertTitle>
+      <AlertDescription>
+        <div className="pt-2 pb-4">
+          Storage bucket '{bucketName}' not found. Available buckets: {availableBuckets.length > 0 ? availableBuckets.join(', ') : 'None'}
+          <p className="text-sm mt-1">
             Please create the bucket to enable file uploads.
           </p>
         </div>
@@ -95,8 +94,8 @@ const BucketStatusCard: React.FC<BucketStatusCardProps> = ({
             </>
           )}
         </Button>
-      </CardContent>
-    </Card>
+      </AlertDescription>
+    </Alert>
   );
 };
 
