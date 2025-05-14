@@ -23,7 +23,8 @@ const AdminResearchDocuments = () => {
   const [bucketStatus, setBucketStatus] = useState({
     exists: false,
     buckets: [] as string[],
-    checking: true
+    checking: true,
+    retryCount: 0
   });
 
   // Check authentication status on page load - no need to show warnings since AdminRoute handles this
@@ -46,28 +47,57 @@ const AdminResearchDocuments = () => {
       console.log(`Bucket '${bucketName}' exists:`, exists);
       console.log('Available buckets:', availableBuckets);
       
+      // If the bucket doesn't appear to exist but should, try to create it automatically
+      if (!exists && bucketStatus.retryCount < 2) {
+        console.log("Bucket doesn't exist, attempting to create it automatically...");
+        const created = await createBucketIfNotExists(bucketName);
+        
+        if (created) {
+          console.log("Successfully created the bucket!");
+          setBucketStatus({
+            exists: true,
+            buckets: [...availableBuckets, bucketName],
+            checking: false,
+            retryCount: 0
+          });
+          return true;
+        } else {
+          console.log("Failed to create the bucket automatically.");
+        }
+      }
+      
       setBucketStatus({
         exists,
         buckets: availableBuckets,
-        checking: false
+        checking: false,
+        retryCount: bucketStatus.retryCount + 1
       });
       
       return exists;
     } catch (error) {
       console.error('Error checking storage bucket:', error);
-      setBucketStatus({
+      setBucketStatus(prev => ({
         exists: false,
-        buckets: [],
-        checking: false
-      });
+        buckets: prev.buckets,
+        checking: false,
+        retryCount: prev.retryCount + 1
+      }));
       return false;
     }
-  }, []);
+  }, [bucketStatus.retryCount]);
   
   // Check storage bucket on component mount
   useEffect(() => {
     checkStorageBucket();
   }, [checkStorageBucket]);
+
+  // Helper function for manual refresh with reset counter
+  const handleManualRefresh = () => {
+    setBucketStatus(prev => ({ ...prev, retryCount: 0, checking: true }));
+    setTimeout(() => {
+      checkStorageBucket();
+    }, 1000);
+  };
 
   return (
     <AdminLayout title="Manage Research Documents">
@@ -78,7 +108,7 @@ const AdminResearchDocuments = () => {
             bucketExists={bucketStatus.exists}
             bucketName="research_documents"
             availableBuckets={bucketStatus.buckets}
-            onRefresh={checkStorageBucket}
+            onRefresh={handleManualRefresh}
           />
         )}
         
