@@ -1,10 +1,14 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import FadeInSection from './FadeInSection';
 import FeatureCard from './FeatureCard';
 import { BeakerIcon, BrainCircuit, FilePieChart, TrendingUp, DollarSign, ShieldCheck } from 'lucide-react';
+import { Button } from './ui/button';
+
 const ResearchHighlights: React.FC = () => {
-  return <section className="section-padding bg-white">
+  return (
+    <section className="section-padding bg-white">
       <div className="container-custom">
         <FadeInSection>
           <div className="text-center mb-16 max-w-3xl mx-auto">
@@ -14,7 +18,19 @@ const ResearchHighlights: React.FC = () => {
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-cbis-dark">
               Your Support will help make Cancer Treatments Affordable For Millions
             </h2>
-            <p className="text-gray-600">Our treatments are designed to be accessible to the millions of cancer patients who cannot afford today's high-cost drugs, providing effective cancer cell elimination without the harsh side effects of chemical therapies. Our next Steps are academic, our Award Winning pre-clinical and clinical work at Harvard and other institutions will make up our pharmacokinetics, clinical translation, and protocols. All of this work will be infused into our FDA IND# application seeking approvals begin formal human clinical trials. </p>
+            <p className="text-gray-600">Our treatments are designed to be accessible to the millions of cancer patients who cannot afford today's high-cost drugs, providing effective cancer cell elimination without the harsh side effects of chemical therapies. Our next Steps are academic, our Award Winning pre-clinical and clinical work at Harvard and other institutions will make up our pharmacokinetics, clinical translation, and protocols. All of this work will be infused into our FDA IND# application seeking approvals begin formal human clinical trials.</p>
+            
+            <FadeInSection delay={150}>
+              <div className="mt-8">
+                <Button
+                  asChild
+                  size="lg"
+                  className="px-6 py-3 font-medium text-white bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 transition-all"
+                >
+                  <Link to="/auth/register">Support Killing Cancers Buy Now</Link>
+                </Button>
+              </div>
+            </FadeInSection>
           </div>
         </FadeInSection>
 
@@ -36,6 +52,8 @@ const ResearchHighlights: React.FC = () => {
           </FadeInSection>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };
+
 export default ResearchHighlights;
