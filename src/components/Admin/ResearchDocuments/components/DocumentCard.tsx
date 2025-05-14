@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, ExternalLink, Pencil, Trash2, AlertCircle } from 'lucide-react';
+import { FileText, ExternalLink, Pencil, Trash2, AlertCircle, Loader } from 'lucide-react';
 import { ResearchDocument } from '../types/documentTypes';
 import {
   AlertDialog,
@@ -130,7 +130,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onEdit, onDelete 
             >
               {isDeleting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
                   Deleting...
                 </>
               ) : (
