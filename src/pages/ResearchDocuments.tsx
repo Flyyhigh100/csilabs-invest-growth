@@ -28,7 +28,7 @@ const ResearchDocuments: React.FC = () => {
           <FadeInSection>
             <div className="text-center mb-12">
               <h1 className="text-4xl md:text-5xl font-bold mb-4 text-cbis-dark">
-                Research <span className="bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">Documentation</span>
+                Award Winning <span className="bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">Research Documentation</span>
               </h1>
               <p className="text-lg text-gray-600 max-w-3xl mx-auto">Explore CSi Labs' research documents and other studies supporting our cannabinoid-based cancer treatments.</p>
             </div>
