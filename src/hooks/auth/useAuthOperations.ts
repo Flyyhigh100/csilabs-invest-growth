@@ -2,6 +2,22 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+interface SignUpParams {
+  email: string;
+  password: string;
+  metadata?: {
+    firstName?: string;
+    lastName?: string;
+    phoneNumber?: string;
+    address?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      postalCode?: string;
+    };
+  };
+}
+
 export const useAuthOperations = () => {
   const signIn = async (email: string, password: string): Promise<void> => {
     try {
@@ -13,30 +29,14 @@ export const useAuthOperations = () => {
     }
   };
 
-  const signUp = async (
-    email: string, 
-    password: string, 
-    firstName: string, 
-    lastName: string,
-    phoneNumber?: string,
-    address?: {
-      street: string;
-      city: string;
-      state: string;
-      postalCode: string;
-    }
-  ): Promise<void> => {
+  const signUp = async (params: SignUpParams): Promise<void> => {
     try {
+      const { email, password, metadata } = params;
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: {
-            firstName,
-            lastName,
-            phoneNumber,
-            address
-          }
+          data: metadata
         }
       });
       if (error) throw error;

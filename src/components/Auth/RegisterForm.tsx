@@ -42,14 +42,17 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   const onSubmit = async (values: RegisterFormValues) => {
     setIsLoading(true);
     try {
-      await signUp(
-        values.email,
-        values.password,
-        values.firstName,
-        values.lastName,
-        values.phoneNumber,
-        values.address
-      );
+      // Update the signUp call to use metadata for the additional fields
+      await signUp({
+        email: values.email,
+        password: values.password,
+        metadata: {
+          firstName: values.firstName,
+          lastName: values.lastName,
+          phoneNumber: values.phoneNumber,
+          address: values.address
+        }
+      });
       onSuccess();
     } catch (error) {
       console.error("Registration error:", error);
