@@ -1,125 +1,80 @@
 
 import { useCallback } from 'react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { ResearchDocument } from '../../types/documentTypes';
+import { useDocumentService } from './useDocumentService';
 
 export const useDocumentLoaders = (
   setDocuments: (docs: ResearchDocument[]) => void,
-  setIsLoading: (loading: boolean) => void,
-  bucketName: string
+  setIsLoading: (loading: boolean) => void
 ) => {
-  // Load documents from Supabase storage
-  const loadDocumentsFromStorage = useCallback(async () => {
+  const { fetchDocumentsFromDb } = useDocumentService();
+
+  // Load documents from database
+  const loadDocumentsFromDb = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Fetch files from storage
-      const { data: files, error } = await supabase
-        .storage
-        .from(bucketName)
-        .list();
+      const documents = await fetchDocumentsFromDb();
       
-      if (error) {
-        console.error("Error fetching files from storage:", error);
-        toast.error("Failed to load documents from storage");
-        
-        // Fallback to file if storage fails
-        await loadDocumentsFromFile();
-        return;
-      }
+      console.log("Documents loaded from database:", documents.length);
+      setDocuments(documents);
       
-      if (!files || files.length === 0) {
-        console.log("No files found in storage, loading from file instead");
-        await loadDocumentsFromFile();
-        return;
-      }
-      
-      // Convert files to document objects
-      const docsPromises = files.map(async (file) => {
-        // Get file public URL
-        const { data: urlData } = supabase
-          .storage
-          .from(bucketName)
-          .getPublicUrl(file.name);
-          
-        // Try to extract metadata from filename or parameters
-        let title = file.name.split('.')[0].split('-').slice(1).join(' ');
-        let category = "Research";
-        let description = `Research document: ${title}`;
-        let publishDate = new Date().toLocaleDateString();
-        let authors = "";
-        
-        // Parse file name for metadata, looking for URL-style parameters
-        const fileNameParts = file.name.split('?');
-        if (fileNameParts.length > 1) {
-          try {
-            const params = new URLSearchParams(fileNameParts[1]);
-            title = params.get('title') || title;
-            category = params.get('category') || category;
-            description = params.get('description') || description;
-            publishDate = params.get('publishDate') || publishDate;
-            authors = params.get('authors') || authors;
-          } catch (e) {
-            console.log("Could not parse metadata from filename");
-          }
-        }
-        
-        return {
-          id: `doc-${file.name}`,
-          title,
-          description,
-          category,
-          pdfUrl: urlData.publicUrl,
-          publishDate,
-          authors
-        };
-      });
-      
-      const loadedDocs = await Promise.all(docsPromises);
-      console.log("Documents loaded from storage:", loadedDocs.length);
-      setDocuments(loadedDocs);
+      // Cache the documents in localStorage for faster loading
+      localStorage.setItem('researchDocuments', JSON.stringify(documents));
     } catch (error) {
-      console.error("Error loading documents from storage:", error);
-      toast.error("Failed to load documents from storage");
+      console.error("Error loading documents from database:", error);
+      toast.error("Failed to load documents");
       
-      // Fallback to file loading
-      await loadDocumentsFromFile();
+      // Fallback to cache if available
+      const cachedDocs = localStorage.getItem('researchDocuments');
+      if (cachedDocs) {
+        console.log("Using cached documents");
+        setDocuments(JSON.parse(cachedDocs));
+      } else {
+        setDocuments([]);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [bucketName, setDocuments, setIsLoading]);
+  }, [fetchDocumentsFromDb, setDocuments, setIsLoading]);
 
-  // Load documents from file (legacy method)
+  // Legacy method for backward compatibility
   const loadDocumentsFromFile = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Fetch the ResearchDocuments.tsx file content
-      const response = await fetch('/src/pages/ResearchDocuments.tsx');
-      const fileContent = await response.text();
+      // Try to use loadDocumentsFromDb first
+      await loadDocumentsFromDb();
+    } catch (error) {
+      console.error("Error loading documents, falling back to file method:", error);
       
-      // Extract the documents array using regex
-      const docsMatch = fileContent.match(/const\s+(?:fallback)?[dD]ocuments\s*=\s*\[([\s\S]*?)\];/);
-      
-      if (docsMatch && docsMatch[1]) {
-        // Create a temporary function to evaluate the array
-        // This is hacky but works for simple JSON-like structures
-        const docs = eval(`[${docsMatch[1]}]`);
-        setDocuments(docs);
-      } else {
-        toast.error("Could not parse research documents from file");
+      // Fetch the ResearchDocuments.tsx file content as fallback
+      try {
+        const response = await fetch('/src/pages/ResearchDocuments.tsx');
+        const fileContent = await response.text();
+        
+        // Extract the documents array using regex
+        const docsMatch = fileContent.match(/const\s+(?:fallback)?[dD]ocuments\s*=\s*\[([\s\S]*?)\];/);
+        
+        if (docsMatch && docsMatch[1]) {
+          // Create a temporary function to evaluate the array
+          const docs = eval(`[${docsMatch[1]}]`);
+          setDocuments(docs);
+        } else {
+          toast.error("Could not parse research documents from file");
+          setDocuments([]);
+        }
+      } catch (fileError) {
+        console.error("Error loading documents from file:", fileError);
+        toast.error("Failed to load research documents");
         setDocuments([]);
       }
-    } catch (error) {
-      console.error("Error loading documents from file:", error);
-      toast.error("Failed to load research documents");
-      setDocuments([]);
     } finally {
       setIsLoading(false);
     }
-  }, [setDocuments, setIsLoading]);
+  }, [loadDocumentsFromDb, setDocuments, setIsLoading]);
 
   return {
-    loadDocumentsFromStorage,
+    loadDocumentsFromStorage: loadDocumentsFromDb,
     loadDocumentsFromFile
   };
 };

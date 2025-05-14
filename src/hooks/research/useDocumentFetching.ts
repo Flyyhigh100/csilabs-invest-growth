@@ -13,55 +13,6 @@ export const useDocumentFetching = (
   const { saveToCache, loadFromCache } = useDocumentCache();
   const fallbackDocuments = useFallbackDocuments();
 
-  // Helper function to extract actual filename without params
-  const getBaseFilename = useCallback((fullName: string): string => {
-    return fullName.split('?')[0];
-  }, []);
-
-  // Parse metadata from file name with URL parameters
-  const parseFileMetadata = useCallback((fileName: string, baseFileName: string) => {
-    // Default values (use filename as title if nothing else available)
-    let title = baseFileName
-      .split('.')[0]
-      .replace(/_/g, ' ')
-      .replace(/-/g, ' ')
-      .replace(/^\d+\s*/, ''); // Remove any leading numbers and timestamp
-          
-    // Special case for Harvard document
-    if (title.toLowerCase().includes('harvard') || 
-        (baseFileName.toLowerCase().includes('harvard'))) {
-      return {
-        title: title,
-        category: "Harvard Letter",
-        description: "",
-        publishDate: new Date().toLocaleDateString(),
-        authors: ""
-      };
-    }
-    
-    let category = "Research";
-    let publishDate = new Date().toLocaleDateString();
-    let authors = "";
-    let description = "";
-    
-    // Parse file name for metadata with URL parameters
-    const fileNameParts = fileName.split('?');
-    if (fileNameParts.length > 1) {
-      try {
-        const params = new URLSearchParams(fileNameParts[1]);
-        title = params.get('title') || title;
-        category = params.get('category') || category;
-        description = params.get('description') || description;
-        publishDate = params.get('publishDate') || publishDate;
-        authors = params.get('authors') || authors;
-      } catch (e) {
-        console.log("Could not parse metadata from filename");
-      }
-    }
-    
-    return { title, category, description, publishDate, authors };
-  }, []);
-
   // Sort documents by publish date
   const sortDocumentsByDate = useCallback((documents: ResearchDocument[]): ResearchDocument[] => {
     return documents.sort((a, b) => {
@@ -78,11 +29,8 @@ export const useDocumentFetching = (
     });
   }, []);
 
-  // Fetch documents from Supabase storage
+  // Fetch documents from database
   const fetchDocumentsFromStorage = useCallback(async () => {
-    // First, clear cache to ensure fresh data
-    localStorage.removeItem('researchDocuments');
-    
     // First, try to load from local storage cache immediately
     const cachedDocs = loadFromCache();
     if (cachedDocs && cachedDocs.length > 0) {
@@ -98,74 +46,50 @@ export const useDocumentFetching = (
     // No cache available, show loading state and fetch
     setIsLoading(true);
     try {
-      // Fetch the list of files from the storage bucket
-      const { data: files, error: filesError } = await supabase
-        .storage
-        .from('research_documents')
-        .list('', {
-          limit: 100 // Add a higher limit to ensure we get all files
-        });
+      // Fetch documents from the database
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .order('published_at', { ascending: false });
         
-      if (filesError) {
-        console.error('Error fetching files:', filesError);
-        setDocuments(fallbackDocuments);
-        throw new Error(filesError.message);
+      if (error) {
+        console.error('Error fetching documents from database:', error);
+        throw new Error(error.message);
       }
 
-      if (!files || files.length === 0) {
-        console.log('No files found in storage, using fallback documents');
+      if (!data || data.length === 0) {
+        console.log('No documents found in database, using fallback documents');
         setDocuments(fallbackDocuments);
         setIsLoading(false);
         return;
       }
 
-      // Get metadata for each file
-      const filePromises = files.map(async (file) => {
-        const fileName = file.name;
-        
-        // Get the public URL
-        const { data: urlData } = supabase
-          .storage
-          .from('research_documents')
-          .getPublicUrl(fileName);
-          
-        const baseFileName = getBaseFilename(fileName);
-        const metadata = parseFileMetadata(fileName, baseFileName);
-        
-        return {
-          id: `doc-${fileName}`,
-          title: metadata.title,
-          description: metadata.description,
-          category: metadata.category,
-          pdfUrl: urlData.publicUrl,
-          publishDate: metadata.publishDate,
-          authors: metadata.authors
-        } as ResearchDocument;
-      });
-
-      const documentsList = await Promise.all(filePromises);
+      // Convert database format to our application format
+      const documentsList = data.map(doc => ({
+        id: doc.id,
+        title: doc.title,
+        description: doc.description || '',
+        category: doc.category,
+        pdfUrl: doc.file_path,
+        publishDate: new Date(doc.published_at).toISOString().split('T')[0],
+        authors: doc.authors || ''
+      }));
       
-      // Combine storage documents with fallbacks
-      // This ensures the Harvard document is always included
-      const combinedDocs = [...documentsList];
+      // Combine with fallback documents if needed
+      const combinedDocs = [...documentsList, ...fallbackDocuments];
       
-      // Check if we need to add fallback documents 
-      // Add Harvard document from fallback if not present
-      const hasHarvard = combinedDocs.some(doc => 
-        doc.category === "Harvard Letter" || 
-        doc.title.toLowerCase().includes('harvard')
+      // Remove duplicates (if any fallback docs match real docs)
+      const uniqueDocs = combinedDocs.filter(
+        (doc, index, self) => 
+          index === self.findIndex(d => d.title === doc.title)
       );
       
-      if (!hasHarvard && fallbackDocuments.length > 0) {
-        combinedDocs.push(fallbackDocuments[0]);
-      }
-      
-      const sortedDocs = sortDocumentsByDate(combinedDocs);
+      const sortedDocs = sortDocumentsByDate(uniqueDocs);
       
       // Cache the results
       saveToCache(sortedDocs);
       setDocuments(sortedDocs);
-      console.log('Documents loaded from storage and fallback:', sortedDocs.length);
+      console.log('Documents loaded:', sortedDocs.length);
     } catch (err: any) {
       console.error('Error loading documents:', err);
       setError(err.message);
@@ -181,8 +105,6 @@ export const useDocumentFetching = (
     setError, 
     loadFromCache, 
     saveToCache,
-    getBaseFilename,
-    parseFileMetadata,
     sortDocumentsByDate,
     fallbackDocuments
   ]);
@@ -190,37 +112,38 @@ export const useDocumentFetching = (
   // Background refresh function that doesn't set loading state
   const refreshInBackground = useCallback(async () => {
     try {
-      const { data: files, error: filesError } = await supabase
-        .storage
-        .from('research_documents')
-        .list('', {
-          limit: 100 // Add a higher limit to ensure we get all files
-        });
+      // Fetch documents from the database
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .order('published_at', { ascending: false });
         
-      if (filesError || !files || files.length === 0) {
+      if (error || !data) {
         return; // Just return silently as this is a background refresh
       }
 
-      // Process files as before but without loading states
-      const documentsList = await Promise.all(files.map(async (file) => {
-        const fileName = file.name;
-        const { data: urlData } = supabase.storage.from('research_documents').getPublicUrl(fileName);
-        const baseFileName = getBaseFilename(fileName);
-        const metadata = parseFileMetadata(fileName, baseFileName);
-        
-        return {
-          id: `doc-${fileName}`,
-          title: metadata.title,
-          description: metadata.description,
-          category: metadata.category,
-          pdfUrl: urlData.publicUrl,
-          publishDate: metadata.publishDate,
-          authors: metadata.authors
-        } as ResearchDocument;
+      // Convert database format to our application format
+      const documentsList = data.map(doc => ({
+        id: doc.id,
+        title: doc.title,
+        description: doc.description || '',
+        category: doc.category,
+        pdfUrl: doc.file_path,
+        publishDate: new Date(doc.published_at).toISOString().split('T')[0],
+        authors: doc.authors || ''
       }));
       
-      if (documentsList.length > 0) {
-        const sortedDocs = sortDocumentsByDate(documentsList);
+      // Combine with fallback documents
+      const combinedDocs = [...documentsList, ...fallbackDocuments];
+      
+      // Remove duplicates
+      const uniqueDocs = combinedDocs.filter(
+        (doc, index, self) => 
+          index === self.findIndex(d => d.title === doc.title)
+      );
+      
+      if (uniqueDocs.length > 0) {
+        const sortedDocs = sortDocumentsByDate(uniqueDocs);
         saveToCache(sortedDocs);
         setDocuments(sortedDocs);
         console.log('Background refresh completed with', sortedDocs.length, 'documents');
@@ -230,11 +153,10 @@ export const useDocumentFetching = (
       // Don't set error state as this is a background operation
     }
   }, [
-    getBaseFilename,
-    parseFileMetadata,
     saveToCache,
     setDocuments,
-    sortDocumentsByDate
+    sortDocumentsByDate,
+    fallbackDocuments
   ]);
 
   return { fetchDocumentsFromStorage };

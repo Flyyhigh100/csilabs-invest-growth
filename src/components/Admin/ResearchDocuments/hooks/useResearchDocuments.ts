@@ -11,7 +11,6 @@ export const useResearchDocuments = () => {
     setDocuments,
     isLoading,
     setIsLoading,
-    bucketName,
     isAuthenticated,
     setIsAuthenticated
   } = useDocumentState();
@@ -21,13 +20,14 @@ export const useResearchDocuments = () => {
   const {
     loadDocumentsFromStorage,
     loadDocumentsFromFile
-  } = useDocumentLoaders(setDocuments, setIsLoading, bucketName);
+  } = useDocumentLoaders(setDocuments, setIsLoading);
   
   const {
     addDocument,
+    uploadDocument,
     deleteDocument,
     updateDocumentMetadata
-  } = useDocumentMutations(documents, setDocuments, bucketName);
+  } = useDocumentMutations(documents, setDocuments);
 
   useEffect(() => {
     const init = async () => {
@@ -41,11 +41,11 @@ export const useResearchDocuments = () => {
   return {
     documents,
     isLoading,
-    bucketName,
     isAuthenticated,
     loadDocumentsFromStorage,
     loadDocumentsFromFile,
     addDocument,
+    uploadDocument,
     deleteDocument,
     checkAuthentication,
     updateDocumentMetadata

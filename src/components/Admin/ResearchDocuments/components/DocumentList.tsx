@@ -1,97 +1,56 @@
 
-import React, { useState } from 'react';
-import { RefreshCw, FileText } from 'lucide-react';
-import DocumentCard from './DocumentCard';
+import React from 'react';
 import { ResearchDocument } from '../types/documentTypes';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import DocumentCard from './DocumentCard';
+import { Pencil, Loader2 } from 'lucide-react';
 
 interface DocumentListProps {
   documents: ResearchDocument[];
   isLoading: boolean;
   onEditDocument?: (document: ResearchDocument) => void;
-  onDeleteDocument?: (documentId: string) => Promise<boolean>;
+  onDeleteDocument?: (docId: string) => Promise<boolean>;
 }
 
 const DocumentList: React.FC<DocumentListProps> = ({ 
   documents, 
-  isLoading, 
+  isLoading,
   onEditDocument,
   onDeleteDocument
 }) => {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleDeleteClick = (documentId: string) => {
-    setDocumentToDelete(documentId);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!documentToDelete || !onDeleteDocument) return;
-    
-    setIsDeleting(true);
-    const success = await onDeleteDocument(documentToDelete);
-    setIsDeleting(false);
-    
-    if (success) {
-      setDeleteDialogOpen(false);
-      setDocumentToDelete(null);
-    }
-  };
-
   if (isLoading) {
     return (
-      <div className="text-center py-8">
-        <RefreshCw className="h-8 w-8 animate-spin mx-auto text-gray-400" />
-        <p className="mt-2 text-gray-500">Loading documents...</p>
+      <div className="p-12 flex flex-col items-center justify-center text-center">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400 mb-4" />
+        <p className="text-gray-500 font-medium">Loading documents...</p>
       </div>
     );
   }
-  
+
   if (documents.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        <FileText className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-        <p>No research documents found</p>
+      <div className="p-12 text-center border border-dashed rounded-md">
+        <div className="flex justify-center">
+          <Pencil className="h-12 w-12 text-gray-300" />
+        </div>
+        <h3 className="mt-4 text-lg font-medium text-gray-900">No documents yet</h3>
+        <p className="mt-1 text-sm text-gray-500">
+          Upload your first document using the form above.
+        </p>
       </div>
     );
   }
-  
-  return (
-    <>
-      <div className="space-y-4">
-        {documents.map((doc) => (
-          <DocumentCard 
-            key={doc.id} 
-            document={doc}
-            onEdit={onEditDocument}
-            onDelete={onDeleteDocument ? (id) => handleDeleteClick(id) : undefined}
-          />
-        ))}
-      </div>
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to delete this document?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. The document will be permanently removed from the research page.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleConfirmDelete} 
-              disabled={isDeleting}
-              className="bg-red-500 hover:bg-red-600"
-            >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {documents.map((document) => (
+        <DocumentCard
+          key={document.id}
+          document={document}
+          onEdit={onEditDocument ? () => onEditDocument(document) : undefined}
+          onDelete={onDeleteDocument ? () => onDeleteDocument(document.id) : undefined}
+        />
+      ))}
+    </div>
   );
 };
 

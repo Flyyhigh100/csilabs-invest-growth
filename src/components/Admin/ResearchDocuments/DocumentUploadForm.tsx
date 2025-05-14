@@ -6,15 +6,13 @@ import * as z from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form } from '@/components/ui/form';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import FileUploader from './components/FileUploader';
 import DocumentMetadataForm from './components/DocumentMetadataForm';
 import SubmitButton from './components/SubmitButton';
-import { ResearchDocument, DocumentFormValues } from './types/documentTypes';
+import { DocumentFormValues } from './types/documentTypes';
 
 interface DocumentUploadFormProps {
-  bucketName: string;
-  onDocumentUploaded: (newDocument: ResearchDocument) => void;
+  onDocumentUploaded: (file: File, values: DocumentFormValues) => Promise<boolean>;
   isAuthenticated: boolean;
 }
 
@@ -27,7 +25,6 @@ const formSchema = z.object({
 });
 
 const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ 
-  bucketName, 
   onDocumentUploaded,
   isAuthenticated
 }) => {
@@ -65,82 +62,16 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
     console.log("Starting file upload process...");
     
     try {
-      // Check if user is authenticated before proceeding
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        toast.error("You must be logged in to upload documents");
-        setIsUploading(false);
-        return;
+      const success = await onDocumentUploaded(selectedFile, values);
+      
+      if (success) {
+        // Clear form
+        form.reset();
+        setSelectedFile(null);
+        toast.success("Document uploaded successfully");
+      } else {
+        toast.error("Failed to upload document");
       }
-      
-      // 1. Create a file name with metadata
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${Date.now()}-${values.title.replace(/\s+/g, '_')}.${fileExt}`;
-      
-      console.log(`Uploading to bucket: ${bucketName}, filename: ${fileName}`);
-      
-      // 2. Upload file - using metadata field instead of customMetadata
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from(bucketName)
-        .upload(fileName, selectedFile, {
-          contentType: `application/${fileExt}`,
-          upsert: true,
-          cacheControl: '3600',
-          // Store metadata as a searchParam in the file name instead
-          // This is a workaround since customMetadata is not available in the type
-        });
-      
-      if (uploadError) {
-        console.error("Storage upload error:", uploadError);
-        throw uploadError;
-      }
-      
-      console.log("Upload successful, getting public URL");
-      
-      // 3. Get the public URL
-      const { data: publicUrlData } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(fileName);
-      
-      const publicUrl = publicUrlData.publicUrl;
-      console.log("Generated public URL:", publicUrl);
-      
-      // 4. Store metadata separately in a searchParam or query string
-      const metadataParams = new URLSearchParams();
-      metadataParams.append('title', values.title);
-      metadataParams.append('description', values.description);
-      metadataParams.append('category', values.category);
-      metadataParams.append('publishDate', values.publishDate);
-      if (values.authors) metadataParams.append('authors', values.authors);
-      
-      // Alternative approach: store metadata in Supabase database
-      // This would be a better approach but requires SQL changes
-      // For now we'll use the URL with search params
-      
-      // 5. Create the new document object
-      const newDocument: ResearchDocument = {
-        id: `doc-${Date.now()}`,
-        title: values.title,
-        description: values.description,
-        category: values.category,
-        pdfUrl: publicUrl,
-        publishDate: values.publishDate,
-        authors: values.authors,
-      };
-      
-      // 6. Add to state via parent callback
-      onDocumentUploaded(newDocument);
-      
-      // 7. Clear form
-      form.reset();
-      setSelectedFile(null);
-      
-      // 8. Clear localStorage cache so the main page will reload from storage
-      localStorage.removeItem('researchDocuments');
-      
-      // 9. Show success message
-      toast.success("Document uploaded successfully");
-      
     } catch (error: any) {
       console.error("Error uploading document:", error);
       toast.error(`Upload failed: ${error.message}`);

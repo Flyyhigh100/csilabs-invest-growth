@@ -33,6 +33,45 @@ export type Database = {
         }
         Relationships: []
       }
+      documents: {
+        Row: {
+          authors: string | null
+          category: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          file_path: string
+          id: string
+          published_at: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          authors?: string | null
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          file_path: string
+          id?: string
+          published_at?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          authors?: string | null
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          file_path?: string
+          id?: string
+          published_at?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ipn_logs: {
         Row: {
           created_at: string

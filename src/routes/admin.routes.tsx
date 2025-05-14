@@ -9,7 +9,8 @@ import {
 } from '@/components/Icons';
 import {
   WrenchIcon,
-  BarChart2
+  BarChart2,
+  FileText
 } from 'lucide-react';
 
 // Lazy load admin pages for better performance
@@ -21,6 +22,7 @@ const AdminSettings = lazy(() => import('@/pages/Admin/Settings'));
 const AdminNotifications = lazy(() => import('@/pages/Admin/Notifications'));
 const AdminKYC = lazy(() => import('@/components/Admin/KYC'));
 const AdminTransactionTools = lazy(() => import('@/pages/Admin/TransactionTools'));
+const AdminResearchDocuments = lazy(() => import('@/pages/Admin/ResearchDocuments'));
 
 export const adminRoutes = [
   {
@@ -95,6 +97,15 @@ export const adminRoutes = [
       requiresAdmin: true,
     },
   },
+  {
+    path: '/admin/research-documents',
+    element: <AdminResearchDocuments />,
+    meta: {
+      title: 'Research Documents',
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+  },
 ];
 
 export const adminSidebarLinks = [
@@ -127,6 +138,11 @@ export const adminSidebarLinks = [
     title: 'Transaction Tools',
     path: '/admin/transaction-tools',
     icon: <WrenchIcon className="h-5 w-5" />,
+  },
+  {
+    title: 'Research Documents',
+    path: '/admin/research-documents',
+    icon: <FileText className="h-5 w-5" />,
   },
   {
     title: 'Notifications',

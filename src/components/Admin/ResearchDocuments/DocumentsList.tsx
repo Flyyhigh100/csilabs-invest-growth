@@ -40,7 +40,7 @@ const DocumentsList: React.FC<DocumentsListProps> = ({
       const result = await onUpdateDocument(docId, data);
       
       if (result) {
-        // Force reload documents after update to ensure we're in sync with storage
+        // Force reload documents after update to ensure we're in sync with database
         await handleReload();
         return true;
       }
