@@ -1,10 +1,7 @@
-
 import React from 'react';
 import { Shield, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
-
 const RegistrationBenefits: React.FC = () => {
-  return (
-    <div className="space-y-8">
+  return <div className="space-y-8">
       <div className="flex gap-4 items-start">
         <div className="p-3 bg-blue-50 rounded-lg flex-shrink-0">
           <Shield className="h-6 w-6 text-cbis-blue" />
@@ -69,7 +66,7 @@ const RegistrationBenefits: React.FC = () => {
           </li>
           <li className="flex gap-2">
             <div className="flex-shrink-0 bg-cbis-blue text-white rounded-full h-6 w-6 flex items-center justify-center font-bold">3</div>
-            <span>Access your dashboard to make contributions via credit card or cryptocurrency.</span>
+            <span>Access your dashboard to make contributions.</span>
           </li>
           <li className="flex gap-2">
             <div className="flex-shrink-0 bg-cbis-blue text-white rounded-full h-6 w-6 flex items-center justify-center font-bold">+</div>
@@ -77,8 +74,6 @@ const RegistrationBenefits: React.FC = () => {
           </li>
         </ol>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default RegistrationBenefits;
