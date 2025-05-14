@@ -14,7 +14,7 @@ const ResearchHighlights: React.FC = () => {
               Affordable Cancer Treatment
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-cbis-dark">
-              Making Cancer Treatment Affordable For Millions
+              Your Support will help make Cancer Treatments Affordable For Millions
             </h2>
             <p className="text-gray-600">
               Our treatments are designed to be accessible to the millions of cancer patients who cannot afford today's high-cost drugs, providing effective cancer cell elimination without the harsh side effects of chemical therapies.
