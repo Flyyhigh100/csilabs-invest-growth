@@ -16,7 +16,7 @@ const HeroContent: React.FC<HeroContentProps> = ({
         Affordable Cancer Treatment
       </div>
       <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 tracking-tight leading-tight text-cbis-dark">
-        <span className="bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">Low-Cost</span> Cancer-Killing Treatments Without Side Effects
+        <span className="bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">Harvard Award Winning,</span> Low-Cost Cancer-Killing Treatments
       </h1>
       <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed max-w-lg font-normal">
         The 1-Million Strong Killing Cancers Foundation, the 1-Million Strong Fight Club, & CSi Labs are making cancer treatments affordable and accessible for millions of patients through our innovative cancer killing fundraising meme token. Our Low-Cost, Harvard Award Winning cannabinoid-based treatments eliminate cancer cells without the harsh side effects of chemical therapies.
