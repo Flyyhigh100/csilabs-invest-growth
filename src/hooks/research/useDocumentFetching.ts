@@ -40,7 +40,7 @@ export const useDocumentFetching = (
       await fetchFromDatabase(true);
     } catch (err) {
       console.error('Error in document fetching process:', err);
-      setError(err as Error);
+      setError(err instanceof Error ? err : new Error('Unknown error occurred during document fetching'));
       setIsLoading(false);
     }
   }, [setDocuments, setIsLoading, setError, saveToCache, loadFromCache, clearCache]);
@@ -59,7 +59,7 @@ export const useDocumentFetching = (
       
       if (error) {
         console.error('Error fetching documents from database:', error);
-        setError(error);
+        setError(new Error(error.message));
         if (updateLoadingState) {
           toast.error('Failed to load documents');
         }
@@ -98,7 +98,7 @@ export const useDocumentFetching = (
       }
     } catch (err) {
       console.error('Exception fetching documents from database:', err);
-      setError(err as Error);
+      setError(err instanceof Error ? err : new Error('Unknown error during database fetch'));
       if (updateLoadingState) {
         toast.error('Error loading documents');
       }

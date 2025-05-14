@@ -28,7 +28,7 @@ export const useDocumentRefresh = (
       
       if (error) {
         console.error('Error refreshing documents:', error);
-        setError(error);
+        setError(new Error(error.message));
         toast.error('Failed to refresh documents');
         return false;
       }
@@ -52,7 +52,7 @@ export const useDocumentRefresh = (
       return true;
     } catch (err) {
       console.error('Exception during document refresh:', err);
-      setError(err as Error);
+      setError(err instanceof Error ? err : new Error('Error during document refresh'));
       toast.error('Error loading documents');
       return false;
     } finally {

@@ -7,7 +7,7 @@ export const useResearchState = () => {
   const fallbackDocs = useFallbackDocuments();
   const [documents, setDocuments] = useState<ResearchDocument[]>(fallbackDocs);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedPdf, setSelectedPdf] = useState<ResearchDocument | null>(null);
 
