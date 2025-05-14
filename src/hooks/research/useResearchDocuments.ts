@@ -37,6 +37,9 @@ export const useResearchDocuments = () => {
 
   // Load documents when the hook is first called - with empty dependency array to run only once
   useEffect(() => {
+    // Clear cache on initial load to ensure we get fresh data
+    localStorage.removeItem('researchDocuments');
+    
     if (!initialized.current) {
       console.log("Initial document fetch");
       initialized.current = true;

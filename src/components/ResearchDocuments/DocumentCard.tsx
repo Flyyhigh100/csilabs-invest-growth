@@ -24,7 +24,6 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onSelect }) => {
           <div className="bg-blue-50 text-cbis-blue text-xs font-medium px-2.5 py-1 rounded">
             {document.category}
           </div>
-          {/* Publication date removed */}
         </div>
         <CardTitle className="mt-3 text-xl leading-tight">
           {formattedTitle}

@@ -27,6 +27,18 @@ export const useDocumentFetching = (
       .replace(/-/g, ' ')
       .replace(/^\d+\s*/, ''); // Remove any leading numbers and timestamp
           
+    // Special case for Harvard document
+    if (title.toLowerCase().includes('harvard') || 
+        (baseFileName.toLowerCase().includes('harvard'))) {
+      return {
+        title: title,
+        category: "Harvard Letter",
+        description: "",
+        publishDate: new Date().toLocaleDateString(),
+        authors: ""
+      };
+    }
+    
     let category = "Research";
     let publishDate = new Date().toLocaleDateString();
     let authors = "";
@@ -68,6 +80,9 @@ export const useDocumentFetching = (
 
   // Fetch documents from Supabase storage
   const fetchDocumentsFromStorage = useCallback(async () => {
+    // First, clear cache to ensure fresh data
+    localStorage.removeItem('researchDocuments');
+    
     // First, try to load from local storage cache immediately
     const cachedDocs = loadFromCache();
     if (cachedDocs && cachedDocs.length > 0) {
@@ -130,18 +145,27 @@ export const useDocumentFetching = (
 
       const documentsList = await Promise.all(filePromises);
       
-      // If we have actual documents from storage, don't use fallback documents
-      if (documentsList.length > 0) {
-        const sortedDocs = sortDocumentsByDate(documentsList);
-        
-        // Cache the results
-        saveToCache(sortedDocs);
-        setDocuments(sortedDocs);
-        console.log('Documents loaded from storage:', sortedDocs.length);
-      } else {
-        // Only use fallback documents if no actual documents exist
-        setDocuments(fallbackDocuments);
+      // Combine storage documents with fallbacks
+      // This ensures the Harvard document is always included
+      const combinedDocs = [...documentsList];
+      
+      // Check if we need to add fallback documents 
+      // Add Harvard document from fallback if not present
+      const hasHarvard = combinedDocs.some(doc => 
+        doc.category === "Harvard Letter" || 
+        doc.title.toLowerCase().includes('harvard')
+      );
+      
+      if (!hasHarvard && fallbackDocuments.length > 0) {
+        combinedDocs.push(fallbackDocuments[0]);
       }
+      
+      const sortedDocs = sortDocumentsByDate(combinedDocs);
+      
+      // Cache the results
+      saveToCache(sortedDocs);
+      setDocuments(sortedDocs);
+      console.log('Documents loaded from storage and fallback:', sortedDocs.length);
     } catch (err: any) {
       console.error('Error loading documents:', err);
       setError(err.message);

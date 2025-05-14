@@ -25,6 +25,18 @@ export const useDocumentRefresh = (
       .replace(/-/g, ' ')
       .replace(/^\d+\s*/, ''); // Remove any leading numbers and timestamp
           
+    // Special case for Harvard document
+    if (title.toLowerCase().includes('harvard') || 
+        baseFileName.toLowerCase().includes('harvard')) {
+      return {
+        title: title,
+        category: "Harvard Letter",
+        description: "",
+        publishDate: new Date().toLocaleDateString(),
+        authors: ""
+      };
+    }
+    
     let category = "Research";
     let publishDate = new Date().toLocaleDateString();
     let authors = "";
