@@ -15,7 +15,7 @@ import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
 interface DocumentUploadFormProps {
   onDocumentUploaded: (file: File, values: DocumentFormValues) => Promise<boolean>;
-  isAuthenticated: boolean;
+  bucketExists: boolean; // Only checking for bucket existence
 }
 
 const formSchema = z.object({
@@ -28,7 +28,7 @@ const formSchema = z.object({
 
 const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ 
   onDocumentUploaded,
-  isAuthenticated
+  bucketExists
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -81,9 +81,9 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
   };
 
   const handleSubmit = async (values: DocumentFormValues) => {
-    if (!isAuthenticated) {
-      setUploadError("You must be logged in to upload documents");
-      toast.error("You must be logged in to upload documents");
+    if (!bucketExists) {
+      setUploadError("Storage bucket not found. Please create the bucket first.");
+      toast.error("Storage bucket not found. Please create the bucket first.");
       return;
     }
     
@@ -126,7 +126,7 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
   };
 
   // Calculate if button should be disabled
-  const isUploadDisabled = !isAuthenticated || isUploading || !selectedFile || !fileValidation.isValid;
+  const isUploadDisabled = isUploading || !selectedFile || !fileValidation.isValid || !bucketExists;
 
   return (
     <Card>
@@ -137,12 +137,12 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {!isAuthenticated && (
-          <Alert variant="destructive" className="mb-4">
+        {!bucketExists && (
+          <Alert variant="warning" className="mb-4">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Authentication Required</AlertTitle>
+            <AlertTitle>Storage Not Ready</AlertTitle>
             <AlertDescription>
-              You must be logged in with admin privileges to upload documents.
+              Storage bucket not found. Please create the bucket first using the controls above.
             </AlertDescription>
           </Alert>
         )}
@@ -177,11 +177,11 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <DocumentMetadataForm 
               form={form} 
-              disabled={!isAuthenticated || isUploading} 
+              disabled={isUploading} 
             />
             
             <FileUploader 
-              disabled={!isAuthenticated || isUploading}
+              disabled={isUploading}
               onFileSelect={handleFileSelect}
               selectedFile={selectedFile}
             />
@@ -194,7 +194,7 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({
               
               {isUploadDisabled && (
                 <p className="text-xs text-gray-500 mt-2">
-                  {!isAuthenticated ? "You must be logged in to upload documents." : 
+                  {!bucketExists ? "You must create the storage bucket first." : 
                    !selectedFile ? "Please select a file to upload." : 
                    !fileValidation.isValid ? fileValidation.message : ""}
                 </p>

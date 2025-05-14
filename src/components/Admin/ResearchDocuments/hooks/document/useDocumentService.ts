@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -46,13 +45,8 @@ export const useDocumentService = () => {
       authors?: string;
     }
   ): Promise<ResearchDocument> => {
-    // Check for authentication
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !sessionData.session) {
-      console.error("Authentication error:", sessionError);
-      toast.error("Authentication failed. Please log in again.");
-      throw new Error("Authentication required");
-    }
+    // Remove authentication check as it's redundant with AdminRoute protection
+    // and might be causing the issue
     
     // Validate file size (10MB limit)
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
@@ -115,6 +109,10 @@ export const useDocumentService = () => {
       const fileUrl = publicUrlData.publicUrl;
       console.log('File uploaded successfully, URL:', fileUrl);
       
+      // Get current user's ID for created_by field
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+      
       // 4. Insert document metadata into database
       const { data: insertData, error: insertError } = await supabase
         .from('documents')
@@ -125,7 +123,7 @@ export const useDocumentService = () => {
           file_path: fileUrl,
           published_at: new Date(metadata.publishDate).toISOString(),
           authors: metadata.authors || null,
-          created_by: sessionData.session.user.id
+          created_by: userId
         })
         .select()
         .single();

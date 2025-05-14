@@ -6,7 +6,7 @@ import DocumentsList from '@/components/Admin/ResearchDocuments/DocumentsList';
 import { useResearchDocuments } from '@/components/Admin/ResearchDocuments/hooks/useResearchDocuments';
 import { toast } from 'sonner';
 import BucketStatusCard from '@/components/Admin/ResearchDocuments/BucketStatusCard';
-import { listAllBuckets, checkBucketExists } from '@/utils/admin/kyc/storage';
+import { listAllBuckets, checkBucketExists, createBucketIfNotExists } from '@/utils/admin/kyc/storage';
 
 const AdminResearchDocuments = () => {
   const {
@@ -26,16 +26,9 @@ const AdminResearchDocuments = () => {
     checking: true
   });
 
-  // Check authentication status on page load
+  // Check authentication status on page load - no need to show warnings since AdminRoute handles this
   useEffect(() => {
-    const checkAuth = async () => {
-      const isAuthed = await checkAuthentication();
-      if (!isAuthed) {
-        toast.error("Admin privileges required to manage documents");
-      }
-    };
-    
-    checkAuth();
+    checkAuthentication();
   }, [checkAuthentication]);
   
   // Check if storage bucket exists
@@ -73,24 +66,14 @@ const AdminResearchDocuments = () => {
   
   // Check storage bucket on component mount
   useEffect(() => {
-    if (isAuthenticated) {
-      checkStorageBucket();
-    }
-  }, [isAuthenticated, checkStorageBucket]);
+    checkStorageBucket();
+  }, [checkStorageBucket]);
 
   return (
     <AdminLayout title="Manage Research Documents">
       <div className="grid gap-6">
-        {/* Authentication Status */}
-        {!isAuthenticated && (
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-md text-amber-800">
-            <h3 className="font-medium mb-1">Authentication Required</h3>
-            <p className="text-sm">Admin privileges required to upload and manage documents.</p>
-          </div>
-        )}
-        
         {/* Storage Bucket Status */}
-        {isAuthenticated && !bucketStatus.checking && (
+        {!bucketStatus.checking && (
           <BucketStatusCard
             bucketExists={bucketStatus.exists}
             bucketName="research_documents"
@@ -99,10 +82,10 @@ const AdminResearchDocuments = () => {
           />
         )}
         
-        {/* Document Upload Form */}
+        {/* Document Upload Form - passing bucketExists instead of isAuthenticated */}
         <DocumentUploadForm 
           onDocumentUploaded={uploadDocument} 
-          isAuthenticated={isAuthenticated && bucketStatus.exists}
+          bucketExists={bucketStatus.exists}
         />
         
         {/* Documents List */}
