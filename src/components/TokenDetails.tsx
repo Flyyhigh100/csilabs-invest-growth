@@ -1,22 +1,16 @@
-
 import React from 'react';
 import { cn } from '@/lib/utils';
 import FadeInSection from './FadeInSection';
 import { ExternalLink, Shield, TrendingUp, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-
 const TokenDetails: React.FC = () => {
   return <section className="section-padding bg-gradient-to-b from-white to-gray-50">
       <div className="container-custom">
         <FadeInSection>
           <div className="text-center mb-16 max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-cbis-dark">
-              $CSi-EDP/Labs FC Meme Token
-            </h2>
-            <p className="text-gray-600">
-              Our innovative meme token is the catalyst for the CSi ecosystem, creating a fun way to support serious cancer research.
-            </p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-cbis-dark">$CSi-EDP/Labs, Cancer Killing Meme Token</h2>
+            <p className="text-gray-600">Our innovative Cancer Killing Meme Token is the catalyst for change, creating a fun way to support serious cancer research and help bring our critical low-cost Cancer Killing drugs to market through FDA clinical trials to help treat millions of critically effected cancer patients.</p>
           </div>
         </FadeInSection>
 
@@ -113,5 +107,4 @@ const TokenDetails: React.FC = () => {
       </div>
     </section>;
 };
-
 export default TokenDetails;
