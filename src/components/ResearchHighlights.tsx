@@ -1,14 +1,11 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import FadeInSection from './FadeInSection';
 import FeatureCard from './FeatureCard';
 import { BeakerIcon, BrainCircuit, FilePieChart, TrendingUp, DollarSign, ShieldCheck } from 'lucide-react';
 import { Button } from './ui/button';
-
 const ResearchHighlights: React.FC = () => {
-  return (
-    <section className="section-padding bg-white">
+  return <section className="section-padding bg-white">
       <div className="container-custom">
         <FadeInSection>
           <div className="text-center mb-16 max-w-3xl mx-auto">
@@ -22,12 +19,8 @@ const ResearchHighlights: React.FC = () => {
             
             <FadeInSection delay={150}>
               <div className="mt-8">
-                <Button
-                  asChild
-                  size="lg"
-                  className="px-6 py-3 font-medium text-white bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 transition-all"
-                >
-                  <Link to="/auth/register">Support Killing Cancers Contribute Now</Link>
+                <Button asChild size="lg" className="px-6 py-3 font-medium text-white bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 transition-all">
+                  <Link to="/auth/register" className="">Support Killing Cancers Contribute Now</Link>
                 </Button>
               </div>
             </FadeInSection>
@@ -52,8 +45,6 @@ const ResearchHighlights: React.FC = () => {
           </FadeInSection>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default ResearchHighlights;
