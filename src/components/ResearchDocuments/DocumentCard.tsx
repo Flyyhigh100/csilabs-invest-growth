@@ -22,7 +22,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onSelect }) => {
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="bg-blue-50 text-cbis-blue text-xs font-medium px-2.5 py-1 rounded">
-            {document.category || "Harveard Letter"}
+            {document.category || "Harvard Letter"}
           </div>
           {/* Publication date removed */}
         </div>
