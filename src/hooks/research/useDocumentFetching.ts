@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ResearchDocument } from '@/components/Admin/ResearchDocuments/types/documentTypes';
@@ -26,7 +27,7 @@ export const useDocumentFetching = (
       .replace(/-/g, ' ')
       .replace(/^\d+\s*/, ''); // Remove any leading numbers and timestamp
           
-    let category = "Harvard Letter"; // Default to Harvard Letter instead of Research
+    let category = "Research";
     let publishDate = new Date().toLocaleDateString();
     let authors = "";
     let description = "";
@@ -67,10 +68,19 @@ export const useDocumentFetching = (
 
   // Fetch documents from Supabase storage
   const fetchDocumentsFromStorage = useCallback(async () => {
-    // Clear any existing cached data to force fresh load
-    localStorage.removeItem('researchDocuments');
+    // First, try to load from local storage cache immediately
+    const cachedDocs = loadFromCache();
+    if (cachedDocs && cachedDocs.length > 0) {
+      console.log('Using cached documents:', cachedDocs.length);
+      setDocuments(cachedDocs);
+      setIsLoading(false);
+      
+      // Fetch fresh docs in background
+      refreshInBackground();
+      return;
+    }
     
-    console.log('Forcing fresh document fetch');
+    // No cache available, show loading state and fetch
     setIsLoading(true);
     try {
       // Fetch the list of files from the storage bucket
@@ -78,7 +88,7 @@ export const useDocumentFetching = (
         .storage
         .from('research_documents')
         .list('', {
-          limit: 100 // Higher limit to ensure we get all files
+          limit: 100 // Add a higher limit to ensure we get all files
         });
         
       if (filesError) {
@@ -94,8 +104,6 @@ export const useDocumentFetching = (
         return;
       }
 
-      console.log(`Found ${files.length} files in storage`);
-      
       // Get metadata for each file
       const filePromises = files.map(async (file) => {
         const fileName = file.name;
@@ -108,8 +116,6 @@ export const useDocumentFetching = (
           
         const baseFileName = getBaseFilename(fileName);
         const metadata = parseFileMetadata(fileName, baseFileName);
-        
-        console.log(`Processing file ${fileName} with category: ${metadata.category}`);
         
         return {
           id: `doc-${fileName}`,
@@ -124,22 +130,18 @@ export const useDocumentFetching = (
 
       const documentsList = await Promise.all(filePromises);
       
-      // Always include fallback documents to ensure we have something to display
-      const combinedDocs = [...documentsList, ...fallbackDocuments];
-      
-      // Remove any duplicates (by id)
-      const uniqueDocsList = Array.from(
-        new Map(combinedDocs.map(doc => [doc.id, doc])).values()
-      );
-      
-      const sortedDocs = sortDocumentsByDate(uniqueDocsList);
-      
-      console.log('Final document list:', sortedDocs.length, 'documents');
-      sortedDocs.forEach(doc => console.log(`- ${doc.title} (${doc.category})`));
-      
-      // Cache the results
-      saveToCache(sortedDocs);
-      setDocuments(sortedDocs);
+      // If we have actual documents from storage, don't use fallback documents
+      if (documentsList.length > 0) {
+        const sortedDocs = sortDocumentsByDate(documentsList);
+        
+        // Cache the results
+        saveToCache(sortedDocs);
+        setDocuments(sortedDocs);
+        console.log('Documents loaded from storage:', sortedDocs.length);
+      } else {
+        // Only use fallback documents if no actual documents exist
+        setDocuments(fallbackDocuments);
+      }
     } catch (err: any) {
       console.error('Error loading documents:', err);
       setError(err.message);
@@ -153,6 +155,7 @@ export const useDocumentFetching = (
     setIsLoading, 
     setDocuments, 
     setError, 
+    loadFromCache, 
     saveToCache,
     getBaseFilename,
     parseFileMetadata,

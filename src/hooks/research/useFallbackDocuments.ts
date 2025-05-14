@@ -8,7 +8,7 @@ export const useFallbackDocuments = (): ResearchDocument[] => {
       id: "doc-1",
       title: "Cannabinoids as Antioxidants and Neuroprotectants",
       description: "US Patent #6,630,507 details cannabinoids as potent antioxidants with neuroprotective properties, potentially useful for treating oxidative stress-related diseases.",
-      category: "Harvard Letter",
+      category: "Patents",
       pdfUrl: "https://upload.wikimedia.org/wikipedia/commons/3/3f/US-PatentTrademarkOffice-Patent6630507.pdf",
       publishDate: "October 7, 2003",
       authors: "Hampson et al., US Department of Health and Human Services"
@@ -17,19 +17,10 @@ export const useFallbackDocuments = (): ResearchDocument[] => {
       id: "doc-2",
       title: "Cannabis and Cannabinoid Research in Cancer",
       description: "Comprehensive research on the effects of cannabinoids on various cancer cell types and mechanisms of action.",
-      category: "Report 1",
+      category: "Clinical Research",
       pdfUrl: "/sample.pdf",
       publishDate: "March 15, 2022",
       authors: "CSi Labs Research Team"
-    },
-    {
-      id: "doc-3",
-      title: "Cannabinoid Therapy Clinical Applications",
-      description: "Review of clinical applications for cannabinoid-based therapies across multiple disease states.",
-      category: "Report 2",
-      pdfUrl: "/sample.pdf",
-      publishDate: "June 22, 2022",
-      authors: "CSi Labs Clinical Research Division"
     }
   ];
 };
