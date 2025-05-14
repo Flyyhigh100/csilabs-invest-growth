@@ -17,7 +17,7 @@ const RegistrationSuccess: React.FC = () => {
             Registration Successful!
           </CardTitle>
           <CardDescription className="text-center">
-            Welcome to the CSi Labs community. We're excited to have you join us in the fight against cancer.
+            Welcome to the CSi Labs 1-Million Strong Killing Cancers Fight Club! You're now part of our exclusive community with FREE membership PERKS.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -33,6 +33,7 @@ const RegistrationSuccess: React.FC = () => {
           <div className="text-center text-sm text-gray-600">
             <p>Thank you for supporting our cancer research initiatives.</p>
             <p className="mt-1">Your contribution makes a real difference in the fight against cancer.</p>
+            <p className="mt-3 font-medium text-cbis-blue">Remember: It's as Easy as 1, 2, 3!</p>
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-3 pt-4">

@@ -20,10 +20,10 @@ const RegisterFormContainer: React.FC<RegisterFormContainerProps> = ({
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold text-center">
-          Join the CSi Labs Cancer Killing MEME Coin Contribution
+          Join the 1-Million Strong Killing Cancers Fight Club
         </CardTitle>
         <CardDescription className="text-center">
-          Complete this form to create your CSi Labs account and join our community fighting cancer
+          Complete this form to create your CSi Labs account and enjoy your FREE membership PERKS
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -33,7 +33,7 @@ const RegisterFormContainer: React.FC<RegisterFormContainerProps> = ({
             <p className="font-medium text-center">Your contribution matters</p>
             <p className="mt-1 text-xs text-center">
               By registering, you're supporting groundbreaking cancer research. 
-              Contributions may be tax deductible through our 501(c)(3) foundation.
+              We are applying for 501(c)(3) status, which may make contributions tax deductible in the future.
             </p>
           </div>
           <Button
@@ -41,7 +41,7 @@ const RegisterFormContainer: React.FC<RegisterFormContainerProps> = ({
             className="w-full bg-gradient-to-r from-cbis-blue to-cbis-teal text-white"
             disabled={isLoading}
           >
-            {isLoading ? "Creating Account..." : "Create Account"}
+            {isLoading ? "Creating Account..." : "Create Account - It's Easy as 1,2,3!"}
           </Button>
         </form>
       </CardContent>

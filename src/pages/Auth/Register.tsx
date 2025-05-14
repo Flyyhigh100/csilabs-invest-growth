@@ -44,10 +44,11 @@ const Register = () => {
         <FadeInSection>
           <div className="text-center mb-12 max-w-3xl mx-auto">
             <h1 className="text-3xl md:text-4xl font-bold mb-4 text-cbis-dark">
-              Register for the <span className="bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">CSi Labs Cancer Killing MEME Coin Contribution</span>
+              Join the <span className="bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">CSi Labs Cancer Killing MEME Coin Contribution</span>
             </h1>
             <p className="text-gray-600">
-              Join our mission to revolutionize cancer research through innovative solutions. Your contribution directly supports our 501(c)(3) foundation's efforts.
+              Is as Easy as 1, 2, 3... Join our 1-Million Strong mission with exclusive PERKS! Your contribution supports our foundation 
+              (applying for 501(c)(3) status) to revolutionize cancer research through innovative solutions.
             </p>
           </div>
         </FadeInSection>
