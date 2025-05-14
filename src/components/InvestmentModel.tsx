@@ -15,7 +15,7 @@ const InvestmentModel: React.FC = () => {
         <FadeInSection>
           <div className="text-center mb-16 max-w-3xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-cbis-dark">The Lab Series Business Model</h2>
-            <p className="text-gray-600">Our innovative Lab Series token is a vital component of the CBiS ecosystem, creating value for token holders through strategic research and development.</p>
+            <p className="text-gray-600">Our innovative Lab Series token is a vital component of the CSi-EDP ECO-System, creating value for token holders through strategic research and drug development.</p>
           </div>
         </FadeInSection>
 
