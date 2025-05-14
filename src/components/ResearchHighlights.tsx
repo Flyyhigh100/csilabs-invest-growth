@@ -27,7 +27,7 @@ const ResearchHighlights: React.FC = () => {
                   size="lg"
                   className="px-6 py-3 font-medium text-white bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 transition-all"
                 >
-                  <Link to="/auth/register">Support Killing Cancers Buy Now</Link>
+                  <Link to="/auth/register">Support Killing Cancers Contribute Now</Link>
                 </Button>
               </div>
             </FadeInSection>
