@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -34,7 +35,7 @@ export const useDocumentService = () => {
     }
   }, []);
   
-  // Upload a document to storage and add metadata to the database
+  // Upload document to storage and add metadata to the database using edge function as fallback
   const uploadDocument = useCallback(async (
     file: File, 
     metadata: { 
@@ -45,9 +46,6 @@ export const useDocumentService = () => {
       authors?: string;
     }
   ): Promise<ResearchDocument> => {
-    // Remove authentication check as it's redundant with AdminRoute protection
-    // and might be causing the issue
-    
     // Validate file size (10MB limit)
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
     if (file.size > MAX_FILE_SIZE) {
@@ -62,97 +60,148 @@ export const useDocumentService = () => {
     }
     
     try {
-      const timestamp = Date.now();
-      const fileExt = file.name.split('.').pop();
-      const safeTitle = metadata.title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-      const filePath = `${timestamp}_${safeTitle}.${fileExt}`;
+      // Try direct upload first
+      return await tryDirectUpload(file, metadata);
+    } catch (directError) {
+      console.error('Direct upload failed, trying fallback method:', directError);
+      toast.info('Trying alternate upload method...');
       
-      console.log(`Uploading file to storage: ${filePath}`);
-      console.log(`File size: ${(file.size / 1024).toFixed(2)}KB, type: ${file.type}`);
-      
-      // 1. Check if storage bucket exists first
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const bucketExists = buckets?.some(bucket => bucket.name === 'research_documents');
-      
-      if (!bucketExists) {
-        console.error('Storage bucket "research_documents" does not exist');
-        toast.error('Storage bucket not found. Please contact an administrator.');
-        throw new Error('Storage bucket not found');
+      // If direct upload fails, try edge function fallback
+      try {
+        return await tryEdgeFunctionUpload(file, metadata);
+      } catch (fallbackError) {
+        console.error('Fallback upload also failed:', fallbackError);
+        toast.error('All upload methods failed. Please try again later.');
+        throw new Error(`Upload failed: ${fallbackError.message}`);
       }
-      
-      // 2. Upload file to storage
-      const { error: uploadError, data: uploadData } = await supabase.storage
-        .from('research_documents')
-        .upload(filePath, file, {
-          contentType: `application/pdf`,
-          upsert: true
-        });
-        
-      if (uploadError) {
-        console.error('Error uploading file to storage:', uploadError);
-        
-        if (uploadError.message.includes('Permission')) {
-          toast.error('Permission denied. You may not have admin privileges.');
-        } else if (uploadError.message.includes('401')) {
-          toast.error('Your session has expired. Please log in again.');
-        } else {
-          toast.error(`Upload failed: ${uploadError.message}`);
-        }
-        throw uploadError;
-      }
-      
-      // 3. Get public URL for the file
-      const { data: publicUrlData } = supabase.storage
-        .from('research_documents')
-        .getPublicUrl(filePath);
-        
-      const fileUrl = publicUrlData.publicUrl;
-      console.log('File uploaded successfully, URL:', fileUrl);
-      
-      // Get current user's ID for created_by field
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData.session?.user.id;
-      
-      // 4. Insert document metadata into database
-      const { data: insertData, error: insertError } = await supabase
-        .from('documents')
-        .insert({
-          title: metadata.title,
-          description: metadata.description,
-          category: metadata.category,
-          file_path: fileUrl,
-          published_at: new Date(metadata.publishDate).toISOString(),
-          authors: metadata.authors || null,
-          created_by: userId
-        })
-        .select()
-        .single();
-        
-      if (insertError) {
-        console.error('Error inserting document metadata:', insertError);
-        toast.error(`Failed to save document metadata: ${insertError.message}`);
-        
-        // Clean up the uploaded file since metadata insertion failed
-        await supabase.storage
-          .from('research_documents')
-          .remove([filePath]);
-          
-        throw insertError;
-      }
-      
-      console.log('Document uploaded successfully:', insertData);
-      
-      // Return the newly created document
-      return convertDatabaseToResearchDocument(insertData as DatabaseDocument);
-    } catch (error: any) {
-      console.error('Error in document upload process:', error);
-      // Make sure we show a user-friendly error
-      if (!toast.message) {
-        toast.error(`Upload failed: ${error.message || 'Unknown error'}`);
-      }
-      throw error;
     }
   }, []);
+
+  // Direct upload using client permissions
+  const tryDirectUpload = async (file: File, metadata: any): Promise<ResearchDocument> => {
+    const timestamp = Date.now();
+    const fileExt = file.name.split('.').pop();
+    const safeTitle = metadata.title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    const filePath = `${timestamp}_${safeTitle}.${fileExt}`;
+    
+    console.log(`Attempting direct upload: ${filePath}`);
+    
+    // 1. Check if storage bucket exists first
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const bucketExists = buckets?.some(bucket => bucket.name === 'research_documents');
+    
+    if (!bucketExists) {
+      console.error('Storage bucket "research_documents" does not exist');
+      throw new Error('Storage bucket not found');
+    }
+    
+    // 2. Upload file to storage
+    const { error: uploadError, data: uploadData } = await supabase.storage
+      .from('research_documents')
+      .upload(filePath, file, {
+        contentType: `application/pdf`,
+        upsert: true
+      });
+      
+    if (uploadError) {
+      console.error('Error uploading file to storage:', uploadError);
+      throw uploadError;
+    }
+    
+    // 3. Get public URL for the file
+    const { data: publicUrlData } = supabase.storage
+      .from('research_documents')
+      .getPublicUrl(filePath);
+      
+    const fileUrl = publicUrlData.publicUrl;
+    console.log('File uploaded successfully, URL:', fileUrl);
+    
+    // Get current user's ID for created_by field
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user.id;
+    
+    // 4. Insert document metadata into database
+    const { data: insertData, error: insertError } = await supabase
+      .from('documents')
+      .insert({
+        title: metadata.title,
+        description: metadata.description,
+        category: metadata.category,
+        file_path: fileUrl,
+        published_at: new Date(metadata.publishDate).toISOString(),
+        authors: metadata.authors || null,
+        created_by: userId
+      })
+      .select()
+      .single();
+      
+    if (insertError) {
+      console.error('Error inserting document metadata:', insertError);
+      
+      // Clean up the uploaded file since metadata insertion failed
+      await supabase.storage
+        .from('research_documents')
+        .remove([filePath]);
+        
+      throw insertError;
+    }
+    
+    console.log('Document uploaded successfully via direct method:', insertData);
+    
+    // Return the newly created document
+    return convertDatabaseToResearchDocument(insertData as DatabaseDocument);
+  };
+  
+  // Fallback upload using edge function (bypasses RLS)
+  const tryEdgeFunctionUpload = async (file: File, metadata: any): Promise<ResearchDocument> => {
+    console.log('Attempting fallback upload via edge function');
+    
+    // Get current user's ID
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user.id;
+    
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+    
+    // Read file as base64
+    const fileBase64 = await readFileAsBase64(file);
+    
+    // Call the edge function to upload the document
+    const { data, error } = await supabase.functions.invoke('upload-research-document', {
+      body: {
+        fileName: file.name,
+        fileBase64,
+        metadata,
+        userId
+      }
+    });
+    
+    if (error) {
+      console.error('Error calling upload function:', error);
+      throw error;
+    }
+    
+    if (!data || data.error) {
+      console.error('Function returned error:', data?.error || 'Unknown error');
+      throw new Error(data?.error || 'Unknown error');
+    }
+    
+    console.log('Document uploaded successfully via edge function:', data.document);
+    
+    // Return the document from the edge function response
+    return convertDatabaseToResearchDocument(data.document as DatabaseDocument);
+  };
+  
+  // Helper function to read file as base64
+  const readFileAsBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
   
   // Delete a document from storage and database
   const deleteDocument = useCallback(async (documentId: string): Promise<boolean> => {

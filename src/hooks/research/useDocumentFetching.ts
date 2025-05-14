@@ -1,163 +1,113 @@
 
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ResearchDocument } from '@/components/Admin/ResearchDocuments/types/documentTypes';
+import { toast } from 'sonner';
+import { DatabaseDocument, ResearchDocument, convertDatabaseToResearchDocument } from '@/components/Admin/ResearchDocuments/types/documentTypes';
 import { useDocumentCache } from './useDocumentCache';
-import { useFallbackDocuments } from './useFallbackDocuments';
 
 export const useDocumentFetching = (
-  setDocuments: (docs: ResearchDocument[]) => void,
-  setIsLoading: (loading: boolean) => void,
-  setError: (error: string | null) => void
+  setDocuments: React.Dispatch<React.SetStateAction<ResearchDocument[]>>,
+  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
+  setError: React.Dispatch<React.SetStateAction<Error | null>>
 ) => {
-  const { saveToCache, loadFromCache } = useDocumentCache();
-  const fallbackDocuments = useFallbackDocuments();
+  const { saveToCache, loadFromCache, clearCache } = useDocumentCache();
 
-  // Sort documents by publish date
-  const sortDocumentsByDate = useCallback((documents: ResearchDocument[]): ResearchDocument[] => {
-    return documents.sort((a, b) => {
-      // Try to parse dates in various formats for better comparison
-      const dateA = new Date(a.publishDate);
-      const dateB = new Date(b.publishDate);
-      
-      // Check if dates are valid, if not use string comparison
-      if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
-        return a.publishDate.localeCompare(b.publishDate);
+  const fetchDocumentsFromStorage = useCallback(async () => {
+    console.log('Fetching documents...');
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Try to load from cache first
+      try {
+        const cachedDocuments = loadFromCache();
+        
+        if (cachedDocuments && cachedDocuments.length > 0) {
+          console.log(`Loaded ${cachedDocuments.length} documents from cache`);
+          setDocuments(cachedDocuments);
+          
+          // Continue fetching from DB in the background
+          fetchFromDatabase(false);
+          return;
+        }
+      } catch (cacheError) {
+        console.error('Error loading from cache:', cacheError);
+        // Clear the corrupted cache
+        clearCache();
       }
       
-      return dateB.getTime() - dateA.getTime();
-    });
-  }, []);
-
-  // Fetch documents from database
-  const fetchDocumentsFromStorage = useCallback(async () => {
-    // First, try to load from local storage cache immediately
-    const cachedDocs = loadFromCache();
-    if (cachedDocs && cachedDocs.length > 0) {
-      console.log('Using cached documents:', cachedDocs.length);
-      setDocuments(cachedDocs);
+      // No cache, fetch from database immediately
+      await fetchFromDatabase(true);
+    } catch (err) {
+      console.error('Error in document fetching process:', err);
+      setError(err as Error);
       setIsLoading(false);
-      
-      // Fetch fresh docs in background
-      refreshInBackground();
-      return;
     }
-    
-    // No cache available, show loading state and fetch
-    setIsLoading(true);
+  }, [setDocuments, setIsLoading, setError, saveToCache, loadFromCache, clearCache]);
+  
+  const fetchFromDatabase = useCallback(async (updateLoadingState = true) => {
     try {
-      // Fetch documents from the database
+      if (updateLoadingState) {
+        setIsLoading(true);
+      }
+      
+      // Fetch documents from database
       const { data, error } = await supabase
         .from('documents')
         .select('*')
         .order('published_at', { ascending: false });
-        
+      
       if (error) {
         console.error('Error fetching documents from database:', error);
-        throw new Error(error.message);
-      }
-
-      if (!data || data.length === 0) {
-        console.log('No documents found in database, using fallback documents');
-        setDocuments(fallbackDocuments);
-        setIsLoading(false);
+        setError(error);
+        if (updateLoadingState) {
+          toast.error('Failed to load documents');
+        }
         return;
       }
-
-      // Convert database format to our application format
-      const documentsList = data.map(doc => ({
-        id: doc.id,
-        title: doc.title,
-        description: doc.description || '',
-        category: doc.category,
-        pdfUrl: doc.file_path,
-        publishDate: new Date(doc.published_at).toISOString().split('T')[0],
-        authors: doc.authors || ''
-      }));
       
-      // Combine with fallback documents if needed
-      const combinedDocs = [...documentsList, ...fallbackDocuments];
-      
-      // Remove duplicates (if any fallback docs match real docs)
-      const uniqueDocs = combinedDocs.filter(
-        (doc, index, self) => 
-          index === self.findIndex(d => d.title === doc.title)
-      );
-      
-      const sortedDocs = sortDocumentsByDate(uniqueDocs);
-      
-      // Cache the results
-      saveToCache(sortedDocs);
-      setDocuments(sortedDocs);
-      console.log('Documents loaded:', sortedDocs.length);
-    } catch (err: any) {
-      console.error('Error loading documents:', err);
-      setError(err.message);
-      
-      // If we haven't set documents yet, use fallbacks
-      setDocuments(fallbackDocuments);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [
-    setIsLoading, 
-    setDocuments, 
-    setError, 
-    loadFromCache, 
-    saveToCache,
-    sortDocumentsByDate,
-    fallbackDocuments
-  ]);
-
-  // Background refresh function that doesn't set loading state
-  const refreshInBackground = useCallback(async () => {
-    try {
-      // Fetch documents from the database
-      const { data, error } = await supabase
-        .from('documents')
-        .select('*')
-        .order('published_at', { ascending: false });
-        
-      if (error || !data) {
-        return; // Just return silently as this is a background refresh
+      if (!data || data.length === 0) {
+        console.log('No documents found in database');
+        setDocuments([]);
+        setError(null);
+        if (updateLoadingState) {
+          setIsLoading(false);
+        }
+        return;
       }
-
-      // Convert database format to our application format
-      const documentsList = data.map(doc => ({
-        id: doc.id,
-        title: doc.title,
-        description: doc.description || '',
-        category: doc.category,
-        pdfUrl: doc.file_path,
-        publishDate: new Date(doc.published_at).toISOString().split('T')[0],
-        authors: doc.authors || ''
-      }));
       
-      // Combine with fallback documents
-      const combinedDocs = [...documentsList, ...fallbackDocuments];
-      
-      // Remove duplicates
-      const uniqueDocs = combinedDocs.filter(
-        (doc, index, self) => 
-          index === self.findIndex(d => d.title === doc.title)
+      const freshDocuments = data.map((doc: DatabaseDocument) => 
+        convertDatabaseToResearchDocument(doc)
       );
       
-      if (uniqueDocs.length > 0) {
-        const sortedDocs = sortDocumentsByDate(uniqueDocs);
-        saveToCache(sortedDocs);
-        setDocuments(sortedDocs);
-        console.log('Background refresh completed with', sortedDocs.length, 'documents');
+      console.log(`Fetched ${freshDocuments.length} documents from database`);
+      setDocuments(freshDocuments);
+      setError(null);
+      
+      // Save to cache only if not too many documents
+      if (freshDocuments.length <= 20) {
+        const cached = saveToCache(freshDocuments);
+        if (!cached) {
+          console.warn('Failed to save documents to cache due to size constraints');
+        }
+      } else {
+        // Too many documents, don't cache them all
+        const limitedDocs = freshDocuments.slice(0, 10);
+        saveToCache(limitedDocs);
+        console.log('Limited cache to 10 most recent documents');
       }
     } catch (err) {
-      console.error('Background refresh error:', err);
-      // Don't set error state as this is a background operation
+      console.error('Exception fetching documents from database:', err);
+      setError(err as Error);
+      if (updateLoadingState) {
+        toast.error('Error loading documents');
+      }
+    } finally {
+      if (updateLoadingState) {
+        setIsLoading(false);
+      }
     }
-  }, [
-    saveToCache,
-    setDocuments,
-    sortDocumentsByDate,
-    fallbackDocuments
-  ]);
+  }, [setDocuments, setIsLoading, setError, saveToCache]);
 
-  return { fetchDocumentsFromStorage };
+  return { fetchDocumentsFromStorage, fetchFromDatabase };
 };
