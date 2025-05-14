@@ -37,15 +37,20 @@ export const useResearchDocuments = () => {
 
   // Load documents when the hook is first called - with empty dependency array to run only once
   useEffect(() => {
+    // Clear any existing cache on initial load
+    localStorage.removeItem('researchDocuments');
+    localStorage.removeItem('categoriesUpdated');
+    
     if (!initialized.current) {
-      console.log("Initial document fetch");
+      console.log("Initial document fetch with cache clearing");
       initialized.current = true;
       fetchDocumentsFromStorage();
     }
   }, [fetchDocumentsFromStorage]);
 
   const forceRefresh = () => {
-    console.log("Forcing document refresh");
+    console.log("Forcing document refresh and clearing cache");
+    localStorage.removeItem('researchDocuments');
     initialized.current = true; // Ensure we don't trigger another fetch from the useEffect
     return refreshDocuments();
   };

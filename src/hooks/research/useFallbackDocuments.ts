@@ -21,6 +21,15 @@ export const useFallbackDocuments = (): ResearchDocument[] => {
       pdfUrl: "/sample.pdf",
       publishDate: "March 15, 2022",
       authors: "CSi Labs Research Team"
+    },
+    {
+      id: "doc-3",
+      title: "Cannabinoid Therapy Clinical Applications",
+      description: "Review of clinical applications for cannabinoid-based therapies across multiple disease states.",
+      category: "Report 2",
+      pdfUrl: "/sample.pdf",
+      publishDate: "June 22, 2022",
+      authors: "CSi Labs Clinical Research Division"
     }
   ];
 };

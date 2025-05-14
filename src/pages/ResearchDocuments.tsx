@@ -24,6 +24,12 @@ const ResearchDocuments: React.FC = () => {
     refreshDocuments
   } = useResearchDocuments();
 
+  // Force refresh documents when the component loads
+  useEffect(() => {
+    console.log("Initial component load - forcing document refresh");
+    refreshDocuments();
+  }, [refreshDocuments]);
+
   // One-time update for document categories
   useEffect(() => {
     const updateCategories = async () => {
@@ -48,10 +54,9 @@ const ResearchDocuments: React.FC = () => {
           foundCount++;
         } 
         // Assign the third document as Report 2
-        else if (foundCount === 2) {
+        else if (doc.title.includes('Clinical') || doc.title.includes('Therapy') || doc.id === 'doc-3' || foundCount === 2) {
           docIdMap[doc.id] = 'Report 2';
           foundCount++;
-          break;
         }
       }
 
@@ -75,21 +80,10 @@ const ResearchDocuments: React.FC = () => {
     };
 
     // Run the category update
-    if (!isLoading) {
+    if (!isLoading && documents.length > 0) {
       updateCategories();
     }
   }, [documents, isLoading, refreshDocuments]);
-
-  // Fix typo in the default category name in DocumentCard.tsx
-  useEffect(() => {
-    // Fix typo in the fallback category name that was introduced earlier
-    const docCardStyle = document.querySelector('.bg-blue-50.text-cbis-blue');
-    if (docCardStyle && docCardStyle.textContent?.includes('Harveard Letter')) {
-      // This is a quick temporary fix for the UI - the proper fix would be to update DocumentCard.tsx
-      console.log('Fixing typo in document category display');
-      docCardStyle.textContent = docCardStyle.textContent.replace('Harveard Letter', 'Harvard Letter');
-    }
-  }, [selectedPdf, filteredDocuments]);
 
   return <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <Navbar />
