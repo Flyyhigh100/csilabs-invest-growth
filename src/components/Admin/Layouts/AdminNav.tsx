@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -7,7 +8,8 @@ import {
   BellIcon,
   SettingsIcon,
   InfoIcon,
-  BarChart2
+  BarChart2,
+  FileText
 } from 'lucide-react';
 
 interface NavItem {
@@ -37,6 +39,11 @@ export const getAdminNavItems = (): NavItem[] => {
       title: 'Token Pricing',
       path: '/admin/token-pricing',
       icon: <BarChart2 className="h-5 w-5" />,
+    },
+    {
+      title: 'Research Documents',
+      path: '/admin/research-documents',
+      icon: <FileText className="h-5 w-5" />,
     },
     {
       title: 'Notifications',
