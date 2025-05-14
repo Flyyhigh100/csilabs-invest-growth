@@ -47,10 +47,24 @@ export const useDocumentService = () => {
     }
   ): Promise<ResearchDocument> => {
     // Check for authentication
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) {
-      toast.error("You must be logged in to upload documents");
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      console.error("Authentication error:", sessionError);
+      toast.error("Authentication failed. Please log in again.");
       throw new Error("Authentication required");
+    }
+    
+    // Validate file size (10MB limit)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`File exceeds the 10MB size limit. Your file is ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
+      throw new Error("File size exceeds limit");
+    }
+    
+    // Validate file type
+    if (!file.type.includes('pdf')) {
+      toast.error('Only PDF files are supported');
+      throw new Error("Invalid file type");
     }
     
     try {
@@ -60,29 +74,48 @@ export const useDocumentService = () => {
       const filePath = `${timestamp}_${safeTitle}.${fileExt}`;
       
       console.log(`Uploading file to storage: ${filePath}`);
+      console.log(`File size: ${(file.size / 1024).toFixed(2)}KB, type: ${file.type}`);
       
-      // 1. Upload file to storage
-      const { error: uploadError } = await supabase.storage
+      // 1. Check if storage bucket exists first
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const bucketExists = buckets?.some(bucket => bucket.name === 'research_documents');
+      
+      if (!bucketExists) {
+        console.error('Storage bucket "research_documents" does not exist');
+        toast.error('Storage bucket not found. Please contact an administrator.');
+        throw new Error('Storage bucket not found');
+      }
+      
+      // 2. Upload file to storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from('research_documents')
         .upload(filePath, file, {
-          contentType: `application/${fileExt}`,
+          contentType: `application/pdf`,
           upsert: true
         });
         
       if (uploadError) {
         console.error('Error uploading file to storage:', uploadError);
-        toast.error(`Upload failed: ${uploadError.message}`);
+        
+        if (uploadError.message.includes('Permission')) {
+          toast.error('Permission denied. You may not have admin privileges.');
+        } else if (uploadError.message.includes('401')) {
+          toast.error('Your session has expired. Please log in again.');
+        } else {
+          toast.error(`Upload failed: ${uploadError.message}`);
+        }
         throw uploadError;
       }
       
-      // 2. Get public URL for the file
+      // 3. Get public URL for the file
       const { data: publicUrlData } = supabase.storage
         .from('research_documents')
         .getPublicUrl(filePath);
         
       const fileUrl = publicUrlData.publicUrl;
+      console.log('File uploaded successfully, URL:', fileUrl);
       
-      // 3. Insert document metadata into database
+      // 4. Insert document metadata into database
       const { data: insertData, error: insertError } = await supabase
         .from('documents')
         .insert({
@@ -113,8 +146,12 @@ export const useDocumentService = () => {
       
       // Return the newly created document
       return convertDatabaseToResearchDocument(insertData as DatabaseDocument);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in document upload process:', error);
+      // Make sure we show a user-friendly error
+      if (!toast.message) {
+        toast.error(`Upload failed: ${error.message || 'Unknown error'}`);
+      }
       throw error;
     }
   }, []);

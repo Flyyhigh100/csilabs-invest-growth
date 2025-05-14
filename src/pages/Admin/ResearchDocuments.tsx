@@ -1,10 +1,12 @@
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import DocumentUploadForm from '@/components/Admin/ResearchDocuments/DocumentUploadForm';
 import DocumentsList from '@/components/Admin/ResearchDocuments/DocumentsList';
 import { useResearchDocuments } from '@/components/Admin/ResearchDocuments/hooks/useResearchDocuments';
 import { toast } from 'sonner';
+import BucketStatusCard from '@/components/Admin/ResearchDocuments/BucketStatusCard';
+import { listAllBuckets, checkBucketExists } from '@/utils/admin/kyc/storage';
 
 const AdminResearchDocuments = () => {
   const {
@@ -18,6 +20,12 @@ const AdminResearchDocuments = () => {
     updateDocumentMetadata
   } = useResearchDocuments();
 
+  const [bucketStatus, setBucketStatus] = useState({
+    exists: false,
+    buckets: [] as string[],
+    checking: true
+  });
+
   // Check authentication status on page load
   useEffect(() => {
     const checkAuth = async () => {
@@ -29,6 +37,46 @@ const AdminResearchDocuments = () => {
     
     checkAuth();
   }, [checkAuthentication]);
+  
+  // Check if storage bucket exists
+  const checkStorageBucket = useCallback(async () => {
+    try {
+      setBucketStatus(prev => ({ ...prev, checking: true }));
+      const bucketName = 'research_documents';
+      
+      // First get all available buckets
+      const availableBuckets = await listAllBuckets();
+      
+      // Then check if our bucket exists
+      const exists = await checkBucketExists(bucketName);
+      
+      console.log(`Bucket '${bucketName}' exists:`, exists);
+      console.log('Available buckets:', availableBuckets);
+      
+      setBucketStatus({
+        exists,
+        buckets: availableBuckets,
+        checking: false
+      });
+      
+      return exists;
+    } catch (error) {
+      console.error('Error checking storage bucket:', error);
+      setBucketStatus({
+        exists: false,
+        buckets: [],
+        checking: false
+      });
+      return false;
+    }
+  }, []);
+  
+  // Check storage bucket on component mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      checkStorageBucket();
+    }
+  }, [isAuthenticated, checkStorageBucket]);
 
   return (
     <AdminLayout title="Manage Research Documents">
@@ -41,10 +89,20 @@ const AdminResearchDocuments = () => {
           </div>
         )}
         
+        {/* Storage Bucket Status */}
+        {isAuthenticated && !bucketStatus.checking && (
+          <BucketStatusCard
+            bucketExists={bucketStatus.exists}
+            bucketName="research_documents"
+            availableBuckets={bucketStatus.buckets}
+            onRefresh={checkStorageBucket}
+          />
+        )}
+        
         {/* Document Upload Form */}
         <DocumentUploadForm 
           onDocumentUploaded={uploadDocument} 
-          isAuthenticated={isAuthenticated}
+          isAuthenticated={isAuthenticated && bucketStatus.exists}
         />
         
         {/* Documents List */}
