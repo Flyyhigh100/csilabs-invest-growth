@@ -1,10 +1,13 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+
 interface HeroContentProps {
   isLoaded: boolean;
 }
+
 const HeroContent: React.FC<HeroContentProps> = ({
   isLoaded
 }) => {
@@ -16,7 +19,7 @@ const HeroContent: React.FC<HeroContentProps> = ({
         <span className="bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">Low-Cost</span> Cancer-Killing Treatments Without Side Effects
       </h1>
       <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed max-w-lg font-normal">
-        CSi Labs is making cancer treatments affordable and accessible for millions of patients through our innovative fundraising meme token. Our cannabinoid-based treatments eliminate cancer cells without the harsh side effects of chemical therapies.
+        The 1-Million Strong Killing Cancers Foundation, the 1-Million Strong Fight Club, & CSi Labs are making cancer treatments affordable and accessible for millions of patients through our innovative cancer killing fundraising meme token. Our Low-Cost, Harvard Award Winning cannabinoid-based treatments eliminate cancer cells without the harsh side effects of chemical therapies.
       </p>
       <div className="flex flex-col sm:flex-row gap-4">
         <Button asChild size="lg" className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity flex-shrink-0">
@@ -32,4 +35,5 @@ const HeroContent: React.FC<HeroContentProps> = ({
       </div>
     </div>;
 };
+
 export default HeroContent;
