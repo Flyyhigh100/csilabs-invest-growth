@@ -1,3 +1,4 @@
+
 import React from 'react';
 import FadeInSection from './FadeInSection';
 import FeatureCard from './FeatureCard';
@@ -27,7 +28,7 @@ const ResearchHighlights: React.FC = () => {
           </FadeInSection>
 
           <FadeInSection delay={300} direction="left">
-            <FeatureCard title="FDA Clinical Trial Pathway" description="We've established a clear regulatory pathway with the FDA for our affordable cancer treatments, with pre-IND meetings scheduled and clinical trial protocols in development." icon={<FilePieChart className="h-8 w-8" />} />
+            <FeatureCard title="FDA Clinical Trials Pathway" description="We've established a clear regulatory pathway with the FDA for our affordable cancer treatments, with pre-IND meetings scheduled and clinical trial protocols in development." icon={<FilePieChart className="h-8 w-8" />} />
           </FadeInSection>
 
           <FadeInSection delay={400} direction="right">
