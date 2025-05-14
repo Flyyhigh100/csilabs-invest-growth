@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -8,7 +9,8 @@ import {
   SettingsIcon,
   BellIcon,
   WrenchIcon,
-  KeyIcon
+  KeyIcon,
+  FileText
 } from 'lucide-react';
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
@@ -29,6 +31,11 @@ const Sidebar = ({ className, ...props }: SidebarProps) => {
       title: 'Token Distribution',
       href: '/admin/transactions',
       icon: <CreditCardIcon className="w-4 h-4 mr-3" />,
+    },
+    {
+      title: 'Research Documents',
+      href: '/admin/research-documents',
+      icon: <FileText className="w-4 h-4 mr-3" />,
     },
     {
       title: 'Notifications',
