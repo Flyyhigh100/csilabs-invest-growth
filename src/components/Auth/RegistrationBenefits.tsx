@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Shield, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Shield, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
 
 const RegistrationBenefits: React.FC = () => {
   return (
@@ -10,9 +10,21 @@ const RegistrationBenefits: React.FC = () => {
           <Shield className="h-6 w-6 text-cbis-blue" />
         </div>
         <div>
-          <h3 className="text-xl font-semibold mb-2 text-cbis-dark">Secure Process</h3>
+          <h3 className="text-xl font-semibold mb-2 text-cbis-dark">Supporting Cancer Research</h3>
           <p className="text-gray-600">
-            Our registration and KYC verification process is secure and compliant with regulatory requirements, protecting your personal information.
+            Your contribution directly supports groundbreaking cancer research and treatment development through our 501(c)(3) foundation.
+          </p>
+        </div>
+      </div>
+      
+      <div className="flex gap-4 items-start">
+        <div className="p-3 bg-blue-50 rounded-lg flex-shrink-0">
+          <Sparkles className="h-6 w-6 text-cbis-blue" />
+        </div>
+        <div>
+          <h3 className="text-xl font-semibold mb-2 text-cbis-dark">Community Membership</h3>
+          <p className="text-gray-600">
+            Join a passionate community dedicated to making a difference in cancer research and gain access to exclusive updates on our progress.
           </p>
         </div>
       </div>
@@ -24,7 +36,7 @@ const RegistrationBenefits: React.FC = () => {
         <div>
           <h3 className="text-xl font-semibold mb-2 text-cbis-dark">Simple Steps</h3>
           <p className="text-gray-600">
-            The token purchase process is straightforward: Register, complete KYC verification, make your purchase, and receive tokens in your wallet.
+            The contribution process is straightforward: Register, complete KYC verification if required, make your contribution, and join our mission to fight cancer.
           </p>
         </div>
       </div>
@@ -34,9 +46,9 @@ const RegistrationBenefits: React.FC = () => {
           <AlertTriangle className="h-6 w-6 text-amber-500" />
         </div>
         <div>
-          <h3 className="text-xl font-semibold mb-2 text-cbis-dark">Geographic Restrictions</h3>
+          <h3 className="text-xl font-semibold mb-2 text-cbis-dark">Tax Deductible</h3>
           <p className="text-gray-600">
-            Due to regulatory requirements, residents of certain territories may be restricted from participating in the token sale. Please ensure you are eligible before registering.
+            Contributions to our 501(c)(3) foundation may be tax-deductible. Please consult your tax advisor for details based on your specific situation.
           </p>
         </div>
       </div>
@@ -46,19 +58,19 @@ const RegistrationBenefits: React.FC = () => {
         <ol className="space-y-3 text-gray-700">
           <li className="flex gap-2">
             <span className="font-bold text-cbis-blue">1.</span>
-            <span>You'll receive an email with instructions to complete KYC verification through WorldKYC.</span>
+            <span>You'll receive an email confirmation with instructions to verify your account.</span>
           </li>
           <li className="flex gap-2">
             <span className="font-bold text-cbis-blue">2.</span>
-            <span>Once verified, you'll gain access to the token purchase dashboard.</span>
+            <span>Complete KYC verification if required for larger contributions.</span>
           </li>
           <li className="flex gap-2">
             <span className="font-bold text-cbis-blue">3.</span>
-            <span>Select your payment method (credit card or cryptocurrency) and complete your purchase.</span>
+            <span>Access your dashboard to make contributions via credit card or cryptocurrency.</span>
           </li>
           <li className="flex gap-2">
             <span className="font-bold text-cbis-blue">4.</span>
-            <span>After verification by our team, tokens will be distributed to your provided wallet address.</span>
+            <span>Receive updates on how your contribution is helping advance cancer research.</span>
           </li>
         </ol>
       </div>

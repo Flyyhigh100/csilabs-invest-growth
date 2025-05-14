@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import FadeInSection from '@/components/FadeInSection';
 import RegisterForm from '@/components/Auth/RegisterForm';
 import RegistrationSuccess from '@/components/Auth/RegistrationSuccess';
+import RegistrationBenefits from '@/components/Auth/RegistrationBenefits';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
@@ -39,21 +40,25 @@ const Register = () => {
         </div>
       </div>
 
-      <div className="pt-16 pb-20 container-custom">
+      <div className="pt-12 pb-20 container-custom">
         <FadeInSection>
-          <div className="text-center mb-12 max-w-2xl mx-auto">
+          <div className="text-center mb-12 max-w-3xl mx-auto">
             <h1 className="text-3xl md:text-4xl font-bold mb-4 text-cbis-dark">
-              Register for the <span className="bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">CSi Labs Token Contribution</span>
+              Register for the <span className="bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">CSi Labs Cancer Killing MEME Coin Contribution</span>
             </h1>
             <p className="text-gray-600">
-              Complete the registration form below to begin your contribution journey.
+              Join our mission to revolutionize cancer research through innovative solutions. Your contribution directly supports our 501(c)(3) foundation's efforts.
             </p>
           </div>
         </FadeInSection>
 
-        <div className="flex justify-center">
+        <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
           <FadeInSection direction="up" delay={200}>
             <RegisterForm onSuccess={() => setRegistrationComplete(true)} />
+          </FadeInSection>
+          
+          <FadeInSection direction="up" delay={300}>
+            <RegistrationBenefits />
           </FadeInSection>
         </div>
       </div>

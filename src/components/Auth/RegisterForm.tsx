@@ -10,6 +10,8 @@ import RegisterFormContainer from './FormContainers/RegisterFormContainer';
 import IconInput from './FormInputs/IconInput';
 import PasswordInput from './FormInputs/PasswordInput';
 import NameInputGroup from './FormInputs/NameInputGroup';
+import PhoneInput from './FormInputs/PhoneInput';
+import AddressInputGroup from './FormInputs/AddressInputGroup';
 
 interface RegisterFormProps {
   onSuccess: () => void;
@@ -25,6 +27,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
       firstName: "",
       lastName: "",
       email: "",
+      phoneNumber: "",
+      address: {
+        street: "",
+        city: "",
+        state: "",
+        postalCode: ""
+      },
       password: "",
       confirmPassword: "",
     },
@@ -33,7 +42,14 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   const onSubmit = async (values: RegisterFormValues) => {
     setIsLoading(true);
     try {
-      await signUp(values.email, values.password, values.firstName, values.lastName);
+      await signUp(
+        values.email,
+        values.password,
+        values.firstName,
+        values.lastName,
+        values.phoneNumber,
+        values.address
+      );
       onSuccess();
     } catch (error) {
       console.error("Registration error:", error);
@@ -58,6 +74,10 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
           placeholder="name@example.com"
           icon={Mail}
         />
+        
+        <PhoneInput form={form} />
+        
+        <AddressInputGroup form={form} />
         
         <PasswordInput
           form={form}
