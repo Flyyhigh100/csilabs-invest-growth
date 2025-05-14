@@ -28,7 +28,7 @@ const ResearchHighlights: React.FC = () => {
           </FadeInSection>
 
           <FadeInSection delay={300} direction="left">
-            <FeatureCard title="FDA Clinical Trials Pathway" description="We've established a clear regulatory pathway with the FDA for our affordable cancer treatments, with pre-IND meetings scheduled and clinical trial protocols in development." icon={<FilePieChart className="h-8 w-8" />} />
+            <FeatureCard title="FDA Clinical Trials Pathway" description="We've established a clear regulatory pathway with the FDA to bring our affordable cancer killing treatments to market. This will allow Doctors Nationwide to write prescriptions for our groundbreaking low-cost cancer killing drugs approved through the FDA clinicals." icon={<FilePieChart className="h-8 w-8" />} />
           </FadeInSection>
 
           <FadeInSection delay={400} direction="right">
