@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import PurchaseMethodCard from './components/PurchaseMethodCard';
 
+// Define the CSI Token Uniswap URL as a constant
+const CSI_TOKEN_UNISWAP_URL = 'https://app.uniswap.org/explore/tokens/polygon/0xcba5ca199bca0af3f6046da01169035f2c6a7ff0';
+
 interface PurchasePathSelectorProps {
   amount: number;
   isProcessing: boolean;
@@ -29,6 +32,12 @@ const PurchasePathSelector: React.FC<PurchasePathSelectorProps> = ({
       setDirectPurchase(true); // Set direct purchase flag to true
     }
     onSelectCoinPayments();
+  };
+  
+  // Enhanced handler that opens the Uniswap token URL directly
+  const handleSelectDex = () => {
+    window.open(CSI_TOKEN_UNISWAP_URL, '_blank');
+    onSelectDex(); // Still call the original handler for any other side effects
   };
 
   return (
@@ -58,7 +67,7 @@ const PurchasePathSelector: React.FC<PurchasePathSelectorProps> = ({
           title="Decentralized Exchange (DEX)" 
           description="For advanced users. Purchase CSi tokens directly on a decentralized exchange." 
           icon={<ArrowRightCircle className="h-6 w-6" />} 
-          onClick={onSelectDex} 
+          onClick={handleSelectDex} 
           buttonLabel="Go to DEX" 
           disabled={false} 
           badgeText="Advanced" 

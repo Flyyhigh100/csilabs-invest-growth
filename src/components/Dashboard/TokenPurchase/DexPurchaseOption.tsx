@@ -9,6 +9,9 @@ interface DexPurchaseOptionProps {
 }
 
 const DexPurchaseOption: React.FC<DexPurchaseOptionProps> = ({ className }) => {
+  // Define constant for the Uniswap token URL
+  const CSI_TOKEN_UNISWAP_URL = 'https://app.uniswap.org/explore/tokens/polygon/0xcba5ca199bca0af3f6046da01169035f2c6a7ff0';
+  
   return (
     <div className={className}>
       <div className="flex flex-col gap-1 mb-4">
@@ -33,7 +36,7 @@ const DexPurchaseOption: React.FC<DexPurchaseOptionProps> = ({ className }) => {
               <p className="font-medium">QuickSwap (Polygon)</p>
               <p className="text-xs text-gray-600">Recommended DEX for Polygon network</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => window.open('https://quickswap.exchange/', '_blank')} className="flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={() => window.open(CSI_TOKEN_UNISWAP_URL, '_blank')} className="flex-shrink-0">
               Visit <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </div>
@@ -43,7 +46,7 @@ const DexPurchaseOption: React.FC<DexPurchaseOptionProps> = ({ className }) => {
               <p className="font-medium">Uniswap</p>
               <p className="text-xs text-gray-600">Popular multi-chain DEX</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => window.open('https://app.uniswap.org/', '_blank')} className="flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={() => window.open(CSI_TOKEN_UNISWAP_URL, '_blank')} className="flex-shrink-0">
               Visit <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </div>

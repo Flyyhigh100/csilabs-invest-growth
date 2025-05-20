@@ -42,6 +42,11 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, onOpenC
   const handleZoomOut = () => {
     setZoomLevel(prev => Math.max(prev - 0.25, 0.5));
   };
+  
+  // Add preset zoom levels for convenience
+  const handleZoomPreset = (level: number) => {
+    setZoomLevel(level);
+  };
 
   const toggleFullscreen = () => {
     setIsFullscreen(prev => !prev);
@@ -159,6 +164,35 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, onOpenC
               <Button variant="outline" size="sm" onClick={handleZoomOut}>
                 <ZoomOut className="mr-1 h-4 w-4" /> Zoom Out
               </Button>
+              
+              {/* Add preset zoom buttons */}
+              <div className="flex gap-1 mx-2">
+                <Button 
+                  variant={zoomLevel === 0.75 ? "default" : "outline"}
+                  size="sm" 
+                  className="px-2 py-1 text-xs h-8"
+                  onClick={() => handleZoomPreset(0.75)}
+                >
+                  75%
+                </Button>
+                <Button 
+                  variant={zoomLevel === 1 ? "default" : "outline"}
+                  size="sm" 
+                  className="px-2 py-1 text-xs h-8"
+                  onClick={() => handleZoomPreset(1)}
+                >
+                  100%
+                </Button>
+                <Button 
+                  variant={zoomLevel === 1.5 ? "default" : "outline"}
+                  size="sm" 
+                  className="px-2 py-1 text-xs h-8"
+                  onClick={() => handleZoomPreset(1.5)}
+                >
+                  150%
+                </Button>
+              </div>
+              
               <span className="text-sm mx-1">{Math.round(zoomLevel * 100)}%</span>
               <Button variant="outline" size="sm" onClick={handleZoomIn}>
                 <ZoomIn className="mr-1 h-4 w-4" /> Zoom In
