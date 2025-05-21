@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useTestDataToggle } from './useTestDataToggle';
@@ -26,6 +26,7 @@ export const useAdminUsers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [retryCount, setRetryCount] = useState(0);
   const { includeTestData } = useTestDataToggle();
+  const queryClient = useQueryClient();
   
   // Use direct edge function call to fetch users with better error handling
   const fetchUsers = async (): Promise<User[]> => {
@@ -123,6 +124,11 @@ export const useAdminUsers = () => {
 
   const handleRefresh = () => {
     setRetryCount(prev => prev + 1);
+    
+    // Invalidate both users and transaction stats queries
+    queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    queryClient.invalidateQueries({ queryKey: ['user-transaction-stats'] });
+    
     refetch();
     toast.success('Refreshing user data...');
   };
@@ -130,6 +136,11 @@ export const useAdminUsers = () => {
   const checkUserKyc = async (userId: string) => {
     try {
       toast.info(`Checking KYC status for user ${userId}...`);
+      
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['user-transaction-stats'] });
+      
       refetch();
       toast.success('User data refreshed');
     } catch (error) {

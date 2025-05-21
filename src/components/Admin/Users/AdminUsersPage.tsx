@@ -6,6 +6,7 @@ import { Users as UsersIcon, BarChart2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Import the enhanced components
 import EnhancedUsersTable from './EnhancedUsersTable';
@@ -22,6 +23,7 @@ import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
 const AdminUsersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('table');
   const { includeTestData, setIncludeTestData } = useTestDataToggle(false);
+  const queryClient = useQueryClient();
   
   const { 
     users, 
@@ -38,6 +40,15 @@ const AdminUsersPage: React.FC = () => {
     // Force refresh on component mount
     refetch();
     
+    // Set up unified revalidation approach for all key UI data
+    const invalidateAllUserRelatedQueries = () => {
+      // Invalidate user-related queries
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      // Also invalidate transaction stats query used in EnhancedUsersTable
+      queryClient.invalidateQueries({ queryKey: ['user-transaction-stats'] });
+      // If there are any other user-related queries, invalidate them here
+    };
+    
     // Set up realtime subscription for profiles changes
     const profilesChannel = supabase
       .channel('admin-users-profiles-updates')
@@ -51,7 +62,7 @@ const AdminUsersPage: React.FC = () => {
         (payload) => {
           console.log('Profile changed:', payload);
           toast.info('User profile updated');
-          refetch();
+          invalidateAllUserRelatedQueries();
         }
       )
       .subscribe();
@@ -69,12 +80,12 @@ const AdminUsersPage: React.FC = () => {
         (payload) => {
           console.log('KYC verification changed:', payload);
           toast.info('KYC verification updated');
-          refetch();
+          invalidateAllUserRelatedQueries();
         }
       )
       .subscribe();
 
-    // Set up realtime subscription for transactions changes
+    // Set up more comprehensive realtime subscription for transactions changes
     const txChannel = supabase
       .channel('admin-users-transactions-updates')
       .on(
@@ -86,8 +97,20 @@ const AdminUsersPage: React.FC = () => {
         },
         (payload) => {
           console.log('Transaction changed:', payload);
-          toast.info('Transaction updated');
-          refetch();
+          
+          // More detailed logging for transaction status changes
+          if (payload.eventType === 'UPDATE') {
+            const oldData = payload.old as any;
+            const newData = payload.new as any;
+            
+            if (oldData.status !== newData.status) {
+              console.log(`Transaction status changed: ${oldData.status} -> ${newData.status}`);
+              toast.info(`Transaction status updated: ${newData.status}`);
+            }
+          }
+          
+          // Invalidate transaction stats to ensure user table displays correct information
+          invalidateAllUserRelatedQueries();
         }
       )
       .subscribe();
@@ -97,7 +120,7 @@ const AdminUsersPage: React.FC = () => {
       supabase.removeChannel(kycChannel);
       supabase.removeChannel(txChannel);
     };
-  }, [refetch]);
+  }, [refetch, queryClient]);
   
   return (
     <AdminLayout title="Users">

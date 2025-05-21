@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Table, TableBody, TableCell, TableHead, 
   TableHeader, TableRow 
@@ -7,7 +6,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Eye, Wallet, RefreshCw } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/format';
 import {
@@ -24,6 +23,9 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { TestIconLucide } from '@/components/icons/TestIcon';
+
+// Import the useTestDataToggle hook to synchronize test data visibility
+import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
 
 interface User {
   id: string;
@@ -94,9 +96,24 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isLoadingTransactionStats, setIsLoadingTransactionStats] = useState(false);
   
+  // Get access to the QueryClient for manual cache invalidation
+  const queryClient = useQueryClient();
+  
+  // Get the test data toggle state
+  const { includeTestData } = useTestDataToggle();
+  
+  // Force refresh stats by incrementing this counter
+  const [statsRefreshCounter, setStatsRefreshCounter] = useState(0);
+  
+  // Add an effect to refresh transaction stats when includeTestData changes
+  useEffect(() => {
+    // Invalidate transaction stats when test data toggle changes
+    queryClient.invalidateQueries({ queryKey: ['user-transaction-stats'] });
+  }, [includeTestData, queryClient]);
+  
   // Fetch transaction stats for all users with separate test and real data
-  const { data: transactionStats = {} } = useQuery({
-    queryKey: ['user-transaction-stats'],
+  const { data: transactionStats = {}, refetch: refetchTransactionStats } = useQuery({
+    queryKey: ['user-transaction-stats', statsRefreshCounter, includeTestData],
     queryFn: async () => {
       setIsLoadingTransactionStats(true);
       try {
@@ -162,7 +179,7 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
               stats[tx.user_id].completed_count++;
               stats[tx.user_id].completed_value += Number(tx.amount || 0);
             } else {
-              // Pending real transaction
+              // Pending real transaction (including any non-completed status)
               stats[tx.user_id].pending_count++;
               stats[tx.user_id].pending_value += Number(tx.amount || 0);
             }
@@ -183,8 +200,57 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
       } finally {
         setIsLoadingTransactionStats(false);
       }
-    }
+    },
+    // Set a short stale time to ensure frequent refreshes
+    staleTime: 15000, // 15 seconds
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
+
+  // Add a realtime subscription to transactions
+  useEffect(() => {
+    const channel = supabase
+      .channel('user-transactions-status-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transactions'
+        },
+        (payload) => {
+          console.log('Transaction update detected:', payload.eventType);
+          
+          // For transaction updates, log status changes
+          if (payload.eventType === 'UPDATE') {
+            const oldData = payload.old as any;
+            const newData = payload.new as any;
+            
+            if (oldData.status !== newData.status) {
+              console.log(`Transaction status changed from ${oldData.status} to ${newData.status}`);
+              
+              // Invalidate transaction stats to update the UI
+              queryClient.invalidateQueries({ queryKey: ['user-transaction-stats'] });
+              
+              // Also trigger manual refresh for immediate update
+              setStatsRefreshCounter(prev => prev + 1);
+            }
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  // Function to manually refresh transaction stats
+  const handleRefreshStats = () => {
+    setStatsRefreshCounter(prev => prev + 1);
+    queryClient.invalidateQueries({ queryKey: ['user-transaction-stats'] });
+    refetchTransactionStats();
+  };
 
   const renderKycStatusBadge = (status?: string, hasKycRecord?: boolean, kycComplete?: boolean) => {
     if (hasKycRecord === false) {
@@ -264,6 +330,21 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
 
   return (
     <>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-sm font-medium text-muted-foreground">
+          {isLoadingTransactionStats ? 'Loading transaction data...' : 'Transaction data loaded'}
+        </h3>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleRefreshStats}
+          disabled={isLoadingTransactionStats}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingTransactionStats ? 'animate-spin' : ''}`} />
+          Refresh Transaction Stats
+        </Button>
+      </div>
+    
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -391,7 +472,7 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
                             <span className="text-green-600 font-medium">
                               {formatCurrency(user.completed_transaction_value > 0 ? user.completed_transaction_value : 0)}
                             </span>
-                            {user.pending_transaction_value > 0 && (
+                            {user.pending_transaction_count > 0 && (
                               <span className="text-xs text-amber-600">
                                 (+{formatCurrency(user.pending_transaction_value)} pending)
                               </span>
