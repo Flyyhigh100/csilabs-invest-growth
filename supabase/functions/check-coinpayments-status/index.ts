@@ -1,20 +1,20 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
-import { checkCoinPaymentsTransaction } from "./coinpayments-api.ts";
-import { processTransactionStatus } from "./transaction-handler.ts";
-import { createErrorResponse, createSuccessResponse } from "./utils.ts";
+import { checkCoinPaymentsTransaction } from "../_shared/coinpayments-api.ts";
+import { processTransactionStatus } from "../_shared/transaction-handler.ts";
 
-// CORS headers for preflight requests
+// CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Create a Supabase client
 function createSupabaseClient() {
   return createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 }
 
@@ -23,95 +23,125 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-  
+
   try {
-    // Parse request body
-    let requestBody;
-    try {
-      requestBody = await req.json();
-    } catch (parseError) {
-      console.error('Error parsing request body:', parseError);
-      return createErrorResponse('Invalid JSON in request body');
-    }
+    const client = createSupabaseClient();
+    const { transactionId, forceUpdate = false } = await req.json();
     
-    console.log('Processing check-coinpayments-status request:', JSON.stringify(requestBody));
-    
-    // Extract params
-    const { transactionId, forceUpdate = false, storeExternalIds = true } = requestBody;
-    
-    // Validate required fields
     if (!transactionId) {
-      return createErrorResponse('Missing required field: transactionId');
+      return new Response(
+        JSON.stringify({ success: false, message: 'Transaction ID is required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
+
+    console.log(`Checking status for transaction: ${transactionId}`);
     
-    // Setup Supabase client
-    const supabase = createSupabaseClient();
-    
-    // Fetch the transaction details
-    const { data: transaction, error: txError } = await supabase
+    // Get transaction from database
+    const { data: transaction, error: txError } = await client
       .from('transactions')
       .select('*')
       .eq('id', transactionId)
-      .maybeSingle();
+      .single();
     
     if (txError || !transaction) {
-      console.error('Error fetching transaction:', txError);
-      return createErrorResponse(
-        txError ? `Database error: ${txError.message}` : `Transaction not found: ${transactionId}`,
-        404
+      console.error('Error fetching transaction:', txError?.message || 'Transaction not found');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: txError ? `Database error: ${txError.message}` : 'Transaction not found'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      );
+    }
+
+    // Check if transaction has external ID
+    if (!transaction.external_transaction_id) {
+      console.error(`Transaction ${transactionId} has no external_transaction_id`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'Transaction has no external transaction ID to check'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
     
-    // Validate that it's a CoinPayments transaction
-    if (transaction.payment_method !== 'coinpayments') {
-      return createErrorResponse(`Transaction ${transactionId} is not a CoinPayments transaction`, 400);
+    // Skip completed transactions unless force update is requested
+    if (!forceUpdate && (transaction.status === 'completed' || transaction.status === 'confirmed')) {
+      console.log(`Transaction ${transactionId} already in final state: ${transaction.status}`);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Transaction already in final state: ${transaction.status}`,
+          status: transaction.status,
+          transaction: transaction
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
     }
-    
-    // Ensure external_transaction_id exists before calling API
-    if (!transaction.external_transaction_id) {
-      console.error(`Transaction ${transactionId} is missing external_transaction_id required for CoinPayments API call.`);
-      return createErrorResponse(`Transaction ${transactionId} is missing the external CoinPayments transaction ID. Cannot check status.`, 400);
-    }
-    
-    // Fetch status from CoinPayments API using the correct function and ID
+
+    // Check transaction status with CoinPayments
     const apiResponse = await checkCoinPaymentsTransaction(transaction.external_transaction_id);
     
-    // Check for errors from the API call itself
     if (apiResponse.error) {
-      console.error('Error calling CoinPayments API:', apiResponse.status_text);
-      return createErrorResponse(`API error: ${apiResponse.status_text || 'Unknown API error'}`, 500);
+      console.error(`API error for transaction ${transactionId}:`, apiResponse.status_text);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: `API error: ${apiResponse.status_text}`
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
+
+    // Process status update
+    const updateResult = await processTransactionStatus(client, transaction, apiResponse);
     
-    // If no result data was returned, something went wrong
-    if (!apiResponse.result) {
-      console.error('No result data returned from CoinPayments API function despite no error flag');
-      return createErrorResponse('No status data returned from CoinPayments API call', 500);
+    // Return results
+    if (updateResult.success) {
+      if (updateResult.updated) {
+        console.log(`Successfully updated transaction ${transactionId} status from ${updateResult.previousStatus} to ${updateResult.newStatus}`);
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: updateResult.message,
+            previousStatus: updateResult.previousStatus,
+            newStatus: updateResult.newStatus
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      } else {
+        console.log(`No status change for transaction ${transactionId}, still at ${transaction.status}`);
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'No status change required',
+            status: transaction.status,
+            transaction: transaction
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
+    } else {
+      console.error(`Failed to update transaction ${transactionId}:`, updateResult.message);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: updateResult.message
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
-    
-    // Log the status data for debugging
-    console.log('Status data:', JSON.stringify(apiResponse));
-    
-    // Use apiResponse.result which contains the payload for processing
-    const statusData = { result: apiResponse.result }; // Structure expected by processTransactionStatus
-    
-    // Process the transaction status using the result from the API call
-    const result = await processTransactionStatus(supabase, transaction, statusData, storeExternalIds);
-    
-    return createSuccessResponse({
-      message: `Transaction status checked: ${result.message}`,
-      transaction: result.transaction,
-      statusData: statusData,
-      updated: result.updated,
-      newStatus: result.newStatus,
-      previousStatus: result.previousStatus
-    });
-    
   } catch (error) {
-    console.error('Unhandled exception:', error);
-    return createErrorResponse(
-      `Internal server error: ${error.message}`,
-      500,
-      { stack: error.stack }
+    console.error('Unhandled exception in check-coinpayments-status:', error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        message: `Internal server error: ${error.message}`,
+        details: error.stack
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });

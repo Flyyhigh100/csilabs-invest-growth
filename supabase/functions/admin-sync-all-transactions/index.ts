@@ -1,8 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
-import { checkCoinPaymentsTransaction } from "../check-coinpayments-status/coinpayments-api.ts";
-import { processTransactionStatus } from "../check-coinpayments-status/transaction-handler.ts";
+import { checkCoinPaymentsTransaction } from "../_shared/coinpayments-api.ts";
+import { processTransactionStatus } from "../_shared/transaction-handler.ts";
 
 // CORS headers for preflight requests
 const corsHeaders = {

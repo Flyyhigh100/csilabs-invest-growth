@@ -51,4 +51,3 @@ enable_realtime_webhooks = false
 [functions.check-coinpayments-status]
 
 [functions.create-coinpayments-payment]
-
