@@ -39,6 +39,9 @@ interface User {
   has_kyc_record?: boolean;
   kyc_complete?: boolean;
   kyc_id?: string;
+  has_test_data?: boolean;
+  test_transaction_count?: number;
+  test_transaction_value?: number;
 }
 
 interface TransactionStats {
@@ -85,12 +88,14 @@ interface EnhancedUsersTableProps {
   users: User[];
   onCheckKyc: (userId: string) => void;
   searchQuery: string;
+  refreshTrigger?: number; // New prop to force refresh
 }
 
 const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({ 
   users, 
   onCheckKyc, 
-  searchQuery 
+  searchQuery,
+  refreshTrigger = 0
 }) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
@@ -105,11 +110,74 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
   // Force refresh stats by incrementing this counter
   const [statsRefreshCounter, setStatsRefreshCounter] = useState(0);
   
+  // Refresh when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log(`EnhancedUsersTable: refreshTrigger changed to ${refreshTrigger}, refreshing transaction stats`);
+      setStatsRefreshCounter(prev => prev + 1);
+    }
+  }, [refreshTrigger]);
+  
   // Add an effect to refresh transaction stats when includeTestData changes
   useEffect(() => {
     // Invalidate transaction stats when test data toggle changes
+    console.log('Test data toggle changed, refreshing transaction stats');
     queryClient.invalidateQueries({ queryKey: ['user-transaction-stats'] });
+    setStatsRefreshCounter(prev => prev + 1);
   }, [includeTestData, queryClient]);
+  
+  // Set up realtime subscription specific to this component
+  useEffect(() => {
+    console.log('Setting up realtime subscription for transaction stats');
+    
+    const channel = supabase
+      .channel('enhanced-users-table-tx-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transactions'
+        },
+        (payload) => {
+          console.log('Transaction update received in EnhancedUsersTable:', payload.eventType);
+          
+          // For status changes, force an immediate refresh
+          if (payload.eventType === 'UPDATE') {
+            const oldData = payload.old as any;
+            const newData = payload.new as any;
+            
+            if (oldData.status !== newData.status) {
+              console.log(`EnhancedUsersTable: Transaction status changed from ${oldData.status} to ${newData.status}`);
+              
+              // Force immediate refresh
+              setStatsRefreshCounter(prev => prev + 1);
+              
+              // Explicitly invalidate the transaction stats
+              queryClient.invalidateQueries({ queryKey: ['user-transaction-stats'] });
+              
+              // If status changed to completed, show a more visible notification
+              if (newData.status === 'completed' && oldData.status !== 'completed') {
+                console.log('Transaction completed, refreshing stats immediately');
+                setTimeout(() => {
+                  setStatsRefreshCounter(prev => prev + 1);
+                }, 500);
+              }
+            }
+          } else {
+            // For other changes, also refresh
+            setStatsRefreshCounter(prev => prev + 1);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log(`EnhancedUsersTable transaction subscription status: ${status}`);
+      });
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
   
   // Fetch transaction stats for all users with separate test and real data
   const { data: transactionStats = {}, refetch: refetchTransactionStats } = useQuery({
@@ -193,6 +261,13 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
         });
         
         console.log(`Fetched transaction stats for ${Object.keys(stats).length} users with test/real and status separation`);
+        console.log('Sample of stats:', Object.entries(stats).slice(0, 2).map(([userId, userStats]) => ({
+          userId,
+          pending_count: userStats.pending_count,
+          pending_value: userStats.pending_value,
+          completed_count: userStats.completed_count
+        })));
+        
         return stats;
       } catch (err) {
         console.error('Error fetching transaction stats:', err);
@@ -201,52 +276,15 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
         setIsLoadingTransactionStats(false);
       }
     },
-    // Set a short stale time to ensure frequent refreshes
-    staleTime: 15000, // 15 seconds
+    // Set a very short stale time to ensure frequent refreshes
+    staleTime: 5000, // 5 seconds
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
 
-  // Add a realtime subscription to transactions
-  useEffect(() => {
-    const channel = supabase
-      .channel('user-transactions-status-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'transactions'
-        },
-        (payload) => {
-          console.log('Transaction update detected:', payload.eventType);
-          
-          // For transaction updates, log status changes
-          if (payload.eventType === 'UPDATE') {
-            const oldData = payload.old as any;
-            const newData = payload.new as any;
-            
-            if (oldData.status !== newData.status) {
-              console.log(`Transaction status changed from ${oldData.status} to ${newData.status}`);
-              
-              // Invalidate transaction stats to update the UI
-              queryClient.invalidateQueries({ queryKey: ['user-transaction-stats'] });
-              
-              // Also trigger manual refresh for immediate update
-              setStatsRefreshCounter(prev => prev + 1);
-            }
-          }
-        }
-      )
-      .subscribe();
-    
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
-
   // Function to manually refresh transaction stats
   const handleRefreshStats = () => {
+    console.log('Manually refreshing transaction stats');
     setStatsRefreshCounter(prev => prev + 1);
     queryClient.invalidateQueries({ queryKey: ['user-transaction-stats'] });
     refetchTransactionStats();
@@ -339,6 +377,7 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
           size="sm" 
           onClick={handleRefreshStats}
           disabled={isLoadingTransactionStats}
+          className={statsRefreshCounter > 0 ? "border-blue-500" : ""}
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingTransactionStats ? 'animate-spin' : ''}`} />
           Refresh Transaction Stats

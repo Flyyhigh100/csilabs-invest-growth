@@ -24,6 +24,7 @@ const AdminUsersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('table');
   const { includeTestData, setIncludeTestData } = useTestDataToggle(false);
   const queryClient = useQueryClient();
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   const { 
     users, 
@@ -36,17 +37,36 @@ const AdminUsersPage: React.FC = () => {
     refetch 
   } = useAdminUsers();
   
+  // Force a refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRefreshTrigger(prev => prev + 1);
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  // Refresh when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      refetch();
+    }
+  }, [refreshTrigger, refetch]);
+  
   useEffect(() => {
     // Force refresh on component mount
     refetch();
     
     // Set up unified revalidation approach for all key UI data
     const invalidateAllUserRelatedQueries = () => {
-      // Invalidate user-related queries
+      console.log('Invalidating all user-related queries...');
+      
+      // Invalidate user-related queries with different cache keys to ensure we catch all
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      // Also invalidate transaction stats query used in EnhancedUsersTable
       queryClient.invalidateQueries({ queryKey: ['user-transaction-stats'] });
-      // If there are any other user-related queries, invalidate them here
+      
+      // Force a refresh of the users list
+      refetch();
     };
     
     // Set up realtime subscription for profiles changes
@@ -65,7 +85,9 @@ const AdminUsersPage: React.FC = () => {
           invalidateAllUserRelatedQueries();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Profiles subscription status: ${status}`);
+      });
     
     // Set up realtime subscription for KYC changes
     const kycChannel = supabase
@@ -83,11 +105,56 @@ const AdminUsersPage: React.FC = () => {
           invalidateAllUserRelatedQueries();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`KYC subscription status: ${status}`);
+      });
 
-    // Set up more comprehensive realtime subscription for transactions changes
+    // Set up a dedicated channel for transaction status changes
     const txChannel = supabase
-      .channel('admin-users-transactions-updates')
+      .channel('admin-users-transactions-status-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'transactions',
+          filter: "status=eq.completed OR status=eq.pending OR status=eq.failed"
+        },
+        (payload) => {
+          // Extract the old and new data
+          const oldData = payload.old as any;
+          const newData = payload.new as any;
+          
+          console.log('Transaction status changed:', {
+            from: oldData.status,
+            to: newData.status,
+            user_id: newData.user_id,
+            transaction_id: newData.id
+          });
+          
+          // Check if the status has changed
+          if (oldData.status !== newData.status) {
+            console.log(`Transaction status changed from ${oldData.status} to ${newData.status}`);
+            toast.info(`Transaction status updated from ${oldData.status} to ${newData.status}`);
+            
+            // More aggressive invalidation for status changes
+            queryClient.invalidateQueries();
+            
+            // Force a refresh of the users list
+            refetch();
+            
+            // Trigger the refresh counter
+            setRefreshTrigger(prev => prev + 1);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log(`Transaction status subscription status: ${status}`);
+      });
+    
+    // Also set up a general transaction changes channel for other changes
+    const generalTxChannel = supabase
+      .channel('admin-users-all-transactions-updates')
       .on(
         'postgres_changes',
         {
@@ -96,31 +163,37 @@ const AdminUsersPage: React.FC = () => {
           table: 'transactions'
         },
         (payload) => {
-          console.log('Transaction changed:', payload);
-          
-          // More detailed logging for transaction status changes
-          if (payload.eventType === 'UPDATE') {
-            const oldData = payload.old as any;
-            const newData = payload.new as any;
-            
-            if (oldData.status !== newData.status) {
-              console.log(`Transaction status changed: ${oldData.status} -> ${newData.status}`);
-              toast.info(`Transaction status updated: ${newData.status}`);
-            }
-          }
-          
-          // Invalidate transaction stats to ensure user table displays correct information
+          console.log('Transaction changed:', payload.eventType);
           invalidateAllUserRelatedQueries();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`General transaction subscription status: ${status}`);
+      });
     
     return () => {
       supabase.removeChannel(profilesChannel);
       supabase.removeChannel(kycChannel);
       supabase.removeChannel(txChannel);
+      supabase.removeChannel(generalTxChannel);
     };
   }, [refetch, queryClient]);
+  
+  // Manual refresh function that invalidates all caches and forces a refetch
+  const handleForceRefresh = () => {
+    console.log('Forcing refresh of all data...');
+    
+    // Clear all queries in the cache
+    queryClient.invalidateQueries();
+    
+    // Increment refresh trigger
+    setRefreshTrigger(prev => prev + 1);
+    
+    // Force refetch
+    refetch();
+    
+    toast.success('Forcing refresh of all data...');
+  };
   
   return (
     <AdminLayout title="Users">
@@ -163,7 +236,7 @@ const AdminUsersPage: React.FC = () => {
               <UsersToolbar 
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
-                onRefresh={handleRefresh}
+                onRefresh={handleForceRefresh} // Use the enhanced refresh function
                 onTestDbConnection={() => {}}
               />
               
@@ -171,13 +244,14 @@ const AdminUsersPage: React.FC = () => {
                 {isLoading ? (
                   <UsersLoading />
                 ) : error ? (
-                  <UsersError error={error as Error} onRetry={handleRefresh} />
+                  <UsersError error={error as Error} onRetry={handleForceRefresh} />
                 ) : (
                   <div className="min-w-full px-3 md:px-0">
                     <EnhancedUsersTable 
                       users={users} 
                       onCheckKyc={checkUserKyc} 
                       searchQuery={searchQuery}
+                      refreshTrigger={refreshTrigger}
                     />
                   </div>
                 )}
@@ -188,7 +262,7 @@ const AdminUsersPage: React.FC = () => {
               {isLoading ? (
                 <UsersLoading />
               ) : error ? (
-                <UsersError error={error as Error} onRetry={handleRefresh} />
+                <UsersError error={error as Error} onRetry={handleForceRefresh} />
               ) : (
                 <UserStats users={users} />
               )}
