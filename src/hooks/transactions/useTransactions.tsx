@@ -26,14 +26,14 @@ export const useTransactions = (userId: string | undefined) => {
           filter: `user_id=eq.${userId}`
         },
         (payload) => {
-          console.log('Transaction change detected:', payload.eventType, payload.new?.status, payload.old?.status);
+          console.log('Transaction change detected:', payload.eventType);
           
           // Log detailed information about the change
           if (payload.eventType === 'UPDATE') {
-            const oldData = payload.old as any;
-            const newData = payload.new as any;
+            const oldData = payload.old as Record<string, any>;
+            const newData = payload.new as Record<string, any>;
             
-            if (oldData.status !== newData.status) {
+            if (oldData && newData && oldData.status !== newData.status) {
               console.log(`Transaction status changed from ${oldData.status} to ${newData.status}`);
               
               // Show toast notification for status changes
@@ -73,7 +73,7 @@ export const useTransactions = (userId: string | undefined) => {
     queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
   };
 
-  const { data, isLoading, error, refetch } = useQuery({
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['transactions', userId, forceRefreshCounter],
     queryFn: async () => {
       if (!userId) return [];
@@ -104,6 +104,7 @@ export const useTransactions = (userId: string | undefined) => {
     isLoading,
     error,
     refetch,
+    isFetching,
     forceRefresh
   };
 };

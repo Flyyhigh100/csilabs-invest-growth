@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 
 const TokenBalanceCard: React.FC = () => {
   const { user } = useAuth();
-  const { data: transactions, isLoading, error } = useTransactions(user?.id);
+  const { transactions, isLoading, error } = useTransactions(user?.id);
   const [isOpen, setIsOpen] = useState(false);
   
   // Calculate total tokens delivered (using token_sent flag rather than status)

@@ -18,7 +18,7 @@ const TransactionsList = () => {
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   
   const { 
-    data: transactions,
+    transactions,
     isLoading,
     error,
     refetch,
