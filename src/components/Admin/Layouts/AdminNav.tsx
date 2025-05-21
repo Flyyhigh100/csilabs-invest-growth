@@ -9,7 +9,8 @@ import {
   SettingsIcon,
   InfoIcon,
   BarChart2,
-  FileText
+  FileText,
+  AlertTriangle
 } from 'lucide-react';
 
 interface NavItem {
@@ -34,6 +35,11 @@ export const getAdminNavItems = (): NavItem[] => {
       title: 'Token Distribution',
       path: '/admin/transactions',
       icon: <CreditCardIcon className="h-5 w-5" />,
+    },
+    {
+      title: 'Transaction Status',
+      path: '/admin/transaction-status',
+      icon: <AlertTriangle className="h-5 w-5" />,
     },
     {
       title: 'Token Pricing',

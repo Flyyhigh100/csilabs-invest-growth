@@ -47,3 +47,8 @@ enable_realtime_webhooks = false
 [functions.admin-sync-all-transactions]
 
 [functions.process-ipn-log]
+
+[functions.check-coinpayments-status]
+
+[functions.create-coinpayments-payment]
+

@@ -48,6 +48,7 @@ import AdminTransactionToolsPage from './pages/Admin/TransactionTools';
 import AdminResearchDocuments from './pages/Admin/ResearchDocuments';
 import SystemFlowPage from './pages/Admin/SystemFlow';
 import CoinPaymentsSetupPage from './pages/Admin/CoinPaymentsSetup';
+import TransactionStatusManagerPage from './pages/Admin/TransactionStatusManager';
 
 const queryClient = new QueryClient();
 
@@ -96,6 +97,7 @@ export default function App() {
                     <Route path="/admin/kyc" element={<AdminKycPage />} />
                     <Route path="/admin/users" element={<AdminUsersPage />} />
                     <Route path="/admin/transactions" element={<AdminTransactionsPage />} />
+                    <Route path="/admin/transaction-status" element={<TransactionStatusManagerPage />} />
                     <Route path="/admin/transaction-analytics" element={<TransactionAnalyticsPage />} />
                     <Route path="/admin/transaction-tools" element={<AdminTransactionToolsPage />} />
                     <Route path="/admin/settings" element={<AdminSettingsPage />} />

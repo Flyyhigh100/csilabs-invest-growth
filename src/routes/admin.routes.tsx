@@ -10,13 +10,15 @@ import {
 import {
   WrenchIcon,
   BarChart2,
-  FileText
+  FileText,
+  AlertTriangle
 } from 'lucide-react';
 
 // Lazy load admin pages for better performance
 const AdminDashboard = lazy(() => import('@/pages/Admin/Dashboard'));
 const AdminTransactions = lazy(() => import('@/pages/Admin/Transactions'));
 const AdminTransactionAnalytics = lazy(() => import('@/pages/Admin/TransactionAnalytics'));
+const AdminTransactionStatusManager = lazy(() => import('@/pages/Admin/TransactionStatusManager'));
 const AdminUsers = lazy(() => import('@/pages/Admin/Users'));
 const AdminSettings = lazy(() => import('@/pages/Admin/Settings'));
 const AdminNotifications = lazy(() => import('@/pages/Admin/Notifications'));
@@ -39,6 +41,15 @@ export const adminRoutes = [
     element: <AdminTransactions />,
     meta: {
       title: 'Token Distribution',
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+  },
+  {
+    path: '/admin/transaction-status',
+    element: <AdminTransactionStatusManager />,
+    meta: {
+      title: 'Transaction Status Manager',
       requiresAuth: true,
       requiresAdmin: true,
     },
@@ -128,6 +139,11 @@ export const adminSidebarLinks = [
     title: 'Token Distribution',
     path: '/admin/transactions',
     icon: <TransactionIcon className="h-5 w-5" />,
+  },
+  {
+    title: 'Transaction Status',
+    path: '/admin/transaction-status',
+    icon: <AlertTriangle className="h-5 w-5" />,
   },
   {
     title: 'Transaction Analytics',
