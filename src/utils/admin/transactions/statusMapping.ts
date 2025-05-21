@@ -1,31 +1,25 @@
 
-export type BadgeVariant = 
-  | 'default' 
-  | 'secondary' 
-  | 'destructive' 
-  | 'outline' 
-  | 'success' 
-  | 'warning' 
-  | 'info';
-
 /**
- * Maps transaction status to appropriate badge variant
+ * Maps transaction status to badge variant
  */
-export const mapStatusToBadgeVariant = (status: string): BadgeVariant => {
-  const normalizedStatus = status.toLowerCase();
+export const mapStatusToBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" | "success" | "warning" | "info" => {
+  const lowerStatus = status.toLowerCase();
   
-  switch (normalizedStatus) {
-    case 'completed':
-      return 'success';
-    case 'confirmed':
-      return 'info';
-    case 'pending':
-      return 'warning';
-    case 'failed':
-    case 'cancelled':
-    case 'expired':
-      return 'destructive';
-    default:
-      return 'outline';
+  if (lowerStatus === 'completed' || lowerStatus === 'confirmed') {
+    return 'success';
   }
+  
+  if (lowerStatus === 'pending' || lowerStatus === 'processing') {
+    return 'warning';
+  }
+  
+  if (lowerStatus === 'cancelled' || lowerStatus === 'failed' || lowerStatus === 'expired') {
+    return 'destructive';
+  }
+  
+  if (lowerStatus === 'initiated' || lowerStatus === 'created') {
+    return 'info';
+  }
+  
+  return 'default';
 };
