@@ -18,6 +18,10 @@ import TransactionStatusTable from './TransactionStatusTable';
 import CleanupPendingTransactionsCard from './CleanupPendingTransactionsCard';
 import StatusSyncCard from './StatusSyncCard';
 
+// Constants for filter values
+const ALL_STATUSES = "all_statuses";
+const ALL_PAYMENT_METHODS = "all_payment_methods";
+
 const TransactionStatusDashboard = () => {
   // Filter state
   const [statusFilter, setStatusFilter] = useState<string>('pending');
@@ -98,7 +102,7 @@ const TransactionStatusDashboard = () => {
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
+                  <SelectItem value={ALL_STATUSES}>All Statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="confirmed">Confirmed</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
@@ -116,7 +120,7 @@ const TransactionStatusDashboard = () => {
                   <SelectValue placeholder="Filter by payment method" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Payment Methods</SelectItem>
+                  <SelectItem value={ALL_PAYMENT_METHODS}>All Payment Methods</SelectItem>
                   <SelectItem value="coinpayments">CoinPayments</SelectItem>
                   <SelectItem value="stripe">Stripe</SelectItem>
                   <SelectItem value="credit_card">Credit Card</SelectItem>
@@ -200,23 +204,23 @@ const TransactionStatusDashboard = () => {
           
           {/* Status badges */}
           <div className="flex flex-wrap gap-2 mb-6">
-            {statusFilter && (
+            {statusFilter && statusFilter !== ALL_STATUSES && (
               <Badge variant="secondary" className="gap-1">
                 Status: {statusFilter}
                 <button 
                   className="ml-1 hover:bg-gray-200 rounded-full"
-                  onClick={() => setStatusFilter('')}
+                  onClick={() => setStatusFilter(ALL_STATUSES)}
                 >
                   ✕
                 </button>
               </Badge>
             )}
-            {paymentMethodFilter && (
+            {paymentMethodFilter && paymentMethodFilter !== ALL_PAYMENT_METHODS && (
               <Badge variant="secondary" className="gap-1">
                 Payment: {paymentMethodFilter}
                 <button 
                   className="ml-1 hover:bg-gray-200 rounded-full"
-                  onClick={() => setPaymentMethodFilter('')}
+                  onClick={() => setPaymentMethodFilter(ALL_PAYMENT_METHODS)}
                 >
                   ✕
                 </button>
