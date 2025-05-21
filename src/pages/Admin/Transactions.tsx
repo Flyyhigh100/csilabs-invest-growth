@@ -5,6 +5,7 @@ import PendingTransactions from '@/components/Admin/PendingTransactions';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 const AdminTransactionsPage: React.FC = () => {
   const { user } = useAuth();
@@ -54,9 +55,11 @@ const AdminTransactionsPage: React.FC = () => {
   }
 
   return (
-    <AdminLayout title="Token Distribution">
-      <PendingTransactions />
-    </AdminLayout>
+    <TooltipProvider>
+      <AdminLayout title="Token Distribution">
+        <PendingTransactions />
+      </AdminLayout>
+    </TooltipProvider>
   );
 };
 

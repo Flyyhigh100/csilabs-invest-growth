@@ -8,22 +8,42 @@ schemas = ["public", "storage", "graphql_public"]
 
 [db]
 port = 54322
+shadow_port = 54320
+major_version = 15
 
 [studio]
+enabled = true
 port = 54323
+api_url = "http://localhost"
 
 [inbucket]
+enabled = true
 port = 54324
 
 [storage]
 enabled = true
+port = 54325
 
 [auth]
 enabled = true
+port = 54326
 
 [realtime]
 enabled = true
+port = 54327
 
 [edge_functions]
-[edge_functions.upload-research-document]
-verify_jwt = true
+enabled = true
+
+[analytics]
+enabled = true
+port = 54328
+
+[experimental]
+enable_realtime_webhooks = false
+
+[functions.admin-operations]
+
+[functions.admin-sync-all-transactions]
+
+[functions.process-ipn-log]

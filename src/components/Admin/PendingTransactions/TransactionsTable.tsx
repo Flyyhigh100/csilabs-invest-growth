@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Clock, ExternalLink, Coins } from 'lucide-react';
 import {
@@ -14,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PendingTransactionWithProfile } from '@/hooks/admin/usePendingTransactions';
 import SyncWithStripeButton from './SyncWithStripeButton';
+import SyncCryptoPaymentButton from '@/components/Dashboard/Transactions/SyncCryptoPaymentButton';
 import { groupTransactionsByWallet } from '@/utils/admin/exportUtils';
 
 interface TransactionsTableProps {
@@ -188,15 +188,30 @@ const TransactionsTable = ({
                           <Clock className="h-3 w-3 mr-1" />
                           {tx.is_test ? "Test Pending" : "Pending Distribution"}
                         </Badge>
-                        {tx.status === 'pending' && tx.payment_method === 'stripe' && (
-                          <div className="mt-1">
+                        <div className="mt-1 flex space-x-1">
+                          {tx.status === 'pending' && tx.payment_method === 'stripe' && (
                             <SyncWithStripeButton 
                               transaction={tx} 
                               onSyncComplete={handleSyncComplete}
                               size="sm" 
                             />
-                          </div>
-                        )}
+                          )}
+                          {tx.payment_method === 'coinpayments' && (
+                            <SyncCryptoPaymentButton 
+                              transaction={tx} 
+                              onSyncComplete={handleSyncComplete}
+                              size="sm"
+                            />
+                          )}
+                          {tx.payment_method === 'coinpayments' && (
+                            <SyncCryptoPaymentButton 
+                              transaction={tx} 
+                              onSyncComplete={handleSyncComplete}
+                              size="sm"
+                              forceUpdate={true}
+                            />
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <Button 

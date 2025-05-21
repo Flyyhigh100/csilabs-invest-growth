@@ -1,59 +1,49 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
+import SyncAllTransactionsButton from '@/components/Admin/SyncAllTransactionsButton';
 
 interface SyncAllTransactionsBarProps {
-  onSyncComplete: () => void;
+  onSyncComplete?: () => void;
 }
 
-const SyncAllTransactionsBar: React.FC<SyncAllTransactionsBarProps> = ({ onSyncComplete }) => {
-  const [isSyncing, setIsSyncing] = React.useState(false);
-
-  const handleRefresh = async () => {
-    try {
-      setIsSyncing(true);
-      
-      const toastId = toast.loading('Refreshing transaction data...');
-      
-      const { error } = await supabase.functions.invoke('admin-sync-all-transactions', {
-        body: { forceUpdate: false, storeExternalIds: true }
-      });
-      
-      toast.dismiss(toastId);
-      
-      if (error) {
-        console.error('Error syncing transactions:', error);
-        toast.error('Failed to refresh transactions');
-        return;
-      }
-      
-      toast.success('Transaction data refreshed');
-      onSyncComplete();
-    } catch (err) {
-      console.error('Exception syncing transactions:', err);
-      toast.error('Failed to refresh transactions');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
+const SyncAllTransactionsBar: React.FC<SyncAllTransactionsBarProps> = ({ 
+  onSyncComplete 
+}) => {
   return (
-    <div className="flex justify-end mb-4">
-      <Button 
-        variant="outline"
-        size="sm"
-        disabled={isSyncing}
-        onClick={handleRefresh}
-        className="flex items-center gap-1"
-      >
-        <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-        {isSyncing ? 'Refreshing...' : 'Refresh'}
-      </Button>
-    </div>
+    <Card className="border-blue-200 bg-blue-50">
+      <CardContent className="p-4 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex-grow">
+            <h3 className="font-semibold text-blue-800">Sync Transaction Status</h3>
+            <p className="text-sm text-blue-700">
+              Update pending transaction status from payment providers
+            </p>
+          </div>
+          <div className="flex space-x-2">
+            <SyncAllTransactionsButton 
+              onSyncComplete={onSyncComplete} 
+              variant="outline"
+            />
+            <SyncAllTransactionsButton 
+              onSyncComplete={onSyncComplete}
+              forceUpdate={true}
+              variant="default"
+            />
+          </div>
+        </div>
+        
+        <Alert variant="warning" className="bg-amber-50 border-amber-200">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-xs text-amber-700">
+            Use "Force Update All" when transactions appear stuck or CoinPayments status is out of sync.
+            This will bypass cached statuses and perform direct API calls.
+          </AlertDescription>
+        </Alert>
+      </CardContent>
+    </Card>
   );
 };
 

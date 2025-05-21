@@ -1,287 +1,267 @@
-
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { RefreshCw, CheckCircle, XCircle, AlertCircle, ExternalLink } from 'lucide-react';
+import { 
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
-import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
-export interface IPNLog {
+interface IPNLog {
   id: string;
-  provider: string;
-  txn_id: string | null;
-  status: string | null;
-  raw_data: any;
-  is_valid: boolean;
-  response_status: string | null;
   created_at: string;
-  hmac_header?: string | null;
-  request_body?: string | null;
-  processing_status?: string | null;
-  error_message?: string | null;
+  provider: string;
+  txn_id: string;
+  is_valid: boolean;
+  status?: string;
+  raw_data?: any;
+  hmac_header?: string;
+  processing_status?: string;
+  processed_at?: string;
+  details?: string;
 }
 
-// Status Badge Component
-const StatusBadge = ({ status }: { status: string | null }) => {
-  if (!status) return null;
-  
-  switch (status.toLowerCase()) {
-    case 'completed':
-      return <Badge variant="success" className="bg-green-100 text-green-800">Completed</Badge>;
-    case 'confirmed':
-      return <Badge variant="outline" className="bg-blue-100 text-blue-800">Confirmed</Badge>;
-    case 'pending':
-      return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-    case 'failed':
-      return <Badge variant="destructive">Failed</Badge>;
-    default:
-      return <Badge variant="secondary">{status}</Badge>;
-  }
-};
+interface IPNLogViewerProps {
+  transactionId?: string;
+  externalTransactionId?: string;
+  compact?: boolean;
+  className?: string;
+}
 
-// Validity Icon Component
-const ValidityIcon = ({ isValid }: { isValid: boolean }) => {
-  return isValid ? 
-    <CheckCircle className="h-5 w-5 text-green-500" /> : 
-    <XCircle className="h-5 w-5 text-red-500" />;
-};
-
-// Details Sheet Component
-const IPNLogDetailsSheet = ({ 
-  isOpen, 
-  onClose, 
-  log 
-}: { 
-  isOpen: boolean, 
-  onClose: () => void, 
-  log: IPNLog | null 
+const IPNLogViewer: React.FC<IPNLogViewerProps> = ({ 
+  transactionId,
+  externalTransactionId,
+  compact = false,
+  className = ''
 }) => {
-  if (!log) return null;
-
-  return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-[90vw] max-w-[700px] sm:max-w-[600px]">
-        <SheetHeader>
-          <SheetTitle>IPN Log Details</SheetTitle>
-          <SheetDescription>
-            Details for IPN notification {log.txn_id || log.id}
-          </SheetDescription>
-        </SheetHeader>
-        <div className="mt-4 space-y-4">
-          <div>
-            <h4 className="text-sm font-medium">Basic Information</h4>
-            <div className="mt-2 rounded-md bg-slate-50 p-4">
-              <p className="text-xs"><strong>Provider:</strong> {log.provider}</p>
-              <p className="text-xs"><strong>Transaction ID:</strong> {log.txn_id || 'N/A'}</p>
-              <p className="text-xs"><strong>Status:</strong> {log.status || 'N/A'}</p>
-              <p className="text-xs"><strong>Created At:</strong> {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}</p>
-              <p className="text-xs"><strong>Valid:</strong> {log.is_valid ? 'Yes' : 'No'}</p>
-              <p className="text-xs"><strong>Response Status:</strong> {log.response_status || 'N/A'}</p>
-              <p className="text-xs"><strong>Processing Status:</strong> {log.processing_status || 'N/A'}</p>
-              {log.error_message && (
-                <p className="text-xs text-red-600"><strong>Error:</strong> {log.error_message}</p>
-              )}
-            </div>
-          </div>
-          
-          <div>
-            <h4 className="text-sm font-medium">Raw Data</h4>
-            <div className="mt-2">
-              <pre className="text-xs bg-slate-50 p-4 rounded-md overflow-auto max-h-[200px]">
-                {JSON.stringify(log.raw_data, null, 2)}
-              </pre>
-            </div>
-          </div>
-          
-          {log.request_body && (
-            <div>
-              <h4 className="text-sm font-medium">Request Body</h4>
-              <div className="mt-2">
-                <pre className="text-xs bg-slate-50 p-4 rounded-md overflow-auto max-h-[150px]">
-                  {log.request_body}
-                </pre>
-              </div>
-            </div>
-          )}
-          
-          {log.hmac_header && (
-            <div>
-              <h4 className="text-sm font-medium">HMAC Header</h4>
-              <div className="mt-2">
-                <p className="text-xs bg-slate-50 p-4 rounded-md overflow-auto">
-                  {log.hmac_header}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-};
-
-// Empty State Component
-const IPNLogEmptyState = () => (
-  <div className="text-center py-8 text-gray-500">
-    <AlertCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-    <p>No IPN logs found. Webhook notifications will appear here when received.</p>
-  </div>
-);
-
-// Loading State Component
-const IPNLogLoadingState = () => (
-  <div className="p-8 text-center">
-    <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-gray-400" />
-    <p className="text-gray-500">Loading IPN logs...</p>
-  </div>
-);
-
-// Error State Component
-const IPNLogErrorState = ({ error }: { error: Error }) => (
-  <div className="p-8 text-center text-red-500">
-    <AlertCircle className="h-8 w-8 mx-auto mb-2 text-red-500" />
-    <p>Error loading IPN logs: {error.message}</p>
-  </div>
-);
-
-// Table Header Component
-const IPNLogHeader = ({ refetch }: { refetch: () => void }) => (
-  <div className="flex justify-between items-center mb-4">
-    <div>
-      <h3 className="text-lg font-medium">IPN Logs</h3>
-      <p className="text-sm text-muted-foreground">
-        Recent IPN notifications from payment providers
-      </p>
-    </div>
-    <Button 
-      variant="outline" 
-      size="sm" 
-      onClick={refetch}
-    >
-      <RefreshCw className="h-3.5 w-3.5 mr-1" />
-      Refresh
-    </Button>
-  </div>
-);
-
-// Main Component
-const IPNLogViewer = () => {
-  const [selectedLog, setSelectedLog] = React.useState<IPNLog | null>(null);
-  const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
-
-  const { data: logs, isLoading, error, refetch } = useQuery({
-    queryKey: ['ipn-logs'],
-    queryFn: async () => {
-      // Use type casting to work around the TypeScript limitation
-      // since ipn_logs table exists in the database but isn't in the TypeScript types yet
-      try {
-        console.log("Fetching IPN logs...");
-        const { data, error } = await (supabase as any)
-          .from('ipn_logs')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(100);
-
-        if (error) {
-          console.error("Error fetching IPN logs:", error);
-          throw error;
-        }
+  const [logs, setLogs] = useState<IPNLog[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const fetchLogs = async () => {
+    if (!transactionId && !externalTransactionId) {
+      setError('No transaction ID provided');
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      let query = supabase
+        .from('ipn_logs')
+        .select('*')
+        .order('created_at', { ascending: false });
         
-        console.log(`Fetched ${data?.length || 0} IPN logs`);
-        return data as IPNLog[];
-      } catch (err) {
-        console.error("Exception fetching IPN logs:", err);
-        throw err;
+      // If we have an external transaction ID, use that
+      if (externalTransactionId) {
+        query = query.eq('txn_id', externalTransactionId);
       }
-    },
-    refetchInterval: 30000, // Refresh every 30 seconds
-  });
-
-  const handleViewDetails = (log: IPNLog) => {
-    setSelectedLog(log);
-    setIsDetailsOpen(true);
+      
+      // Otherwise check for logs where the raw_data contains the transaction ID
+      // This is a fallback and less reliable
+      else if (transactionId) {
+        const { data: transaction } = await supabase
+          .from('transactions')
+          .select('external_transaction_id')
+          .eq('id', transactionId)
+          .maybeSingle();
+          
+        if (transaction?.external_transaction_id) {
+          query = query.eq('txn_id', transaction.external_transaction_id);
+        }
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
+      setLogs(data || []);
+    } catch (err) {
+      console.error('Error fetching IPN logs:', err);
+      setError('Failed to load IPN logs');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Process an IPN log manually
+  const handleProcessLog = async (logId: string) => {
+    try {
+      const toastId = toast.loading('Processing IPN log...');
+      
+      const { data, error } = await supabase.functions.invoke('process-ipn-log', {
+        body: { 
+          ipn_log_id: logId,
+          force_process: true
+        }
+      });
+      
+      toast.dismiss(toastId);
+      
+      if (error) {
+        console.error('Error processing IPN log:', error);
+        toast.error('Failed to process IPN log', {
+          description: error.message
+        });
+        return;
+      }
+      
+      if (data?.success) {
+        toast.success('IPN log processed successfully', {
+          description: data.message
+        });
+        // Refresh logs
+        fetchLogs();
+      } else {
+        toast.error('Failed to process IPN log', {
+          description: data?.message || 'Unknown error'
+        });
+      }
+    } catch (err) {
+      console.error('Exception processing IPN log:', err);
+      toast.error('Failed to process IPN log');
+    }
   };
 
-  const handleCloseDetails = () => {
-    setIsDetailsOpen(false);
-  };
+  useEffect(() => {
+    if (transactionId || externalTransactionId) {
+      fetchLogs();
+    }
+  }, [transactionId, externalTransactionId]);
 
-  if (isLoading) return <IPNLogLoadingState />;
-  if (error) return <IPNLogErrorState error={error as Error} />;
+  if (!transactionId && !externalTransactionId) {
+    return (
+      <Card className={className}>
+        <CardContent className="pt-6">
+          <div className="text-center text-gray-500">
+            No transaction ID provided
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div>
-      <IPNLogHeader refetch={() => refetch()} />
-      
-      {logs && logs.length === 0 ? (
-        <IPNLogEmptyState />
-      ) : (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableCaption>Most recent IPN logs (limited to 100)</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date/Time</TableHead>
-                <TableHead>Provider</TableHead>
-                <TableHead>Transaction ID</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Valid</TableHead>
-                <TableHead>Response</TableHead>
-                <TableHead>Details</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {logs?.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell className="font-mono text-xs">
-                    {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}
-                  </TableCell>
-                  <TableCell>{log.provider}</TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {log.txn_id ? log.txn_id : 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={log.status} />
-                  </TableCell>
-                  <TableCell>
-                    <ValidityIcon isValid={log.is_valid} />
-                  </TableCell>
-                  <TableCell>
-                    {log.response_status || 'Unknown'}
-                  </TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleViewDetails(log)}
-                    >
-                      View Details
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+    <Card className={className}>
+      <CardHeader className={compact ? "pb-2 pt-4" : "pb-2"}>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className={compact ? "text-base" : "text-lg"}>IPN Notifications</CardTitle>
+            <CardDescription>
+              {externalTransactionId ? `For transaction: ${externalTransactionId}` : 'Payment webhook logs'}
+            </CardDescription>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={fetchLogs} 
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-3 w-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
-      )}
-      
-      <IPNLogDetailsSheet 
-        isOpen={isDetailsOpen} 
-        onClose={handleCloseDetails} 
-        log={selectedLog} 
-      />
-    </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        ) : error ? (
+          <div className="p-4 text-center text-red-500">
+            <AlertCircle className="h-5 w-5 mx-auto mb-2" />
+            {error}
+          </div>
+        ) : logs.length === 0 ? (
+          <div className="p-4 text-center text-gray-500">
+            <AlertCircle className="h-5 w-5 mx-auto mb-2" />
+            No IPN logs found for this transaction
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {logs.map(log => (
+              <div key={log.id} className="border rounded-md p-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="flex items-center space-x-2 mb-1">
+                      <Badge variant={log.is_valid ? 'success' : 'destructive'}>
+                        {log.is_valid ? (
+                          <><CheckCircle className="h-3 w-3 mr-1" /> Valid</>
+                        ) : (
+                          <><XCircle className="h-3 w-3 mr-1" /> Invalid</>
+                        )}
+                      </Badge>
+                      <Badge variant="outline">
+                        {log.provider || 'Unknown'}
+                      </Badge>
+                      {log.status && (
+                        <Badge variant="secondary">
+                          Status: {log.status}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(log.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                  
+                  {!log.processing_status || log.processing_status === 'unprocessed' ? (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleProcessLog(log.id)}
+                    >
+                      Process
+                    </Button>
+                  ) : (
+                    <Badge variant={log.processing_status === 'processed' ? 'outline' : 'secondary'}>
+                      {log.processing_status.replace('_', ' ')}
+                    </Badge>
+                  )}
+                </div>
+                
+                {!compact && log.raw_data && (
+                  <div className="mt-2">
+                    <details className="text-xs">
+                      <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
+                        View raw data
+                      </summary>
+                      <pre className="mt-2 bg-gray-100 p-2 rounded text-xs overflow-auto max-h-40">
+                        {JSON.stringify(log.raw_data, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="pt-0 text-xs text-gray-500 flex justify-between">
+        <div>
+          {logs.length > 0 ? `${logs.length} IPN notification(s)` : 'No notifications received'}
+        </div>
+        {externalTransactionId && (
+          <a 
+            href={`https://www.coinpayments.net/index.php?cmd=acct_txns&txn_id=${externalTransactionId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center text-blue-600 hover:text-blue-800"
+          >
+            View on CoinPayments <ExternalLink className="h-3 w-3 ml-1" />
+          </a>
+        )}
+      </CardFooter>
+    </Card>
   );
 };
 
