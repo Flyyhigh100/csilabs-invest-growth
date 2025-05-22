@@ -1,3 +1,4 @@
+
 import { Transaction } from "@/types/transactions";
 import { GroupedTransactions, UserTransactionSummary } from "./types";
 
@@ -13,7 +14,10 @@ export const calculateSummary = (transactions: Transaction[]): UserTransactionSu
     completedValue: 0,
     pendingCount: 0,
     pendingValue: 0,
+    cancelledCount: 0,
+    cancelledValue: 0,
     failedCount: 0,
+    failedValue: 0,
     testCount: 0,
     testValue: 0,
     largestTransaction: 0,
@@ -26,7 +30,8 @@ export const calculateSummary = (transactions: Transaction[]): UserTransactionSu
   transactions.forEach(tx => {
     const amount = Number(tx.amount) || 0;
     const isCompleted = tx.status?.toLowerCase() === 'completed';
-    const isFailed = tx.status?.toLowerCase() === 'failed';
+    const isFailed = tx.status?.toLowerCase() === 'failed' || tx.status?.toLowerCase() === 'error';
+    const isCancelled = tx.status?.toLowerCase() === 'cancelled' || tx.status?.toLowerCase() === 'expired';
     
     // Update largest transaction tracking
     if (amount > summary.largestTransaction) {
@@ -54,8 +59,13 @@ export const calculateSummary = (transactions: Transaction[]): UserTransactionSu
       } else if (isFailed) {
         // Failed transaction
         summary.failedCount++;
+        summary.failedValue += amount;
+      } else if (isCancelled) {
+        // Cancelled transaction
+        summary.cancelledCount++;
+        summary.cancelledValue += amount;
       } else {
-        // Pending transaction (not completed, not failed)
+        // Pending transaction (not completed, not failed, not cancelled)
         summary.pendingCount++;
         summary.pendingValue += amount;
       }
@@ -116,7 +126,9 @@ export const groupTransactionsByStatus = (transactions: Transaction[]): GroupedT
       groups.test.push(tx);
     } else if (tx.status?.toLowerCase() === 'completed') {
       groups.completed.push(tx);
-    } else if (tx.status?.toLowerCase() === 'failed') {
+    } else if (tx.status?.toLowerCase() === 'cancelled' || tx.status?.toLowerCase() === 'expired') {
+      groups.cancelled.push(tx);
+    } else if (tx.status?.toLowerCase() === 'failed' || tx.status?.toLowerCase() === 'error') {
       groups.failed.push(tx);
     } else {
       groups.pending.push(tx);
@@ -125,6 +137,7 @@ export const groupTransactionsByStatus = (transactions: Transaction[]): GroupedT
   }, {
     completed: [],
     pending: [],
+    cancelled: [], // Added cancelled array
     failed: [],
     test: []
   } as GroupedTransactions);

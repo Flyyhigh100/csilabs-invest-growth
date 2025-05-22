@@ -14,7 +14,10 @@ export const calculateSummary = (transactions: Transaction[]): UserTransactionSu
     completedValue: 0,
     pendingCount: 0,
     pendingValue: 0,
+    cancelledCount: 0,  // Added missing property
+    cancelledValue: 0,  // Added missing property
     failedCount: 0,
+    failedValue: 0,     // Added missing property
     testCount: 0,
     testValue: 0,
     largestTransaction: 0,
@@ -27,7 +30,8 @@ export const calculateSummary = (transactions: Transaction[]): UserTransactionSu
   transactions.forEach(tx => {
     const amount = Number(tx.amount) || 0;
     const isCompleted = tx.status?.toLowerCase() === 'completed';
-    const isFailed = tx.status?.toLowerCase() === 'failed';
+    const isFailed = tx.status?.toLowerCase() === 'failed' || tx.status?.toLowerCase() === 'error';
+    const isCancelled = tx.status?.toLowerCase() === 'cancelled' || tx.status?.toLowerCase() === 'expired';
     
     // Update largest transaction tracking
     if (amount > summary.largestTransaction) {
@@ -55,8 +59,13 @@ export const calculateSummary = (transactions: Transaction[]): UserTransactionSu
       } else if (isFailed) {
         // Failed transaction
         summary.failedCount++;
+        summary.failedValue += amount; // Add value for failed transactions
+      } else if (isCancelled) {
+        // Cancelled transaction
+        summary.cancelledCount++;
+        summary.cancelledValue += amount; // Add value for cancelled transactions
       } else {
-        // Pending transaction (not completed, not failed)
+        // Pending transaction (not completed, not failed, not cancelled)
         summary.pendingCount++;
         summary.pendingValue += amount;
       }
