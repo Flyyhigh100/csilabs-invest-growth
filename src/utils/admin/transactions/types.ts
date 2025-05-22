@@ -14,8 +14,13 @@ export interface UserTransactionSummary {
   pendingCount: number;
   pendingValue: number;
   
+  // Cancelled stats (non-test, status=cancelled or expired)
+  cancelledCount: number;
+  cancelledValue: number;
+  
   // Failed stats
   failedCount: number;
+  failedValue: number;
   
   // Test stats (all is_test=true)
   testCount: number;
@@ -42,6 +47,7 @@ export interface UserTransactionSummary {
 export interface GroupedTransactions {
   completed: Transaction[];
   pending: Transaction[];
+  cancelled: Transaction[];
   failed: Transaction[];
   test: Transaction[];
 }
