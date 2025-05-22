@@ -69,30 +69,32 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
       );
     }
     
-    switch (status?.toLowerCase()) {
-      case 'completed':
-        return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <Badge className="bg-green-100 text-green-800">
-                  Completed ✓
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p className="text-xs">Counts toward real value</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        );
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-      case 'failed':
-        return <Badge className="bg-red-100 text-red-800">Failed</Badge>;
-      case 'processing':
-        return <Badge className="bg-blue-100 text-blue-800">Processing</Badge>;
-      default:
-        return <Badge variant="outline">{status || 'Unknown'}</Badge>;
+    const statusLower = status?.toLowerCase() || '';
+    
+    // Properly categorize different statuses
+    if (statusLower === 'completed') {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Badge className="bg-green-100 text-green-800">
+                Completed ✓
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p className="text-xs">Counts toward real value</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    } else if (statusLower === 'pending' || statusLower === 'processing') {
+      return <Badge className="bg-yellow-100 text-yellow-800">{status}</Badge>;
+    } else if (statusLower === 'failed' || statusLower === 'error') {
+      return <Badge className="bg-red-100 text-red-800">{status}</Badge>;
+    } else if (statusLower === 'cancelled' || statusLower === 'expired') {
+      return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
+    } else {
+      return <Badge variant="outline">{status || 'Unknown'}</Badge>;
     }
   };
 
@@ -116,11 +118,21 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         <TableBody>
           {transactions.length > 0 ? (
             transactions.map((transaction) => {
-              const isCompleted = transaction.status?.toLowerCase() === 'completed';
+              const status = transaction.status?.toLowerCase() || '';
+              const isCompleted = status === 'completed';
+              const isPending = status === 'pending' || status === 'processing';
+              const isCancelled = status === 'cancelled' || status === 'expired';
+              const isFailed = status === 'failed' || status === 'error';
               const isRealValue = isCompleted && !transaction.is_test;
               
+              let rowBgClass = '';
+              if (isRealValue) rowBgClass = 'bg-green-50';
+              else if (isPending) rowBgClass = 'bg-yellow-50/30';
+              else if (isCancelled) rowBgClass = 'bg-gray-50/30';
+              else if (isFailed) rowBgClass = 'bg-red-50/20';
+              
               return (
-                <TableRow key={transaction.id} className={isRealValue ? 'bg-green-50' : undefined}>
+                <TableRow key={transaction.id} className={rowBgClass}>
                   <TableCell className="font-mono text-xs">
                     <div className="flex items-center gap-1">
                       {transaction.id.substring(0, 8)}...
@@ -140,7 +152,19 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   </TableCell>
                   <TableCell>{formatDate(transaction.created_at)}</TableCell>
                   <TableCell>
-                    <div className={transaction.is_test ? "text-amber-600" : isCompleted ? "text-green-600 font-medium" : ""}>
+                    <div className={
+                      transaction.is_test 
+                        ? "text-amber-600" 
+                        : isCompleted 
+                          ? "text-green-600 font-medium" 
+                          : isPending
+                            ? "text-amber-600"
+                            : isCancelled
+                              ? "text-gray-600"
+                              : isFailed
+                                ? "text-red-600"
+                                : ""
+                    }>
                       ${(transaction.amount || 0).toFixed(2)}
                       {isRealValue && (
                         <div className="text-xs text-green-600">Real value</div>

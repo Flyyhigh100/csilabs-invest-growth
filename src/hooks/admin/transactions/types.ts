@@ -1,19 +1,6 @@
 
 import { Transaction } from "@/types/transactions";
 
-export interface UseUserTransactionsProps {
-  userId?: string;
-  status?: string;
-  startDate?: Date;
-  endDate?: Date;
-  minAmount?: number;
-  maxAmount?: number;
-  paymentMethod?: string;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-}
-
 export interface UserTransactionSummary {
   // Total stats (all non-test transactions)
   totalCount: number;
@@ -23,12 +10,17 @@ export interface UserTransactionSummary {
   completedCount: number;
   completedValue: number;
   
-  // Pending stats (non-test, status!=completed)
+  // Pending stats (non-test, status=pending or processing)
   pendingCount: number;
   pendingValue: number;
   
-  // Failed stats
+  // Cancelled stats (non-test, status=cancelled or expired)
+  cancelledCount: number;
+  cancelledValue: number;
+  
+  // Failed stats (non-test, status=failed or error)
   failedCount: number;
+  failedValue: number;
   
   // Test stats (all is_test=true)
   testCount: number;
@@ -55,6 +47,21 @@ export interface UserTransactionSummary {
 export interface GroupedTransactions {
   completed: Transaction[];
   pending: Transaction[];
+  cancelled: Transaction[];
   failed: Transaction[];
   test: Transaction[];
+}
+
+export interface UseUserTransactionsProps {
+  userId?: string;
+  status?: string;
+  startDate?: Date;
+  endDate?: Date;
+  minAmount?: number;
+  maxAmount?: number;
+  paymentMethod?: string;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  includeTest?: boolean;
 }

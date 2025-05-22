@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Table, TableBody, TableCell, TableHead, 
@@ -54,9 +55,17 @@ interface TransactionStats {
   completed_count: number;
   completed_value: number;
   
-  // Pending non-test transactions
+  // Pending non-test transactions (actual pending status)
   pending_count: number;
   pending_value: number;
+  
+  // Cancelled non-test transactions
+  cancelled_count: number;
+  cancelled_value: number;
+  
+  // Failed non-test transactions
+  failed_count: number;
+  failed_value: number;
   
   // Test transactions
   test_count: number;
@@ -75,6 +84,10 @@ interface EnhancedUser extends User {
   completed_transaction_value: number;
   pending_transaction_count: number;
   pending_transaction_value: number;
+  cancelled_transaction_count: number;
+  cancelled_transaction_value: number;
+  failed_transaction_count: number;
+  failed_transaction_value: number;
   latest_transaction?: string;
   test_transaction_count: number;
   test_transaction_value: number;
@@ -200,11 +213,15 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
         
         const stats: Record<string, TransactionStats> = {};
         
-        // Process transaction data separating test/real and completed/pending
+        // Process transaction data separating test/real and completed/pending/cancelled/failed
         data.forEach(tx => {
           if (!tx.user_id) return;
           
-          const isCompleted = tx.status?.toLowerCase() === 'completed';
+          const status = tx.status?.toLowerCase() || '';
+          const isCompleted = status === 'completed';
+          const isPending = status === 'pending' || status === 'processing';
+          const isCancelled = status === 'cancelled' || status === 'expired';
+          const isFailed = status === 'failed' || status === 'error';
           
           if (!stats[tx.user_id]) {
             stats[tx.user_id] = { 
@@ -214,6 +231,10 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
               completed_value: 0, 
               pending_count: 0,
               pending_value: 0,
+              cancelled_count: 0,
+              cancelled_value: 0,
+              failed_count: 0,
+              failed_value: 0,
               test_count: 0,
               test_value: 0,
               test_completed_count: 0,
@@ -246,10 +267,18 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
               // Completed real transaction
               stats[tx.user_id].completed_count++;
               stats[tx.user_id].completed_value += Number(tx.amount || 0);
-            } else {
-              // Pending real transaction (including any non-completed status)
+            } else if (isPending) {
+              // Pending real transaction (only actual pending/processing status)
               stats[tx.user_id].pending_count++;
               stats[tx.user_id].pending_value += Number(tx.amount || 0);
+            } else if (isCancelled) {
+              // Cancelled real transaction
+              stats[tx.user_id].cancelled_count++;
+              stats[tx.user_id].cancelled_value += Number(tx.amount || 0);
+            } else if (isFailed) {
+              // Failed real transaction
+              stats[tx.user_id].failed_count++;
+              stats[tx.user_id].failed_value += Number(tx.amount || 0);
             }
             
             // Track latest real transaction
@@ -325,6 +354,10 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
       completed_value: 0,
       pending_count: 0,
       pending_value: 0,
+      cancelled_count: 0,
+      cancelled_value: 0,
+      failed_count: 0,
+      failed_value: 0,
       test_count: 0,
       test_value: 0,
       test_completed_count: 0,
@@ -339,6 +372,10 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
       completed_transaction_value: stats.completed_value,
       pending_transaction_count: stats.pending_count,
       pending_transaction_value: stats.pending_value,
+      cancelled_transaction_count: stats.cancelled_count,
+      cancelled_transaction_value: stats.cancelled_value,
+      failed_transaction_count: stats.failed_count,
+      failed_transaction_value: stats.failed_value,
       latest_transaction: stats.latest,
       test_transaction_count: stats.test_count,
       test_transaction_value: stats.test_value,
@@ -454,7 +491,7 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
                             )}
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent side="top">
+                        <TooltipContent side="top" className="w-64">
                           <div className="text-xs">
                             <div className="font-semibold">Transaction Stats:</div>
                             <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-1">
@@ -469,6 +506,24 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
                                   <div className="text-right text-amber-600">{user.pending_transaction_count}</div>
                                   <div className="text-amber-600">Pending value:</div>
                                   <div className="text-right text-amber-600">{formatCurrency(user.pending_transaction_value)}</div>
+                                </>
+                              )}
+                              
+                              {user.cancelled_transaction_count > 0 && (
+                                <>
+                                  <div className="text-gray-600">Cancelled transactions:</div>
+                                  <div className="text-right text-gray-600">{user.cancelled_transaction_count}</div>
+                                  <div className="text-gray-600">Cancelled value:</div>
+                                  <div className="text-right text-gray-600">{formatCurrency(user.cancelled_transaction_value)}</div>
+                                </>
+                              )}
+                              
+                              {user.failed_transaction_count > 0 && (
+                                <>
+                                  <div className="text-red-600">Failed transactions:</div>
+                                  <div className="text-right text-red-600">{user.failed_transaction_count}</div>
+                                  <div className="text-red-600">Failed value:</div>
+                                  <div className="text-right text-red-600">{formatCurrency(user.failed_transaction_value)}</div>
                                 </>
                               )}
                               
@@ -502,6 +557,25 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
                         Last: {new Date(user.latest_transaction).toLocaleDateString()}
                       </span>
                     )}
+                    
+                    {/* Add status indicators for pending/cancelled/failed transactions */}
+                    <div className="flex flex-wrap gap-1 justify-end mt-1">
+                      {user.pending_transaction_count > 0 && (
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 bg-amber-50 text-amber-700 border-amber-200">
+                          {user.pending_transaction_count} pending
+                        </Badge>
+                      )}
+                      {user.cancelled_transaction_count > 0 && (
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 bg-gray-50 text-gray-700 border-gray-200">
+                          {user.cancelled_transaction_count} cancelled
+                        </Badge>
+                      )}
+                      {user.failed_transaction_count > 0 && (
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 bg-red-50 text-red-700 border-red-200">
+                          {user.failed_transaction_count} failed
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <TooltipProvider>
@@ -523,11 +597,17 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
                             )}
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent side="top">
+                        <TooltipContent side="top" className="w-52">
                           <div className="text-xs">
                             <div className="text-green-600 font-semibold">Real value (completed): {formatCurrency(user.completed_transaction_value)}</div>
                             {user.pending_transaction_value > 0 && (
                               <div className="text-amber-600">Pending value: {formatCurrency(user.pending_transaction_value)}</div>
+                            )}
+                            {user.cancelled_transaction_value > 0 && (
+                              <div className="text-gray-600">Cancelled value: {formatCurrency(user.cancelled_transaction_value)}</div>
+                            )}
+                            {user.failed_transaction_value > 0 && (
+                              <div className="text-red-600">Failed value: {formatCurrency(user.failed_transaction_value)}</div>
                             )}
                             {user.test_transaction_value > 0 && (
                               <div className="text-amber-500">Test value: {formatCurrency(user.test_transaction_value)}</div>
@@ -574,6 +654,11 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
       
       <div className="mt-4 text-xs text-muted-foreground flex items-center">
         <span className="text-green-600 font-semibold mr-1">*Real Value:</span> Only completed, non-test transactions are counted as real value.
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-amber-600">Pending</span>
+          <span className="text-gray-600">Cancelled</span>
+          <span className="text-red-600">Failed</span>
+        </div>
       </div>
       
       {filteredUsers.length === 0 && searchQuery && (
