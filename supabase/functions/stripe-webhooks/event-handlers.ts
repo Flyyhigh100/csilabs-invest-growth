@@ -2,6 +2,7 @@
 // Import necessary dependencies
 import { updateTransactionStatus } from "./transaction-ops.ts";
 import { findTransactionBySessionId } from "./transaction-ops.ts";
+import { createPaymentConfirmationNotification } from "./utils.ts";
 
 // Handle checkout session completed event
 export const handleCheckoutSessionCompleted = async (supabaseClient, session) => {
@@ -23,6 +24,9 @@ export const handleCheckoutSessionCompleted = async (supabaseClient, session) =>
     
     // Update the transaction status
     await updateTransactionStatus(supabaseClient, transaction, session.payment_intent);
+    
+    // Create enhanced payment confirmation notification
+    await createEnhancedPaymentNotification(supabaseClient, transaction, 'stripe');
     
     console.log(`[WEBHOOK] Successfully updated transaction status for checkout session: ${session.id}`);
   } catch (error) {
@@ -50,6 +54,9 @@ export const handlePaymentIntentSucceeded = async (supabaseClient, paymentIntent
 
     // Update the transaction status
     await updateTransactionStatus(supabaseClient, transaction, paymentIntent.id);
+    
+    // Create enhanced payment confirmation notification
+    await createEnhancedPaymentNotification(supabaseClient, transaction, 'stripe');
 
     console.log(`[WEBHOOK] Successfully updated transaction status for payment intent: ${paymentIntent.id}`);
   } catch (error) {
@@ -81,19 +88,8 @@ export const handleCryptoOnrampSessionUpdated = async (supabaseClient, session) 
       // Update the transaction status
       await updateTransactionStatus(supabaseClient, transaction);
       
-      // Create a notification for the user
-      const { error: notifError } = await supabaseClient
-        .from('notifications')
-        .insert({
-          user_id: transaction.user_id,
-          type: 'payment_confirmed',
-          title: 'Crypto Purchase Confirmed',
-          message: `Your crypto purchase of $${transaction.amount.toFixed(2)} has been confirmed.`
-        });
-        
-      if (notifError) {
-        console.error(`[WEBHOOK] Error creating notification: ${notifError.message}`);
-      }
+      // Create enhanced payment confirmation notification
+      await createEnhancedPaymentNotification(supabaseClient, transaction, 'crypto');
       
       console.log(`[WEBHOOK] Successfully updated transaction status for crypto onramp session: ${session.id}`);
     } else {
@@ -103,3 +99,32 @@ export const handleCryptoOnrampSessionUpdated = async (supabaseClient, session) 
     console.error(`[WEBHOOK] Error handling crypto onramp session updated: ${error.message}`);
   }
 };
+
+// Enhanced notification creation function
+async function createEnhancedPaymentNotification(supabaseClient, transaction, paymentMethod) {
+  try {
+    console.log(`[WEBHOOK] Creating enhanced payment notification for transaction ${transaction.id}`);
+    
+    const amount = Number(transaction.amount) || 0;
+    const methodName = paymentMethod === 'stripe' ? 'card' : 'cryptocurrency';
+    
+    const { error: notifError } = await supabaseClient
+      .from('notifications')
+      .insert({
+        user_id: transaction.user_id,
+        type: 'payment',
+        title: 'Payment Confirmed',
+        message: `Your ${methodName} payment of $${amount.toFixed(2)} has been successfully processed. Your CSI tokens will be sent to your wallet shortly.`,
+        read: false,
+        is_test: transaction.is_test || false
+      });
+      
+    if (notifError) {
+      console.error(`[WEBHOOK] Error creating payment notification: ${notifError.message}`);
+    } else {
+      console.log(`[WEBHOOK] Successfully created payment notification for user ${transaction.user_id}`);
+    }
+  } catch (error) {
+    console.error(`[WEBHOOK] Error in createEnhancedPaymentNotification: ${error.message}`);
+  }
+}

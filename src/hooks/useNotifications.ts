@@ -19,6 +19,7 @@ export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [hasUnread, setHasUnread] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
 
   // Fetch notifications from the database
   const fetchNotifications = async () => {
@@ -75,7 +76,7 @@ export const useNotifications = () => {
         throw error;
       }
 
-      // Update the local state
+      // Update the local state immediately
       setNotifications(prevNotifications => 
         prevNotifications.map(notification => 
           notification.id === notificationId 
@@ -99,8 +100,18 @@ export const useNotifications = () => {
     if (!user) return;
     
     try {
+      setIsMarkingAllRead(true);
       console.log('Marking all notifications as read');
       
+      // Get all unread notification IDs first
+      const unreadNotifications = notifications.filter(n => !n.read);
+      
+      if (unreadNotifications.length === 0) {
+        console.log('No unread notifications to mark as read');
+        return;
+      }
+      
+      // Update all unread notifications in the database
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
@@ -112,13 +123,19 @@ export const useNotifications = () => {
         throw error;
       }
 
-      // Update local state
+      // Update local state immediately for better UX
       setNotifications(prevNotifications => 
         prevNotifications.map(notification => ({ ...notification, read: true }))
       );
       setHasUnread(false);
+      
+      console.log(`Successfully marked ${unreadNotifications.length} notifications as read`);
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
+      // Refresh notifications on error to ensure consistency
+      await fetchNotifications();
+    } finally {
+      setIsMarkingAllRead(false);
     }
   };
 
@@ -131,7 +148,7 @@ export const useNotifications = () => {
     // Initial fetch
     fetchNotifications();
 
-    // Subscribe to new notifications
+    // Subscribe to new notifications and updates
     const channel = supabase
       .channel('notifications-channel')
       .on(
@@ -165,6 +182,17 @@ export const useNotifications = () => {
               notif.id === updatedNotification.id ? updatedNotification : notif
             )
           );
+          
+          // Recalculate hasUnread based on all notifications
+          setNotifications(current => {
+            const stillHasUnread = current.some(n => 
+              n.id === updatedNotification.id ? !updatedNotification.read : !n.read
+            );
+            setHasUnread(stillHasUnread);
+            return current.map(notif => 
+              notif.id === updatedNotification.id ? updatedNotification : notif
+            );
+          });
         }
       )
       .subscribe((status) => {
@@ -181,6 +209,7 @@ export const useNotifications = () => {
     notifications,
     hasUnread,
     isLoading,
+    isMarkingAllRead,
     markAsRead,
     markAllAsRead,
     refresh: fetchNotifications

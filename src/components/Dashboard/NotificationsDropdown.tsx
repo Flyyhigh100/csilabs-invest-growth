@@ -1,8 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/hooks/useNotifications';
 import { Bell, Check, Clock, DollarSign } from 'lucide-react';
 import {
   DropdownMenu,
@@ -18,108 +16,27 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 
-interface Notification {
-  id: string;
-  user_id: string;
-  title: string;
-  message: string;
-  type: string;
-  created_at: string;
-  read: boolean;
-}
-
 const NotificationsDropdown = () => {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
-  
-  const { data: notifications, isLoading } = useQuery({
-    queryKey: ['notifications', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user?.id,
-  });
-  
-  const markAsRead = useMutation({
-    mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', notificationId);
-      
-      if (error) throw error;
-      return notificationId;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
-    }
-  });
-  
-  const markAllAsRead = useMutation({
-    mutationFn: async () => {
-      if (!user?.id) return;
-      
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('user_id', user.id)
-        .eq('read', false);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
-      toast.success('Marked all notifications as read');
-    }
-  });
-  
-  // Set up realtime subscription for new notifications
-  useEffect(() => {
-    if (!user?.id) return;
-    
-    const notificationsChannel = supabase
-      .channel('notifications-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          // Show toast for new notification
-          toast.info('New notification received', {
-            description: payload.new.title
-          });
-          
-          // Refresh notifications
-          queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
-        }
-      )
-      .subscribe();
-    
-    return () => {
-      supabase.removeChannel(notificationsChannel);
-    };
-  }, [user?.id, queryClient]);
+  const { 
+    notifications, 
+    hasUnread, 
+    isLoading, 
+    isMarkingAllRead,
+    markAsRead, 
+    markAllAsRead 
+  } = useNotifications();
   
   const unreadCount = notifications?.filter(n => !n.read).length || 0;
   
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'token_transfer':
+      case 'tokens':
         return <DollarSign className="h-4 w-4 text-green-500" />;
+      case 'payment':
+        return <DollarSign className="h-4 w-4 text-blue-500" />;
+      case 'kyc':
+        return <Check className="h-4 w-4 text-orange-500" />;
       default:
         return <Bell className="h-4 w-4 text-blue-500" />;
     }
@@ -141,7 +58,16 @@ const NotificationsDropdown = () => {
   
   const handleItemClick = (notificationId: string, read: boolean) => {
     if (!read) {
-      markAsRead.mutate(notificationId);
+      markAsRead(notificationId);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllAsRead();
+      toast.success('All notifications marked as read');
+    } catch (error) {
+      toast.error('Failed to mark all notifications as read');
     }
   };
   
@@ -167,10 +93,10 @@ const NotificationsDropdown = () => {
               variant="ghost" 
               size="sm" 
               className="h-7 text-xs" 
-              onClick={() => markAllAsRead.mutate()}
-              disabled={markAllAsRead.isPending}
+              onClick={handleMarkAllAsRead}
+              disabled={isMarkingAllRead}
             >
-              Mark all as read
+              {isMarkingAllRead ? 'Marking...' : 'Mark all as read'}
             </Button>
           )}
         </DropdownMenuLabel>
