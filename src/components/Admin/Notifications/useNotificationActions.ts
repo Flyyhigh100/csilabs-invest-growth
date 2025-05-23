@@ -41,6 +41,8 @@ export const useNotificationActions = () => {
     setIsSendingToUser(true);
     
     try {
+      console.log('Sending notification to user:', { userId, title, message, type });
+      
       const { error } = await supabase
         .from('notifications')
         .insert({
@@ -48,13 +50,19 @@ export const useNotificationActions = () => {
           title,
           message,
           type,
+          read: false,
+          is_test: false
         });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
       
       toast.success('Notification sent successfully');
       setTitle('');
       setMessage('');
+      setUserId('');
     } catch (error: any) {
       console.error('Error sending notification:', error);
       toast.error(`Error: ${error.message}`);
@@ -72,12 +80,16 @@ export const useNotificationActions = () => {
     setIsBroadcasting(true);
     
     try {
+      console.log('Broadcasting notification to all users:', { title, message, type });
+      
       // For each user in the system, create a notification
       const notifications = users.map(user => ({
         user_id: user.id,
         title,
         message,
         type,
+        read: false,
+        is_test: false
       }));
       
       if (notifications.length === 0) {
@@ -90,7 +102,10 @@ export const useNotificationActions = () => {
         .from('notifications')
         .insert(notifications);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
       
       toast.success(`Broadcast sent to ${notifications.length} users`);
       setTitle('');

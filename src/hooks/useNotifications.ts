@@ -11,6 +11,7 @@ export type Notification = {
   read: boolean;
   created_at: string;
   type: 'wallet' | 'payment' | 'kyc' | 'tokens' | 'other';
+  is_test?: boolean;
 };
 
 export const useNotifications = () => {
@@ -30,6 +31,7 @@ export const useNotifications = () => {
 
     try {
       setIsLoading(true);
+      console.log(`Fetching notifications for user: ${user.id}`);
       
       const { data, error } = await supabase
         .from('notifications')
@@ -38,9 +40,13 @@ export const useNotifications = () => {
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        throw error;
+      }
 
       const notificationsData = data as unknown as Notification[];
+      console.log(`Fetched ${notificationsData.length} notifications`);
       setNotifications(notificationsData);
       
       // Check if there are any unread notifications
@@ -56,11 +62,18 @@ export const useNotifications = () => {
   // Mark a notification as read
   const markAsRead = async (notificationId: string) => {
     try {
-      await supabase
+      console.log(`Marking notification as read: ${notificationId}`);
+      
+      const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId)
         .eq('user_id', user?.id);
+
+      if (error) {
+        console.error('Error marking notification as read:', error);
+        throw error;
+      }
 
       // Update the local state
       setNotifications(prevNotifications => 
@@ -86,10 +99,18 @@ export const useNotifications = () => {
     if (!user) return;
     
     try {
-      await supabase
+      console.log('Marking all notifications as read');
+      
+      const { error } = await supabase
         .from('notifications')
         .update({ read: true })
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (error) {
+        console.error('Error marking all notifications as read:', error);
+        throw error;
+      }
 
       // Update local state
       setNotifications(prevNotifications => 
@@ -104,6 +125,8 @@ export const useNotifications = () => {
   // Set up real-time subscription for new notifications
   useEffect(() => {
     if (!user) return;
+
+    console.log(`Setting up real-time subscription for notifications: ${user.id}`);
 
     // Initial fetch
     fetchNotifications();
@@ -120,14 +143,36 @@ export const useNotifications = () => {
           filter: `user_id=eq.${user.id}`
         },
         payload => {
+          console.log('New notification received via realtime:', payload);
           const newNotification = payload.new as unknown as Notification;
           setNotifications(current => [newNotification, ...current]);
           setHasUnread(true);
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        payload => {
+          console.log('Notification updated via realtime:', payload);
+          const updatedNotification = payload.new as unknown as Notification;
+          setNotifications(current => 
+            current.map(notif => 
+              notif.id === updatedNotification.id ? updatedNotification : notif
+            )
+          );
+        }
+      )
+      .subscribe((status) => {
+        console.log(`Notifications realtime subscription status: ${status}`);
+      });
 
     return () => {
+      console.log('Cleaning up notifications realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [user]);

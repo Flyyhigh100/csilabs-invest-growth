@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AdminLayout from '@/components/Admin/Layout';
 import SendToUserTab from '@/components/Admin/Notifications/SendToUserTab';
 import BroadcastTab from '@/components/Admin/Notifications/BroadcastTab';
+import NotificationTestPanel from '@/components/Admin/Notifications/NotificationTestPanel';
 import { useNotificationActions } from '@/components/Admin/Notifications/useNotificationActions';
 
 const NotificationsPage = () => {
@@ -47,6 +48,8 @@ const NotificationsPage = () => {
             users={users}
             isLoading={isLoadingUsers}
           />
+          
+          <NotificationTestPanel />
         </TabsContent>
         
         <TabsContent value="broadcast">
@@ -60,6 +63,8 @@ const NotificationsPage = () => {
             onSubmit={handleBroadcast}
             isSubmitting={isBroadcasting}
           />
+          
+          <NotificationTestPanel />
         </TabsContent>
       </Tabs>
     </AdminLayout>

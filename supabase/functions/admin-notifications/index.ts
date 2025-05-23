@@ -11,19 +11,24 @@ async function notifyAllAdmins(
   data?: any
 ) {
   try {
+    console.log('Attempting to notify all admins:', { title, message, type });
+    
     // Fetch all admin IDs
     const { data: admins, error: adminsError } = await supabase
       .from('admins')
       .select('id');
     
     if (adminsError) {
+      console.error('Error fetching admins:', adminsError);
       throw adminsError;
     }
     
     if (!admins || admins.length === 0) {
       console.log('No admins found to notify');
-      return;
+      return { success: true, notified: 0, message: 'No admins found' };
     }
+    
+    console.log(`Found ${admins.length} admins to notify`);
     
     // Create notification for each admin
     const notifications = admins.map(admin => ({
@@ -34,7 +39,7 @@ async function notifyAllAdmins(
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       read: false,
-      metadata: data || {}
+      is_test: false
     }));
     
     const { data: result, error: insertError } = await supabase
@@ -43,8 +48,11 @@ async function notifyAllAdmins(
       .select();
     
     if (insertError) {
+      console.error('Error inserting notifications:', insertError);
       throw insertError;
     }
+    
+    console.log(`Successfully created ${result?.length || 0} admin notifications`);
     
     return { success: true, notified: admins.length, notifications: result };
   } catch (error) {
@@ -73,9 +81,13 @@ serve(async (req: Request) => {
       return new Response(null, { headers, status: 204 });
     }
     
+    console.log('Admin notifications function called');
+    
     // Parse request body
     const body = await req.json();
     const { event, data } = body;
+    
+    console.log('Received event:', event, 'with data:', data);
     
     if (!event) {
       return new Response(
@@ -130,9 +142,20 @@ serve(async (req: Request) => {
         result = await notifyAllAdmins(
           supabase,
           "Token Distribution Required",
-          `A transaction has completed and requires manual token distribution.`,
+          `A transaction has completed and requires manual token distribution. Amount: $${data.amount || 'Unknown'}`,
           "tokens",
-          { transaction_id: data.transaction_id, user_id: data.user_id }
+          { transaction_id: data.transaction_id, user_id: data.user_id, amount: data.amount }
+        );
+        break;
+        
+      case "test_notification":
+        // Test notification
+        result = await notifyAllAdmins(
+          supabase,
+          "Test Notification",
+          "This is a test notification to verify the admin notification system is working.",
+          "other",
+          { test: true }
         );
         break;
         
@@ -142,6 +165,8 @@ serve(async (req: Request) => {
           { headers, status: 400 }
         );
     }
+    
+    console.log('Notification result:', result);
     
     return new Response(
       JSON.stringify(result), 
