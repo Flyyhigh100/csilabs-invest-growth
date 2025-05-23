@@ -20,11 +20,15 @@ import TestDataToggle from '@/components/Admin/TestDataToggle';
 import { useAdminUsers } from '@/hooks/admin/useAdminUsers';
 import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
 
+// Import CSV export utility
+import { downloadUsersCsv } from '@/utils/admin/csvExport';
+
 const AdminUsersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('table');
   const { includeTestData, setIncludeTestData } = useTestDataToggle(false);
   const queryClient = useQueryClient();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isDownloadingCsv, setIsDownloadingCsv] = useState(false);
   
   const { 
     users, 
@@ -195,6 +199,28 @@ const AdminUsersPage: React.FC = () => {
     toast.success('Forcing refresh of all data...');
   };
   
+  // Handle CSV download
+  const handleDownloadCsv = () => {
+    try {
+      setIsDownloadingCsv(true);
+      
+      if (!users || users.length === 0) {
+        toast.error('No users found to export');
+        return;
+      }
+      
+      // Download the CSV file
+      downloadUsersCsv(users, includeTestData);
+      
+      toast.success(`Successfully exported ${users.length} users to CSV`);
+    } catch (error) {
+      console.error('Error generating CSV:', error);
+      toast.error('Failed to generate CSV file');
+    } finally {
+      setIsDownloadingCsv(false);
+    }
+  };
+  
   return (
     <AdminLayout title="Users">
       <Card className="mb-6 overflow-hidden">
@@ -236,8 +262,10 @@ const AdminUsersPage: React.FC = () => {
               <UsersToolbar 
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
-                onRefresh={handleForceRefresh} // Use the enhanced refresh function
+                onRefresh={handleForceRefresh}
                 onTestDbConnection={() => {}}
+                onDownloadCsv={handleDownloadCsv}
+                isDownloading={isDownloadingCsv}
               />
               
               <div className="overflow-x-auto -mx-3 md:mx-0 mt-4">
