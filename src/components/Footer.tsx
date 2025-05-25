@@ -2,103 +2,86 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-cbis-blue text-white py-12 mt-auto">
-      <div className="container-custom">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div>
-            <h3 className="text-xl font-semibold mb-4">CSi Labs</h3>
-            <p className="text-blue-100 mb-4">
-              Revolutionizing cancer treatment through Harvard-validated cannabinoid research.
+    <footer className="bg-gray-900 text-white">
+      <div className="container-custom py-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold">CSI Labs</h3>
+            <p className="text-gray-400 text-sm">
+              Advancing cannabinoid-based cancer research through innovative treatment development and affordable drug solutions.
             </p>
-            <div className="flex items-center">
-              <a href="https://polygonscan.com/token/0xcba5ca199bca0af3f6046da01169035f2c6a7ff0" target="_blank" rel="noopener noreferrer" className="text-blue-100 hover:text-white flex items-center">
-                <span>View Token on Polygonscan</span>
-                <ExternalLink className="ml-1 h-4 w-4" />
-              </a>
-            </div>
           </div>
           
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-            <ul className="space-y-2">
+          <div className="space-y-4">
+            <h4 className="font-semibold text-gray-200">Research</h4>
+            <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/" className="text-blue-100 hover:text-white transition-colors">
-                  Home
+                <Link to="/research-documents" className="text-gray-400 hover:text-white transition-colors">
+                  Research Documents
                 </Link>
               </li>
               <li>
-                <Link to="/token-info" className="text-blue-100 hover:text-white transition-colors">
+                <a 
+                  href="https://pubmed.ncbi.nlm.nih.gov/12746841/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-white transition-colors inline-flex items-center gap-1"
+                >
+                  Harvard Study <ExternalLink className="h-3 w-3" />
+                </a>
+              </li>
+            </ul>
+          </div>
+          
+          <div className="space-y-4">
+            <h4 className="font-semibold text-gray-200">Community</h4>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link to="/token-info" className="text-gray-400 hover:text-white transition-colors">
                   Token Information
                 </Link>
               </li>
               <li>
-                <Link to="/dashboard" className="text-blue-100 hover:text-white transition-colors">
-                  Dashboard
-                </Link>
-              </li>
-              <li>
-                <Link to="/dashboard/payments" className="text-blue-100 hover:text-white transition-colors">
-                  Buy Tokens
-                </Link>
-              </li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Legal</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link to="/legal/terms-and-conditions#top" className="text-blue-100 hover:text-white transition-colors">
-                  Terms of Service
-                </Link>
-              </li>
-              <li>
-                <Link to="/legal/foundation-disclosure#top" className="text-blue-100 hover:text-white transition-colors">
-                  Foundation Disclosure
-                </Link>
-              </li>
-              <li>
-                <Link to="/legal/geographic-restrictions#top" className="text-blue-100 hover:text-white transition-colors">
-                  Geographic Restrictions
-                </Link>
-              </li>
-              <li>
-                <Link to="/legal/token-disclaimer#top" className="text-blue-100 hover:text-white transition-colors">
-                  Token Disclaimer
-                </Link>
+                <a 
+                  href="https://polygonscan.com/token/0xcba5ca199bca0af3f6046da01169035f2c6a7ff0" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-white transition-colors inline-flex items-center gap-1"
+                >
+                  View on Polygonscan <ExternalLink className="h-3 w-3" />
+                </a>
               </li>
             </ul>
           </div>
           
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Token Details</h3>
-            <ul className="space-y-2 text-blue-100">
-              <li className="flex justify-between">
-                <span>Name:</span>
-                <span>$CSi-EDP/Labs FC</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Symbol:</span>
-                <span>CSL</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Total Supply:</span>
-                <span>100,000,000</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Blockchain:</span>
-                <span>Polygon</span>
-              </li>
-            </ul>
+          <div className="space-y-4">
+            <h4 className="font-semibold text-gray-200">Get Started</h4>
+            <div className="space-y-3">
+              <Button 
+                asChild 
+                size="sm" 
+                className="w-full bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90"
+              >
+                <Link to="/signup">Purchase Tokens</Link>
+              </Button>
+              <Button 
+                asChild 
+                variant="outline" 
+                size="sm" 
+                className="w-full border-gray-600 text-gray-300 hover:bg-gray-800"
+              >
+                <Link to="/login">Sign In</Link>
+              </Button>
+            </div>
           </div>
         </div>
         
-        <div className="mt-12 pt-6 border-t border-blue-800 text-center text-blue-200">
-          <p>&copy; {new Date().getFullYear()} CBIS. All rights reserved.</p>
-          <p className="mt-2 text-sm">Important: Token contributions involve potential risk. Do your own research before contributing.</p>
+        <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
+          <p>&copy; 2024 CSI Labs. All rights reserved.</p>
         </div>
       </div>
     </footer>

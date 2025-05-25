@@ -68,14 +68,14 @@ const StripeStandaloneTest: React.FC = () => {
         <title>Stripe Stand-alone Onramp Demo</title>
       </Helmet>
       
-      <h1 className="text-3xl font-bold mb-4">Buy crypto with Stripe</h1>
+      <h1 className="text-3xl font-bold mb-4">Purchase crypto with Stripe</h1>
       <p className="mb-8 text-gray-600">This button will take you to Stripe's hosted onramp.</p>
 
       <button 
         id="buyBtn" 
         className="px-8 py-4 text-lg bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
       >
-        Buy $50 USDC on Polygon
+        Purchase $50 USDC on Polygon
       </button>
     </div>
   );

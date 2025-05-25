@@ -74,7 +74,7 @@ const CardPaymentTab: React.FC<CardPaymentTabProps> = ({
               Processing...
             </>
           ) : (
-            "Proceed to Payment"
+            "Purchase Now to Contribute"
           )}
         </Button>
       </div>

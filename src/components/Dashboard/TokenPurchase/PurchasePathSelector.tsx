@@ -56,7 +56,7 @@ const PurchasePathSelector: React.FC<PurchasePathSelectorProps> = ({
           description={`Purchase directly from CSi using CoinPayments. Funds support company operations and development.`}
           icon={<DollarSign className="h-6 w-6" />} 
           onClick={handleSelectCoinPayments} 
-          buttonLabel="Contribute Now" 
+          buttonLabel="Purchase Now to Contribute" 
           disabled={isProcessing || isWalletMissing} 
           highlight={true} 
           badgeText="Recommended" 

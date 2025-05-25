@@ -107,7 +107,7 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
           <CreditCard className="h-6 w-6 text-cbis-blue" />
         </div>
         <div>
-          <h4 className="font-medium text-gray-800">Buy Crypto with Stripe</h4>
+          <h4 className="font-medium text-gray-800">Purchase Crypto with Stripe</h4>
           <p className="text-sm text-gray-600 mt-1">
             Purchase cryptocurrency directly with your credit card, Apple Pay, or Google Pay.
           </p>
@@ -185,7 +185,7 @@ const CryptoOnrampTab: React.FC<CryptoOnrampTabProps> = ({
                 Initializing...
               </>
             ) : (
-              "Buy Crypto"
+              "Purchase Crypto"
             )}
           </Button>
         </div>
