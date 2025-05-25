@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
@@ -41,7 +40,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <Link to="/dashboard/payments" className="text-blue-100 hover:text-white transition-colors">
-                  Buy Tokens
+                  Purchase Now to Contribute
                 </Link>
               </li>
             </ul>
