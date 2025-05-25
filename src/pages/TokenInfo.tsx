@@ -107,7 +107,7 @@ const TokenInfo: React.FC = () => {
                     </p>
                     <Button className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white" asChild>
                       <Link to="/register">
-                        Contribute via Our Meme Token <ArrowRight className="ml-2 h-4 w-4" />
+                        Purchase Now to Contribute <ArrowRight className="ml-2 h-4 w-4" />
                       </Link>
                     </Button>
                   </div>
@@ -225,7 +225,7 @@ const TokenInfo: React.FC = () => {
               <p className="text-gray-600 mb-8 max-w-2xl mx-auto">Join via our meme token community to help fund low-cost cancer treatments without harsh side effects, making them accessible to millions of patients worldwide.</p>
               <Button size="lg" className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white" asChild>
                 <Link to="/register">
-                  Contribute via Our Meme Token <ArrowRight className="ml-2 h-4 w-4" />
+                  Purchase Now to Contribute <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </div>
