@@ -59,6 +59,9 @@ const TopNavigation = ({
               const isActive = location.pathname === item.path || 
                 (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
               
+              // Update the title for the payments path
+              const displayTitle = item.path === '/dashboard/payments' ? 'Purchase Tokens' : item.title;
+              
               return (
                 <Link
                   key={item.path}
@@ -70,7 +73,7 @@ const TopNavigation = ({
                       : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'}
                   `}
                 >
-                  {item.title}
+                  {displayTitle}
                 </Link>
               );
             })}
@@ -125,6 +128,9 @@ const TopNavigation = ({
                 const isActive = location.pathname === item.path || 
                   (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
                 
+                // Update the title for the payments path in mobile menu too
+                const displayTitle = item.path === '/dashboard/payments' ? 'Purchase Tokens' : item.title;
+                
                 return (
                   <Link
                     key={item.path}
@@ -138,7 +144,7 @@ const TopNavigation = ({
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     {item.icon}
-                    <span>{item.title}</span>
+                    <span>{displayTitle}</span>
                   </Link>
                 );
               })}
