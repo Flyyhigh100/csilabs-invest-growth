@@ -45,8 +45,11 @@ const TopNavigation = ({
             </Button>
             
             <Link to="/" className="flex items-center gap-2">
-              <Home className="h-5 w-5 text-primary" />
-              <span className="text-xl font-bold text-primary">CSI Token</span>
+              <img 
+                src="/Newlogo.jpg" 
+                alt="CSI Labs" 
+                className="h-8 w-auto object-contain"
+              />
             </Link>
           </div>
           
@@ -106,8 +109,11 @@ const TopNavigation = ({
           <div className="flex flex-col h-full">
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <Link to="/" className="flex items-center gap-2">
-                <Home className="h-5 w-5 text-primary" />
-                <span className="text-lg font-bold text-primary">CSI Token</span>
+                <img 
+                  src="/Newlogo.jpg" 
+                  alt="CSI Labs" 
+                  className="h-6 w-auto object-contain"
+                />
               </Link>
               <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)}>
                 <X className="h-5 w-5" />

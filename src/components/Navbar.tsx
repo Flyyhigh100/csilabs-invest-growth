@@ -42,7 +42,11 @@ const Navbar: React.FC = () => {
     >
       <div className="container-custom flex items-center justify-between">
         <Link to="/" className="flex items-center">
-          <span className="text-xl font-bold bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">CSi Labs</span>
+          <img 
+            src="/Newlogo.jpg" 
+            alt="CSI Labs" 
+            className="h-8 md:h-10 w-auto object-contain"
+          />
         </Link>
 
         {/* Desktop Navigation */}
@@ -102,9 +106,11 @@ const Navbar: React.FC = () => {
             className="flex items-center justify-center"
             onClick={() => setIsOpen(false)}
           >
-            <span className="text-xl font-bold bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">
-              CSi Labs
-            </span>
+            <img 
+              src="/Newlogo.jpg" 
+              alt="CSI Labs" 
+              className="h-8 w-auto object-contain"
+            />
           </Link>
         </div>
         
