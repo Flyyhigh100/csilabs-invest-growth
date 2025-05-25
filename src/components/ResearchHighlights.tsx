@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import FadeInSection from './FadeInSection';
@@ -20,7 +21,7 @@ const ResearchHighlights: React.FC = () => {
             <FadeInSection delay={150}>
               <div className="mt-8">
                 <Button asChild size="lg" className="px-6 py-3 font-medium text-white bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 transition-all">
-                  <Link to="/auth/register" className="">Support Killing Cancers Contribute Now</Link>
+                  <Link to="/auth/register" className="">Purchase Now to Contribute</Link>
                 </Button>
               </div>
             </FadeInSection>
