@@ -96,8 +96,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Attempting to send confirmation email to user...");
 
-    // Get the current origin from the request headers
-    const origin = req.headers.get('origin') || 'https://hrhvliqkmetcdphnetxb.supabase.co';
+    // Get the current origin from the request headers, fallback to live site
+    const origin = req.headers.get('origin') || 'https://1millionstrongfightclub.com';
 
     // Send confirmation email to user
     const confirmationEmailResponse = await resend.emails.send({
