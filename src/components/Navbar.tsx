@@ -54,6 +54,7 @@ const Navbar: React.FC = () => {
           <Link to="/" className="text-gray-800 hover:text-cbis-blue transition-colors">Home</Link>
           <Link to="/research-documents" className="text-gray-800 hover:text-cbis-blue transition-colors">Research</Link>
           <Link to="/token-info" className="text-gray-800 hover:text-cbis-blue transition-colors">Token Info</Link>
+          <Link to="/contact" className="text-gray-800 hover:text-cbis-blue transition-colors">Contact</Link>
           
           <Button asChild className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
             {user ? (
@@ -143,6 +144,16 @@ const Navbar: React.FC = () => {
               onClick={() => setIsOpen(false)}
             >
               Token Info
+            </Link>
+          </div>
+          
+          <div className="border-b border-gray-100 py-1">
+            <Link 
+              to="/contact" 
+              className="block py-3 px-6 text-center text-gray-800 hover:text-cbis-blue hover:bg-gray-50 transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              Contact
             </Link>
           </div>
         </div>

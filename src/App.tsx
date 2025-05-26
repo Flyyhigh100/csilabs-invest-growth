@@ -26,6 +26,7 @@ import Payments from './pages/Dashboard/Payments';
 import Transactions from './pages/Dashboard/Transactions';
 import ResearchDocuments from './pages/ResearchDocuments';
 import TokenInfo from './pages/TokenInfo';
+import ContactUs from './pages/ContactUs';
 import KYCVerificationPage from './pages/Dashboard/KYCVerification/KYCVerificationPage';
 import Profile from './pages/Dashboard/Profile';
 import Documents from './pages/Dashboard/Documents';
@@ -72,6 +73,7 @@ export default function App() {
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/research-documents" element={<ResearchDocuments />} />
                   <Route path="/token-info" element={<TokenInfo />} />
+                  <Route path="/contact" element={<ContactUs />} />
                   
                   {/* Legal Routes */}
                   <Route path="/legal/terms-and-conditions" element={<TermsOfService />} />

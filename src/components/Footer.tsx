@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
@@ -34,6 +35,11 @@ const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/research-documents" className="text-blue-100 hover:text-white transition-colors">
+                  Research Documents
+                </Link>
+              </li>
+              <li>
                 <Link to="/dashboard" className="text-blue-100 hover:text-white transition-colors">
                   Dashboard
                 </Link>
@@ -41,6 +47,11 @@ const Footer: React.FC = () => {
               <li>
                 <Link to="/dashboard/payments" className="text-blue-100 hover:text-white transition-colors">
                   Purchase Now to Contribute
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="text-blue-100 hover:text-white transition-colors">
+                  Contact Us
                 </Link>
               </li>
             </ul>
