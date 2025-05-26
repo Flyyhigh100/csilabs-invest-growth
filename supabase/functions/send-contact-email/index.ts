@@ -17,12 +17,16 @@ interface ContactEmailRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log("Contact email function invoked, method:", req.method);
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
   if (req.method !== "POST") {
+    console.log("Method not allowed:", req.method);
     return new Response("Method not allowed", { 
       status: 405, 
       headers: corsHeaders 
@@ -30,10 +34,16 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { name, email, subject, message }: ContactEmailRequest = await req.json();
+    console.log("Parsing request body...");
+    const requestBody = await req.text();
+    console.log("Raw request body:", requestBody);
+    
+    const { name, email, subject, message }: ContactEmailRequest = JSON.parse(requestBody);
+    console.log("Parsed contact form data:", { name, email, subject, messageLength: message.length });
 
     // Validate required fields
     if (!name || !email || !subject || !message) {
+      console.log("Validation failed - missing required fields");
       return new Response(
         JSON.stringify({ error: "All fields are required" }),
         {
@@ -43,9 +53,11 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    console.log("Attempting to send support notification email...");
+    
     // Send notification email to support team
     const supportEmailResponse = await resend.emails.send({
-      from: "CSi Labs Contact Form <noreply@resend.dev>",
+      from: "CSi Labs Contact Form <noreply@mail.1millionstrongfightclub.com>",
       to: ["support@1millionstrongfightclub.com"],
       subject: `Contact Form: ${subject}`,
       html: `
@@ -75,11 +87,18 @@ const handler = async (req: Request): Promise<Response> => {
       replyTo: email,
     });
 
-    console.log("Support email sent:", supportEmailResponse);
+    console.log("Support email response:", JSON.stringify(supportEmailResponse, null, 2));
+
+    if (supportEmailResponse.error) {
+      console.error("Error sending support email:", supportEmailResponse.error);
+      throw new Error(`Failed to send support email: ${supportEmailResponse.error.message}`);
+    }
+
+    console.log("Attempting to send confirmation email to user...");
 
     // Send confirmation email to user
     const confirmationEmailResponse = await resend.emails.send({
-      from: "CSi Labs <noreply@resend.dev>",
+      from: "CSi Labs <noreply@mail.1millionstrongfightclub.com>",
       to: [email],
       subject: "Thank you for contacting CSi Labs",
       html: `
@@ -124,7 +143,14 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Confirmation email sent:", confirmationEmailResponse);
+    console.log("Confirmation email response:", JSON.stringify(confirmationEmailResponse, null, 2));
+
+    if (confirmationEmailResponse.error) {
+      console.error("Error sending confirmation email:", confirmationEmailResponse.error);
+      // Don't throw here - support email was sent successfully
+    }
+
+    console.log("Contact form processing completed successfully");
 
     return new Response(
       JSON.stringify({ 
@@ -143,10 +169,12 @@ const handler = async (req: Request): Promise<Response> => {
     );
   } catch (error: any) {
     console.error("Error in send-contact-email function:", error);
+    console.error("Error stack:", error.stack);
     return new Response(
       JSON.stringify({ 
         error: "Failed to send email", 
-        details: error.message 
+        details: error.message,
+        timestamp: new Date().toISOString()
       }),
       {
         status: 500,

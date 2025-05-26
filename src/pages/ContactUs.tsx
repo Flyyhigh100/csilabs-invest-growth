@@ -30,22 +30,37 @@ const ContactUs: React.FC = () => {
   });
 
   const onSubmit = async (data: ContactFormData) => {
+    console.log('Contact form submission started with data:', { ...data, message: `${data.message.length} characters` });
     setIsSubmitting(true);
     
     try {
-      const { error } = await supabase.functions.invoke('send-contact-email', {
+      console.log('Invoking send-contact-email function...');
+      
+      const { data: response, error } = await supabase.functions.invoke('send-contact-email', {
         body: data
       });
 
+      console.log('Function response:', response);
+      console.log('Function error:', error);
+
       if (error) {
+        console.error('Supabase function error:', error);
         throw error;
       }
 
+      console.log('Contact form submitted successfully');
       toast.success('Message sent successfully! We\'ll get back to you within 24 hours.');
       reset();
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message. Please try again or email us directly.');
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      
+      // Show more specific error message
+      if (error instanceof Error) {
+        toast.error(`Failed to send message: ${error.message}. Please try again or email us directly at support@1millionstrongfightclub.com`);
+      } else {
+        toast.error('Failed to send message. Please try again or email us directly at support@1millionstrongfightclub.com');
+      }
     } finally {
       setIsSubmitting(false);
     }
