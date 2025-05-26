@@ -96,6 +96,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Attempting to send confirmation email to user...");
 
+    // Get the current origin from the request headers
+    const origin = req.headers.get('origin') || 'https://hrhvliqkmetcdphnetxb.supabase.co';
+
     // Send confirmation email to user
     const confirmationEmailResponse = await resend.emails.send({
       from: "CSi Labs <noreply@mail.1millionstrongfightclub.com>",
@@ -129,7 +132,7 @@ const handler = async (req: Request): Promise<Response> => {
           </p>
           
           <div style="margin: 30px 0; text-align: center;">
-            <a href="https://your-domain.com/research-documents" 
+            <a href="${origin}/research-documents" 
                style="background-color: #1e40af; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
               View Research Documents
             </a>
