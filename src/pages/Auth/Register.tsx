@@ -46,7 +46,10 @@ const Register = () => {
             <h1 className="text-3xl md:text-4xl font-bold mb-4 text-cbis-dark">
               1-Million Strong Killing Cancers Fight Club! Join the <span className="bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">FIGHT for Low-Cost Cancer Killing Drugs</span> Now!
             </h1>
-            <p className="text-gray-600">When you Purchase our CSi Labs Cancer Killing MEME Coins you are Contributing to the "FIGHT Against Cancers" You will also receive a "Limited Time Free Membership & Perks" in the 1-Million Strong Killing Cancers Fight Club! Your contribution supports our 1-Million Strong Killing Cancers Foundation (applying for 501(c)(3) status) to revolutionize cancer research through innovative solutions and bring our Harvard Award Winning Low-cost Cancer Killing Drugs through the FDA so Doctors can write prescriptions Nationwide!</p>
+            <p className="text-gray-600 text-left">When you Purchase our CSi Labs Cancer Killing MEME Coins you are Contributing to the “FIGHT Against Cancers” You will also receive a “Limited Time Free Membership & Perks” in the 1-Million Strong Killing Cancers Fight Club! 
+
+
+Your contribution supports our 1-Million Strong Killing Cancers Foundation (applying for 501(c)(3) status) to revolutionize cancer research through innovative solutions and bring our Harvard Award Winning Low-cost Cancer Killing Drugs through the FDA so Doctors can write prescriptions Nationwide!</p>
           </div>
         </FadeInSection>
 
