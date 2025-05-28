@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,6 +8,7 @@ import RegistrationSuccess from '@/components/Auth/RegistrationSuccess';
 import RegistrationBenefits from '@/components/Auth/RegistrationBenefits';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+
 const Register = () => {
   const {
     user
@@ -25,6 +27,7 @@ const Register = () => {
   if (registrationComplete) {
     return <RegistrationSuccess />;
   }
+  
   return <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <div className="container-custom pt-6">
         <div className="mb-4">
@@ -41,7 +44,7 @@ const Register = () => {
         <FadeInSection>
           <div className="text-center mb-12 max-w-3xl mx-auto">
             <h1 className="text-3xl md:text-4xl font-bold mb-4 text-cbis-dark">
-              Join the <span className="bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">CSi Labs Cancer Killing MEME Coin Contribution</span>
+              1-Million Strong Killing Cancers Fight Club! Join the <span className="bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">FIGHT for Low-Cost Cancer Killing Drugs</span> Now!
             </h1>
             <p className="text-gray-600">When you Purchase our CSi Labs Cancer Killing MEME Coins you are Contributing to the “FIGHT Against Cancers” You will also receive a “Limited Time Free Membership &amp; Perks” in the 1-Million Strong Killing Cancers Fight Club!   
 It's as Easy as 1, 2, 3... Open your account, Purchase as many CSi Lab MEME Coins as you want, and receive your Free 1-Million Strong Killing Cancers Fight Club Membership and all the PERKS! 
@@ -62,4 +65,5 @@ Your contribution supports our 1-Million Strong Killing Cancers Foundation (appl
       </div>
     </div>;
 };
+
 export default Register;
