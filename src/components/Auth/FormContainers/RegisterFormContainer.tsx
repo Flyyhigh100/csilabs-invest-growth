@@ -15,10 +15,10 @@ const RegisterFormContainer: React.FC<RegisterFormContainerProps> = ({
 }) => {
   return <Card className="w-full max-w-md mx-auto">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center">
-          Join the 1-Million Strong Killing Cancers Fight Club
-        </CardTitle>
-        <CardDescription className="text-center">Complete this form to create your CSi Labs account, Buy your Coins, and enjoy your FREE membership PERKS</CardDescription>
+        <CardTitle className="text-2xl font-bold text-center">Join the FIGHT against Cancers! 1-Million Strong Killing Cancers Fight Club</CardTitle>
+        <CardDescription className="text-center">As Easy as 1, 2, 3... 1. Create your CSi Labs account 
+ 2. Purchase your Killing Cancers Coins 
+ 3. Enjoy your “FREE” 1-Million Strong Killing Cancers Fight Club Membership</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
