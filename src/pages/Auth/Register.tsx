@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,7 +43,10 @@ const Register = () => {
             <h1 className="text-3xl md:text-4xl font-bold mb-4 text-cbis-dark">
               Join the <span className="bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">CSi Labs Cancer Killing MEME Coin Contribution</span>
             </h1>
-            <p className="text-gray-600">It's as Easy as 1, 2, 3... Join our 1-Million Strong Killing Cancers mission with exclusive membership PERKS! Your contribution supports our foundation (applying for 501(c)(3) status) to revolutionize cancer research through innovative solutions and bring our Harvard Award Winning Low-cost Cancer Killing Drugs through the FDA.</p>
+            <p className="text-gray-600">When you Purchase our CSi Labs Cancer Killing MEME Coins you are Contributing to the “FIGHT Against Cancers” You will also receive a “Limited Time Free Membership &amp; Perks” in the 1-Million Strong Killing Cancers Fight Club!   
+It's as Easy as 1, 2, 3... Open your account, Purchase as many CSi Lab MEME Coins as you want, and receive your Free 1-Million Strong Killing Cancers Fight Club Membership and all the PERKS! 
+
+Your contribution supports our 1-Million Strong Killing Cancers Foundation (applying for 501(c)(3) status) to revolutionize cancer research through innovative solutions and bring our Harvard Award Winning Low-cost Cancer Killing Drugs through the FDA so Doctors can write prescriptions Nationwide!</p>
           </div>
         </FadeInSection>
 
