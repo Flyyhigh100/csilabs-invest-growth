@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,12 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, onOpenC
   }, [open, document, isMobile]);
   
   if (!document) return null;
+
+  // Check if the document is an external URL (not a PDF)
+  const isExternalUrl = document.pdfUrl && !document.pdfUrl.includes('.pdf') && (
+    document.pdfUrl.startsWith('http://') || 
+    document.pdfUrl.startsWith('https://')
+  );
 
   // Format the title to make it more readable
   const formattedTitle = document.title
@@ -60,12 +67,58 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, onOpenC
   };
 
   const handleOpenExternal = () => {
-    // Use the new proxy URL for professional-looking links
-    const proxyUrl = `https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/document-proxy?id=${document.id}`;
-    console.log('Opening document with proxy URL:', proxyUrl);
-    console.log('Document ID:', document.id);
-    window.open(proxyUrl, '_blank');
+    if (isExternalUrl) {
+      // For external URLs, open directly
+      window.open(document.pdfUrl, '_blank');
+    } else {
+      // Use the new proxy URL for professional-looking links
+      const proxyUrl = `https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/document-proxy?id=${document.id}`;
+      console.log('Opening document with proxy URL:', proxyUrl);
+      console.log('Document ID:', document.id);
+      window.open(proxyUrl, '_blank');
+    }
   };
+
+  // If it's an external URL, show a special interface
+  if (isExternalUrl) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md w-[90vw]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">{formattedTitle}</DialogTitle>
+          </DialogHeader>
+          
+          {document.description && (
+            <div className="mb-4">
+              <p className="text-gray-600 mb-2 text-sm">
+                {document.description}
+              </p>
+              
+              {document.authors && (
+                <p className="text-xs text-gray-500 mb-2">
+                  <span className="font-medium">Authors:</span> {document.authors}
+                </p>
+              )}
+            </div>
+          )}
+          
+          <div className="text-center py-8">
+            <FileText className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+            <p className="text-gray-600 mb-6">
+              This document is hosted externally. Click the button below to view it.
+            </p>
+            <Button 
+              onClick={handleOpenExternal}
+              className="bg-gradient-to-r from-cbis-blue to-cbis-teal"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Open Document
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   // Dynamically calculate the PDF viewer height
   const pdfViewerHeight = isFullscreen 
@@ -211,9 +264,11 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, onOpenC
             <Button variant="outline" onClick={handleOpenExternal}>
               <ExternalLink className="mr-2 h-4 w-4" /> {isMobile ? '' : 'Open in New Tab'}
             </Button>
-            <Button className="bg-gradient-to-r from-cbis-blue to-cbis-teal" onClick={handleDownload}>
-              <Download className="mr-2 h-4 w-4" /> {isMobile ? '' : 'Download'}
-            </Button>
+            {!isExternalUrl && (
+              <Button className="bg-gradient-to-r from-cbis-blue to-cbis-teal" onClick={handleDownload}>
+                <Download className="mr-2 h-4 w-4" /> {isMobile ? '' : 'Download'}
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
