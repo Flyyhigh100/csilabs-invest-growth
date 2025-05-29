@@ -80,17 +80,24 @@ const Hero: React.FC = () => {
               {!isLoaded ? (
                 <Skeleton className="w-full aspect-auto" />
               ) : (
-                <img 
-                  src="/cryptologo_ray.jpg"
-                  alt="CBIS Ray Crypto Logo" 
-                  className="w-full h-auto object-cover rounded-lg"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.onerror = null;
-                    target.src = '/placeholder.svg';
-                    setHeroImageError(true);
-                  }}
-                />
+                <a 
+                  href="https://americanstatesuniversity.com/images/1mm_Strong_KC_CSi-VIP_Event_Media_Kit_March_2025.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full cursor-pointer hover:opacity-90 transition-opacity"
+                >
+                  <img 
+                    src="/cryptologo_ray.jpg"
+                    alt="CBIS Ray Crypto Logo - Click to view VIP Event Media Kit" 
+                    className="w-full h-auto object-cover rounded-lg"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = '/placeholder.svg';
+                      setHeroImageError(true);
+                    }}
+                  />
+                </a>
               )}
             </div>
           </div>
