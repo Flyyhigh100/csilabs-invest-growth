@@ -33,17 +33,24 @@ const Hero: React.FC = () => {
               {!isLoaded ? (
                 <Skeleton className="w-full aspect-auto" />
               ) : (
-                <img 
-                  src="/rawwhiteonepagepng.png"
-                  alt="Cannabis Science Cancer Treatment Research" 
-                  className="w-full h-auto object-contain"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.onerror = null;
-                    target.src = '/placeholder.svg';
-                    setImageError(true);
-                  }}
-                />
+                <a 
+                  href="https://americanstatesuniversity.com/images/EBYH_CSi-Cancer_Drug_Presentation.pdf?_t=1725588201"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full cursor-pointer hover:opacity-90 transition-opacity"
+                >
+                  <img 
+                    src="/rawwhiteonepagepng.png"
+                    alt="Cannabis Science Cancer Treatment Research - Click to view detailed presentation" 
+                    className="w-full h-auto object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = '/placeholder.svg';
+                      setImageError(true);
+                    }}
+                  />
+                </a>
               )}
             </div>
           </div>
