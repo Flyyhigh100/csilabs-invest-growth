@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -209,16 +210,17 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, onOpenC
           )}
         </div>
         
-        <div className="flex justify-between items-center gap-2 mt-4">
+        {/* Improved bottom controls layout */}
+        <div className="flex flex-col gap-3 mt-4">
           {/* Zoom controls for non-mobile */}
           {!isMobile && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <Button variant="outline" size="sm" onClick={handleZoomOut}>
                 <ZoomOut className="mr-1 h-4 w-4" /> Zoom Out
               </Button>
               
-              {/* Add preset zoom buttons */}
-              <div className="flex gap-1 mx-2">
+              {/* Preset zoom buttons */}
+              <div className="flex gap-1">
                 <Button 
                   variant={zoomLevel === 0.75 ? "default" : "outline"}
                   size="sm" 
@@ -255,14 +257,16 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, onOpenC
             </div>
           )}
           
-          {/* Right-aligned actions */}
-          <div className={`flex gap-2 ${!isMobile ? 'ml-auto' : ''}`}>
+          {/* Action buttons - Always centered and properly spaced */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <Button variant="outline" onClick={handleOpenExternal}>
-              <ExternalLink className="mr-2 h-4 w-4" /> {isMobile ? '' : 'Open in New Tab'}
+              <ExternalLink className="mr-2 h-4 w-4" /> 
+              {isMobile ? 'Open' : 'Open in New Tab'}
             </Button>
             {!isExternalUrl && (
               <Button className="bg-gradient-to-r from-cbis-blue to-cbis-teal" onClick={handleDownload}>
-                <Download className="mr-2 h-4 w-4" /> {isMobile ? '' : 'Download'}
+                <Download className="mr-2 h-4 w-4" /> 
+                {isMobile ? 'Download' : 'Download'}
               </Button>
             )}
           </div>
