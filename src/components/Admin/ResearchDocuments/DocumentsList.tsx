@@ -37,17 +37,21 @@ const DocumentsList: React.FC<DocumentsListProps> = ({
     if (!onUpdateDocument) return false;
     
     try {
+      console.log("DocumentsList: Saving document changes", { docId, data });
       const result = await onUpdateDocument(docId, data);
       
       if (result) {
+        console.log("DocumentsList: Document updated successfully");
         // Force reload documents after update to ensure we're in sync with database
         await handleReload();
         return true;
+      } else {
+        console.error("DocumentsList: Update failed");
+        toast.error("Failed to update document");
+        return false;
       }
-      
-      return false;
     } catch (error) {
-      console.error("Error saving document:", error);
+      console.error("DocumentsList: Error saving document:", error);
       toast.error("Failed to save document changes");
       return false;
     }

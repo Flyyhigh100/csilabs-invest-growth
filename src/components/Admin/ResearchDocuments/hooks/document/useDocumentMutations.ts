@@ -2,13 +2,15 @@
 import { useCallback } from 'react';
 import { ResearchDocument, DocumentFormValues } from '../../types/documentTypes';
 import { useDocumentService } from './useDocumentService';
+import { useUpdateDocument } from './useUpdateDocument';
 import { toast } from 'sonner';
 
 export const useDocumentMutations = (
   documents: ResearchDocument[],
   setDocuments: React.Dispatch<React.SetStateAction<ResearchDocument[]>>
 ) => {
-  const { uploadDocument, deleteDocument, updateDocumentMetadata } = useDocumentService();
+  const { uploadDocument, deleteDocument } = useDocumentService();
+  const { updateDocumentMetadata } = useUpdateDocument(documents, setDocuments);
 
   // Add document to state after successful upload
   const addDocument = useCallback((newDocument: ResearchDocument) => {
@@ -56,38 +58,10 @@ export const useDocumentMutations = (
     }
   }, [deleteDocument, setDocuments]);
 
-  // Update document metadata
-  const handleUpdateDocument = useCallback(async (docId: string, data: Partial<ResearchDocument>): Promise<boolean> => {
-    try {
-      const success = await updateDocumentMetadata(docId, data);
-      
-      if (success) {
-        // Update document in state
-        setDocuments(prevDocs => 
-          prevDocs.map(doc => 
-            doc.id === docId 
-              ? { ...doc, ...data }
-              : doc
-          )
-        );
-        
-        // Clear localStorage cache to force reload on the public page
-        localStorage.removeItem('researchDocuments');
-        
-        toast.success("Document updated successfully");
-      }
-      
-      return success;
-    } catch (error) {
-      console.error("Error updating document metadata:", error);
-      return false;
-    }
-  }, [updateDocumentMetadata, setDocuments]);
-
   return {
     addDocument,
     uploadDocument: handleDocumentUpload,
     deleteDocument: handleDeleteDocument,
-    updateDocumentMetadata: handleUpdateDocument
+    updateDocumentMetadata
   };
 };

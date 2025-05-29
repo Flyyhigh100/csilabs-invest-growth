@@ -30,10 +30,10 @@ const DocumentEditDialog: React.FC<DocumentEditDialogProps> = ({
     if (!document) return;
     
     setIsSaving(true);
-    console.log("Submitting form with data:", data);
+    console.log("DocumentEditDialog: Submitting form with data:", data);
     
     try {
-      // Make sure we're sending all fields to avoid losing data
+      // Ensure all required fields are present and properly formatted
       const updatedData = {
         title: data.title || document.title,
         description: data.description || document.description,
@@ -42,16 +42,19 @@ const DocumentEditDialog: React.FC<DocumentEditDialogProps> = ({
         authors: data.authors || document.authors || ''
       };
       
-      console.log("Final data being sent to save:", updatedData);
+      console.log("DocumentEditDialog: Final data being sent to save:", updatedData);
       const success = await onSave(document.id, updatedData);
+      
       if (success) {
+        console.log("DocumentEditDialog: Save successful");
         toast.success("Document updated successfully");
         onOpenChange(false);
       } else {
+        console.error("DocumentEditDialog: Save failed");
         toast.error("Failed to update document");
       }
     } catch (error) {
-      console.error("Error saving document:", error);
+      console.error("DocumentEditDialog: Error saving document:", error);
       toast.error("An error occurred while saving");
     } finally {
       setIsSaving(false);
@@ -70,7 +73,7 @@ const DocumentEditDialog: React.FC<DocumentEditDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Edit Document Metadata</DialogTitle>
           <DialogDescription>
-            Update the document information below. Changes will be saved immediately.
+            Update the document information below. Changes will be saved to the database.
           </DialogDescription>
         </DialogHeader>
         <DocumentEditForm
