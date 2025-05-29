@@ -1,5 +1,7 @@
+
 import React from 'react';
 import { Shield, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
+
 const RegistrationBenefits: React.FC = () => {
   return <div className="space-y-8">
       <div className="flex gap-4 items-start">
@@ -22,7 +24,7 @@ const RegistrationBenefits: React.FC = () => {
         <div>
           <h3 className="text-xl font-semibold mb-2 text-cbis-dark">1-Million Strong Killing Cancers Fight Club Member</h3>
           <p className="text-gray-600">
-            Join our passionate community with <span className="font-bold">Membership Privileges for FREE!</span> Get exclusive 
+            When you purchase our Cancer Killing MEME coins you receive Membership Privileges for FREE! Get exclusive 
             updates on our progress and be part of the movement making a real difference.
           </p>
         </div>
@@ -76,4 +78,5 @@ const RegistrationBenefits: React.FC = () => {
       </div>
     </div>;
 };
+
 export default RegistrationBenefits;
