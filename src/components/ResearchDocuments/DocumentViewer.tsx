@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -61,7 +60,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, onOpenC
   };
 
   const handleOpenExternal = () => {
-    window.open(document.pdfUrl, '_blank');
+    // Use the new proxy URL for professional-looking links
+    const proxyUrl = `https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/document-proxy?id=${document.id}`;
+    window.open(proxyUrl, '_blank');
   };
 
   // Dynamically calculate the PDF viewer height
