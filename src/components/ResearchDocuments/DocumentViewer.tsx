@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -79,7 +78,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, onOpenC
     }
   };
 
-  // If it's an external URL, show a special interface
+  // If it's an external URL, show a simplified interface
   if (isExternalUrl) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -89,7 +88,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, onOpenC
           </DialogHeader>
           
           {document.description && (
-            <div className="mb-4">
+            <div className="mb-6">
               <p className="text-gray-600 mb-2 text-sm">
                 {document.description}
               </p>
@@ -102,17 +101,14 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, onOpenC
             </div>
           )}
           
-          <div className="text-center py-8">
-            <FileText className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-            <p className="text-gray-600 mb-6">
-              This document is hosted externally. Click the button below to view it.
-            </p>
+          <div className="text-center py-4">
             <Button 
               onClick={handleOpenExternal}
-              className="bg-gradient-to-r from-cbis-blue to-cbis-teal"
+              className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white px-8 py-3 text-lg"
+              size="lg"
             >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              Open Document
+              <ExternalLink className="mr-2 h-5 w-5" />
+              View Document
             </Button>
           </div>
         </DialogContent>
