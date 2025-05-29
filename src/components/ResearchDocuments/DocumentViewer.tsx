@@ -62,6 +62,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, onOpenC
   const handleOpenExternal = () => {
     // Use the new proxy URL for professional-looking links
     const proxyUrl = `https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/document-proxy?id=${document.id}`;
+    console.log('Opening document with proxy URL:', proxyUrl);
+    console.log('Document ID:', document.id);
     window.open(proxyUrl, '_blank');
   };
 
