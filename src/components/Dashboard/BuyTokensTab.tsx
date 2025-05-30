@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { DollarSign } from 'lucide-react';
@@ -11,7 +12,6 @@ import WalletMissingContent from './TokenPurchase/WalletMissingContent';
 import PurchaseGuide from './TokenPurchase/PurchaseGuide';
 import { TokenPriceProvider, useTokenPrice } from '@/context/TokenPriceContext';
 import PaymentTabs from './TokenPurchase/PaymentTabs';
-import CryptoPaymentTab from './TokenPurchase/CryptoPaymentTab';
 
 interface BuyTokensTabProps {
   walletAddress: string | null;
@@ -75,38 +75,22 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
             
             <div className="mt-6">
               <h3 className="text-base font-medium mb-4 text-gray-700">
-                {isDirectPurchase ? "CoinPayments Purchase" : "Select Payment Method"}
+                Select Payment Method
               </h3>
               
-              {isDirectPurchase ? (
-                // When direct purchase is selected, only show CryptoPaymentTab
-                <div className="border rounded-lg p-4 border-blue-100 bg-blue-50/20">
-                  <CryptoPaymentTab 
-                    amount={amount}
-                    selectedCurrency={selectedCurrency}
-                    setSelectedCurrency={setSelectedCurrency}
-                    handleCoinPaymentWithCurrency={handleCoinPaymentWithCurrency}
-                    isProcessing={isProcessing}
-                    isKycNeeded={isKycNeeded}
-                    isWalletMissing={isWalletMissing}
-                    kycData={kycData}
-                  />
-                </div>
-              ) : (
-                // Regular flow shows payment tabs
-                <PaymentTabs 
-                  amount={amount}
-                  selectedCurrency={selectedCurrency}
-                  setSelectedCurrency={setSelectedCurrency}
-                  walletAddress={walletAddress}
-                  handleStripeCryptoOnramp={handleStripeCryptoOnrampWrapper}
-                  handleCoinPaymentWithCurrency={handleCoinPaymentWithCurrency}
-                  isProcessing={isProcessing}
-                  isKycNeeded={isKycNeeded}
-                  isWalletMissing={isWalletMissing}
-                  kycData={kycData}
-                />
-              )}
+              {/* Always show PaymentTabs - this includes our new Direct Crypto option */}
+              <PaymentTabs 
+                amount={amount}
+                selectedCurrency={selectedCurrency}
+                setSelectedCurrency={setSelectedCurrency}
+                walletAddress={walletAddress}
+                handleStripeCryptoOnramp={handleStripeCryptoOnrampWrapper}
+                handleCoinPaymentWithCurrency={handleCoinPaymentWithCurrency}
+                isProcessing={isProcessing}
+                isKycNeeded={isKycNeeded}
+                isWalletMissing={isWalletMissing}
+                kycData={kycData}
+              />
             </div>
             
             {isProcessing && <ProcessingIndicator />}
