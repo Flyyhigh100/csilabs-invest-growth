@@ -7,8 +7,8 @@ interface MinimumAmounts {
 const MINIMUM_AMOUNTS: MinimumAmounts = {
   'BTC': 2,
   'ETH': 2,
-  'USDT': 2,
-  'USDC': 2,
+  'USDT': 1, // Reduced from 2 to 1 for stablecoins used in direct crypto payments
+  'USDC': 1, // Reduced from 2 to 1 for stablecoins used in direct crypto payments
   'BNB.BSC': 2,
   'LTC': 2,
   'DOGE': 2,

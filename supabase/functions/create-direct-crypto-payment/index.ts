@@ -38,7 +38,7 @@ serve(async (req) => {
 
     const { amount, network, currency, wallet_address }: DirectPaymentRequest = await req.json();
 
-    // Validate input
+    // Validate input - changed minimum from 1 to 1
     if (!amount || amount < 1) {
       throw new Error('Invalid amount: minimum $1 required');
     }

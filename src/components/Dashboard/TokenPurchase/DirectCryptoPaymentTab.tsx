@@ -52,8 +52,8 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
   const tokenAmount = currentPrice ? amount / currentPrice : 0;
 
   const handleCreatePayment = async () => {
-    if (amount < 10) {
-      toast.error('Minimum amount is $10');
+    if (amount < 1) {
+      toast.error('Minimum amount is $1');
       return;
     }
 
@@ -169,7 +169,7 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
             <Button 
               onClick={handleCreatePayment} 
               className="w-full"
-              disabled={isCreatingPayment || amount < 10}
+              disabled={isCreatingPayment || amount < 1}
               size="lg"
             >
               {isCreatingPayment ? (
@@ -269,7 +269,7 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
           <li>Send only {selectedCurrency} on the {selectedNetwork} network</li>
           <li>Payment will be verified manually by our team</li>
           <li>Tokens will be distributed after verification (typically within 24 hours)</li>
-          <li>Minimum purchase amount is $10</li>
+          <li>Minimum purchase amount is $1</li>
         </ul>
       </div>
     </div>
