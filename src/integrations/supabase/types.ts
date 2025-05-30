@@ -33,6 +33,36 @@ export type Database = {
         }
         Relationships: []
       }
+      client_wallet_addresses: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          is_active: boolean
+          network: string
+          updated_at: string
+          wallet_address: string
+        }
+        Insert: {
+          created_at?: string
+          currency: string
+          id?: string
+          is_active?: boolean
+          network: string
+          updated_at?: string
+          wallet_address: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          network?: string
+          updated_at?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           authors: string | null
@@ -293,7 +323,10 @@ export type Database = {
           blockchain_tx_id: string | null
           completed_at: string | null
           created_at: string
+          crypto_currency_symbol: string | null
+          crypto_network: string | null
           currency: string | null
+          expected_crypto_amount: number | null
           external_transaction_id: string | null
           high_value_approval_required: boolean | null
           id: string
@@ -301,6 +334,7 @@ export type Database = {
           kyc_verification_id: string | null
           payment_address: string | null
           payment_method: string
+          payment_timeout_at: string | null
           status: string
           token_amount: number | null
           token_price: number | null
@@ -317,7 +351,10 @@ export type Database = {
           blockchain_tx_id?: string | null
           completed_at?: string | null
           created_at?: string
+          crypto_currency_symbol?: string | null
+          crypto_network?: string | null
           currency?: string | null
+          expected_crypto_amount?: number | null
           external_transaction_id?: string | null
           high_value_approval_required?: boolean | null
           id?: string
@@ -325,6 +362,7 @@ export type Database = {
           kyc_verification_id?: string | null
           payment_address?: string | null
           payment_method: string
+          payment_timeout_at?: string | null
           status: string
           token_amount?: number | null
           token_price?: number | null
@@ -341,7 +379,10 @@ export type Database = {
           blockchain_tx_id?: string | null
           completed_at?: string | null
           created_at?: string
+          crypto_currency_symbol?: string | null
+          crypto_network?: string | null
           currency?: string | null
+          expected_crypto_amount?: number | null
           external_transaction_id?: string | null
           high_value_approval_required?: boolean | null
           id?: string
@@ -349,6 +390,7 @@ export type Database = {
           kyc_verification_id?: string | null
           payment_address?: string | null
           payment_method?: string
+          payment_timeout_at?: string | null
           status?: string
           token_amount?: number | null
           token_price?: number | null

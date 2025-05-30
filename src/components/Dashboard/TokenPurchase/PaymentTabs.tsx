@@ -1,72 +1,71 @@
 
-import React from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CreditCard, Wallet } from 'lucide-react';
-import CryptoOnrampTab from './CryptoOnrampTab';
+import React, { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import CryptoPaymentTab from './CryptoPaymentTab';
-import { KycVerificationData } from '@/hooks/kyc/types';
-import { StripeCryptoOnrampResult } from '@/hooks/payments/types';
+import CardPaymentTab from './CardPaymentTab';
+import DirectCryptoPaymentTab from './DirectCryptoPaymentTab';
+import { Wallet, CreditCard, Send } from 'lucide-react';
 
 interface PaymentTabsProps {
   amount: number;
-  selectedCurrency: string;
-  setSelectedCurrency: (currency: string) => void;
-  walletAddress: string | null;
-  handleStripeCryptoOnramp: () => Promise<StripeCryptoOnrampResult>;
-  handleCoinPaymentWithCurrency: () => void;
+  walletAddress: string;
   isProcessing: boolean;
-  isKycNeeded: boolean;
-  isWalletMissing: boolean;
-  kycData: KycVerificationData | null;
+  onPaymentInitiated?: () => void;
 }
 
 const PaymentTabs: React.FC<PaymentTabsProps> = ({
   amount,
-  selectedCurrency,
-  setSelectedCurrency,
   walletAddress,
-  handleStripeCryptoOnramp,
-  handleCoinPaymentWithCurrency,
   isProcessing,
-  isKycNeeded,
-  isWalletMissing,
-  kycData
+  onPaymentInitiated
 }) => {
+  const [activeTab, setActiveTab] = useState('direct-crypto');
+
   return (
-    <Tabs defaultValue="crypto-onramp" className="w-full">
-      <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto mb-4 bg-gray-100">
-        <TabsTrigger value="crypto-onramp" className="data-[state=active]:bg-blue-50 data-[state=active]:text-cbis-blue">
-          <CreditCard className="mr-2 h-4 w-4" />
-          Stripe Crypto
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="direct-crypto" className="flex items-center gap-2">
+          <Send className="h-4 w-4" />
+          <span className="hidden sm:inline">Direct Wallet</span>
+          <span className="sm:hidden">Direct</span>
+          <Badge variant="secondary" className="ml-1 text-xs">
+            New
+          </Badge>
         </TabsTrigger>
-        <TabsTrigger value="crypto" className="data-[state=active]:bg-blue-50 data-[state=active]:text-cbis-blue">
-          <Wallet className="mr-2 h-4 w-4" />
-          More Crypto Options
+        <TabsTrigger value="crypto" className="flex items-center gap-2">
+          <Wallet className="h-4 w-4" />
+          <span className="hidden sm:inline">Crypto</span>
+        </TabsTrigger>
+        <TabsTrigger value="card" className="flex items-center gap-2">
+          <CreditCard className="h-4 w-4" />
+          <span className="hidden sm:inline">Card</span>
         </TabsTrigger>
       </TabsList>
-      
-      <TabsContent value="crypto-onramp" className="border rounded-lg p-4 border-blue-100 bg-blue-50/20">
-        <CryptoOnrampTab 
-          amount={amount}
-          walletAddress={walletAddress || ''}
-          isProcessing={isProcessing}
-          isWalletMissing={isWalletMissing}
-          onInitiateOnramp={handleStripeCryptoOnramp}
-        />
-      </TabsContent>
-      
-      <TabsContent value="crypto" className="border rounded-lg p-4 border-blue-100 bg-blue-50/20">
-        <CryptoPaymentTab 
-          amount={amount}
-          selectedCurrency={selectedCurrency}
-          setSelectedCurrency={setSelectedCurrency}
-          handleCoinPaymentWithCurrency={handleCoinPaymentWithCurrency}
-          isProcessing={isProcessing}
-          isKycNeeded={isKycNeeded}
-          isWalletMissing={isWalletMissing}
-          kycData={kycData}
-        />
-      </TabsContent>
+
+      <div className="mt-6">
+        <TabsContent value="direct-crypto" className="space-y-4">
+          <DirectCryptoPaymentTab walletAddress={walletAddress} />
+        </TabsContent>
+
+        <TabsContent value="crypto" className="space-y-4">
+          <CryptoPaymentTab 
+            amount={amount}
+            walletAddress={walletAddress}
+            isProcessing={isProcessing}
+            onPaymentInitiated={onPaymentInitiated}
+          />
+        </TabsContent>
+
+        <TabsContent value="card" className="space-y-4">
+          <CardPaymentTab 
+            amount={amount}
+            walletAddress={walletAddress}
+            isProcessing={isProcessing}
+            onPaymentInitiated={onPaymentInitiated}
+          />
+        </TabsContent>
+      </div>
     </Tabs>
   );
 };
