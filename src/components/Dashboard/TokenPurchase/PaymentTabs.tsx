@@ -9,16 +9,28 @@ import { Wallet, CreditCard, Send } from 'lucide-react';
 
 interface PaymentTabsProps {
   amount: number;
+  selectedCurrency: string;
+  setSelectedCurrency: (currency: string) => void;
   walletAddress: string;
+  handleStripeCryptoOnramp: () => Promise<any>;
+  handleCoinPaymentWithCurrency: () => void;
   isProcessing: boolean;
-  onPaymentInitiated?: () => void;
+  isKycNeeded: boolean;
+  isWalletMissing: boolean;
+  kycData: any;
 }
 
 const PaymentTabs: React.FC<PaymentTabsProps> = ({
   amount,
+  selectedCurrency,
+  setSelectedCurrency,
   walletAddress,
+  handleStripeCryptoOnramp,
+  handleCoinPaymentWithCurrency,
   isProcessing,
-  onPaymentInitiated
+  isKycNeeded,
+  isWalletMissing,
+  kycData
 }) => {
   const [activeTab, setActiveTab] = useState('direct-crypto');
 
@@ -51,18 +63,22 @@ const PaymentTabs: React.FC<PaymentTabsProps> = ({
         <TabsContent value="crypto" className="space-y-4">
           <CryptoPaymentTab 
             amount={amount}
-            walletAddress={walletAddress}
+            selectedCurrency={selectedCurrency}
+            setSelectedCurrency={setSelectedCurrency}
+            handleCoinPaymentWithCurrency={handleCoinPaymentWithCurrency}
             isProcessing={isProcessing}
-            onPaymentInitiated={onPaymentInitiated}
+            isKycNeeded={isKycNeeded}
+            isWalletMissing={isWalletMissing}
+            kycData={kycData}
           />
         </TabsContent>
 
         <TabsContent value="card" className="space-y-4">
           <CardPaymentTab 
             amount={amount}
-            walletAddress={walletAddress}
+            handleStripePayment={handleStripeCryptoOnramp}
             isProcessing={isProcessing}
-            onPaymentInitiated={onPaymentInitiated}
+            isWalletMissing={isWalletMissing}
           />
         </TabsContent>
       </div>

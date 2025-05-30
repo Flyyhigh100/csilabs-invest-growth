@@ -41,7 +41,14 @@ export const fetchClientWalletAddresses = async (): Promise<ClientWalletAddress[
     throw new Error(`Failed to fetch wallet addresses: ${error.message}`);
   }
 
-  return data || [];
+  // Type cast to ensure proper TypeScript types
+  return (data || []).map(item => ({
+    id: item.id,
+    network: item.network as 'polygon' | 'solana',
+    currency: item.currency as 'USDT' | 'USDC',
+    wallet_address: item.wallet_address,
+    is_active: item.is_active
+  }));
 };
 
 /**
