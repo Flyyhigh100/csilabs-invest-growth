@@ -381,7 +381,7 @@ export const PriceDebugger = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Uniswap V3 Subgraph:</span>
                       <a 
-                        href="https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon" 
+                        href="https://gateway.thegraph.com/api/39814f0ec0acd4d370f434eefa12fa7c/subgraphs/id/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm" 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:underline text-xs flex items-center"
@@ -390,7 +390,7 @@ export const PriceDebugger = () => {
                       </a>
                     </div>
                     <code className="text-xs bg-gray-100 p-1.5 mt-1 rounded-sm overflow-x-auto">
-                      https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon
+                      https://gateway.thegraph.com/api/39814f0ec0acd4d370f434eefa12fa7c/subgraphs/id/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm
                     </code>
                   </div>
                   

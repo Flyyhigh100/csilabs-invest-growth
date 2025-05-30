@@ -31,7 +31,7 @@ function convertSqrtPriceToPrice(sqrtPriceX96, decimals0 = 18, decimals1 = 6) {
 // Helper function to fetch pool data from the Uniswap V3 subgraph
 async function fetchV3PoolData(poolAddress) {
   try {
-    const subgraphEndpoint = 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon';
+    const subgraphEndpoint = 'https://gateway.thegraph.com/api/39814f0ec0acd4d370f434eefa12fa7c/subgraphs/id/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm';
     
     if (isDebugEnabled()) {
       console.log(`[DEBUG] Fetching data for V3 pool: ${poolAddress}`);

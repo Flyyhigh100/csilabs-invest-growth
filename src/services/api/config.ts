@@ -19,8 +19,8 @@ export const V3_TOKEN1_DECIMALS = parseInt(import.meta.env?.VITE_V3_TOKEN1_DECIM
 export const COUNTER_TOKEN_SYMBOL = (import.meta.env?.VITE_COUNTER_TOKEN_SYMBOL as string | undefined) || 'USDC';
 export const COUNTER_TOKEN_DECIMALS = 6;
 
-// Uniswap V3 endpoint
-export const UNISWAP_V3_URL = import.meta.env?.VITE_V3_URL || 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon';
+// Uniswap V3 endpoint - updated to use the new working Graph API URL
+export const UNISWAP_V3_URL = import.meta.env?.VITE_V3_URL || 'https://gateway.thegraph.com/api/39814f0ec0acd4d370f434eefa12fa7c/subgraphs/id/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm';
 
 // Legacy constant used by existing services (points to V3)
 export const UNISWAP_SUBGRAPH_URL = UNISWAP_V3_URL;
