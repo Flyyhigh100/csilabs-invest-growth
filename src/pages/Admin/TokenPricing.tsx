@@ -11,14 +11,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const TokenPricingContent = () => {
   const { 
-    currentPrice,
     priceData, 
     isLoading,
     refreshAllData
   } = useTokenData();
   
-  // Get data from context
-  const { dataSource, lastUpdated, timeUntilNextUpdate, refreshPrice } = useTokenPrice();
+  // Get data from context - this is now safely inside the provider
+  const { 
+    currentPrice,
+    dataSource, 
+    lastUpdated, 
+    timeUntilNextUpdate, 
+    refreshPrice 
+  } = useTokenPrice();
   
   // Calculate derived values
   const formattedLastUpdated = lastUpdated ? lastUpdated.toLocaleTimeString() : 'Not available';
