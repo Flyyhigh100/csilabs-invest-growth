@@ -3,9 +3,8 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import CryptoPaymentTab from './CryptoPaymentTab';
-import CardPaymentTab from './CardPaymentTab';
 import DirectCryptoPaymentTab from './DirectCryptoPaymentTab';
-import { Wallet, CreditCard, Send } from 'lucide-react';
+import { Wallet, Send } from 'lucide-react';
 
 interface PaymentTabsProps {
   amount: number;
@@ -36,7 +35,7 @@ const PaymentTabs: React.FC<PaymentTabsProps> = ({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="direct-crypto" className="flex items-center gap-2">
           <Send className="h-4 w-4" />
           <span className="hidden sm:inline">Direct Wallet</span>
@@ -48,10 +47,6 @@ const PaymentTabs: React.FC<PaymentTabsProps> = ({
         <TabsTrigger value="crypto" className="flex items-center gap-2">
           <Wallet className="h-4 w-4" />
           <span className="hidden sm:inline">Crypto</span>
-        </TabsTrigger>
-        <TabsTrigger value="card" className="flex items-center gap-2">
-          <CreditCard className="h-4 w-4" />
-          <span className="hidden sm:inline">Card</span>
         </TabsTrigger>
       </TabsList>
 
@@ -70,15 +65,6 @@ const PaymentTabs: React.FC<PaymentTabsProps> = ({
             isKycNeeded={isKycNeeded}
             isWalletMissing={isWalletMissing}
             kycData={kycData}
-          />
-        </TabsContent>
-
-        <TabsContent value="card" className="space-y-4">
-          <CardPaymentTab 
-            amount={amount}
-            handleStripePayment={handleStripeCryptoOnramp}
-            isProcessing={isProcessing}
-            isWalletMissing={isWalletMissing}
           />
         </TabsContent>
       </div>
