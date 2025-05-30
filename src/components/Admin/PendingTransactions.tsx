@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -8,6 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { markTokensAsSent } from '@/utils/admin';
+import { approveDirectCryptoPayment, rejectDirectCryptoPayment } from '@/utils/admin/directCryptoPayments';
 import { usePendingTransactions, PendingTransactionWithProfile } from '@/hooks/admin/usePendingTransactions';
 import LoadingState from './PendingTransactions/LoadingState';
 import ErrorState from './PendingTransactions/ErrorState';
@@ -19,6 +21,7 @@ import DistributionGuide from './PendingTransactions/DistributionGuide';
 import DistributionStats from './PendingTransactions/DistributionStats';
 import BulkActionsBar from './PendingTransactions/BulkActionsBar';
 import SyncAllTransactionsBar from './PendingTransactions/SyncAllTransactionsBar';
+import DirectPaymentVerificationCard from './DirectCryptoPayments/DirectPaymentVerificationCard';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +42,10 @@ const PendingTransactions = () => {
     includeTestData, 
     setIncludeTestData 
   } = usePendingTransactions();
+
+  // Separate direct crypto payments from regular pending transactions
+  const directCryptoPayments = transactions?.filter(tx => tx.payment_method === 'direct_crypto' && tx.status === 'pending') || [];
+  const regularPendingTransactions = transactions?.filter(tx => tx.payment_method !== 'direct_crypto' || tx.status !== 'pending') || [];
 
   const openDialog = (tx: PendingTransactionWithProfile) => {
     setSelectedTx(tx);
@@ -61,6 +68,44 @@ const PendingTransactions = () => {
     } catch (err) {
       console.error('Error marking transaction as sent:', err);
       toast.error('Failed to update transaction status');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle direct crypto payment approval
+  const handleApproveDirectPayment = async (transactionId: string) => {
+    try {
+      setIsSubmitting(true);
+      const success = await approveDirectCryptoPayment(transactionId);
+      if (success) {
+        toast.success('Direct crypto payment approved');
+        refetch();
+      } else {
+        toast.error('Failed to approve payment');
+      }
+    } catch (err) {
+      console.error('Error approving direct crypto payment:',  err);
+      toast.error('Failed to update payment status');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle direct crypto payment rejection
+  const handleRejectDirectPayment = async (transactionId: string) => {
+    try {
+      setIsSubmitting(true);
+      const success = await rejectDirectCryptoPayment(transactionId);
+      if (success) {
+        toast.success('Direct crypto payment rejected');
+        refetch();
+      } else {
+        toast.error('Failed to reject payment');
+      }
+    } catch (err) {
+      console.error('Error rejecting direct crypto payment:', err);
+      toast.error('Failed to update payment status');
     } finally {
       setIsSubmitting(false);
     }
@@ -107,8 +152,8 @@ const PendingTransactions = () => {
 
   // Handle select all transactions
   const handleSelectAll = (isSelected: boolean) => {
-    if (isSelected && transactions) {
-      setSelectedTransactions([...transactions]);
+    if (isSelected && regularPendingTransactions) {
+      setSelectedTransactions([...regularPendingTransactions]);
     } else {
       setSelectedTransactions([]);
     }
@@ -139,7 +184,29 @@ const PendingTransactions = () => {
         />
       </div>
       
-      {/* Main Card */}
+      {/* Direct Crypto Payments Section */}
+      {directCryptoPayments.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium">Direct Crypto Payments Pending Verification</h3>
+            <Badge variant="outline" className="bg-yellow-50 text-yellow-800">
+              {directCryptoPayments.length} Pending
+            </Badge>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {directCryptoPayments.map((tx) => (
+              <DirectPaymentVerificationCard 
+                key={tx.id}
+                transaction={tx}
+                onApprove={handleApproveDirectPayment}
+                onReject={handleRejectDirectPayment}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Main Card for Regular Pending Transactions */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -162,8 +229,8 @@ const PendingTransactions = () => {
         </CardHeader>
         <CardContent>
           {/* Distribution Statistics */}
-          {transactions && transactions.length > 0 && (
-            <DistributionStats transactions={transactions} />
+          {regularPendingTransactions.length > 0 && (
+            <DistributionStats transactions={regularPendingTransactions} />
           )}
           
           {/* Bulk Actions Bar */}
@@ -178,11 +245,11 @@ const PendingTransactions = () => {
             <LoadingState />
           ) : error ? (
             <ErrorState error={error as Error} refetch={refetch} />
-          ) : !transactions || transactions.length === 0 ? (
+          ) : !regularPendingTransactions || regularPendingTransactions.length === 0 ? (
             <EmptyState />
           ) : (
             <TransactionsTable 
-              transactions={transactions} 
+              transactions={regularPendingTransactions} 
               onMarkAsSent={openDialog} 
               onTransactionUpdated={handleTransactionUpdated}
               selectedTransactions={selectedTransactions}

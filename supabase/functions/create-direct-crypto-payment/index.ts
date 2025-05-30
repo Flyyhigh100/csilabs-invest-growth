@@ -74,9 +74,9 @@ serve(async (req) => {
     // This assumes USDT/USDC are worth $1 each (which is their intended peg)
     const expectedCryptoAmount = amount;
 
-    // Set payment timeout (30 minutes from now)
+    // Set payment timeout (5 minutes from now - reduced from 30 minutes)
     const timeoutAt = new Date();
-    timeoutAt.setMinutes(timeoutAt.getMinutes() + 30);
+    timeoutAt.setMinutes(timeoutAt.getMinutes() + 5);
 
     // Generate transaction ID
     const transactionId = `direct_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

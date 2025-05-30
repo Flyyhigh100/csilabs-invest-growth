@@ -22,7 +22,7 @@ export interface Transaction {
   is_test?: boolean;
   currency?: string;
   completed_at?: string;
-  // New fields for direct crypto payments
+  // Direct crypto payment fields
   crypto_network?: string;
   crypto_currency_symbol?: string;
   expected_crypto_amount?: number;
