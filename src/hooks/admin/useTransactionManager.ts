@@ -37,12 +37,12 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
         .from('transactions')
         .select('*');
       
-      // Apply filters
-      if (status) {
+      // Apply filters only if they have actual values (not undefined/null)
+      if (status && status.trim() !== '') {
         query = query.eq('status', status);
       }
       
-      if (paymentMethod) {
+      if (paymentMethod && paymentMethod.trim() !== '') {
         query = query.eq('payment_method', paymentMethod);
       }
       
@@ -56,14 +56,14 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
         query = query.lt('created_at', nextDay.toISOString());
       }
       
-      // Handle search query
-      if (searchQuery) {
+      // Handle search query for multiple fields
+      if (searchQuery && searchQuery.trim() !== '') {
         query = query.or(
           `transaction_id.ilike.%${searchQuery}%,external_transaction_id.ilike.%${searchQuery}%,wallet_address.ilike.%${searchQuery}%`
         );
       }
       
-      // Only include test data if explicitly requested
+      // Handle test data inclusion
       if (!includeTestData) {
         query = query.eq('is_test', false);
       }
@@ -71,7 +71,7 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
       // Apply sorting and limits
       query = query
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(500); // Increased limit to show more transactions
       
       const { data, error } = await query;
       

@@ -23,9 +23,9 @@ const ALL_STATUSES = "all_statuses";
 const ALL_PAYMENT_METHODS = "all_payment_methods";
 
 const TransactionStatusDashboard = () => {
-  // Filter state
-  const [statusFilter, setStatusFilter] = useState<string>('pending');
-  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('coinpayments');
+  // Filter state - changed defaults to show all data initially
+  const [statusFilter, setStatusFilter] = useState<string>(ALL_STATUSES);
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>(ALL_PAYMENT_METHODS);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -41,8 +41,8 @@ const TransactionStatusDashboard = () => {
     isCleaningUp,
     updateTransactionStatus,
   } = useTransactionManager({
-    status: statusFilter || undefined,
-    paymentMethod: paymentMethodFilter || undefined,
+    status: statusFilter === ALL_STATUSES ? undefined : statusFilter,
+    paymentMethod: paymentMethodFilter === ALL_PAYMENT_METHODS ? undefined : paymentMethodFilter,
     startDate,
     endDate,
     searchQuery,
@@ -51,8 +51,8 @@ const TransactionStatusDashboard = () => {
   });
 
   const handleResetFilters = () => {
-    setStatusFilter('pending');
-    setPaymentMethodFilter('coinpayments');
+    setStatusFilter(ALL_STATUSES);
+    setPaymentMethodFilter(ALL_PAYMENT_METHODS);
     setStartDate(undefined);
     setEndDate(undefined);
     setSearchQuery('');
@@ -122,6 +122,7 @@ const TransactionStatusDashboard = () => {
                 <SelectContent>
                   <SelectItem value={ALL_PAYMENT_METHODS}>All Payment Methods</SelectItem>
                   <SelectItem value="coinpayments">CoinPayments</SelectItem>
+                  <SelectItem value="direct_crypto">Direct Crypto</SelectItem>
                   <SelectItem value="stripe">Stripe</SelectItem>
                   <SelectItem value="credit_card">Credit Card</SelectItem>
                   <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
