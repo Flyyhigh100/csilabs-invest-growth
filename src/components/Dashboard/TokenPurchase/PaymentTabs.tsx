@@ -52,7 +52,10 @@ const PaymentTabs: React.FC<PaymentTabsProps> = ({
 
       <div className="mt-6">
         <TabsContent value="direct-crypto" className="space-y-4">
-          <DirectCryptoPaymentTab walletAddress={walletAddress} />
+          <DirectCryptoPaymentTab 
+            walletAddress={walletAddress} 
+            amount={amount}
+          />
         </TabsContent>
 
         <TabsContent value="crypto" className="space-y-4">

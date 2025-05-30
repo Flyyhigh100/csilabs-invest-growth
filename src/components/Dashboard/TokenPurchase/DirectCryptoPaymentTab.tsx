@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { 
@@ -24,13 +23,14 @@ import {
 import { ArrowRight, CopyIcon, ExternalLink, RefreshCw } from 'lucide-react';
 import { useTokenPrice } from '@/context/TokenPriceContext';
 import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
 
 interface DirectCryptoPaymentTabProps {
   walletAddress: string;
+  amount: number;
 }
 
-const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletAddress }) => {
-  const [amount, setAmount] = useState<number>(100);
+const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletAddress, amount }) => {
   const [showPaymentInstructions, setShowPaymentInstructions] = useState(false);
   const { currentPrice } = useTokenPrice();
   
@@ -50,15 +50,6 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
   
   // Calculate token amount based on current price
   const tokenAmount = currentPrice ? amount / currentPrice : 0;
-
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value);
-    if (!isNaN(value) && value > 0) {
-      setAmount(value);
-    } else {
-      setAmount(0);
-    }
-  };
 
   const handleCreatePayment = async () => {
     if (amount < 10) {
@@ -121,20 +112,13 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
       {!showPaymentInstructions ? (
         <>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="payment-amount">Purchase amount (USD)</Label>
-              <div className="mt-1.5">
-                <Input
-                  id="payment-amount"
-                  type="number"
-                  min="10"
-                  value={amount}
-                  onChange={handleAmountChange}
-                  className="text-lg"
-                />
+            <div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
+              <h4 className="font-medium mb-1">Purchase Summary</h4>
+              <div className="text-lg font-semibold text-blue-900">
+                ${amount.toFixed(2)} USD
               </div>
               {currentPrice && (
-                <div className="mt-1 text-sm text-muted-foreground">
+                <div className="text-sm text-blue-700">
                   Approximately {tokenAmount.toFixed(2)} CSI tokens at ${currentPrice.toFixed(2)}/token
                 </div>
               )}
