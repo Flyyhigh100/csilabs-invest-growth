@@ -1,28 +1,36 @@
 
-import { UNISWAP_V3_POOL } from './config';
+import { makeDexScreenerCall } from './proxyService';
+import { isValidPrice } from './utils/priceValidation';
+import { UNISWAP_V3_POOL, ENABLE_LOGGING } from './config';
 
+/**
+ * Fetches current token price from DexScreener API via proxy
+ */
 export const fetchDexScreenerPrice = async (): Promise<number> => {
-  // Use V3 pool address as the default pair address
-  const PAIR = import.meta.env.VITE_PAIR_ADDRESS?.toLowerCase() || UNISWAP_V3_POOL;
-  
-  console.log('Fetching current price from DexScreener for pair:', PAIR);
-  
-  const res = await fetch(
-    `https://api.dexscreener.com/latest/dex/pairs/polygon/${PAIR}`
-  );
-  
-  if (!res.ok) {
-    throw new Error('DexScreener ' + res.status);
+  try {
+    if (ENABLE_LOGGING) {
+      console.log('Fetching price from DexScreener via proxy');
+    }
+    
+    const data = await makeDexScreenerCall(UNISWAP_V3_POOL);
+    
+    if (!data?.pair?.priceUsd) {
+      throw new Error('No price data returned from DexScreener');
+    }
+    
+    const price = parseFloat(data.pair.priceUsd);
+    
+    if (!isValidPrice(price)) {
+      throw new Error(`Invalid DexScreener price: ${price}`);
+    }
+    
+    if (ENABLE_LOGGING) {
+      console.log('Successfully fetched price from DexScreener via proxy:', price);
+    }
+    
+    return price;
+  } catch (error) {
+    console.error('Error fetching price from DexScreener via proxy:', error);
+    throw error;
   }
-
-  const json = await res.json();
-  console.log('DexScreener API response:', json);
-  
-  const price = Number(json.pair?.priceUsd);
-  if (!price) {
-    throw new Error('priceUsd missing');
-  }
-  
-  console.log('Validated current price:', price);
-  return price;
 };

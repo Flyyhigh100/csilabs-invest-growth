@@ -2,6 +2,7 @@
 import { ethers } from 'ethers';
 import IUniswapV3PoolABI from '@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json';
 import { isValidPrice } from './utils/priceValidation';
+import { makeRpcCall } from './proxyService';
 import { 
   ENABLE_LOGGING, 
   UNISWAP_V3_POOL, 
@@ -13,10 +14,6 @@ import {
 } from './config';
 import { setCachedPrice } from './utils/priceCache';
 
-const provider = new ethers.providers.JsonRpcProvider(import.meta.env.VITE_POLYGON_RPC || 'https://polygon-rpc.com');
-const poolAddr = UNISWAP_V3_POOL;
-const WINDOW_SEC = Number(import.meta.env.VITE_TWAP_WINDOW) || 900; // 15 minutes by default
-
 // Debug flag
 const DEBUG_TWAP = import.meta.env.VITE_DEBUG_TWAP === 'true';
 
@@ -24,9 +21,13 @@ const DEBUG_TWAP = import.meta.env.VITE_DEBUG_TWAP === 'true';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
+// Use proxy instead of direct RPC calls
+const POLYGON_RPC_URL = import.meta.env.VITE_POLYGON_RPC || 'https://polygon-bor.publicnode.com/';
+const WINDOW_SEC = Number(import.meta.env.VITE_TWAP_WINDOW) || 900; // 15 minutes by default
+
 /**
  * Fetches Time-Weighted Average Price (TWAP) for CSL token from Uniswap V3
- * Uses on-chain data from the V3 pool for better accuracy
+ * Uses proxy service to bypass network restrictions
  */
 export async function fetchOnchainTwap(): Promise<number> {
   let retries = 0;
@@ -34,15 +35,29 @@ export async function fetchOnchainTwap(): Promise<number> {
   while (retries <= MAX_RETRIES) {
     try {
       if (ENABLE_LOGGING || DEBUG_TWAP) {
-        console.log(`Fetching on-chain TWAP from pool ${poolAddr} with window ${WINDOW_SEC}s`);
+        console.log(`Fetching on-chain TWAP from pool ${UNISWAP_V3_POOL} with window ${WINDOW_SEC}s via proxy`);
       }
       
-      // Create contract instance
-      const pool = new ethers.Contract(poolAddr, IUniswapV3PoolABI.abi, provider);
-
       // Get actual token addresses from the pool to handle potential token ordering issues
-      const token0Address = (await pool.token0()).toLowerCase();
-      const token1Address = (await pool.token1()).toLowerCase();
+      const token0Result = await makeRpcCall('eth_call', [
+        {
+          to: UNISWAP_V3_POOL,
+          data: '0x0dfe1681' // token0() function selector
+        },
+        'latest'
+      ], POLYGON_RPC_URL);
+      
+      const token1Result = await makeRpcCall('eth_call', [
+        {
+          to: UNISWAP_V3_POOL,
+          data: '0xd21220a7' // token1() function selector
+        },
+        'latest'
+      ], POLYGON_RPC_URL);
+      
+      // Parse token addresses
+      const token0Address = ethers.utils.getAddress('0x' + token0Result.slice(-40)).toLowerCase();
+      const token1Address = ethers.utils.getAddress('0x' + token1Result.slice(-40)).toLowerCase();
       
       if (ENABLE_LOGGING || DEBUG_TWAP) {
         console.log(`Pool token0: ${token0Address}, Our V3_TOKEN0: ${V3_TOKEN0.toLowerCase()}`);
@@ -63,11 +78,28 @@ export async function fetchOnchainTwap(): Promise<number> {
         throw new Error('Token configuration mismatch with pool');
       }
 
-      // Get tick cumulatives from the pool
-      // tickCumulatives[0] = cumulative tick WINDOW_SEC seconds ago
-      // tickCumulatives[1] = current cumulative tick
-      const [tickCumulatives] = await pool.observe([WINDOW_SEC, 0]);
-      const tickAvg = (tickCumulatives[1].sub(tickCumulatives[0])).div(WINDOW_SEC);
+      // Get tick cumulatives from the pool using proxy
+      const observeCalldata = ethers.utils.defaultAbiCoder.encode(
+        ['uint32[]'],
+        [[WINDOW_SEC, 0]]
+      );
+      
+      const observeResult = await makeRpcCall('eth_call', [
+        {
+          to: UNISWAP_V3_POOL,
+          data: '0x883bdbfd' + observeCalldata.slice(2) // observe() function selector + calldata
+        },
+        'latest'
+      ], POLYGON_RPC_URL);
+      
+      // Decode the result
+      const decodedResult = ethers.utils.defaultAbiCoder.decode(
+        ['int56[]', 'uint160[]'],
+        observeResult
+      );
+      
+      const tickCumulatives = decodedResult[0];
+      const tickAvg = tickCumulatives[1].sub(tickCumulatives[0]).div(WINDOW_SEC);
       
       if (ENABLE_LOGGING || DEBUG_TWAP) {
         console.log(`Raw tick average: ${tickAvg}`);

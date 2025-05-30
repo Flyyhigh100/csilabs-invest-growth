@@ -1,60 +1,59 @@
-import { UNISWAP_V3_URL, UNISWAP_V3_POOL, COUNTER_TOKEN_SYMBOL, ENABLE_LOGGING } from './config';
 
-interface PoolData {
-  token0: { id: string; symbol: string; decimals: string };
-  token1: { id: string; symbol: string; decimals: string };
-  token0Price: string;
-  token1Price: string;
-}
+import { makeGraphQLCall } from './proxyService';
+import { isValidPrice } from './utils/priceValidation';
+import { ENABLE_LOGGING, UNISWAP_V3_POOL } from './config';
 
-const POOL_QUERY = `query ($id: ID!) {
-  pool(id: $id) {
-    token0 { id symbol decimals }
-    token1 { id symbol decimals }
-    token0Price
-    token1Price
-  }
-}`;
-
+/**
+ * Fetches current token price from Uniswap V3 subgraph via proxy
+ */
 export const fetchUniswapV3Price = async (): Promise<number> => {
   try {
-    const response = await fetch(UNISWAP_V3_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: POOL_QUERY, variables: { id: UNISWAP_V3_POOL } })
-    });
-
-    if (!response.ok) {
-      throw new Error(`V3 subgraph HTTP ${response.status}`);
-    }
-
-    const json = await response.json();
-    const pool: PoolData | undefined = json.data?.pool;
-    if (!pool) throw new Error('Pool not found in v3 subgraph');
-
-    let priceUSD: number | null = null;
-
-    if (pool.token0.symbol.toUpperCase() === COUNTER_TOKEN_SYMBOL) {
-      priceUSD = parseFloat(pool.token0Price);
-    } else if (pool.token1.symbol.toUpperCase() === COUNTER_TOKEN_SYMBOL) {
-      priceUSD = parseFloat(pool.token1Price);
-    } else {
-      throw new Error(`Neither side of pool is ${COUNTER_TOKEN_SYMBOL}`);
-    }
-
-    if (!priceUSD || isNaN(priceUSD) || priceUSD <= 0) {
-      throw new Error('Invalid price returned from v3');
-    }
-
     if (ENABLE_LOGGING) {
-      console.log('[V3] Price fetched', priceUSD);
+      console.log('Fetching Uniswap V3 price via proxy');
     }
-
-    return priceUSD;
-  } catch (err) {
+    
+    const query = `
+      query ($id: ID!) {
+        pool(id: $id) {
+          token0 { id symbol decimals }
+          token1 { id symbol decimals }
+          token0Price
+          token1Price
+        }
+      }
+    `;
+    
+    const variables = { id: UNISWAP_V3_POOL.toLowerCase() };
+    
+    const data = await makeGraphQLCall(query, variables);
+    
+    if (!data?.data?.pool) {
+      throw new Error(`Pool ${UNISWAP_V3_POOL} not found in V3 subgraph`);
+    }
+    
+    const pool = data.data.pool;
+    const token0Price = parseFloat(pool.token0Price);
+    const token1Price = parseFloat(pool.token1Price);
+    
+    // Determine which token is CSL and get its price in USDC
+    const cslTokenAddress = '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0';
+    const token0Address = pool.token0.id.toLowerCase();
+    const isCslToken0 = token0Address === cslTokenAddress.toLowerCase();
+    
+    // Get the price of CSL in terms of the other token
+    const rawPrice = isCslToken0 ? token1Price : token0Price;
+    
+    if (!isValidPrice(rawPrice)) {
+      throw new Error(`Invalid V3 price: ${rawPrice}`);
+    }
+    
     if (ENABLE_LOGGING) {
-      console.error('[V3] fetch price error:', err);
+      console.log('Successfully fetched Uniswap V3 price via proxy:', rawPrice);
     }
-    throw err;
+    
+    return rawPrice;
+  } catch (error) {
+    console.error('Error fetching Uniswap V3 price via proxy:', error);
+    throw error;
   }
-}; 
+};

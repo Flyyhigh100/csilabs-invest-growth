@@ -28,54 +28,68 @@ function convertSqrtPriceToPrice(sqrtPriceX96, decimals0 = 18, decimals1 = 6) {
   }
 }
 
-// Helper function to fetch pool data from the Uniswap V3 subgraph
-async function fetchV3PoolData(poolAddress) {
+// Helper function to make proxy requests
+async function makeProxyRequest(source: string, method = 'GET', url?: string, body?: any) {
   try {
-    const subgraphEndpoint = 'https://gateway.thegraph.com/api/39814f0ec0acd4d370f434eefa12fa7c/subgraphs/id/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm';
+    const proxyUrl = 'https://hrhvliqkmetcdphnetxb.supabase.co/functions/v1/crypto-price-proxy';
     
-    if (isDebugEnabled()) {
-      console.log(`[DEBUG] Fetching data for V3 pool: ${poolAddress}`);
-    }
-    
-    const response = await fetch(subgraphEndpoint, {
+    const response = await fetch(proxyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: `
-          query ($id: ID!) {
-            pool(id: $id) {
-              token0 { id symbol decimals }
-              token1 { id symbol decimals }
-              sqrtPrice
-              token0Price
-              token1Price
-            }
-          }
-        `,
-        variables: { id: poolAddress.toLowerCase() }
-      })
+      body: JSON.stringify({ source, method, url, body })
     });
     
     if (!response.ok) {
-      throw new Error(`Subgraph status: ${response.status} ${response.statusText}`);
+      throw new Error(`Proxy request failed: ${response.status} ${response.statusText}`);
     }
     
-    const data = await response.json();
+    const result = await response.json();
     
-    if (data.errors) {
-      throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
+    if (!result.success) {
+      throw new Error(result.error || 'Proxy request failed');
     }
     
-    if (!data.data?.pool) {
+    return result.data;
+  } catch (error) {
+    console.error(`Error making proxy request for ${source}:`, error);
+    throw error;
+  }
+}
+
+// Helper function to fetch pool data from the Uniswap V3 subgraph via proxy
+async function fetchV3PoolData(poolAddress) {
+  try {
+    if (isDebugEnabled()) {
+      console.log(`[DEBUG] Fetching data for V3 pool via proxy: ${poolAddress}`);
+    }
+    
+    const query = `
+      query ($id: ID!) {
+        pool(id: $id) {
+          token0 { id symbol decimals }
+          token1 { id symbol decimals }
+          sqrtPrice
+          token0Price
+          token1Price
+        }
+      }
+    `;
+    
+    const data = await makeProxyRequest('graph', 'POST', undefined, {
+      query,
+      variables: { id: poolAddress.toLowerCase() }
+    });
+    
+    if (!data?.data?.pool) {
       throw new Error(`Pool ${poolAddress} not found in V3 subgraph`);
     }
     
     return {
       data,
-      source: subgraphEndpoint
+      source: 'v3-subgraph-proxy'
     };
   } catch (error) {
-    console.error("Error fetching V3 pool data:", error);
+    console.error("Error fetching V3 pool data via proxy:", error);
     throw error;
   }
 }
@@ -84,12 +98,14 @@ async function fetchV3PoolData(poolAddress) {
 function generateMockData(poolAddress) {
   return {
     data: {
-      pool: {
-        sqrtPrice: "1234567890123456789012345678901234567890",
-        token0Price: "0.5",
-        token1Price: "2.0",
-        token0: { id: "0xcba5ca199bca0af3f6046da01169035f2c6a7ff0", symbol: "CSL", decimals: "18" },
-        token1: { id: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359", symbol: "USDC", decimals: "6" }
+      data: {
+        pool: {
+          sqrtPrice: "1234567890123456789012345678901234567890",
+          token0Price: "0.5",
+          token1Price: "2.0",
+          token0: { id: "0xcba5ca199bca0af3f6046da01169035f2c6a7ff0", symbol: "CSL", decimals: "18" },
+          token1: { id: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359", symbol: "USDC", decimals: "6" }
+        }
       }
     },
     source: "mock-data"
@@ -103,29 +119,29 @@ async function fetchTwapStatus() {
     const V3_POOL = Deno.env.get("VITE_V3_POOL") || '0xb85372c56884a906ab33c0e99fea572c7c6ad7eb';
     
     if (isDebugEnabled()) {
-      console.log(`[DEBUG] Fetching status for V3 pool: ${V3_POOL}`);
+      console.log(`[DEBUG] Fetching status for V3 pool via proxy: ${V3_POOL}`);
     }
 
     let result;
-    let dataSource = "v3Subgraph";
+    let dataSource = "v3SubgraphProxy";
     
     try {
-      // Try to fetch data from the V3 subgraph
+      // Try to fetch data from the V3 subgraph via proxy
       result = await fetchV3PoolData(V3_POOL);
-      dataSource = "v3Subgraph";
+      dataSource = "v3SubgraphProxy";
       
       if (isDebugEnabled()) {
-        console.log(`[DEBUG] Successfully retrieved data from ${result.source}`);
+        console.log(`[DEBUG] Successfully retrieved data via proxy from ${result.source}`);
       }
     } catch (mainError) {
-      console.warn("V3 subgraph query failed, using mock data:", mainError);
-      // If the main endpoint fails, use mock data
+      console.warn("V3 subgraph proxy query failed, using mock data:", mainError);
+      // If the proxy fails, use mock data
       result = generateMockData(V3_POOL);
       dataSource = "mockData";
     }
     
     if (isDebugEnabled()) {
-      console.log("[DEBUG] Subgraph response:", JSON.stringify(result.data));
+      console.log("[DEBUG] Response via proxy:", JSON.stringify(result.data));
     }
 
     // Get data from result
@@ -163,11 +179,12 @@ async function fetchTwapStatus() {
         rawCalculatedPrice: rawPrice,
         token0: pool.token0,
         token1: pool.token1,
-        isCslToken0
+        isCslToken0,
+        usingProxy: true
       }
     };
   } catch (error) {
-    console.error("Error fetching TWAP status:", error);
+    console.error("Error fetching TWAP status via proxy:", error);
     
     return {
       lastAttempt: new Date().toISOString(),
@@ -176,26 +193,27 @@ async function fetchTwapStatus() {
       source: "error",
       diagnostics: {
         error: error instanceof Error ? error.message : String(error),
-        errorType: error.constructor.name
+        errorType: error.constructor.name,
+        usingProxy: true
       }
     };
   }
 }
 
-// Add an endpoint to directly test the V3 subgraph connection
+// Add an endpoint to directly test the V3 subgraph connection via proxy
 async function testV3Connection(poolAddress) {
   try {
     let data;
     let endpoint = "";
     
     try {
-      // Try to fetch data from the V3 subgraph
+      // Try to fetch data from the V3 subgraph via proxy
       const result = await fetchV3PoolData(poolAddress);
       data = result.data;
       endpoint = result.source;
     } catch (error) {
-      console.warn("V3 endpoint failed, using mock data:", error);
-      // If the endpoint fails, use mock data
+      console.warn("V3 endpoint proxy failed, using mock data:", error);
+      // If the proxy fails, use mock data
       const result = generateMockData(poolAddress);
       data = result.data;
       endpoint = result.source;
@@ -205,13 +223,15 @@ async function testV3Connection(poolAddress) {
       success: true,
       data,
       endpoint,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      usingProxy: true
     };
   } catch (error) {
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      usingProxy: true
     };
   }
 }
