@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -35,17 +34,21 @@ const ResearchDocuments: React.FC = () => {
             </div>
           </FadeInSection>
 
-          {/* Latest Research Update Video - Modern Wistia Web Component */}
+          {/* Latest Research Update Video - YouTube */}
           <FadeInSection>
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-4">Latest Research Update</h2>
               <div className="bg-white p-4 rounded-lg shadow-md">
                 <div className="w-full max-w-4xl mx-auto">
-                  <wistia-player 
-                    media-id="mbfp6iuabu" 
-                    aspect="1.7777777777777777"
-                    style={{ width: '100%', height: 'auto' }}
-                  />
+                  <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-md">
+                    <iframe 
+                      src="https://www.youtube.com/embed/I8nlQvVUxuw" 
+                      title="Latest Research Update" 
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                      className="w-full h-full border-0" 
+                      allowFullScreen
+                    />
+                  </AspectRatio>
                 </div>
                 <div className="mt-4 text-center">
                   <h3 className="font-medium text-lg">Latest Research Insights</h3>
