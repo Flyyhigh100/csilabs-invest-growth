@@ -41,7 +41,11 @@ const ResearchDocuments: React.FC = () => {
               <h2 className="text-2xl font-bold mb-4">Latest Research Update</h2>
               <div className="bg-white p-4 rounded-lg shadow-md">
                 <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-md">
-                  <wistia-player media-id="mbfp6iuabu" aspect="1.7777777777777777"></wistia-player>
+                  <div 
+                    dangerouslySetInnerHTML={{
+                      __html: '<wistia-player media-id="mbfp6iuabu" aspect="1.7777777777777777"></wistia-player>'
+                    }}
+                  />
                 </AspectRatio>
                 <div className="mt-4 text-center">
                   <h3 className="font-medium text-lg">Latest Research Insights</h3>
