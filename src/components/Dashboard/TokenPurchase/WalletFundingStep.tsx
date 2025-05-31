@@ -66,7 +66,7 @@ const WalletFundingStep: React.FC<WalletFundingStepProps> = ({
           </li>
           <li className="flex items-start gap-2">
             <div className="min-w-4 mt-0.5">2.</div>
-            <p>Recommended crypto options to purchase CSL tokens: BTC, Ethereum, Polygon, Solana, USDC (on Polygon or Solana).</p>
+            <p>Recommended crypto options to purchase CSL tokens: BTC, Ethereum, Polygon, Solana, or (USDC & USDT on Polygon or Solana).</p>
           </li>
           <li className="flex items-start gap-2">
             <div className="min-w-4 mt-0.5">3.</div>
