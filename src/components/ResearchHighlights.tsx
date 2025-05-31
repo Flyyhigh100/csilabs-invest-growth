@@ -5,11 +5,13 @@ import FadeInSection from './FadeInSection';
 import FeatureCard from './FeatureCard';
 import { BeakerIcon, BrainCircuit, FilePieChart, TrendingUp, DollarSign, ShieldCheck } from 'lucide-react';
 import { Button } from './ui/button';
+
 const ResearchHighlights: React.FC = () => {
-  return <section className="section-padding bg-white">
+  return (
+    <section className="section-padding bg-white">
       <div className="container-custom">
         <FadeInSection>
-          <div className="text-center mb-16 max-w-3xl mx-auto">
+          <div className="text-center mb-8 max-w-3xl mx-auto">
             <div className="inline-block px-3 py-1 mb-4 text-xs font-medium tracking-wider uppercase rounded-full text-cbis-blue bg-blue-50 border border-blue-100">
               Affordable Cancer Treatment
             </div>
@@ -17,14 +19,14 @@ const ResearchHighlights: React.FC = () => {
               Your Support will help make Cancer Treatments Affordable For Millions
             </h2>
             <p className="text-gray-600">Our treatments are designed to be accessible to the millions of cancer patients who cannot afford today's high-cost drugs, providing effective cancer cell elimination without the harsh side effects of chemical therapies. Our next Steps are academic, our Award Winning pre-clinical and clinical work at Harvard and other institutions will make up our pharmacokinetics, clinical translation, and protocols. All of this work will be infused into our FDA IND# application seeking approvals begin formal human clinical trials.</p>
-            
-            <FadeInSection delay={150}>
-              <div className="mt-12 mb-16">
-                <Button asChild size="lg" className="px-6 py-3 font-medium text-white bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 transition-all">
-                  <Link to="/signup" className="">Purchase Now to Contribute</Link>
-                </Button>
-              </div>
-            </FadeInSection>
+          </div>
+        </FadeInSection>
+
+        <FadeInSection delay={150}>
+          <div className="text-center my-12">
+            <Button asChild size="lg" className="px-6 py-3 font-medium text-white bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 transition-all">
+              <Link to="/signup" className="">Purchase Now to Contribute</Link>
+            </Button>
           </div>
         </FadeInSection>
 
@@ -46,6 +48,8 @@ const ResearchHighlights: React.FC = () => {
           </FadeInSection>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };
+
 export default ResearchHighlights;
