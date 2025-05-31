@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { DollarSign } from 'lucide-react';
@@ -12,24 +11,25 @@ import WalletMissingContent from './TokenPurchase/WalletMissingContent';
 import PurchaseGuide from './TokenPurchase/PurchaseGuide';
 import { TokenPriceProvider, useTokenPrice } from '@/context/TokenPriceContext';
 import PaymentTabs from './TokenPurchase/PaymentTabs';
-
 interface BuyTokensTabProps {
   walletAddress: string | null;
   isDirectPurchase?: boolean;
 }
-
 const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
   walletAddress,
   isDirectPurchase = false
 }) => {
   const [amount, setAmount] = useState<number>(100);
   const [selectedCurrency, setSelectedCurrency] = useState<string>("USDT");
-  const { kycData } = useKycVerification();
-  
+  const {
+    kycData
+  } = useKycVerification();
+
   // Wrap content that uses TokenPrice context with TokenPriceProvider
   const BuyTokensContent = () => {
-    const { currentPrice } = useTokenPrice();
-    
+    const {
+      currentPrice
+    } = useTokenPrice();
     const {
       isProcessing,
       showCryptoDialog,
@@ -39,7 +39,6 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
       handleCoinPaymentsPayment,
       kycRequired
     } = usePaymentHandlers(walletAddress);
-
     const isKycNeeded = kycRequired(amount) && kycData?.status !== 'approved';
     const isWalletMissing = !walletAddress;
 
@@ -48,28 +47,19 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
       // Pass current token price to the payment handler
       return await handleStripeCryptoOnramp(amount, currentPrice);
     };
-
     const handleCoinPaymentWithCurrency = () => {
       console.log('[BuyTokensTab] Initiating CoinPayments with amount:', amount, 'and selected currency:', selectedCurrency);
       // Pass current token price to the payment handler
       handleCoinPaymentsPayment(amount, selectedCurrency, currentPrice);
     };
-
     const handleDialogOpenChange = (show: boolean) => {
       setShowCryptoDialog(show);
     };
-
-    return (
-      <>
-        {walletAddress ? (
-          <>
+    return <>
+        {walletAddress ? <>
             <PurchaseGuide />
             
-            <TokenCalculator 
-              amount={amount} 
-              onChange={setAmount} 
-              disabled={isProcessing} 
-            />
+            <TokenCalculator amount={amount} onChange={setAmount} disabled={isProcessing} />
             
             <KycRequirementAlert amount={amount} kycData={kycData} />
             
@@ -79,39 +69,16 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
               </h3>
               
               {/* Always show PaymentTabs - this includes our new Direct Crypto option */}
-              <PaymentTabs 
-                amount={amount}
-                selectedCurrency={selectedCurrency}
-                setSelectedCurrency={setSelectedCurrency}
-                walletAddress={walletAddress}
-                handleStripeCryptoOnramp={handleStripeCryptoOnrampWrapper}
-                handleCoinPaymentWithCurrency={handleCoinPaymentWithCurrency}
-                isProcessing={isProcessing}
-                isKycNeeded={isKycNeeded}
-                isWalletMissing={isWalletMissing}
-                kycData={kycData}
-              />
+              <PaymentTabs amount={amount} selectedCurrency={selectedCurrency} setSelectedCurrency={setSelectedCurrency} walletAddress={walletAddress} handleStripeCryptoOnramp={handleStripeCryptoOnrampWrapper} handleCoinPaymentWithCurrency={handleCoinPaymentWithCurrency} isProcessing={isProcessing} isKycNeeded={isKycNeeded} isWalletMissing={isWalletMissing} kycData={kycData} />
             </div>
             
             {isProcessing && <ProcessingIndicator />}
-          </>
-        ) : (
-          <WalletMissingContent />
-        )}
+          </> : <WalletMissingContent />}
         
-        <CryptoPaymentDialog 
-          open={showCryptoDialog} 
-          onOpenChange={handleDialogOpenChange} 
-          paymentDetails={cryptoPaymentDetails}
-          amount={amount} 
-          selectedCurrency={selectedCurrency} 
-        />
-      </>
-    );
+        <CryptoPaymentDialog open={showCryptoDialog} onOpenChange={handleDialogOpenChange} paymentDetails={cryptoPaymentDetails} amount={amount} selectedCurrency={selectedCurrency} />
+      </>;
   };
-
-  return (
-    <Card className="shadow-lg border-cbis-blue/10 overflow-hidden">
+  return <Card className="shadow-lg border-cbis-blue/10 overflow-hidden">
       <div className="h-2 bg-gradient-to-r from-cbis-blue to-cbis-teal"></div>
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -120,9 +87,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
               <DollarSign className="h-5 w-5 text-cbis-teal" />
               Purchase CSi Tokens
             </CardTitle>
-            <CardDescription className="text-gray-600 mt-1">
-              Choose your payment method and amount to purchase CSi tokens
-            </CardDescription>
+            <CardDescription className="text-gray-600 mt-1">Choose your amount of CSi Labs to Purchase</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -132,8 +97,6 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
           <BuyTokensContent />
         </TokenPriceProvider>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default BuyTokensTab;
