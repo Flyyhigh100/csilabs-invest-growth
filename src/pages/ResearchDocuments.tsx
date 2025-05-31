@@ -34,13 +34,22 @@ const ResearchDocuments: React.FC = () => {
             </div>
           </FadeInSection>
 
-          {/* Latest Research Update Video - Wistia */}
+          {/* Latest Research Update Video - Wistia with Autoplay */}
           <FadeInSection>
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-4">Latest Research Update</h2>
               <div className="bg-white p-4 rounded-lg shadow-md">
                 <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-md">
-                  <wistia-player media-id="mbfp6iuabu" aspect="1.7777777777777777" className="w-full h-full"></wistia-player>
+                  <wistia-player 
+                    media-id="mbfp6iuabu" 
+                    aspect="1.7777777777777777"
+                    autoplay="true"
+                    muted="true"
+                    preload="auto"
+                    playsinline="true"
+                    controls="true"
+                    className="w-full h-full"
+                  />
                 </AspectRatio>
                 <div className="mt-4 text-center">
                   <h3 className="font-medium text-lg">Latest Research Insights</h3>

@@ -28,17 +28,21 @@
     <meta name="twitter:description" content="Join the 1-Million STRONG campaign with CBIS token to support cannabinoid cancer research, clinical trials, and innovative treatments for multiple cancer types." />
     <meta name="twitter:image" content="/Newlogo.jpg" />
 
-    <!-- Wistia Scripts -->
-    <script src="https://fast.wistia.com/player.js" async></script>
-    <script src="https://fast.wistia.com/embed/mbfp6iuabu.js" async type="module"></script>
+    <!-- Preload hints for better performance -->
+    <link rel="preload" href="https://fast.wistia.com/player.js" as="script">
+    <link rel="preload" href="https://fast.wistia.com/embed/mbfp6iuabu.js" as="script">
+
+    <!-- Wistia Scripts - removed async for faster loading -->
+    <script src="https://fast.wistia.com/player.js"></script>
+    <script src="https://fast.wistia.com/embed/mbfp6iuabu.js" type="module"></script>
     
-    <!-- Wistia Styles -->
+    <!-- Wistia Styles - improved placeholder without blur for smoother loading -->
     <style>
       wistia-player[media-id='mbfp6iuabu']:not(:defined) { 
         background: center / contain no-repeat url('https://fast.wistia.com/embed/medias/mbfp6iuabu/swatch'); 
         display: block; 
-        filter: blur(5px); 
         padding-top: 56.25%; 
+        background-color: #f3f4f6;
       }
     </style>
   </head>
