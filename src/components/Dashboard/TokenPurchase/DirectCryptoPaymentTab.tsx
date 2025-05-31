@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDirectCryptoPayment } from '@/hooks/payments/useDirectCryptoPayment';
@@ -68,7 +67,7 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
   };
 
   const handleNavigateToTransactions = () => {
-    navigate('/transactions');
+    navigate('/dashboard/transactions');
   };
 
   if (isLoadingAddresses) {
