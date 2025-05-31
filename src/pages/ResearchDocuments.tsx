@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -35,19 +34,13 @@ const ResearchDocuments: React.FC = () => {
             </div>
           </FadeInSection>
 
-          {/* Latest Research Update Video */}
+          {/* Latest Research Update Video - Wistia */}
           <FadeInSection>
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-4">Latest Research Update</h2>
               <div className="bg-white p-4 rounded-lg shadow-md">
                 <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-md">
-                  <iframe 
-                    src="https://ai.invideo.io/watch/_3yp5v0y87T" 
-                    title="Latest Research Update" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    className="w-full h-full border-0" 
-                    allowFullScreen
-                  ></iframe>
+                  <wistia-player media-id="mbfp6iuabu" aspect="1.7777777777777777" className="w-full h-full"></wistia-player>
                 </AspectRatio>
                 <div className="mt-4 text-center">
                   <h3 className="font-medium text-lg">Latest Research Insights</h3>
