@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -7,6 +8,7 @@ import DocumentViewer from '@/components/ResearchDocuments/DocumentViewer';
 import CategoryFilter from '@/components/ResearchDocuments/CategoryFilter';
 import { useResearchDocuments } from '@/hooks/research/useResearchDocuments';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+
 const ResearchDocuments: React.FC = () => {
   const {
     filteredDocuments,
@@ -18,7 +20,9 @@ const ResearchDocuments: React.FC = () => {
     setSelectedPdf,
     refreshDocuments
   } = useResearchDocuments();
-  return <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <Navbar />
       <div className="pt-24 pb-16">
         <div className="container-custom">
@@ -28,6 +32,28 @@ const ResearchDocuments: React.FC = () => {
                 Award Winning <span className="bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent">Research Documentation</span>
               </h1>
               <p className="text-lg text-gray-600 max-w-3xl mx-auto">Explore CSi Labs' Harvard Award Winning peer-reviewed research reports and documentation, along with other studies supporting our low-cost cannabinoid-based cancer killing treatments.</p>
+            </div>
+          </FadeInSection>
+
+          {/* Latest Research Update Video */}
+          <FadeInSection>
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold mb-4">Latest Research Update</h2>
+              <div className="bg-white p-4 rounded-lg shadow-md">
+                <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-md">
+                  <iframe 
+                    src="https://ai.invideo.io/watch/_3yp5v0y87T" 
+                    title="Latest Research Update" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    className="w-full h-full border-0" 
+                    allowFullScreen
+                  ></iframe>
+                </AspectRatio>
+                <div className="mt-4 text-center">
+                  <h3 className="font-medium text-lg">Latest Research Insights</h3>
+                  <p className="text-gray-600 text-sm">Our most recent findings and research developments</p>
+                </div>
+              </div>
             </div>
           </FadeInSection>
 
@@ -63,6 +89,8 @@ const ResearchDocuments: React.FC = () => {
       <DocumentViewer document={selectedPdf} open={!!selectedPdf} onOpenChange={open => !open && setSelectedPdf(null)} />
 
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default ResearchDocuments;
