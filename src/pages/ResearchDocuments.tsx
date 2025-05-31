@@ -6,6 +6,7 @@ import FadeInSection from '@/components/FadeInSection';
 import DocumentsGrid from '@/components/ResearchDocuments/DocumentsGrid';
 import DocumentViewer from '@/components/ResearchDocuments/DocumentViewer';
 import CategoryFilter from '@/components/ResearchDocuments/CategoryFilter';
+import WistiaPlayer from '@/components/WistiaPlayer';
 import { useResearchDocuments } from '@/hooks/research/useResearchDocuments';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 
@@ -41,10 +42,10 @@ const ResearchDocuments: React.FC = () => {
               <h2 className="text-2xl font-bold mb-4">Latest Research Update</h2>
               <div className="bg-white p-4 rounded-lg shadow-md">
                 <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-md">
-                  <div 
-                    dangerouslySetInnerHTML={{
-                      __html: '<wistia-player media-id="mbfp6iuabu" aspect="1.7777777777777777"></wistia-player>'
-                    }}
+                  <WistiaPlayer 
+                    mediaId="mbfp6iuabu" 
+                    aspect="1.7777777777777777"
+                    className="w-full h-full"
                   />
                 </AspectRatio>
                 <div className="mt-4 text-center">
