@@ -61,7 +61,7 @@ const PurchasePathSelector: React.FC<PurchasePathSelectorProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <PurchaseMethodCard 
           title="Direct Charitable Contribution" 
-          description="Purchase directly from CSi using CoinPayments. Funds support company operations and development."
+          description="Buy Direct @ Current Spot price directly from CSi Labs. Funds support company operations and development."
           icon={<DollarSign className="h-6 w-6" />} 
           onClick={handleSelectCoinPayments} 
           buttonLabel="Contribute Now" 
