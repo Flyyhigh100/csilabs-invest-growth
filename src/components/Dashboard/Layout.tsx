@@ -82,7 +82,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         <div className="flex-1 overflow-auto pt-16">
           <main className="py-4 md:py-6 px-4 md:px-6 lg:px-8">
             <div className="mb-4 md:mb-6">
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900">
+              <h1 className={`${title === "Buy Tokens" ? "text-2xl md:text-3xl lg:text-4xl font-extrabold bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent leading-tight" : "text-xl md:text-2xl font-bold text-gray-900"}`}>
                 {title === "Buy Tokens" ? (
                   <>
                     Limited Time Pre-Launch Special!<br />
