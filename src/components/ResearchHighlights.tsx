@@ -19,9 +19,9 @@ const ResearchHighlights: React.FC = () => {
             <p className="text-gray-600">Our treatments are designed to be accessible to the millions of cancer patients who cannot afford today's high-cost drugs, providing effective cancer cell elimination without the harsh side effects of chemical therapies. Our next Steps are academic, our Award Winning pre-clinical and clinical work at Harvard and other institutions will make up our pharmacokinetics, clinical translation, and protocols. All of this work will be infused into our FDA IND# application seeking approvals begin formal human clinical trials.</p>
             
             <FadeInSection delay={150}>
-              <div className="mt-8">
+              <div className="mt-12 mb-16">
                 <Button asChild size="lg" className="px-6 py-3 font-medium text-white bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 transition-all">
-                  <Link to="/auth/register" className="">Purchase Now to Contribute</Link>
+                  <Link to="/signup" className="">Purchase Now to Contribute</Link>
                 </Button>
               </div>
             </FadeInSection>
