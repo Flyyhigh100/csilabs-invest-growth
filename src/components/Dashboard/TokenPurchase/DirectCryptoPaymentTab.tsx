@@ -1,277 +1,140 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { 
-  useDirectCryptoPayment 
-} from '@/hooks/payments/useDirectCryptoPayment';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { ArrowRight, CopyIcon, ExternalLink, RefreshCw } from 'lucide-react';
-import { useTokenPrice } from '@/context/TokenPriceContext';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Coins, Copy, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
-import { Input } from '@/components/ui/input';
 
 interface DirectCryptoPaymentTabProps {
   walletAddress: string;
   amount: number;
 }
 
-const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletAddress, amount }) => {
-  const [showPaymentInstructions, setShowPaymentInstructions] = useState(false);
-  const { currentPrice } = useTokenPrice();
-  
-  const {
-    selectedNetwork,
-    selectedCurrency,
-    availableNetworks,
-    availableCurrencies,
-    walletAddresses,
-    isLoadingAddresses,
-    isCreatingPayment,
-    setSelectedNetwork,
-    setSelectedCurrency,
-    createPayment,
-    paymentResult
-  } = useDirectCryptoPayment();
-  
-  // Calculate token amount based on current price
-  const tokenAmount = currentPrice ? amount / currentPrice : 0;
-
-  const handleCreatePayment = async () => {
-    if (amount < 1) {
-      toast.error('Minimum amount is $1');
-      return;
-    }
-
-    try {
-      const result = await createPayment(amount, walletAddress);
-      if (result) {
-        setShowPaymentInstructions(true);
-      }
-    } catch (error) {
-      console.error('Error creating payment:', error);
-    }
-  };
-
-  const copyToClipboard = (text: string | undefined, description: string) => {
-    if (!text) return;
-    
+const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({
+  walletAddress,
+  amount
+}) => {
+  const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast.success(`Copied ${description} to clipboard`);
+    toast.success(`${label} copied to clipboard`);
   };
-
-  const handleExternalLink = (address: string | undefined) => {
-    if (!address) return;
-    
-    const baseUrl = selectedNetwork === 'polygon' 
-      ? 'https://polygonscan.com/address/' 
-      : 'https://solscan.io/account/';
-    
-    window.open(baseUrl + address, '_blank');
-  };
-
-  if (isLoadingAddresses) {
-    return (
-      <div className="flex items-center justify-center p-6">
-        <RefreshCw className="w-5 h-5 animate-spin mr-2" />
-        <span>Loading payment options...</span>
-      </div>
-    );
-  }
-
-  if (walletAddresses.length === 0) {
-    return (
-      <div className="text-center p-6 border rounded-md bg-gray-50">
-        <h3 className="text-lg font-medium mb-2">Direct payments unavailable</h3>
-        <p className="text-muted-foreground mb-4">
-          No company wallet addresses are currently configured. Please try another payment method.
-        </p>
-        <div className="text-sm text-gray-500">
-          Contact support if you believe this is an error.
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
-      {!showPaymentInstructions ? (
-        <>
-          <div className="space-y-4">
-            <div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
-              <h4 className="font-medium mb-1">Purchase Summary</h4>
-              <div className="text-lg font-semibold text-blue-900">
-                ${amount.toFixed(2)} USD
-              </div>
-              {currentPrice && (
-                <div className="text-sm text-blue-700">
-                  Approximately {tokenAmount.toFixed(2)} CSI tokens at ${currentPrice.toFixed(2)}/token
-                </div>
-              )}
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="network-select">Network</Label>
-                <Select 
-                  value={selectedNetwork} 
-                  onValueChange={(value) => setSelectedNetwork(value as 'polygon' | 'solana')}
-                >
-                  <SelectTrigger id="network-select" className="mt-1.5">
-                    <SelectValue placeholder="Select network" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableNetworks.map((network) => (
-                      <SelectItem key={network} value={network}>
-                        {network === 'polygon' ? 'Polygon' : 'Solana'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="currency-select">Currency</Label>
-                <Select 
-                  value={selectedCurrency} 
-                  onValueChange={(value) => setSelectedCurrency(value as 'USDT' | 'USDC')}
-                >
-                  <SelectTrigger id="currency-select" className="mt-1.5">
-                    <SelectValue placeholder="Select currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableCurrencies.map((currency) => (
-                      <SelectItem key={currency} value={currency}>
-                        {currency}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-          
-          <div>
-            <Button 
-              onClick={handleCreatePayment} 
-              className="w-full"
-              disabled={isCreatingPayment || amount < 1}
-              size="lg"
-            >
-              {isCreatingPayment ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Creating payment...
-                </>
-              ) : (
-                <>
-                  Continue with Direct ${selectedCurrency} Payment
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
-            <p className="mt-2 text-xs text-center text-muted-foreground">
-              Send stablecoins directly from your wallet to our address
-            </p>
-          </div>
-        </>
-      ) : (
-        <Card className="border-2 border-primary/20">
-          <CardHeader className="bg-primary/5">
-            <CardTitle className="text-center">Payment Instructions</CardTitle>
-            <CardDescription className="text-center">
-              Please complete your payment within 5 minutes
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6 space-y-4">
-            <div className="rounded-lg bg-muted p-4">
-              <h4 className="font-medium mb-1">Send exactly</h4>
-              <div className="text-2xl font-bold mb-2">
-                {paymentResult?.expected_crypto_amount} {paymentResult?.currency}
-              </div>
-              <div className="text-sm text-muted-foreground mb-2">
-                (${amount.toFixed(2)} USD value)
-              </div>
-              <div className="text-xs text-amber-600">
-                Payment will expire on {paymentResult?.timeout_at ? new Date(paymentResult?.timeout_at).toLocaleTimeString() : ''}
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Send to this wallet address:</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <Input 
-                  value={paymentResult?.payment_address || ''} 
-                  readOnly 
-                  className="font-mono text-xs"
-                />
-                <Button 
-                  size="icon" 
-                  variant="outline"
-                  onClick={() => copyToClipboard(paymentResult?.payment_address, 'wallet address')}
-                >
-                  <CopyIcon className="h-4 w-4" />
-                </Button>
-                <Button 
-                  size="icon" 
-                  variant="outline"
-                  onClick={() => handleExternalLink(paymentResult?.payment_address)}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            
-            <div className="rounded-lg border p-4">
-              <h4 className="font-medium mb-2">Payment Details</h4>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="text-muted-foreground">Network:</div>
-                <div className="font-medium">{paymentResult?.network === 'polygon' ? 'Polygon' : 'Solana'}</div>
-                <div className="text-muted-foreground">Currency:</div>
-                <div className="font-medium">{paymentResult?.currency}</div>
-                <div className="text-muted-foreground">Transaction ID:</div>
-                <div className="font-medium truncate">{paymentResult?.transaction_id}</div>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex-col space-y-2">
-            <div className="text-sm text-center text-muted-foreground mb-2">
-              After sending payment, our team will verify and credit your account.
-            </div>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowPaymentInstructions(false)}
-              className="w-full"
-            >
-              Back to payment options
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-      
-      <div className="space-y-4 pt-4 border-t">
-        <h4 className="font-medium">Important Notes</h4>
-        <ul className="space-y-2 text-sm text-muted-foreground list-disc pl-5">
-          <li>Send only {selectedCurrency} on the {selectedNetwork} network</li>
-          <li>Payment will be verified manually by our team</li>
-          <li>Tokens will be distributed after verification (typically within 24 hours)</li>
-          <li>Minimum purchase amount is $1</li>
-        </ul>
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <div className="flex items-center justify-center gap-2">
+          <Coins className="h-6 w-6 text-cbis-blue" />
+          <h3 className="text-xl font-semibold">Direct Crypto Payment</h3>
+        </div>
+        <p className="text-gray-600">
+          Send crypto directly to purchase CSi Labs (CSL) tokens at current market price
+        </p>
       </div>
+
+      {/* Payment Instructions */}
+      <Card className="border-blue-100 bg-blue-50/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-blue-600" />
+            Payment Instructions
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium flex-shrink-0 mt-0.5">
+                1
+              </div>
+              <div>
+                <p className="font-medium text-gray-800">Choose Your Cryptocurrency</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Recommended crypto options to purchase CSi Labs (CSL) tokens: USDT, USDC, BTC, Ethereum, Polygon, Solana, BNB (on Polygon or Solana Networks).
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium flex-shrink-0 mt-0.5">
+                2
+              </div>
+              <div>
+                <p className="font-medium text-gray-800">Send Payment</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Send your chosen cryptocurrency to the payment address provided in your purchase confirmation.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium flex-shrink-0 mt-0.5">
+                3
+              </div>
+              <div>
+                <p className="font-medium text-gray-800">Receive Tokens</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  CSi Labs (CSL) tokens will be sent to your registered wallet address once payment is confirmed.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
+            <div className="flex items-start gap-2">
+              <Clock className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-yellow-800">Processing Time</p>
+                <p className="text-xs text-yellow-700 mt-1">
+                  Token distribution typically occurs within 24-48 hours after payment confirmation.
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Current Wallet */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Your Registered Wallet</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-700">Delivery Address:</p>
+              <p className="text-xs font-mono text-gray-600 break-all">{walletAddress}</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => copyToClipboard(walletAddress, 'Wallet address')}
+              className="ml-2 flex-shrink-0"
+            >
+              <Copy className="h-3 w-3" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Contact Information */}
+      <Card className="border-green-100 bg-green-50/30">
+        <CardContent className="pt-6">
+          <div className="text-center space-y-2">
+            <CheckCircle className="h-8 w-8 text-green-600 mx-auto" />
+            <h4 className="font-semibold text-green-800">Ready to Purchase?</h4>
+            <p className="text-sm text-green-700">
+              Contact our team to initiate your direct crypto payment and receive detailed payment instructions.
+            </p>
+            <Button 
+              className="mt-3 bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => window.open('mailto:support@csilabs.com?subject=Direct%20Crypto%20Payment%20Request', '_blank')}
+            >
+              Contact Support Team
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
