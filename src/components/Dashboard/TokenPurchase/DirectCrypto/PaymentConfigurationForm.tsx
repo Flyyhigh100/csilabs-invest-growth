@@ -67,7 +67,7 @@ const PaymentConfigurationForm: React.FC<PaymentConfigurationFormProps> = ({
           isMobile ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"
         )}>
           <div>
-            <Label htmlFor="network-select" className="text-sm">Choose Payment Coin Network</Label>
+            <Label htmlFor="network-select" className="text-sm text-blue-600">Choose Payment Coin Network</Label>
             <Select 
               value={selectedNetwork} 
               onValueChange={onNetworkChange}
@@ -86,7 +86,7 @@ const PaymentConfigurationForm: React.FC<PaymentConfigurationFormProps> = ({
           </div>
           
           <div>
-            <Label htmlFor="currency-select" className="text-sm">Choose Currency</Label>
+            <Label htmlFor="currency-select" className="text-sm text-blue-600">Choose Currency</Label>
             <Select 
               value={selectedCurrency} 
               onValueChange={onCurrencyChange}
