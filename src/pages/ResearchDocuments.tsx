@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -35,7 +34,7 @@ const ResearchDocuments: React.FC = () => {
             </div>
           </FadeInSection>
 
-          {/* Latest Research Update Video - Traditional Wistia Embed with Autoplay */}
+          {/* Latest Research Update Video - Fixed Traditional Wistia Embed with Autoplay */}
           <FadeInSection>
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-4">Latest Research Update</h2>
@@ -43,7 +42,8 @@ const ResearchDocuments: React.FC = () => {
                 <div className="wistia_responsive_padding">
                   <div className="wistia_responsive_wrapper">
                     <div 
-                      className="wistia_embed wistia_async_mbfp6iuabu videoFoam=true autoPlay=true muted=true"
+                      className="wistia_embed wistia_async_mbfp6iuabu"
+                      data-wistia-options='{"autoPlay":true,"muted":true,"videoFoam":true}'
                       style={{ height: '100%', position: 'relative', width: '100%' }}
                     >
                       <div className="wistia_swatch" style={{
