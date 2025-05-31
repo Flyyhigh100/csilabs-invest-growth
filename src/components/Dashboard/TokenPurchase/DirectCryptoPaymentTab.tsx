@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -299,6 +298,7 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
           <li>Payment will be verified manually by our team</li>
           <li>Tokens will be distributed after verification (typically within 24 hours)</li>
           <li>Minimum purchase amount is $1</li>
+          <li>Recommended crypto options to purchase CSL tokens: BTC, Ethereum, Polygon, Solana, or (USDC & USDT on Polygon or Solana).</li>
           {!isStablecoin(selectedCurrency) && (
             <li className="text-amber-600">
               Due to price volatility, the exact {selectedCurrency} amount will be calculated when you create the payment
