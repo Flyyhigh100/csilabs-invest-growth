@@ -45,39 +45,23 @@ const PaymentTabs: React.FC<PaymentTabsProps> = ({
         />
         
         {/* Content */}
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
-              <Send className="h-6 w-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
-                <span className="text-yellow-300 text-sm font-semibold tracking-wide uppercase">
-                  Limited Time
-                </span>
-              </div>
-              <h3 className="text-white text-lg sm:text-xl font-bold leading-tight">
-                Pre-Launch Special!
-              </h3>
-              <p className="text-blue-100 text-sm sm:text-base">
-                Buy Direct @ Current Spot Price
-              </p>
-            </div>
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
+            <Send className="h-6 w-6 text-white" />
           </div>
-          
-          <div className="flex items-center gap-3">
-            <Badge 
-              variant="secondary" 
-              className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-0 px-3 py-1 text-sm font-semibold shadow-md animate-pulse"
-            >
-              New
-            </Badge>
-            <div className="hidden sm:block h-8 w-px bg-white/30"></div>
-            <div className="text-right">
-              <div className="text-white/80 text-xs uppercase tracking-wide">No Fees</div>
-              <div className="text-white text-sm font-semibold">Direct Payment</div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
+              <span className="text-yellow-300 text-sm font-semibold tracking-wide uppercase">
+                Limited Time
+              </span>
             </div>
+            <h3 className="text-white text-lg sm:text-xl font-bold leading-tight">
+              Pre-Launch Special!
+            </h3>
+            <p className="text-blue-100 text-sm sm:text-base">
+              Buy Direct @ Current Spot Price
+            </p>
           </div>
         </div>
         
