@@ -6,7 +6,6 @@ import FadeInSection from '@/components/FadeInSection';
 import DocumentsGrid from '@/components/ResearchDocuments/DocumentsGrid';
 import DocumentViewer from '@/components/ResearchDocuments/DocumentViewer';
 import CategoryFilter from '@/components/ResearchDocuments/CategoryFilter';
-import WistiaPlayer from '@/components/WistiaPlayer';
 import { useResearchDocuments } from '@/hooks/research/useResearchDocuments';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 
@@ -42,11 +41,13 @@ const ResearchDocuments: React.FC = () => {
               <h2 className="text-2xl font-bold mb-4">Latest Research Update</h2>
               <div className="bg-white p-4 rounded-lg shadow-md">
                 <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-md">
-                  <WistiaPlayer 
-                    mediaId="mbfp6iuabu" 
-                    aspect="1.7777777777777777"
-                    className="w-full h-full"
-                  />
+                  <iframe 
+                    src="https://ai.invideo.io/watch/_3yp5v0y87T" 
+                    title="Latest Research Update" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    className="w-full h-full border-0" 
+                    allowFullScreen
+                  ></iframe>
                 </AspectRatio>
                 <div className="mt-4 text-center">
                   <h3 className="font-medium text-lg">Latest Research Insights</h3>
