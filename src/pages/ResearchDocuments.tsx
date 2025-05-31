@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -34,37 +35,17 @@ const ResearchDocuments: React.FC = () => {
             </div>
           </FadeInSection>
 
-          {/* Latest Research Update Video - Fixed Traditional Wistia Embed with Autoplay */}
+          {/* Latest Research Update Video - Modern Wistia Web Component */}
           <FadeInSection>
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-4">Latest Research Update</h2>
               <div className="bg-white p-4 rounded-lg shadow-md">
-                <div className="wistia_responsive_padding">
-                  <div className="wistia_responsive_wrapper">
-                    <div 
-                      className="wistia_embed wistia_async_mbfp6iuabu"
-                      data-wistia-options='{"autoPlay":true,"muted":true,"videoFoam":true}'
-                      style={{ height: '100%', position: 'relative', width: '100%' }}
-                    >
-                      <div className="wistia_swatch" style={{
-                        height: '100%',
-                        left: 0,
-                        opacity: 0,
-                        overflow: 'hidden',
-                        position: 'absolute',
-                        top: 0,
-                        transition: 'opacity 200ms',
-                        width: '100%'
-                      }}>
-                        <img 
-                          src="https://fast.wistia.com/embed/medias/mbfp6iuabu/swatch" 
-                          style={{ filter: 'blur(5px)', height: '100%', objectFit: 'contain', width: '100%' }} 
-                          alt="Video thumbnail" 
-                          aria-hidden="true" 
-                        />
-                      </div>
-                    </div>
-                  </div>
+                <div className="w-full max-w-4xl mx-auto">
+                  <wistia-player 
+                    media-id="mbfp6iuabu" 
+                    aspect="1.7777777777777777"
+                    style={{ width: '100%', height: 'auto' }}
+                  />
                 </div>
                 <div className="mt-4 text-center">
                   <h3 className="font-medium text-lg">Latest Research Insights</h3>
