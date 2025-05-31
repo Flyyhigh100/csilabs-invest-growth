@@ -34,8 +34,8 @@ const PaymentTabs: React.FC<PaymentTabsProps> = ({
 
   return (
     <div className="w-full">
-      {/* Enhanced Prominent Feature Card */}
-      <div className="relative mb-6 overflow-hidden rounded-xl bg-gradient-to-r from-cbis-blue via-blue-600 to-cbis-teal p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+      {/* Enhanced Prominent Header */}
+      <div className="relative mb-6 overflow-hidden rounded-xl bg-gradient-to-r from-cbis-blue via-blue-600 to-cbis-teal p-8 shadow-lg hover:shadow-xl transition-all duration-300">
         {/* Background Pattern */}
         <div 
           className="absolute inset-0 opacity-50"
@@ -44,25 +44,14 @@ const PaymentTabs: React.FC<PaymentTabsProps> = ({
           }}
         />
         
-        {/* Content */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
-            <Send className="h-6 w-6 text-white" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
-              <span className="text-yellow-300 text-sm font-semibold tracking-wide uppercase">
-                Limited Time
-              </span>
-            </div>
-            <h3 className="text-white text-lg sm:text-xl font-bold leading-tight">
-              Pre-Launch Special!
-            </h3>
-            <p className="text-blue-100 text-sm sm:text-base">
-              Buy Direct @ Current Spot Price
-            </p>
-          </div>
+        {/* Centered Content */}
+        <div className="relative z-10 text-center">
+          <h1 className="text-white text-2xl sm:text-3xl md:text-4xl font-bold leading-tight mb-2">
+            Limited Time Pre-Launch Special!
+          </h1>
+          <p className="text-blue-100 text-lg sm:text-xl md:text-2xl font-medium">
+            Buy Direct @ Current Spot Price
+          </p>
         </div>
         
         {/* Subtle glow effect */}
