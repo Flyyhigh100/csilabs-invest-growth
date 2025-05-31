@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -20,7 +19,7 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
-import { ArrowRight, CopyIcon, ExternalLink, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ArrowRight, CopyIcon, ExternalLink, RefreshCw, AlertTriangle, PartyPopper } from 'lucide-react';
 import { useTokenPrice } from '@/context/TokenPriceContext';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
@@ -215,10 +214,20 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
         </>
       ) : (
         <Card className="border-2 border-primary/20">
-          <CardHeader className={cn("bg-primary/5", isMobile && "p-4")}>
-            <CardTitle className={cn("text-center", isMobile && "text-lg")}>Payment Instructions</CardTitle>
-            <CardDescription className={cn("text-center", isMobile && "text-sm")}>
-              Please complete your payment within {isStablecoin(paymentResult?.currency || '') ? '5' : '30'} minutes
+          <CardHeader className={cn("bg-gradient-to-r from-green-50 to-blue-50", isMobile && "p-4")}>
+            <CardTitle className={cn(
+              "text-center flex items-center justify-center gap-2 text-green-700 font-bold",
+              isMobile ? "text-xl" : "text-2xl"
+            )}>
+              <PartyPopper className="h-6 w-6 text-green-600" />
+              CONGRATULATIONS!
+              <PartyPopper className="h-6 w-6 text-green-600" />
+            </CardTitle>
+            <CardDescription className={cn(
+              "text-center font-semibold text-green-600",
+              isMobile ? "text-sm" : "text-base"
+            )}>
+              Your final step is to SEND Your Crypto Payment Please complete your payment within 5 Minutes
             </CardDescription>
           </CardHeader>
           <CardContent className={cn("pt-6 space-y-4", isMobile && "pt-4 p-4 space-y-3")}>
