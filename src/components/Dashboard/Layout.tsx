@@ -7,6 +7,7 @@ import { getDashboardNavItems, getAdminNavItem, NavItem } from './Layouts/Dashbo
 import { toast } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import Footer from '@/components/Footer';
+import { Sparkles } from 'lucide-react';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -82,14 +83,30 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         <div className="flex-1 overflow-auto pt-16">
           <main className="py-4 md:py-6 px-4 md:px-6 lg:px-8">
             <div className="mb-4 md:mb-6">
-              <h1 className={`${title === "Buy Tokens" ? "text-2xl md:text-3xl lg:text-4xl font-extrabold bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent leading-tight" : "text-xl md:text-2xl font-bold text-gray-900"}`}>
-                {title === "Buy Tokens" ? (
-                  <>
-                    Limited Time Pre-Launch Special!<br />
-                    Buy Direct @ Current Spot Price
-                  </>
-                ) : title}
-              </h1>
+              {title === "Buy Tokens" ? (
+                <div className="relative">
+                  {/* Animated Background Container */}
+                  <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-teal-500 p-6 md:p-8 rounded-2xl shadow-2xl animate-shimmer-bg animate-pulse-glow animate-fade-in-down overflow-hidden">
+                    {/* Sparkle Icons */}
+                    <Sparkles className="absolute top-2 right-2 h-5 w-5 text-yellow-300 animate-sparkle-twinkle" />
+                    <Sparkles className="absolute bottom-2 left-2 h-4 w-4 text-yellow-200 animate-sparkle-twinkle animation-delay-500" />
+                    <Sparkles className="absolute top-1/2 right-1/4 h-3 w-3 text-white animate-sparkle-twinkle animation-delay-1000" />
+                    
+                    {/* Animated Border */}
+                    <div className="absolute inset-0 rounded-2xl animate-border-dance opacity-50"></div>
+                    
+                    {/* Title Content */}
+                    <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-white leading-tight text-center relative z-10 animate-shimmer-text transition-transform hover:scale-105">
+                      Limited Time Pre-Launch Special!<br />
+                      Buy Direct @ Current Spot Price
+                    </h1>
+                  </div>
+                </div>
+              ) : (
+                <h1 className="text-xl md:text-2xl font-bold text-gray-900">
+                  {title}
+                </h1>
+              )}
             </div>
             {children}
           </main>

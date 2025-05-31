@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -130,12 +131,73 @@ export default {
 						transform: 'translateX(0)'
 					}
 				},
+				'fade-in-down': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(-20px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'translateY(0)'
+					}
+				},
 				'pulse-subtle': {
 					'0%, 100%': {
 						opacity: '1'
 					},
 					'50%': {
 						opacity: '0.8'
+					}
+				},
+				'shimmer-bg': {
+					'0%': {
+						backgroundPosition: '-200% 0'
+					},
+					'100%': {
+						backgroundPosition: '200% 0'
+					}
+				},
+				'shimmer-text': {
+					'0%': {
+						backgroundPosition: '-200% 0'
+					},
+					'100%': {
+						backgroundPosition: '200% 0'
+					}
+				},
+				'pulse-glow': {
+					'0%, 100%': {
+						boxShadow: '0 0 30px rgba(59, 130, 246, 0.6), 0 0 60px rgba(168, 85, 247, 0.4)'
+					},
+					'50%': {
+						boxShadow: '0 0 40px rgba(59, 130, 246, 0.8), 0 0 80px rgba(168, 85, 247, 0.6)'
+					}
+				},
+				'border-dance': {
+					'0%': {
+						borderImage: 'linear-gradient(45deg, #3b82f6, #a855f7, #06b6d4, #3b82f6) 1'
+					},
+					'25%': {
+						borderImage: 'linear-gradient(45deg, #a855f7, #06b6d4, #3b82f6, #a855f7) 1'
+					},
+					'50%': {
+						borderImage: 'linear-gradient(45deg, #06b6d4, #3b82f6, #a855f7, #06b6d4) 1'
+					},
+					'75%': {
+						borderImage: 'linear-gradient(45deg, #3b82f6, #a855f7, #06b6d4, #3b82f6) 1'
+					},
+					'100%': {
+						borderImage: 'linear-gradient(45deg, #a855f7, #06b6d4, #3b82f6, #a855f7) 1'
+					}
+				},
+				'sparkle-twinkle': {
+					'0%, 100%': {
+						opacity: '0.3',
+						transform: 'scale(0.8) rotate(0deg)'
+					},
+					'50%': {
+						opacity: '1',
+						transform: 'scale(1.2) rotate(180deg)'
 					}
 				}
 			},
@@ -145,7 +207,13 @@ export default {
 				'fade-in': 'fade-in 0.6s ease-out',
 				'fade-in-left': 'fade-in-left 0.6s ease-out',
 				'fade-in-right': 'fade-in-right 0.6s ease-out',
-				'pulse-subtle': 'pulse-subtle 3s infinite'
+				'fade-in-down': 'fade-in-down 0.8s ease-out',
+				'pulse-subtle': 'pulse-subtle 3s infinite',
+				'shimmer-bg': 'shimmer-bg 3s ease-in-out infinite',
+				'shimmer-text': 'shimmer-text 2s ease-in-out infinite',
+				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+				'border-dance': 'border-dance 4s ease-in-out infinite',
+				'sparkle-twinkle': 'sparkle-twinkle 1.5s ease-in-out infinite'
 			},
 			boxShadow: {
 				'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
