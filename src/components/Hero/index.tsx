@@ -28,31 +28,38 @@ const Hero: React.FC = () => {
 
       <div className="container-custom relative z-10 pt-20">
         <div className={`grid md:grid-cols-2 gap-6 mb-12 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-          {/* Left Column: Cancer Treatment Image */}
-          <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white">
-            <div className="w-full bg-gray-100 flex items-center justify-center p-4">
-              {!isLoaded ? (
-                <Skeleton className="w-full aspect-auto" />
-              ) : (
-                <a 
-                  href="https://americanstatesuniversity.com/images/EBYH_CSi-Cancer_Drug_Presentation.pdf?_t=1725588201"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full cursor-pointer hover:opacity-90 transition-opacity"
-                >
-                  <img 
-                    src="/rawwhiteonepagepng.png"
-                    alt="Cannabis Science Cancer Treatment Research - Click to view detailed presentation" 
-                    className="w-full h-auto object-contain"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.onerror = null;
-                      target.src = '/placeholder.svg';
-                      setImageError(true);
-                    }}
-                  />
-                </a>
-              )}
+          {/* Left Column: Cancer Treatment Image + Promotional Text Box */}
+          <div className="space-y-6">
+            <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white">
+              <div className="w-full bg-gray-100 flex items-center justify-center p-4">
+                {!isLoaded ? (
+                  <Skeleton className="w-full aspect-auto" />
+                ) : (
+                  <a 
+                    href="https://americanstatesuniversity.com/images/EBYH_CSi-Cancer_Drug_Presentation.pdf?_t=1725588201"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full cursor-pointer hover:opacity-90 transition-opacity"
+                  >
+                    <img 
+                      src="/rawwhiteonepagepng.png"
+                      alt="Cannabis Science Cancer Treatment Research - Click to view detailed presentation" 
+                      className="w-full h-auto object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = '/placeholder.svg';
+                        setImageError(true);
+                      }}
+                    />
+                  </a>
+                )}
+              </div>
+            </div>
+            
+            {/* Promotional Text Box - Below the Cancer Treatment Image */}
+            <div className={`transition-all duration-1000 delay-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+              <PromotionalTextBox />
             </div>
           </div>
 
@@ -68,11 +75,6 @@ const Hero: React.FC = () => {
               hasError={!!hasError}
             />
           </TokenPriceProvider>
-        </div>
-
-        {/* Promotional Text Box - Below the Cancer Treatment Image */}
-        <div className={`transition-all duration-1000 delay-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-          <PromotionalTextBox />
         </div>
 
         {/* Bottom Section: Hero Content with Image */}
