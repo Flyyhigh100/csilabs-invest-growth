@@ -1,66 +1,48 @@
 
 import { TokenInfo } from '@/types/token';
-import { TOKEN_ADDRESS, UNISWAP_SUBGRAPH_URL } from './config';
+
+const TOKEN_ADDRESS = "0xcba5ca199bca0af3f6046da01169035f2c6a7ff0";
+const SOLANA_ADDRESS = "3iU6Upm7bSx7VYFLfxsTGP1qmPCy6A7v6ddkmeNQtLqD";
 
 /**
- * Fetches token information like total supply and blockchain
+ * Fetches token information like total supply and blockchain contracts
  * @returns Promise with token info
  */
 export const fetchTokenInfo = async (): Promise<TokenInfo> => {
   try {
-    console.log('Fetching token info from Uniswap Subgraph');
+    console.log('Fetching token info from multiple blockchains');
     
-    const query = `{
-      token(id: "${TOKEN_ADDRESS.toLowerCase()}") {
-        name
-        symbol
-        decimals
-        totalSupply
-        totalLiquidity
-        derivedETH
-      }
-    }`;
-    
-    const response = await fetch(UNISWAP_SUBGRAPH_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ query })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Uniswap Subgraph API error ${response.status}:`, errorText);
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('Token info data received:', data?.data?.token);
-    
-    if (!data?.data?.token) {
-      throw new Error('No token data received');
-    }
-    
-    const token = data.data.token;
-    
-    // Format total supply based on decimals
-    const totalSupply = token.totalSupply && token.decimals ? 
-      (parseInt(token.totalSupply) / Math.pow(10, parseInt(token.decimals))).toLocaleString() : 
-      "100,000,000";
+    // For now, return static data with both blockchain contracts
+    // In the future, this could be enhanced to fetch real data from multiple sources
     
     return {
-      totalSupply: totalSupply,
-      blockchain: "Polygon",
-      contractAddress: TOKEN_ADDRESS
+      totalSupply: "100,000,000",
+      blockchains: [
+        {
+          name: "Polygon",
+          contractAddress: TOKEN_ADDRESS
+        },
+        {
+          name: "Solana",
+          contractAddress: SOLANA_ADDRESS
+        }
+      ]
     };
   } catch (error) {
     console.error('Error fetching token info:', error);
-    // Fall back to mock data if the API call fails
+    // Fall back to static data if the API call fails
     return {
-      totalSupply: "100,000,000",
-      blockchain: "Polygon",
-      contractAddress: TOKEN_ADDRESS
+      totalSupply: "100,000,000", 
+      blockchains: [
+        {
+          name: "Polygon",
+          contractAddress: TOKEN_ADDRESS
+        },
+        {
+          name: "Solana",
+          contractAddress: SOLANA_ADDRESS
+        }
+      ]
     };
   }
 };

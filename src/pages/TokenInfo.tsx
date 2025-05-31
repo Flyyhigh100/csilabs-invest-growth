@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -55,10 +54,10 @@ const TokenInfo: React.FC = () => {
                     Token Details
                   </div>
                   <h2 className="text-2xl md:text-3xl font-bold mb-4 text-cbis-dark">
-                    Polygon-Based Token
+                    Multi-Blockchain Token
                   </h2>
                   <p className="text-gray-600 mb-6">
-                    CSi Labs token is built on the Polygon blockchain, offering enhanced security, lower transaction costs, and faster settlement compared to Ethereum mainnet.
+                    CSi Labs token is available on both Polygon and Solana blockchains, offering flexibility and access across multiple networks with enhanced security and lower transaction costs.
                   </p>
                   <div className="space-y-3">
                     <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
@@ -73,26 +72,41 @@ const TokenInfo: React.FC = () => {
                       <span className="text-gray-600">Total Supply:</span>
                       <span className="font-medium">100,000,000 CSL</span>
                     </div>
-                    <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-600">Blockchain:</span>
-                      <span className="font-medium">Polygon</span>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between mb-1">
-                        <span className="text-gray-600">Contract Address:</span>
+                    
+                    {/* Blockchain Contracts */}
+                    <div className="space-y-2">
+                      <div className="text-gray-600 font-medium">Blockchain Contracts:</div>
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="flex justify-between mb-1">
+                          <span className="text-gray-600">Polygon:</span>
+                        </div>
+                        <div className="text-gray-800 break-all text-sm font-mono">
+                          0xcba5ca199bca0af3f6046da01169035f2c6a7ff0
+                        </div>
                       </div>
-                      <div className="text-gray-800 break-all text-sm font-mono">
-                        0xcba5ca199bca0af3f6046da01169035f2c6a7ff0
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="flex justify-between mb-1">
+                          <span className="text-gray-600">Solana:</span>
+                        </div>
+                        <div className="text-gray-800 break-all text-sm font-mono">
+                          3iU6Upm7bSx7VYFLfxsTGP1qmPCy6A7v6ddkmeNQtLqD
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className="mt-6">
-                    <a href="https://polygonscan.com/token/0xcba5ca199bca0af3f6046da01169035f2c6a7ff0" target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-cbis-blue hover:underline">
+                  <div className="mt-6 space-y-2">
+                    <a href="https://polygonscan.com/token/0xcba5ca199bca0af3f6046da01169035f2c6a7ff0" target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-cbis-blue hover:underline mr-4">
                       View on Polygonscan
+                      <ExternalLink className="ml-1 h-4 w-4" />
+                    </a>
+                    <a href="https://solscan.io/token/3iU6Upm7bSx7VYFLfxsTGP1qmPCy6A7v6ddkmeNQtLqD" target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-cbis-blue hover:underline">
+                      View on Solscan
                       <ExternalLink className="ml-1 h-4 w-4" />
                     </a>
                   </div>
                 </div>
+                
+                {/* ... keep existing code (right column with gradient background and distribution info) ... */}
                 <div className="relative rounded-xl overflow-hidden bg-gradient-to-br from-cbis-blue to-cbis-teal text-white p-8 flex flex-col items-center justify-center h-full min-h-[320px]">
                   <div className="absolute inset-0 bg-white/40 backdrop-blur-sm"></div>
                   <div className="relative z-10">
@@ -116,6 +130,7 @@ const TokenInfo: React.FC = () => {
             </div>
           </FadeInSection>
 
+          {/* ... keep existing code (feature cards, contribution journey, and CTA sections) ... */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
             <FadeInSection delay={200}>
               <div className="glass-card p-6 rounded-xl h-full">

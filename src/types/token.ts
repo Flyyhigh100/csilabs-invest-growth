@@ -11,8 +11,12 @@ export interface TokenVolumeData {
   volume: number;
 }
 
+export interface BlockchainContract {
+  name: string;
+  contractAddress: string;
+}
+
 export interface TokenInfo {
   totalSupply: string;
-  blockchain: string;
-  contractAddress: string;
+  blockchains: BlockchainContract[];
 }
