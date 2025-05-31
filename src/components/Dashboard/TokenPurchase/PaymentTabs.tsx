@@ -2,9 +2,8 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import CryptoPaymentTab from './CryptoPaymentTab';
 import DirectCryptoPaymentTab from './DirectCryptoPaymentTab';
-import { Wallet, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 
 interface PaymentTabsProps {
   amount: number;
@@ -35,18 +34,15 @@ const PaymentTabs: React.FC<PaymentTabsProps> = ({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="direct-crypto" className="flex items-center gap-2">
-          <Send className="h-4 w-4" />
-          <span className="hidden sm:inline">Direct Wallet</span>
-          <span className="sm:hidden">Direct</span>
-          <Badge variant="secondary" className="ml-1 text-xs">
+      <TabsList className="grid w-full grid-cols-1">
+        <TabsTrigger value="direct-crypto" className="flex items-center gap-2 text-center px-2">
+          <Send className="h-4 w-4 flex-shrink-0" />
+          <span className="text-sm font-medium">
+            Limited Time Pre-Launch Special! Buy Direct @ Current Spot Price
+          </span>
+          <Badge variant="secondary" className="ml-1 text-xs flex-shrink-0">
             New
           </Badge>
-        </TabsTrigger>
-        <TabsTrigger value="crypto" className="flex items-center gap-2">
-          <Wallet className="h-4 w-4" />
-          <span className="hidden sm:inline">Crypto</span>
         </TabsTrigger>
       </TabsList>
 
@@ -55,19 +51,6 @@ const PaymentTabs: React.FC<PaymentTabsProps> = ({
           <DirectCryptoPaymentTab 
             walletAddress={walletAddress} 
             amount={amount}
-          />
-        </TabsContent>
-
-        <TabsContent value="crypto" className="space-y-4">
-          <CryptoPaymentTab 
-            amount={amount}
-            selectedCurrency={selectedCurrency}
-            setSelectedCurrency={setSelectedCurrency}
-            handleCoinPaymentWithCurrency={handleCoinPaymentWithCurrency}
-            isProcessing={isProcessing}
-            isKycNeeded={isKycNeeded}
-            isWalletMissing={isWalletMissing}
-            kycData={kycData}
           />
         </TabsContent>
       </div>

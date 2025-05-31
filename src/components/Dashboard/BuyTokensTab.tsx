@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { DollarSign } from 'lucide-react';
@@ -11,10 +12,12 @@ import WalletMissingContent from './TokenPurchase/WalletMissingContent';
 import PurchaseGuide from './TokenPurchase/PurchaseGuide';
 import { TokenPriceProvider, useTokenPrice } from '@/context/TokenPriceContext';
 import PaymentTabs from './TokenPurchase/PaymentTabs';
+
 interface BuyTokensTabProps {
   walletAddress: string | null;
   isDirectPurchase?: boolean;
 }
+
 const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
   walletAddress,
   isDirectPurchase = false
@@ -65,10 +68,10 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
             
             <div className="mt-6">
               <h3 className="text-base font-medium mb-4 text-gray-700">
-                Select Payment Method
+                Select Token for Payment
               </h3>
               
-              {/* Always show PaymentTabs - this includes our new Direct Crypto option */}
+              {/* Always show PaymentTabs - this now only includes the Direct Crypto option */}
               <PaymentTabs amount={amount} selectedCurrency={selectedCurrency} setSelectedCurrency={setSelectedCurrency} walletAddress={walletAddress} handleStripeCryptoOnramp={handleStripeCryptoOnrampWrapper} handleCoinPaymentWithCurrency={handleCoinPaymentWithCurrency} isProcessing={isProcessing} isKycNeeded={isKycNeeded} isWalletMissing={isWalletMissing} kycData={kycData} />
             </div>
             
@@ -78,6 +81,7 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
         <CryptoPaymentDialog open={showCryptoDialog} onOpenChange={handleDialogOpenChange} paymentDetails={cryptoPaymentDetails} amount={amount} selectedCurrency={selectedCurrency} />
       </>;
   };
+
   return <Card className="shadow-lg border-cbis-blue/10 overflow-hidden">
       <div className="h-2 bg-gradient-to-r from-cbis-blue to-cbis-teal"></div>
       <CardHeader>
@@ -99,4 +103,5 @@ const BuyTokensTab: React.FC<BuyTokensTabProps> = ({
       </CardContent>
     </Card>;
 };
+
 export default BuyTokensTab;
