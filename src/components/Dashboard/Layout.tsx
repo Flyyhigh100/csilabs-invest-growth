@@ -83,7 +83,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
           <main className="py-4 md:py-6 px-4 md:px-6 lg:px-8">
             <div className="mb-4 md:mb-6">
               <h1 className="text-xl md:text-2xl font-bold text-gray-900">
-                {title === "Buy Tokens" ? "Limited Time Pre-Launch Special! Buy Direct @ Current Spot Price" : title}
+                {title === "Buy Tokens" ? (
+                  <>
+                    Limited Time Pre-Launch Special!<br />
+                    Buy Direct @ Current Spot Price
+                  </>
+                ) : title}
               </h1>
             </div>
             {children}
