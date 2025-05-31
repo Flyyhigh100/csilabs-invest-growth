@@ -5,9 +5,61 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 interface DirectPaymentRequest {
   amount: number;
-  network: 'polygon' | 'solana';
-  currency: 'USDT' | 'USDC';
+  network: 'polygon' | 'solana' | 'ethereum' | 'binance-smart-chain' | 'bitcoin';
+  currency: 'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC';
   wallet_address: string;
+}
+
+// Fetch cryptocurrency price from CoinGecko
+async function fetchCryptoPrice(symbol: string): Promise<number> {
+  try {
+    const coinGeckoIds: Record<string, string> = {
+      'ETH': 'ethereum',
+      'BNB': 'binancecoin', 
+      'BTC': 'bitcoin',
+      'USDT': 'tether',
+      'USDC': 'usd-coin'
+    };
+
+    const coinId = coinGeckoIds[symbol];
+    if (!coinId) {
+      throw new Error(`Unsupported cryptocurrency: ${symbol}`);
+    }
+
+    // For stablecoins, return 1.0
+    if (symbol === 'USDT' || symbol === 'USDC') {
+      return 1.0;
+    }
+
+    const response = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch price for ${symbol}`);
+    }
+
+    const data = await response.json();
+    const price = data[coinId]?.usd;
+
+    if (!price) {
+      throw new Error(`Price not found for ${symbol}`);
+    }
+
+    console.log(`Fetched ${symbol} price: $${price}`);
+    return price;
+  } catch (error) {
+    console.error(`Error fetching ${symbol} price:`, error);
+    // Fallback prices if API fails
+    const fallbackPrices: Record<string, number> = {
+      'ETH': 3000,
+      'BNB': 600,
+      'BTC': 45000,
+      'USDT': 1.0,
+      'USDC': 1.0
+    };
+    return fallbackPrices[symbol] || 1.0;
+  }
 }
 
 serve(async (req) => {
@@ -38,17 +90,19 @@ serve(async (req) => {
 
     const { amount, network, currency, wallet_address }: DirectPaymentRequest = await req.json();
 
-    // Validate input - changed minimum from 1 to 1
+    // Validate input
     if (!amount || amount < 1) {
       throw new Error('Invalid amount: minimum $1 required');
     }
 
-    if (!['polygon', 'solana'].includes(network)) {
-      throw new Error('Invalid network: must be polygon or solana');
+    const validNetworks = ['polygon', 'solana', 'ethereum', 'binance-smart-chain', 'bitcoin'];
+    if (!validNetworks.includes(network)) {
+      throw new Error(`Invalid network: must be one of ${validNetworks.join(', ')}`);
     }
 
-    if (!['USDT', 'USDC'].includes(currency)) {
-      throw new Error('Invalid currency: must be USDT or USDC');
+    const validCurrencies = ['USDT', 'USDC', 'ETH', 'BNB', 'BTC'];
+    if (!validCurrencies.includes(currency)) {
+      throw new Error(`Invalid currency: must be one of ${validCurrencies.join(', ')}`);
     }
 
     if (!wallet_address) {
@@ -70,13 +124,17 @@ serve(async (req) => {
       throw new Error(`No active wallet found for ${currency} on ${network}`);
     }
 
-    // For direct crypto payments, we use 1:1 USD conversion for stablecoins
-    // This assumes USDT/USDC are worth $1 each (which is their intended peg)
-    const expectedCryptoAmount = amount;
+    // Fetch current cryptocurrency price and calculate expected amount
+    const cryptoPrice = await fetchCryptoPrice(currency);
+    const expectedCryptoAmount = amount / cryptoPrice;
 
-    // Set payment timeout (5 minutes from now - reduced from 30 minutes)
+    console.log(`Price conversion: $${amount} USD = ${expectedCryptoAmount} ${currency} (price: $${cryptoPrice})`);
+
+    // Set payment timeout (30 minutes for volatile cryptos, 5 minutes for stablecoins)
+    const isStablecoin = ['USDT', 'USDC'].includes(currency);
+    const timeoutMinutes = isStablecoin ? 5 : 30;
     const timeoutAt = new Date();
-    timeoutAt.setMinutes(timeoutAt.getMinutes() + 5);
+    timeoutAt.setMinutes(timeoutAt.getMinutes() + timeoutMinutes);
 
     // Generate transaction ID
     const transactionId = `direct_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -115,7 +173,7 @@ serve(async (req) => {
         body: {
           type: 'direct_crypto_payment',
           title: 'New Direct Crypto Payment',
-          message: `New direct crypto payment of $${amount} ${currency} on ${network}`,
+          message: `New direct crypto payment of $${amount} (${expectedCryptoAmount.toFixed(6)} ${currency}) on ${network}`,
           transaction_id: transactionId,
           user_id: user.id
         }

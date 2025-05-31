@@ -10,8 +10,8 @@ import {
 } from '@/services/directCryptoPaymentService';
 
 export const useDirectCryptoPayment = () => {
-  const [selectedNetwork, setSelectedNetwork] = useState<'polygon' | 'solana'>('polygon');
-  const [selectedCurrency, setSelectedCurrency] = useState<'USDT' | 'USDC'>('USDC');
+  const [selectedNetwork, setSelectedNetwork] = useState<'polygon' | 'solana' | 'ethereum' | 'binance-smart-chain' | 'bitcoin'>('polygon');
+  const [selectedCurrency, setSelectedCurrency] = useState<'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC'>('USDC');
 
   // Fetch available wallet addresses
   const { 
@@ -52,6 +52,35 @@ export const useDirectCryptoPayment = () => {
       .filter(addr => addr.network === selectedNetwork)
       .map(addr => addr.currency)
   )];
+
+  // Helper function to get network display name
+  const getNetworkDisplayName = (network: string): string => {
+    const networkNames: Record<string, string> = {
+      'polygon': 'Polygon',
+      'solana': 'Solana',
+      'ethereum': 'Ethereum',
+      'binance-smart-chain': 'BNB Smart Chain',
+      'bitcoin': 'Bitcoin'
+    };
+    return networkNames[network] || network;
+  };
+
+  // Helper function to get blockchain explorer URL
+  const getExplorerUrl = (network: string, address: string): string => {
+    const explorers: Record<string, string> = {
+      'polygon': `https://polygonscan.com/address/${address}`,
+      'solana': `https://solscan.io/account/${address}`,
+      'ethereum': `https://etherscan.io/address/${address}`,
+      'binance-smart-chain': `https://bscscan.com/address/${address}`,
+      'bitcoin': `https://blockchair.com/bitcoin/address/${address}`
+    };
+    return explorers[network] || '';
+  };
+
+  // Check if currency is a stablecoin
+  const isStablecoin = (currency: string): boolean => {
+    return ['USDT', 'USDC'].includes(currency);
+  };
 
   const createPayment = async (amount: number, userWalletAddress: string) => {
     if (!selectedWalletAddress) {
@@ -95,5 +124,10 @@ export const useDirectCryptoPayment = () => {
     
     // Results
     paymentResult: createPaymentMutation.data,
+    
+    // Helper functions
+    getNetworkDisplayName,
+    getExplorerUrl,
+    isStablecoin,
   };
 };

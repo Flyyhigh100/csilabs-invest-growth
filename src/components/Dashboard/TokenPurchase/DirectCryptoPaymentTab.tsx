@@ -20,12 +20,13 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
-import { ArrowRight, CopyIcon, ExternalLink, RefreshCw } from 'lucide-react';
+import { ArrowRight, CopyIcon, ExternalLink, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useTokenPrice } from '@/context/TokenPriceContext';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface DirectCryptoPaymentTabProps {
   walletAddress: string;
@@ -48,7 +49,10 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
     setSelectedNetwork,
     setSelectedCurrency,
     createPayment,
-    paymentResult
+    paymentResult,
+    getNetworkDisplayName,
+    getExplorerUrl,
+    isStablecoin
   } = useDirectCryptoPayment();
   
   // Calculate token amount based on current price
@@ -80,11 +84,10 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
   const handleExternalLink = (address: string | undefined) => {
     if (!address) return;
     
-    const baseUrl = selectedNetwork === 'polygon' 
-      ? 'https://polygonscan.com/address/' 
-      : 'https://solscan.io/account/';
-    
-    window.open(baseUrl + address, '_blank');
+    const url = getExplorerUrl(selectedNetwork, address);
+    if (url) {
+      window.open(url, '_blank');
+    }
   };
 
   if (isLoadingAddresses) {
@@ -135,7 +138,7 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
                 <Label htmlFor="network-select" className="text-sm">Network</Label>
                 <Select 
                   value={selectedNetwork} 
-                  onValueChange={(value) => setSelectedNetwork(value as 'polygon' | 'solana')}
+                  onValueChange={(value) => setSelectedNetwork(value as any)}
                 >
                   <SelectTrigger id="network-select" className="mt-1.5">
                     <SelectValue placeholder="Select network" />
@@ -143,7 +146,7 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
                   <SelectContent>
                     {availableNetworks.map((network) => (
                       <SelectItem key={network} value={network}>
-                        {network === 'polygon' ? 'Polygon' : 'Solana'}
+                        {getNetworkDisplayName(network)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -154,7 +157,7 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
                 <Label htmlFor="currency-select" className="text-sm">Currency</Label>
                 <Select 
                   value={selectedCurrency} 
-                  onValueChange={(value) => setSelectedCurrency(value as 'USDT' | 'USDC')}
+                  onValueChange={(value) => setSelectedCurrency(value as any)}
                 >
                   <SelectTrigger id="currency-select" className="mt-1.5">
                     <SelectValue placeholder="Select currency" />
@@ -169,6 +172,17 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
                 </Select>
               </div>
             </div>
+
+            {/* Warning for volatile cryptocurrencies */}
+            {!isStablecoin(selectedCurrency) && (
+              <Alert className="border-amber-200 bg-amber-50">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-800">
+                  <strong>Price Volatility Notice:</strong> {selectedCurrency} prices can change rapidly. 
+                  The exact amount required will be calculated at payment time and you'll have 30 minutes to complete the transaction.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
           
           <div>
@@ -195,7 +209,7 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
               )}
             </Button>
             <p className="mt-2 text-xs text-center text-muted-foreground px-2">
-              Send stablecoins directly from your wallet to our address
+              Send {selectedCurrency} directly from your wallet to our address
             </p>
           </div>
         </>
@@ -204,20 +218,20 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
           <CardHeader className={cn("bg-primary/5", isMobile && "p-4")}>
             <CardTitle className={cn("text-center", isMobile && "text-lg")}>Payment Instructions</CardTitle>
             <CardDescription className={cn("text-center", isMobile && "text-sm")}>
-              Please complete your payment within 5 minutes
+              Please complete your payment within {isStablecoin(paymentResult?.currency || '') ? '5' : '30'} minutes
             </CardDescription>
           </CardHeader>
           <CardContent className={cn("pt-6 space-y-4", isMobile && "pt-4 p-4 space-y-3")}>
             <div className={cn("rounded-lg bg-muted p-4", isMobile && "p-3")}>
               <h4 className={cn("font-medium mb-1", isMobile && "text-sm")}>Send exactly</h4>
               <div className={cn("text-2xl font-bold mb-2", isMobile && "text-xl")}>
-                {paymentResult?.expected_crypto_amount} {paymentResult?.currency}
+                {paymentResult?.expected_crypto_amount?.toFixed(8)} {paymentResult?.currency}
               </div>
               <div className={cn("text-sm text-muted-foreground mb-2", isMobile && "text-xs")}>
                 (${amount.toFixed(2)} USD value)
               </div>
               <div className={cn("text-xs text-amber-600", isMobile && "text-xs")}>
-                Payment will expire on {paymentResult?.timeout_at ? new Date(paymentResult?.timeout_at).toLocaleTimeString() : ''}
+                Payment will expire on {paymentResult?.timeout_at ? new Date(paymentResult?.timeout_at).toLocaleString() : ''}
               </div>
             </div>
             
@@ -254,7 +268,7 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
               <h4 className={cn("font-medium mb-2", isMobile && "text-sm mb-1")}>Payment Details</h4>
               <div className={cn("grid grid-cols-2 gap-2 text-sm", isMobile && "text-xs gap-1")}>
                 <div className="text-muted-foreground">Network:</div>
-                <div className="font-medium">{paymentResult?.network === 'polygon' ? 'Polygon' : 'Solana'}</div>
+                <div className="font-medium">{getNetworkDisplayName(paymentResult?.network || '')}</div>
                 <div className="text-muted-foreground">Currency:</div>
                 <div className="font-medium">{paymentResult?.currency}</div>
                 <div className="text-muted-foreground">Transaction ID:</div>
@@ -281,10 +295,15 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
       <div className={cn("space-y-4 pt-4 border-t", isMobile && "space-y-3 pt-3")}>
         <h4 className={cn("font-medium", isMobile && "text-sm")}>Important Notes</h4>
         <ul className={cn("space-y-2 text-sm text-muted-foreground list-disc pl-5", isMobile && "space-y-1 text-xs")}>
-          <li>Send only {selectedCurrency} on the {selectedNetwork} network</li>
+          <li>Send only {selectedCurrency} on the {getNetworkDisplayName(selectedNetwork)} network</li>
           <li>Payment will be verified manually by our team</li>
           <li>Tokens will be distributed after verification (typically within 24 hours)</li>
           <li>Minimum purchase amount is $1</li>
+          {!isStablecoin(selectedCurrency) && (
+            <li className="text-amber-600">
+              Due to price volatility, the exact {selectedCurrency} amount will be calculated when you create the payment
+            </li>
+          )}
         </ul>
       </div>
     </div>

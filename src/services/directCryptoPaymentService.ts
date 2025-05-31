@@ -3,16 +3,16 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface ClientWalletAddress {
   id: string;
-  network: 'polygon' | 'solana';
-  currency: 'USDT' | 'USDC';
+  network: 'polygon' | 'solana' | 'ethereum' | 'binance-smart-chain' | 'bitcoin';
+  currency: 'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC';
   wallet_address: string;
   is_active: boolean;
 }
 
 export interface DirectPaymentRequest {
   amount: number;
-  network: 'polygon' | 'solana';
-  currency: 'USDT' | 'USDC';
+  network: 'polygon' | 'solana' | 'ethereum' | 'binance-smart-chain' | 'bitcoin';
+  currency: 'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC';
   wallet_address: string;
 }
 
@@ -44,8 +44,8 @@ export const fetchClientWalletAddresses = async (): Promise<ClientWalletAddress[
   // Type cast to ensure proper TypeScript types
   return (data || []).map(item => ({
     id: item.id,
-    network: item.network as 'polygon' | 'solana',
-    currency: item.currency as 'USDT' | 'USDC',
+    network: item.network as 'polygon' | 'solana' | 'ethereum' | 'binance-smart-chain' | 'bitcoin',
+    currency: item.currency as 'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC',
     wallet_address: item.wallet_address,
     is_active: item.is_active
   }));
