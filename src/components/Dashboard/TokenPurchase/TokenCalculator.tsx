@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -139,7 +138,7 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
           Estimated tokens: {formattedTokenAmount} CSL
           {currentPrice && (
             <div className="text-xs text-gray-500 mt-1">
-              Current price: ${currentPrice.toFixed(5)} per token
+              Current Spot Price: ${currentPrice.toFixed(5)} per token
             </div>
           )}
         </div>
