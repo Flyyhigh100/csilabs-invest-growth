@@ -29,6 +29,9 @@ export const markTokensSent = async ({ transactionId, blockchainTxId }, adminCli
     // Create enhanced notification for the user about the token transfer
     if (txData) {
       await createTokenDeliveryNotification(adminClient, txData, blockchainTxId);
+      
+      // Send email notification to the user
+      await sendTokenDistributionEmail(adminClient, txData, blockchainTxId);
     }
     
     console.log("Successfully marked transaction as sent:", txData?.id);
@@ -84,5 +87,57 @@ async function createTokenDeliveryNotification(adminClient, transaction, blockch
     }
   } catch (error) {
     console.error("Error in createTokenDeliveryNotification:", error);
+  }
+}
+
+// New function to send email notification to user
+async function sendTokenDistributionEmail(adminClient, transaction, blockchainTxId) {
+  try {
+    console.log(`Sending token distribution email for transaction ${transaction.id}`);
+    
+    // Get user profile information for email
+    const { data: profile, error: profileError } = await adminClient
+      .from("profiles")
+      .select("email, first_name, last_name")
+      .eq("id", transaction.user_id)
+      .single();
+    
+    if (profileError || !profile?.email) {
+      console.error("Error fetching user profile for email:", profileError);
+      return;
+    }
+    
+    // Calculate token amount
+    const tokenAmount = transaction.token_amount || 
+      (transaction.token_price && transaction.token_price > 0 ? 
+        transaction.amount / transaction.token_price : 0);
+    
+    // Prepare email data
+    const emailData = {
+      userEmail: profile.email,
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      tokenAmount: Number(tokenAmount),
+      walletAddress: transaction.wallet_address,
+      blockchainTxId: blockchainTxId,
+      transactionAmount: Number(transaction.amount),
+      tokenPrice: transaction.token_price ? Number(transaction.token_price) : undefined,
+      isTestData: transaction.is_test || false
+    };
+    
+    // Call the email function
+    const { data, error } = await adminClient.functions.invoke('send-token-distribution-email', {
+      body: emailData
+    });
+    
+    if (error) {
+      console.error("Error calling send-token-distribution-email function:", error);
+    } else {
+      console.log("Token distribution email sent successfully:", data);
+    }
+    
+  } catch (error) {
+    console.error("Error in sendTokenDistributionEmail:", error);
+    // Don't throw error here - email failure shouldn't affect token marking
   }
 }
