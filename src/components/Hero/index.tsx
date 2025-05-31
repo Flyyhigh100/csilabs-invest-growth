@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import HeroContent from './HeroContent';
 import TokenCard from './TokenCard';
+import PromotionalTextBox from './PromotionalTextBox';
 import { useTokenData } from '@/hooks/useTokenData';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TokenPriceProvider } from '@/context/TokenPriceContext';
@@ -67,6 +68,11 @@ const Hero: React.FC = () => {
               hasError={!!hasError}
             />
           </TokenPriceProvider>
+        </div>
+
+        {/* Promotional Text Box - Below the Cancer Treatment Image */}
+        <div className={`transition-all duration-1000 delay-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+          <PromotionalTextBox />
         </div>
 
         {/* Bottom Section: Hero Content with Image */}
