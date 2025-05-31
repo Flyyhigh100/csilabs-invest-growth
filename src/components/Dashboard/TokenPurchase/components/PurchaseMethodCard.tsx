@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Star } from 'lucide-react';
 
 interface PurchaseMethodCardProps {
   title: string;
@@ -37,6 +38,9 @@ const PurchaseMethodCard: React.FC<PurchaseMethodCardProps> = ({
 }) => {
   const isMobile = useIsMobile();
   
+  // Check if this is the promotional banner
+  const isPromoBanner = badgeText?.toLowerCase().includes('limited time');
+  
   return (
     <Card className={cn(
       "transition-all h-full", 
@@ -47,15 +51,34 @@ const PurchaseMethodCard: React.FC<PurchaseMethodCardProps> = ({
         {/* Badge positioned at the top when present */}
         {badgeText && (
           <div className="flex justify-center">
-            <Badge 
-              variant={badgeVariant} 
-              className={cn(
-                "text-xs text-center",
-                badgeVariant === 'secondary' && highlight && "bg-cbis-teal/20 text-cbis-teal border-cbis-teal/30"
-              )}
-            >
-              {badgeText}
-            </Badge>
+            {isPromoBanner ? (
+              <div className={cn(
+                "relative px-4 py-2 rounded-full text-center font-bold text-lg",
+                "bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-400",
+                "text-black border-2 border-yellow-600 shadow-lg",
+                "animate-pulse transform hover:scale-105 transition-all duration-300",
+                "flex items-center gap-2"
+              )}>
+                <Star className="h-5 w-5 fill-current animate-spin" style={{ animationDuration: '3s' }} />
+                <span className="font-extrabold tracking-wide">
+                  {badgeText.toUpperCase()}
+                </span>
+                <Star className="h-5 w-5 fill-current animate-spin" style={{ animationDuration: '3s', animationDirection: 'reverse' }} />
+                
+                {/* Glowing effect */}
+                <div className="absolute inset-0 rounded-full bg-yellow-300 opacity-30 blur-sm animate-pulse"></div>
+              </div>
+            ) : (
+              <Badge 
+                variant={badgeVariant} 
+                className={cn(
+                  "text-xs text-center",
+                  badgeVariant === 'secondary' && highlight && "bg-cbis-teal/20 text-cbis-teal border-cbis-teal/30"
+                )}
+              >
+                {badgeText}
+              </Badge>
+            )}
           </div>
         )}
         
