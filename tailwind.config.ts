@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -138,22 +137,6 @@ export default {
 					'50%': {
 						opacity: '0.8'
 					}
-				},
-				'shimmer': {
-					'0%': {
-						backgroundPosition: '-200% 0'
-					},
-					'100%': {
-						backgroundPosition: '200% 0'
-					}
-				},
-				'pulse-glow': {
-					'0%, 100%': {
-						boxShadow: '0 0 20px rgba(251, 146, 60, 0.6), 0 0 40px rgba(251, 146, 60, 0.3)'
-					},
-					'50%': {
-						boxShadow: '0 0 30px rgba(251, 146, 60, 0.8), 0 0 60px rgba(251, 146, 60, 0.4)'
-					}
 				}
 			},
 			animation: {
@@ -162,9 +145,7 @@ export default {
 				'fade-in': 'fade-in 0.6s ease-out',
 				'fade-in-left': 'fade-in-left 0.6s ease-out',
 				'fade-in-right': 'fade-in-right 0.6s ease-out',
-				'pulse-subtle': 'pulse-subtle 3s infinite',
-				'shimmer': 'shimmer 3s linear infinite',
-				'pulse-glow': 'pulse-glow 2s ease-in-out infinite'
+				'pulse-subtle': 'pulse-subtle 3s infinite'
 			},
 			boxShadow: {
 				'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
