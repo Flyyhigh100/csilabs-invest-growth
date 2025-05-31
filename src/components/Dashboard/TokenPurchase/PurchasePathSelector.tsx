@@ -111,7 +111,7 @@ const PurchasePathSelector: React.FC<PurchasePathSelectorProps> = ({
         <ul className="text-sm text-gray-600 space-y-1">
           <li>• Funds directly support company operations and development</li>
           <li>• Simplified process with customer support</li>
-          <li>• Direct relationship to CSi</li>
+          <li>• Direct relationship to CSi Labs</li>
           <li>• Limited time pre-launch pricing available</li>
         </ul>
       </div>
