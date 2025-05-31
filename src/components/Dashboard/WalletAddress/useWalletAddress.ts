@@ -1,63 +1,45 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
+import { useProfileData } from '@/hooks/useProfileData';
+import type { NetworkType } from './networkValidation';
 
 export const useWalletAddress = () => {
   const { user } = useAuth();
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const { profileData, isLoading, refetch } = useProfileData();
   const [isLoadingWallet, setIsLoadingWallet] = useState(true);
-
+  
+  // Extract wallet addresses from profile data
+  const walletAddress = profileData?.wallet_address || null;
+  const solanaWalletAddress = profileData?.solana_wallet_address || null;
+  const preferredNetwork = (profileData?.preferred_network as NetworkType) || 'polygon';
+  
+  // Check if user has any wallet address
+  const hasAnyWallet = !!(walletAddress || solanaWalletAddress);
+  
   useEffect(() => {
-    const fetchWalletAddress = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('wallet_address')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) throw error;
-        
-        setWalletAddress(data.wallet_address);
-      } catch (error) {
-        console.error('Error fetching wallet address:', error);
-      } finally {
-        setIsLoadingWallet(false);
-      }
-    };
-    
-    fetchWalletAddress();
-  }, [user]);
-
+    if (!isLoading) {
+      setIsLoadingWallet(false);
+    }
+  }, [isLoading]);
+  
   const handleWalletUpdated = async () => {
-    if (!user) return;
-    
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('wallet_address')
-        .eq('id', user.id)
-        .single();
-      
-      if (error) throw error;
-      
-      setWalletAddress(data.wallet_address);
-      toast.success("Wallet address updated successfully", {
-        description: "Your tokens will be sent to this wallet address after purchase."
-      });
+      await refetch();
     } catch (error) {
-      console.error('Error fetching wallet address:', error);
+      console.error("Error refreshing wallet data:", error);
     }
   };
-
+  
   return {
+    user,
     walletAddress,
+    solanaWalletAddress,
+    preferredNetwork,
+    hasAnyWallet,
     isLoadingWallet,
-    handleWalletUpdated
+    handleWalletUpdated,
+    refetch
   };
 };
 

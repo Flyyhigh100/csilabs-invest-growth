@@ -5,7 +5,8 @@ import { useForm } from "react-hook-form";
 import { Copy, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { walletFormSchema, WalletFormValues } from './types';
+import { createWalletFormSchema, WalletFormValues, NetworkType, getNetworkInfo } from './networkValidation';
+import NetworkSelector from './NetworkSelector';
 import {
   Form,
   FormControl,
@@ -17,32 +18,63 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 
 interface WalletFormProps {
   defaultWalletAddress?: string;
+  defaultSolanaWalletAddress?: string;
+  defaultNetwork?: NetworkType;
   onSubmit: (data: WalletFormValues) => Promise<void>;
   onCancel?: () => void;
 }
 
-const WalletForm: React.FC<WalletFormProps> = ({ defaultWalletAddress = "", onSubmit, onCancel }) => {
+const WalletForm: React.FC<WalletFormProps> = ({ 
+  defaultWalletAddress = "", 
+  defaultSolanaWalletAddress = "",
+  defaultNetwork = 'polygon',
+  onSubmit, 
+  onCancel 
+}) => {
+  const [selectedNetwork, setSelectedNetwork] = useState<NetworkType>(defaultNetwork);
   const [showExample, setShowExample] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [addressesMatch, setAddressesMatch] = useState(false);
   
+  // Get the appropriate default address based on selected network
+  const getDefaultAddress = () => {
+    return selectedNetwork === 'polygon' ? defaultWalletAddress : defaultSolanaWalletAddress;
+  };
+  
   // Initialize the form with default values
   const form = useForm<WalletFormValues>({
-    resolver: zodResolver(walletFormSchema),
+    resolver: zodResolver(createWalletFormSchema(selectedNetwork)),
     defaultValues: {
-      walletAddress: defaultWalletAddress,
-      walletAddressConfirmation: defaultWalletAddress,
+      walletAddress: getDefaultAddress(),
+      walletAddressConfirmation: getDefaultAddress(),
+      network: selectedNetwork,
     },
-    mode: "onChange" // Enable validation on change
+    mode: "onChange"
   });
 
+  // Update form when network changes
+  const handleNetworkChange = (network: NetworkType) => {
+    setSelectedNetwork(network);
+    const newDefaultAddress = network === 'polygon' ? defaultWalletAddress : defaultSolanaWalletAddress;
+    
+    // Reset form with new schema and default values
+    form.setValue('network', network);
+    form.setValue('walletAddress', newDefaultAddress);
+    form.setValue('walletAddressConfirmation', newDefaultAddress);
+    
+    // Update form resolver for new network
+    const newSchema = createWalletFormSchema(network);
+    form.clearErrors();
+    setAddressesMatch(false);
+  };
+
   const copyExample = () => {
-    navigator.clipboard.writeText("0x71C7656EC7ab88b098defB751B7401B5f6d8976F");
+    const networkInfo = getNetworkInfo(selectedNetwork);
+    navigator.clipboard.writeText(networkInfo.example);
     setCopied(true);
     toast.success("Example address copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
@@ -64,20 +96,30 @@ const WalletForm: React.FC<WalletFormProps> = ({ defaultWalletAddress = "", onSu
     }
   }, [form.watch("walletAddress"), form.watch("walletAddressConfirmation"), form]);
 
+  const networkInfo = getNetworkInfo(selectedNetwork);
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        {/* Network Selection */}
+        <NetworkSelector 
+          selectedNetwork={selectedNetwork}
+          onNetworkChange={handleNetworkChange}
+        />
+        
         <FormField
           control={form.control}
           name="walletAddress"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-gray-700 font-medium text-base">Your Polygon Wallet Address</FormLabel>
+              <FormLabel className="text-gray-700 font-medium text-base">
+                Your {networkInfo.name} Wallet Address
+              </FormLabel>
               <div className="mt-1.5">
                 <FormControl>
                   <div className="relative">
                     <Input 
-                      placeholder="Enter your Polygon wallet address (0x...)" 
+                      placeholder={`Enter your ${networkInfo.name} wallet address`}
                       {...field} 
                       className="font-mono text-base placeholder:font-sans border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                       type={showPassword ? "text" : "password"}
@@ -97,7 +139,7 @@ const WalletForm: React.FC<WalletFormProps> = ({ defaultWalletAddress = "", onSu
               
               <div className="flex justify-between items-center mt-2">
                 <FormDescription className="text-gray-500 text-sm">
-                  This address will receive your CSi tokens
+                  This address will receive your CSi tokens on {networkInfo.name}
                 </FormDescription>
                 <Button
                   type="button"
@@ -113,7 +155,9 @@ const WalletForm: React.FC<WalletFormProps> = ({ defaultWalletAddress = "", onSu
               {showExample && (
                 <div className="p-3 bg-gray-50 rounded-md border border-gray-200 mt-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-mono text-gray-600 break-all">Example: 0x71C7656EC7ab88b098defB751B7401B5f6d8976F</span>
+                    <span className="text-xs font-mono text-gray-600 break-all">
+                      Example: {networkInfo.example}
+                    </span>
                     <Button
                       type="button"
                       size="sm"
@@ -140,7 +184,9 @@ const WalletForm: React.FC<WalletFormProps> = ({ defaultWalletAddress = "", onSu
           name="walletAddressConfirmation"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-gray-700 font-medium text-base">Confirm Your Wallet Address</FormLabel>
+              <FormLabel className="text-gray-700 font-medium text-base">
+                Confirm Your {networkInfo.name} Wallet Address
+              </FormLabel>
               <div className="mt-1.5">
                 <FormControl>
                   <div className="relative">
@@ -204,7 +250,7 @@ const WalletForm: React.FC<WalletFormProps> = ({ defaultWalletAddress = "", onSu
             className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 transition-all text-white px-5 py-2"
             disabled={!addressesMatch && form.formState.isSubmitted}
           >
-            {defaultWalletAddress ? "Update Wallet Address" : "Save Wallet Address"}
+            {getDefaultAddress() ? "Update Wallet Address" : "Save Wallet Address"}
           </Button>
         </div>
       </form>

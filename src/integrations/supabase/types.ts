@@ -262,8 +262,10 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          preferred_network: string | null
           rejection_reason: string | null
           role: string | null
+          solana_wallet_address: string | null
           status: string | null
           updated_at: string
           wallet_address: string | null
@@ -274,8 +276,10 @@ export type Database = {
           first_name?: string | null
           id: string
           last_name?: string | null
+          preferred_network?: string | null
           rejection_reason?: string | null
           role?: string | null
+          solana_wallet_address?: string | null
           status?: string | null
           updated_at?: string
           wallet_address?: string | null
@@ -286,8 +290,10 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          preferred_network?: string | null
           rejection_reason?: string | null
           role?: string | null
+          solana_wallet_address?: string | null
           status?: string | null
           updated_at?: string
           wallet_address?: string | null

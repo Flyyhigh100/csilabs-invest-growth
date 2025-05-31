@@ -6,7 +6,7 @@ import KycWarning from '@/components/Dashboard/KycWarning';
 import PaymentInfoCard from '@/components/Dashboard/PaymentInfoCard';
 import KycStatusAlerts from '@/components/Dashboard/KycStatusAlerts';
 import { PaymentStatusCheck } from '@/components/Dashboard/Payments/StatusChecks';
-import { useWalletAddress } from '@/components/Dashboard/Payments/useWalletAddress';
+import { useWalletAddress } from '@/components/Dashboard/WalletAddress/useWalletAddress';
 import TokenPriceHeaderWithProvider from '@/components/Dashboard/TokenPriceHeaderWithProvider';
 import { TokenPurchaseSections } from '@/components/Dashboard/Payments/PaymentSections';
 import PaymentSidePanel from '@/components/Dashboard/Payments/PaymentSidePanel';
@@ -16,12 +16,24 @@ import { useIsMobile } from '@/hooks/use-mobile';
 const Payments = () => {
   const { kycData } = useKycVerification();
   const [showInfoCard, setShowInfoCard] = React.useState(true);
-  const { walletAddress, isLoadingWallet, handleWalletUpdated } = useWalletAddress();
+  const { 
+    walletAddress, 
+    solanaWalletAddress, 
+    preferredNetwork,
+    hasAnyWallet,
+    isLoadingWallet, 
+    handleWalletUpdated 
+  } = useWalletAddress();
   const isMobile = useIsMobile();
   
   const isKycApproved = kycData?.status === 'approved';
   // Allow token purchases below regulatory threshold without prior KYC
   const allowPaymentsWithoutKYC = true;
+  
+  // For backward compatibility, use the primary wallet address based on preferred network
+  const primaryWalletAddress = preferredNetwork === 'solana' 
+    ? solanaWalletAddress || walletAddress 
+    : walletAddress || solanaWalletAddress;
   
   return (
     <DashboardLayout title="Buy Tokens">
@@ -60,7 +72,7 @@ const Payments = () => {
             
             <TokenPurchaseSections
               isLoadingWallet={isLoadingWallet}
-              walletAddress={walletAddress}
+              walletAddress={primaryWalletAddress}
               onWalletUpdated={handleWalletUpdated}
             />
           </div>

@@ -5,31 +5,37 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { CheckCircle } from 'lucide-react';
 
-import { WalletFormValues } from './types';
+import { WalletFormValues, NetworkType } from './networkValidation';
 import { WalletInfoBox, WalletWarningBox } from './InfoBoxes';
 import WalletAddressDisplay from './WalletAddressDisplay';
 import WalletForm from './WalletAddressForm';
 
 interface WalletAddressFormProps {
   existingWalletAddress?: string;
+  existingSolanaWalletAddress?: string;
+  existingPreferredNetwork?: NetworkType;
   onWalletUpdated?: () => void;
 }
 
 const WalletAddressForm: React.FC<WalletAddressFormProps> = ({ 
   existingWalletAddress, 
+  existingSolanaWalletAddress,
+  existingPreferredNetwork = 'polygon',
   onWalletUpdated 
 }) => {
   const { user } = useAuth();
-  const [editMode, setEditMode] = useState(!existingWalletAddress);
+  const [editMode, setEditMode] = useState<NetworkType | null>(null);
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   
+  const hasAnyAddress = existingWalletAddress || existingSolanaWalletAddress;
+  
   useEffect(() => {
-    if (existingWalletAddress) {
-      setEditMode(false);
+    if (!hasAnyAddress) {
+      setEditMode('polygon'); // Default to polygon for new users
     } else {
-      setEditMode(true);
+      setEditMode(null);
     }
-  }, [existingWalletAddress]);
+  }, [hasAnyAddress]);
 
   const handleSubmit = async (data: WalletFormValues) => {
     if (!user) {
@@ -38,19 +44,27 @@ const WalletAddressForm: React.FC<WalletAddressFormProps> = ({
     }
 
     try {
-      // Update the wallet address in the profiles table
+      const updateData: any = {
+        updated_at: new Date().toISOString(),
+        preferred_network: data.network
+      };
+
+      // Update the appropriate wallet address field
+      if (data.network === 'polygon') {
+        updateData.wallet_address = data.walletAddress;
+      } else if (data.network === 'solana') {
+        updateData.solana_wallet_address = data.walletAddress;
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .update({
-          wallet_address: data.walletAddress,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', user.id);
 
       if (error) throw error;
       
-      toast.success("Wallet address saved and confirmed successfully");
-      setEditMode(false);
+      toast.success(`${data.network === 'polygon' ? 'Polygon' : 'Solana'} wallet address saved and confirmed successfully`);
+      setEditMode(null);
       setShowSuccessBanner(true);
       
       // Hide success banner after 5 seconds
@@ -67,6 +81,14 @@ const WalletAddressForm: React.FC<WalletAddressFormProps> = ({
     }
   };
 
+  const handleEditClick = (network: NetworkType) => {
+    setEditMode(network);
+  };
+
+  const handleCancel = () => {
+    setEditMode(null);
+  };
+
   return (
     <div className="w-full">
       <WalletInfoBox />
@@ -81,16 +103,20 @@ const WalletAddressForm: React.FC<WalletAddressFormProps> = ({
         </div>
       )}
       
-      {existingWalletAddress && !editMode ? (
-        <WalletAddressDisplay 
-          walletAddress={existingWalletAddress} 
-          onEditClick={() => setEditMode(true)} 
-        />
-      ) : (
+      {editMode ? (
         <WalletForm 
           defaultWalletAddress={existingWalletAddress || ""}
+          defaultSolanaWalletAddress={existingSolanaWalletAddress || ""}
+          defaultNetwork={editMode}
           onSubmit={handleSubmit}
-          onCancel={existingWalletAddress ? () => setEditMode(false) : undefined}
+          onCancel={hasAnyAddress ? handleCancel : undefined}
+        />
+      ) : (
+        <WalletAddressDisplay 
+          polygonAddress={existingWalletAddress}
+          solanaAddress={existingSolanaWalletAddress}
+          preferredNetwork={existingPreferredNetwork}
+          onEditClick={handleEditClick}
         />
       )}
       

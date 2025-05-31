@@ -19,7 +19,7 @@ export const useProfileData = () => {
       // Using parameterized query to prevent SQL injection
       const { data, error } = await supabase
         .from('profiles')
-        .select('first_name, last_name, wallet_address')
+        .select('first_name, last_name, wallet_address, solana_wallet_address, preferred_network')
         .eq('id', user.id)
         .single();
       
