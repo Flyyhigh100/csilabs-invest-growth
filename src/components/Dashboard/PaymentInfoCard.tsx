@@ -29,17 +29,20 @@ const PaymentInfoCard: React.FC<PaymentInfoCardProps> = ({
           
           <div className="space-y-4 mt-1">
             <div className="flex items-center gap-2">
-              <div className="bg-cbis-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">1</div>
+              <div className="bg-cbis-blue text-white rounded-full min-w-6 w-6 h-6 flex items-center justify-center text-sm font-medium">1</div>
               <p className="text-sm text-gray-700">Add your Polygon or Solana Wallet Address to receive your CSi-Labs Coins</p>
             </div>
             
-            <div className="flex items-center gap-2">
-              <div className="bg-cbis-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">2</div>
-              <p className="text-sm text-gray-700">Fund Your Wallet our Accept Coins: ***Bitcoin, ETH, BNB, SOL, POL or with stablecoins USDC and USDT on Polygon or Solana Networks</p>
+            <div className="flex items-start gap-2">
+              <div className="bg-cbis-blue text-white rounded-full min-w-6 w-6 h-6 flex items-center justify-center text-sm font-medium mt-0.5">2</div>
+              <div className="text-sm text-gray-700">
+                <p>Fund Your Wallet our Accept Coins:</p>
+                <p className="mt-1">Bitcoin, ETH, BNB, SOL, POL or with stablecoins USDC and USDT on Polygon or Solana Networks</p>
+              </div>
             </div>
             
             <div className="flex items-center gap-2">
-              <div className="bg-cbis-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">3</div>
+              <div className="bg-cbis-blue text-white rounded-full min-w-6 w-6 h-6 flex items-center justify-center text-sm font-medium">3</div>
               <p className="text-sm text-gray-700">For a Limited Time, Purchase CSi Labs (CSL) @ Current Spot Price</p>
             </div>
           </div>
