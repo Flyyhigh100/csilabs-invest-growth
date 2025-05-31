@@ -37,7 +37,12 @@ const PaymentTabs: React.FC<PaymentTabsProps> = ({
       {/* Enhanced Prominent Feature Card */}
       <div className="relative mb-6 overflow-hidden rounded-xl bg-gradient-to-r from-cbis-blue via-blue-600 to-cbis-teal p-6 shadow-lg hover:shadow-xl transition-all duration-300">
         {/* Background Pattern */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-50"></div>
+        <div 
+          className="absolute inset-0 opacity-50"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+          }}
+        />
         
         {/* Content */}
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
