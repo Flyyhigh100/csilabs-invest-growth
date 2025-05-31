@@ -44,6 +44,21 @@ const PurchaseMethodCard: React.FC<PurchaseMethodCardProps> = ({
       className
     )}>
       <CardContent className="p-5 space-y-4 flex flex-col h-full">
+        {/* Badge positioned at the top when present */}
+        {badgeText && (
+          <div className="flex justify-center">
+            <Badge 
+              variant={badgeVariant} 
+              className={cn(
+                "text-xs text-center",
+                badgeVariant === 'secondary' && highlight && "bg-cbis-teal/20 text-cbis-teal border-cbis-teal/30"
+              )}
+            >
+              {badgeText}
+            </Badge>
+          </div>
+        )}
+        
         <div className={cn(
           "flex items-start gap-4",
           isMobile && "flex-col"
@@ -53,20 +68,7 @@ const PurchaseMethodCard: React.FC<PurchaseMethodCardProps> = ({
           </div>
           
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="font-medium text-lg">{title}</h3>
-              {badgeText && (
-                <Badge 
-                  variant={badgeVariant} 
-                  className={cn(
-                    "ml-auto whitespace-nowrap text-xs",
-                    badgeVariant === 'secondary' && highlight && "bg-cbis-teal/20 text-cbis-teal border-cbis-teal/30"
-                  )}
-                >
-                  {badgeText}
-                </Badge>
-              )}
-            </div>
+            <h3 className="font-medium text-lg">{title}</h3>
             <p className="text-gray-600 mt-1 break-normal hyphens-manual">
               {description}
             </p>
