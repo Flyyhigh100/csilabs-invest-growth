@@ -28,21 +28,30 @@
     <meta name="twitter:description" content="Join the 1-Million STRONG campaign with CBIS token to support cannabinoid cancer research, clinical trials, and innovative treatments for multiple cancer types." />
     <meta name="twitter:image" content="/Newlogo.jpg" />
 
-    <!-- Preload hints for better performance -->
-    <link rel="preload" href="https://fast.wistia.com/player.js" as="script">
-    <link rel="preload" href="https://fast.wistia.com/embed/mbfp6iuabu.js" as="script">
-
-    <!-- Wistia Scripts - removed async for faster loading -->
-    <script src="https://fast.wistia.com/player.js"></script>
-    <script src="https://fast.wistia.com/embed/mbfp6iuabu.js" type="module"></script>
+    <!-- Wistia Script - Traditional approach with async loading -->
+    <script charset="ISO-8859-1" src="https://fast.wistia.com/assets/external/E-v1.js" async></script>
     
-    <!-- Wistia Styles - improved placeholder without blur for smoother loading -->
+    <!-- Wistia Styles for responsive and loading -->
     <style>
-      wistia-player[media-id='mbfp6iuabu']:not(:defined) { 
-        background: center / contain no-repeat url('https://fast.wistia.com/embed/medias/mbfp6iuabu/swatch'); 
-        display: block; 
-        padding-top: 56.25%; 
-        background-color: #f3f4f6;
+      .wistia_responsive_padding { 
+        padding: 56.25% 0 0 0; 
+        position: relative; 
+      }
+      .wistia_responsive_wrapper { 
+        height: 100%; 
+        left: 0; 
+        position: absolute; 
+        top: 0; 
+        width: 100%; 
+      }
+      .wistia_embed { 
+        height: 100%; 
+        position: relative; 
+        width: 100%; 
+      }
+      .wistia_embed.wistia_async_mbfp6iuabu {
+        background: #f3f4f6 url('https://fast.wistia.com/embed/medias/mbfp6iuabu/swatch') center center no-repeat;
+        background-size: contain;
       }
     </style>
   </head>

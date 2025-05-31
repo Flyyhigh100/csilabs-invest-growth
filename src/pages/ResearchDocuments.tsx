@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -34,23 +35,37 @@ const ResearchDocuments: React.FC = () => {
             </div>
           </FadeInSection>
 
-          {/* Latest Research Update Video - Wistia with Autoplay */}
+          {/* Latest Research Update Video - Traditional Wistia Embed with Autoplay */}
           <FadeInSection>
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-4">Latest Research Update</h2>
               <div className="bg-white p-4 rounded-lg shadow-md">
-                <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-md">
-                  <wistia-player 
-                    media-id="mbfp6iuabu" 
-                    aspect="1.7777777777777777"
-                    autoplay="true"
-                    muted="true"
-                    preload="auto"
-                    playsinline="true"
-                    controls="true"
-                    className="w-full h-full"
-                  />
-                </AspectRatio>
+                <div className="wistia_responsive_padding">
+                  <div className="wistia_responsive_wrapper">
+                    <div 
+                      className="wistia_embed wistia_async_mbfp6iuabu videoFoam=true autoPlay=true muted=true"
+                      style={{ height: '100%', position: 'relative', width: '100%' }}
+                    >
+                      <div className="wistia_swatch" style={{
+                        height: '100%',
+                        left: 0,
+                        opacity: 0,
+                        overflow: 'hidden',
+                        position: 'absolute',
+                        top: 0,
+                        transition: 'opacity 200ms',
+                        width: '100%'
+                      }}>
+                        <img 
+                          src="https://fast.wistia.com/embed/medias/mbfp6iuabu/swatch" 
+                          style={{ filter: 'blur(5px)', height: '100%', objectFit: 'contain', width: '100%' }} 
+                          alt="Video thumbnail" 
+                          aria-hidden="true" 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <div className="mt-4 text-center">
                   <h3 className="font-medium text-lg">Latest Research Insights</h3>
                   <p className="text-gray-600 text-sm">Our most recent findings and research developments</p>
