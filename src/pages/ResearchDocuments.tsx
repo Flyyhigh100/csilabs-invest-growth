@@ -8,8 +8,6 @@ import DocumentViewer from '@/components/ResearchDocuments/DocumentViewer';
 import CategoryFilter from '@/components/ResearchDocuments/CategoryFilter';
 import { useResearchDocuments } from '@/hooks/research/useResearchDocuments';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { Button } from '@/components/ui/button';
-import { ExternalLink, Play } from 'lucide-react';
 
 const ResearchDocuments: React.FC = () => {
   const {
@@ -22,10 +20,6 @@ const ResearchDocuments: React.FC = () => {
     setSelectedPdf,
     refreshDocuments
   } = useResearchDocuments();
-
-  const handleWatchVideo = () => {
-    window.open('https://ai.invideo.io/watch/_3yp5v0y87T', '_blank');
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -47,25 +41,11 @@ const ResearchDocuments: React.FC = () => {
               <h2 className="text-2xl font-bold mb-4">Latest Research Update</h2>
               <div className="bg-white p-4 rounded-lg shadow-md">
                 <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-md">
-                  <div className="w-full h-full bg-gradient-to-br from-cbis-blue/10 to-cbis-teal/10 flex flex-col items-center justify-center border border-gray-200 rounded-md">
-                    <div className="text-center p-8">
-                      <div className="mb-4">
-                        <Play className="h-16 w-16 mx-auto text-cbis-blue" />
-                      </div>
-                      <h3 className="text-xl font-semibold mb-2 text-cbis-dark">Latest Research Insights</h3>
-                      <p className="text-gray-600 mb-4">Watch our most recent findings and research developments</p>
-                      <Button 
-                        onClick={handleWatchVideo}
-                        className="bg-gradient-to-r from-cbis-blue to-cbis-teal hover:opacity-90 text-white"
-                      >
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        Watch Video
-                      </Button>
-                    </div>
-                  </div>
+                  <wistia-player media-id="mbfp6iuabu" aspect="1.7777777777777777"></wistia-player>
                 </AspectRatio>
                 <div className="mt-4 text-center">
-                  <p className="text-gray-500 text-xs">Click the button above to view the video on InVideo</p>
+                  <h3 className="font-medium text-lg">Latest Research Insights</h3>
+                  <p className="text-gray-600 text-sm">Our most recent findings and research developments</p>
                 </div>
               </div>
             </div>
