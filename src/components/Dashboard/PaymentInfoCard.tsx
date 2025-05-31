@@ -37,7 +37,7 @@ const PaymentInfoCard: React.FC<PaymentInfoCardProps> = ({
               <div className="bg-cbis-blue text-white rounded-full min-w-6 w-6 h-6 flex items-center justify-center text-sm font-medium mt-0.5">2</div>
               <div className="text-sm text-gray-700">
                 <p>Fund Your Wallet our Accept Coins:</p>
-                <p className="mt-1">Bitcoin, ETH, BNB, SOL, POL or with stablecoins USDC and USDT on Polygon or Solana Networks</p>
+                <p className="mt-1">Bitcoin, ETH, BNB, SOL, POL or (USDC & USDT on Polygon or Solana).</p>
               </div>
             </div>
             
