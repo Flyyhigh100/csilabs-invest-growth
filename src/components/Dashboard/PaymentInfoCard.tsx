@@ -25,17 +25,17 @@ const PaymentInfoCard: React.FC<PaymentInfoCardProps> = ({
           <div className="space-y-4 mt-1">
             <div className="flex items-center gap-2">
               <div className="bg-cbis-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">1</div>
-              <p className="text-sm text-gray-700">Add your Polygon wallet address</p>
+              <p className="text-sm text-gray-700">Add your Polygon or Solana Wallet Address</p>
             </div>
             
             <div className="flex items-center gap-2">
               <div className="bg-cbis-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">2</div>
-              <p className="text-sm text-gray-700">Fund Your Wallet</p>
+              <p className="text-sm text-gray-700">Fund Your Wallet with USDT or USDC</p>
             </div>
             
             <div className="flex items-center gap-2">
               <div className="bg-cbis-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">3</div>
-              <p className="text-sm text-gray-700">Purchase CSI Tokens</p>
+              <p className="text-sm text-gray-700">Purchase CSi Labs (CSL) @ Current Spot Price</p>
             </div>
             
             <div className="flex items-center gap-2">

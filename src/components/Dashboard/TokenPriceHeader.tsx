@@ -79,7 +79,7 @@ const TokenPriceHeader: React.FC<TokenPriceHeaderProps> = ({
           <TrendingUp className="h-5 w-5 text-cbis-blue mr-2" />
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-gray-600">Current CSi Token Price</p>
+              <p className="text-sm font-medium text-gray-600">CSi Labs (CSL) Current Spot Price </p>
               {dataSource && <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-6 w-6 p-0 rounded-full hover:bg-blue-50 focus-visible:ring-1 focus-visible:ring-blue-400" aria-label="Price Source Information">
