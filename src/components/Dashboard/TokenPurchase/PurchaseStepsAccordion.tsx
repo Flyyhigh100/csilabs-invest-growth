@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
@@ -193,7 +192,7 @@ const PurchaseStepsAccordion: React.FC<PurchaseStepsAccordionProps> = ({
                 <p className="text-sm text-gray-500 text-left">
                   {sectionsCompleted.purchase ? 
                     "Token purchase completed" : 
-                    "Choose payment method and complete purchase"}
+                    "Complete Your Purchase"}
                 </p>
               </div>
             </div>
