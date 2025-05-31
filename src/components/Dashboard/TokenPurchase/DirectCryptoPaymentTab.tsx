@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { 
@@ -36,6 +37,7 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
   const [showPaymentInstructions, setShowPaymentInstructions] = useState(false);
   const { currentPrice } = useTokenPrice();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   
   const {
     selectedNetwork,
@@ -87,6 +89,10 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
     if (url) {
       window.open(url, '_blank');
     }
+  };
+
+  const handleNavigateToTransactions = () => {
+    navigate('/transactions');
   };
 
   if (isLoadingAddresses) {
@@ -287,7 +293,14 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
           </CardContent>
           <CardFooter className={cn("flex-col space-y-2", isMobile && "p-4 pt-0")}>
             <div className={cn("text-sm text-center text-muted-foreground mb-2", isMobile && "text-xs")}>
-              After sending payment, our team will verify and credit your account.
+              After sending payment, our team will verify and credit your account. You can track the status of your transaction on the{' '}
+              <button
+                onClick={handleNavigateToTransactions}
+                className="text-primary hover:text-primary/80 underline font-medium"
+              >
+                Transactions
+              </button>
+              {' '}page.
             </div>
             <Button 
               variant="outline" 
