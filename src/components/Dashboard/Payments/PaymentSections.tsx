@@ -84,7 +84,7 @@ export const TokenPurchaseSections: React.FC<{
   const renderWalletSectionContent = () => {
     if (isLoadingWallet) {
       return (
-        <div className="py-8 flex justify-center">
+        <div className={cn("py-8 flex justify-center", isMobile && "py-6")}>
           <div className="animate-pulse flex space-x-4">
             <div className="rounded-full bg-gray-200 h-10 w-10"></div>
             <div className="flex-1 space-y-4 py-1">
@@ -183,23 +183,25 @@ export const TokenPurchaseSections: React.FC<{
   };
 
   return (
-    <Card className="shadow-md border-cbis-blue/10">
+    <Card className={cn("shadow-md border-cbis-blue/10", isMobile && "shadow-sm")}>
       <div className="h-2 bg-gradient-to-r from-cbis-blue to-cbis-teal"></div>
       <CardContent className={cn("p-6", isMobile && "p-3")}>
-        <div className="flex justify-end mb-4">
+        <div className={cn("flex justify-end mb-4", isMobile && "mb-3")}>
           <Button 
             variant="outline" 
-            size="sm" 
+            size={isMobile ? "sm" : "sm"}
             onClick={resetFlow}
             className="flex items-center gap-1"
           >
-            <RefreshCcw className="h-3.5 w-3.5" />
-            <span>Reset Guide</span>
+            <RefreshCcw className={cn("h-3.5 w-3.5", isMobile && "h-3 w-3")} />
+            <span className={cn(isMobile && "text-xs")}>Reset Guide</span>
           </Button>
         </div>
         
         {isMobile && (
-          <EnhancedPurchaseGuide currentStep={getCurrentStep()} />
+          <div className="mb-4">
+            <EnhancedPurchaseGuide currentStep={getCurrentStep()} />
+          </div>
         )}
           
         <CryptoOnboardingDialog onComplete={handleOnboardingComplete} />

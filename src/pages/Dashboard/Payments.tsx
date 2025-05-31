@@ -44,12 +44,12 @@ const Payments = () => {
         <KycWarning />
       ) : (
         <div className={cn(
-          "grid grid-cols-1 md:grid-cols-5 gap-6",
-          "bg-gray-50 rounded-xl p-4 md:p-6 mb-6"
+          "grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-6",
+          "bg-gray-50 rounded-xl p-3 md:p-6 mb-4 md:mb-6"
         )}>
           {/* Left Column - Information Panel (40% width on desktop, full width on mobile) */}
           <div className={cn(
-            "md:col-span-2 space-y-4 md:space-y-6",
+            "md:col-span-2 space-y-3 md:space-y-6",
             isMobile && "order-2" // On mobile, show the info panel after the purchase flow
           )}>
             <PaymentSidePanel 
@@ -61,7 +61,7 @@ const Payments = () => {
           
           {/* Right Column - Purchase Flow (60% width on desktop, full width on mobile) */}
           <div className={cn(
-            "md:col-span-3 space-y-4 md:space-y-6",
+            "md:col-span-3 space-y-3 md:space-y-6",
             isMobile && "order-1" // On mobile, show the purchase flow first
           )}>
             <KycStatusAlerts 

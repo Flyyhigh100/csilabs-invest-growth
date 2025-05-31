@@ -4,6 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import DirectCryptoPaymentTab from './DirectCryptoPaymentTab';
 import { Send, Sparkles } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface PaymentTabsProps {
   amount: number;
@@ -31,11 +33,15 @@ const PaymentTabs: React.FC<PaymentTabsProps> = ({
   kycData
 }) => {
   const [activeTab, setActiveTab] = useState('direct-crypto');
+  const isMobile = useIsMobile();
 
   return (
     <div className="w-full">
       {/* Enhanced Prominent Feature Card */}
-      <div className="relative mb-6 overflow-hidden rounded-xl bg-gradient-to-r from-cbis-blue via-blue-600 to-cbis-teal p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+      <div className={cn(
+        "relative mb-6 overflow-hidden rounded-xl bg-gradient-to-r from-cbis-blue via-blue-600 to-cbis-teal shadow-lg hover:shadow-xl transition-all duration-300",
+        isMobile ? "p-4" : "p-6"
+      )}>
         {/* Background Pattern */}
         <div 
           className="absolute inset-0 opacity-50"
@@ -45,21 +51,21 @@ const PaymentTabs: React.FC<PaymentTabsProps> = ({
         />
         
         {/* Content */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
-            <Send className="h-6 w-6 text-white" />
+        <div className={cn("relative z-10 flex items-center gap-3", isMobile && "gap-2")}>
+          <div className={cn("p-2 bg-white/20 rounded-full backdrop-blur-sm", isMobile && "p-1.5")}>
+            <Send className={cn("h-6 w-6 text-white", isMobile && "h-5 w-5")} />
           </div>
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
-              <span className="text-yellow-300 text-sm font-semibold tracking-wide uppercase">
+            <div className={cn("flex items-center gap-2 mb-1", isMobile && "gap-1 mb-0.5")}>
+              <Sparkles className={cn("h-4 w-4 text-yellow-300 animate-pulse", isMobile && "h-3 w-3")} />
+              <span className={cn("text-yellow-300 font-semibold tracking-wide uppercase", isMobile ? "text-xs" : "text-sm")}>
                 Limited Time
               </span>
             </div>
-            <h3 className="text-white text-lg sm:text-xl font-bold leading-tight">
+            <h3 className={cn("text-white font-bold leading-tight", isMobile ? "text-lg" : "text-xl")}>
               Pre-Launch Special!
             </h3>
-            <p className="text-blue-100 text-sm sm:text-base">
+            <p className={cn("text-blue-100", isMobile ? "text-sm" : "text-base")}>
               Buy Direct @ Current Spot Price
             </p>
           </div>
@@ -75,7 +81,7 @@ const PaymentTabs: React.FC<PaymentTabsProps> = ({
           <TabsTrigger value="direct-crypto">Direct Crypto</TabsTrigger>
         </TabsList>
 
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+        <div className={cn("bg-white rounded-lg border border-gray-200 shadow-sm", isMobile && "rounded-lg")}>
           <TabsContent value="direct-crypto" className="space-y-4 p-0 m-0">
             <DirectCryptoPaymentTab 
               walletAddress={walletAddress} 

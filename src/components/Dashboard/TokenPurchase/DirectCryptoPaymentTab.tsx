@@ -24,6 +24,8 @@ import { ArrowRight, CopyIcon, ExternalLink, RefreshCw } from 'lucide-react';
 import { useTokenPrice } from '@/context/TokenPriceContext';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface DirectCryptoPaymentTabProps {
   walletAddress: string;
@@ -33,6 +35,7 @@ interface DirectCryptoPaymentTabProps {
 const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletAddress, amount }) => {
   const [showPaymentInstructions, setShowPaymentInstructions] = useState(false);
   const { currentPrice } = useTokenPrice();
+  const isMobile = useIsMobile();
   
   const {
     selectedNetwork,
@@ -108,25 +111,28 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {!showPaymentInstructions ? (
         <>
           <div className="space-y-4">
-            <div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
-              <h4 className="font-medium mb-1">Purchase Summary</h4>
-              <div className="text-lg font-semibold text-blue-900">
+            <div className="rounded-lg bg-blue-50 p-3 md:p-4 border border-blue-200">
+              <h4 className="font-medium mb-1 text-sm md:text-base">Purchase Summary</h4>
+              <div className="text-lg md:text-xl font-semibold text-blue-900">
                 ${amount.toFixed(2)} USD
               </div>
               {currentPrice && (
-                <div className="text-sm text-blue-700">
+                <div className="text-xs md:text-sm text-blue-700">
                   Approximately {tokenAmount.toFixed(2)} CSI tokens at ${currentPrice.toFixed(2)}/token
                 </div>
               )}
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className={cn(
+              "grid gap-4",
+              isMobile ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"
+            )}>
               <div>
-                <Label htmlFor="network-select">Network</Label>
+                <Label htmlFor="network-select" className="text-sm">Network</Label>
                 <Select 
                   value={selectedNetwork} 
                   onValueChange={(value) => setSelectedNetwork(value as 'polygon' | 'solana')}
@@ -145,7 +151,7 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
               </div>
               
               <div>
-                <Label htmlFor="currency-select">Currency</Label>
+                <Label htmlFor="currency-select" className="text-sm">Currency</Label>
                 <Select 
                   value={selectedCurrency} 
                   onValueChange={(value) => setSelectedCurrency(value as 'USDT' | 'USDC')}
@@ -170,7 +176,7 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
               onClick={handleCreatePayment} 
               className="w-full"
               disabled={isCreatingPayment || amount < 1}
-              size="lg"
+              size={isMobile ? "default" : "lg"}
             >
               {isCreatingPayment ? (
                 <>
@@ -179,66 +185,74 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
                 </>
               ) : (
                 <>
-                  Continue with Direct ${selectedCurrency} Payment
+                  {isMobile ? (
+                    `Continue with ${selectedCurrency} Payment`
+                  ) : (
+                    `Continue with Direct ${selectedCurrency} Payment`
+                  )}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </>
               )}
             </Button>
-            <p className="mt-2 text-xs text-center text-muted-foreground">
+            <p className="mt-2 text-xs text-center text-muted-foreground px-2">
               Send stablecoins directly from your wallet to our address
             </p>
           </div>
         </>
       ) : (
         <Card className="border-2 border-primary/20">
-          <CardHeader className="bg-primary/5">
-            <CardTitle className="text-center">Payment Instructions</CardTitle>
-            <CardDescription className="text-center">
+          <CardHeader className={cn("bg-primary/5", isMobile && "p-4")}>
+            <CardTitle className={cn("text-center", isMobile && "text-lg")}>Payment Instructions</CardTitle>
+            <CardDescription className={cn("text-center", isMobile && "text-sm")}>
               Please complete your payment within 5 minutes
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-6 space-y-4">
-            <div className="rounded-lg bg-muted p-4">
-              <h4 className="font-medium mb-1">Send exactly</h4>
-              <div className="text-2xl font-bold mb-2">
+          <CardContent className={cn("pt-6 space-y-4", isMobile && "pt-4 p-4 space-y-3")}>
+            <div className={cn("rounded-lg bg-muted p-4", isMobile && "p-3")}>
+              <h4 className={cn("font-medium mb-1", isMobile && "text-sm")}>Send exactly</h4>
+              <div className={cn("text-2xl font-bold mb-2", isMobile && "text-xl")}>
                 {paymentResult?.expected_crypto_amount} {paymentResult?.currency}
               </div>
-              <div className="text-sm text-muted-foreground mb-2">
+              <div className={cn("text-sm text-muted-foreground mb-2", isMobile && "text-xs")}>
                 (${amount.toFixed(2)} USD value)
               </div>
-              <div className="text-xs text-amber-600">
+              <div className={cn("text-xs text-amber-600", isMobile && "text-xs")}>
                 Payment will expire on {paymentResult?.timeout_at ? new Date(paymentResult?.timeout_at).toLocaleTimeString() : ''}
               </div>
             </div>
             
             <div className="space-y-2">
-              <Label>Send to this wallet address:</Label>
-              <div className="flex items-center gap-2 mt-1">
+              <Label className={cn("text-sm", isMobile && "text-xs")}>Send to this wallet address:</Label>
+              <div className={cn("flex items-center gap-2 mt-1", isMobile && "flex-col gap-2")}>
                 <Input 
                   value={paymentResult?.payment_address || ''} 
                   readOnly 
-                  className="font-mono text-xs"
+                  className={cn("font-mono text-xs", isMobile && "text-xs w-full")}
                 />
-                <Button 
-                  size="icon" 
-                  variant="outline"
-                  onClick={() => copyToClipboard(paymentResult?.payment_address, 'wallet address')}
-                >
-                  <CopyIcon className="h-4 w-4" />
-                </Button>
-                <Button 
-                  size="icon" 
-                  variant="outline"
-                  onClick={() => handleExternalLink(paymentResult?.payment_address)}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
+                <div className={cn("flex gap-2", isMobile && "w-full justify-center")}>
+                  <Button 
+                    size="icon" 
+                    variant="outline"
+                    onClick={() => copyToClipboard(paymentResult?.payment_address, 'wallet address')}
+                    className={cn(isMobile && "h-8 w-8")}
+                  >
+                    <CopyIcon className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    size="icon" 
+                    variant="outline"
+                    onClick={() => handleExternalLink(paymentResult?.payment_address)}
+                    className={cn(isMobile && "h-8 w-8")}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
             
-            <div className="rounded-lg border p-4">
-              <h4 className="font-medium mb-2">Payment Details</h4>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className={cn("rounded-lg border p-4", isMobile && "p-3")}>
+              <h4 className={cn("font-medium mb-2", isMobile && "text-sm mb-1")}>Payment Details</h4>
+              <div className={cn("grid grid-cols-2 gap-2 text-sm", isMobile && "text-xs gap-1")}>
                 <div className="text-muted-foreground">Network:</div>
                 <div className="font-medium">{paymentResult?.network === 'polygon' ? 'Polygon' : 'Solana'}</div>
                 <div className="text-muted-foreground">Currency:</div>
@@ -248,14 +262,15 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex-col space-y-2">
-            <div className="text-sm text-center text-muted-foreground mb-2">
+          <CardFooter className={cn("flex-col space-y-2", isMobile && "p-4 pt-0")}>
+            <div className={cn("text-sm text-center text-muted-foreground mb-2", isMobile && "text-xs")}>
               After sending payment, our team will verify and credit your account.
             </div>
             <Button 
               variant="outline" 
               onClick={() => setShowPaymentInstructions(false)}
               className="w-full"
+              size={isMobile ? "sm" : "default"}
             >
               Back to payment options
             </Button>
@@ -263,9 +278,9 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
         </Card>
       )}
       
-      <div className="space-y-4 pt-4 border-t">
-        <h4 className="font-medium">Important Notes</h4>
-        <ul className="space-y-2 text-sm text-muted-foreground list-disc pl-5">
+      <div className={cn("space-y-4 pt-4 border-t", isMobile && "space-y-3 pt-3")}>
+        <h4 className={cn("font-medium", isMobile && "text-sm")}>Important Notes</h4>
+        <ul className={cn("space-y-2 text-sm text-muted-foreground list-disc pl-5", isMobile && "space-y-1 text-xs")}>
           <li>Send only {selectedCurrency} on the {selectedNetwork} network</li>
           <li>Payment will be verified manually by our team</li>
           <li>Tokens will be distributed after verification (typically within 24 hours)</li>
