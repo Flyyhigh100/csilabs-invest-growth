@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface ClientWalletAddress {
   id: string;
   network: 'polygon' | 'solana' | 'ethereum' | 'binance-smart-chain' | 'bitcoin';
-  currency: 'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC';
+  currency: 'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC' | 'SOL' | 'POL';
   wallet_address: string;
   is_active: boolean;
 }
@@ -12,7 +12,7 @@ export interface ClientWalletAddress {
 export interface DirectPaymentRequest {
   amount: number;
   network: 'polygon' | 'solana' | 'ethereum' | 'binance-smart-chain' | 'bitcoin';
-  currency: 'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC';
+  currency: 'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC' | 'SOL' | 'POL';
   wallet_address: string;
 }
 
@@ -45,7 +45,7 @@ export const fetchClientWalletAddresses = async (): Promise<ClientWalletAddress[
   return (data || []).map(item => ({
     id: item.id,
     network: item.network as 'polygon' | 'solana' | 'ethereum' | 'binance-smart-chain' | 'bitcoin',
-    currency: item.currency as 'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC',
+    currency: item.currency as 'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC' | 'SOL' | 'POL',
     wallet_address: item.wallet_address,
     is_active: item.is_active
   }));

@@ -6,7 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 interface DirectPaymentRequest {
   amount: number;
   network: 'polygon' | 'solana' | 'ethereum' | 'binance-smart-chain' | 'bitcoin';
-  currency: 'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC';
+  currency: 'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC' | 'SOL' | 'POL';
   wallet_address: string;
 }
 
@@ -18,7 +18,9 @@ async function fetchCryptoPrice(symbol: string): Promise<number> {
       'BNB': 'binancecoin', 
       'BTC': 'bitcoin',
       'USDT': 'tether',
-      'USDC': 'usd-coin'
+      'USDC': 'usd-coin',
+      'SOL': 'solana',
+      'POL': 'polygon-ecosystem-token'
     };
 
     const coinId = coinGeckoIds[symbol];
@@ -56,7 +58,9 @@ async function fetchCryptoPrice(symbol: string): Promise<number> {
       'BNB': 600,
       'BTC': 45000,
       'USDT': 1.0,
-      'USDC': 1.0
+      'USDC': 1.0,
+      'SOL': 100,
+      'POL': 0.50
     };
     return fallbackPrices[symbol] || 1.0;
   }
@@ -100,7 +104,7 @@ serve(async (req) => {
       throw new Error(`Invalid network: must be one of ${validNetworks.join(', ')}`);
     }
 
-    const validCurrencies = ['USDT', 'USDC', 'ETH', 'BNB', 'BTC'];
+    const validCurrencies = ['USDT', 'USDC', 'ETH', 'BNB', 'BTC', 'SOL', 'POL'];
     if (!validCurrencies.includes(currency)) {
       throw new Error(`Invalid currency: must be one of ${validCurrencies.join(', ')}`);
     }

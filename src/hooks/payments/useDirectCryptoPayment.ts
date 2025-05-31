@@ -11,7 +11,7 @@ import {
 
 export const useDirectCryptoPayment = () => {
   const [selectedNetwork, setSelectedNetwork] = useState<'polygon' | 'solana' | 'ethereum' | 'binance-smart-chain' | 'bitcoin'>('polygon');
-  const [selectedCurrency, setSelectedCurrency] = useState<'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC'>('USDC');
+  const [selectedCurrency, setSelectedCurrency] = useState<'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC' | 'SOL' | 'POL'>('USDC');
 
   // Fetch available wallet addresses
   const { 
