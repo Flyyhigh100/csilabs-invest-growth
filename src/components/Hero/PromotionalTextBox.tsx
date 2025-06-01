@@ -1,9 +1,13 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const PromotionalTextBox: React.FC = () => {
   return (
-    <div className="bg-gradient-to-r from-cbis-blue to-cbis-teal p-4 md:p-6 rounded-2xl shadow-elevation text-white">
+    <Link 
+      to="/signup"
+      className="block bg-gradient-to-r from-cbis-blue to-cbis-teal p-4 md:p-6 rounded-2xl shadow-elevation text-white hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-pointer"
+    >
       <div className="text-center">
         <h3 className="text-lg md:text-xl font-bold mb-2">
           1-Million Strong Killing Cancers Foundation CSi Labs (CSL) MEME Coins
@@ -28,8 +32,11 @@ const PromotionalTextBox: React.FC = () => {
             <span className="font-medium text-sm md:text-base">Contributes directly to the Cancer Foundation</span>
           </div>
         </div>
+        <div className="mt-4 text-center">
+          <span className="text-sm opacity-90">Click here to get started →</span>
+        </div>
       </div>
-    </div>
+    </Link>
   );
 };
 
