@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -42,7 +43,7 @@ const ResearchDocuments: React.FC = () => {
                 <div className="w-full max-w-4xl mx-auto">
                   <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-md">
                     <iframe 
-                      src="https://www.youtube.com/embed/I8nlQvVUxuw" 
+                      src="https://www.youtube.com/embed/POjx7zFbYrc" 
                       title="Latest Research Update" 
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                       className="w-full h-full border-0" 
