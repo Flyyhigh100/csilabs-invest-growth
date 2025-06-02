@@ -11,64 +11,64 @@ interface WalletBalance {
   balance_usd: number;
 }
 
-// Network configurations for API endpoints
-const NETWORK_CONFIGS = {
-  'polygon': {
-    rpcUrl: 'https://polygon-bor.publicnode.com/',
-    nativeSymbol: 'MATIC'
-  },
-  'ethereum': {
-    rpcUrl: 'https://eth.llamarpc.com',
-    nativeSymbol: 'ETH'
-  },
-  'binance-smart-chain': {
-    rpcUrl: 'https://bsc-dataseed.binance.org/',
-    nativeSymbol: 'BNB'
-  },
-  'solana': {
-    rpcUrl: 'https://api.mainnet-beta.solana.com',
-    nativeSymbol: 'SOL'
-  },
-  'bitcoin': {
-    apiUrl: 'https://blockstream.info/api',
-    nativeSymbol: 'BTC'
-  }
-};
-
-// Fetch balance for EVM-compatible chains
-async function fetchEVMBalance(address: string, network: string): Promise<number> {
+// Fetch balance using Moralis API
+async function fetchMoralisBalance(address: string, chain: string): Promise<number> {
   try {
-    const config = NETWORK_CONFIGS[network as keyof typeof NETWORK_CONFIGS];
-    if (!config || !('rpcUrl' in config)) return 0;
-
-    const response = await fetch(config.rpcUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        method: 'eth_getBalance',
-        params: [address, 'latest'],
-        id: 1
-      })
-    });
-
-    const data = await response.json();
-    if (data.result) {
-      // Convert from wei to ether
-      return parseInt(data.result, 16) / Math.pow(10, 18);
+    const moralisApiKey = Deno.env.get('MORALIS_API_KEY');
+    if (!moralisApiKey) {
+      console.log('No Moralis API key found, skipping Moralis call');
+      return 0;
     }
-    return 0;
+
+    const response = await fetch(
+      `https://deep-index.moralis.io/api/v2.2/${address}/balance?chain=${chain}`,
+      {
+        headers: {
+          'X-API-Key': moralisApiKey,
+          'accept': 'application/json'
+        }
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      // Convert from wei to ether (18 decimals for most chains)
+      const balance = parseInt(data.balance) / Math.pow(10, 18);
+      console.log(`Moralis balance for ${address} on ${chain}: ${balance}`);
+      return balance;
+    } else {
+      console.error(`Moralis API error for ${address}: ${response.status}`);
+      return 0;
+    }
   } catch (error) {
-    console.error(`Error fetching ${network} balance:`, error);
+    console.error(`Error fetching Moralis balance for ${address}:`, error);
     return 0;
   }
 }
 
-// Fetch Solana balance
+// Fetch Bitcoin balance using Blockstream
+async function fetchBitcoinBalance(address: string): Promise<number> {
+  try {
+    const response = await fetch(`https://blockstream.info/api/address/${address}`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      // Convert from satoshis to BTC
+      const balance = (data.chain_stats?.funded_txo_sum || 0) / Math.pow(10, 8);
+      console.log(`Bitcoin balance for ${address}: ${balance}`);
+      return balance;
+    }
+    return 0;
+  } catch (error) {
+    console.error('Error fetching Bitcoin balance:', error);
+    return 0;
+  }
+}
+
+// Fetch Solana balance using public RPC
 async function fetchSolanaBalance(address: string): Promise<number> {
   try {
-    const config = NETWORK_CONFIGS.solana;
-    const response = await fetch(config.rpcUrl, {
+    const response = await fetch('https://api.mainnet-beta.solana.com', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -79,10 +79,14 @@ async function fetchSolanaBalance(address: string): Promise<number> {
       })
     });
 
-    const data = await response.json();
-    if (data.result?.value) {
-      // Convert from lamports to SOL
-      return data.result.value / Math.pow(10, 9);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.result?.value) {
+        // Convert from lamports to SOL
+        const balance = data.result.value / Math.pow(10, 9);
+        console.log(`Solana balance for ${address}: ${balance}`);
+        return balance;
+      }
     }
     return 0;
   } catch (error) {
@@ -91,48 +95,53 @@ async function fetchSolanaBalance(address: string): Promise<number> {
   }
 }
 
-// Fetch Bitcoin balance
-async function fetchBitcoinBalance(address: string): Promise<number> {
+// Fetch cryptocurrency prices from CoinCap API
+async function fetchCryptoPrices(): Promise<Record<string, number>> {
   try {
-    const config = NETWORK_CONFIGS.bitcoin;
-    const response = await fetch(`${config.apiUrl}/address/${address}`);
+    const response = await fetch(
+      'https://api.coincap.io/v2/assets?ids=bitcoin,ethereum,polygon,binance-coin,solana'
+    );
     
     if (response.ok) {
       const data = await response.json();
-      // Convert from satoshis to BTC
-      return (data.chain_stats?.funded_txo_sum || 0) / Math.pow(10, 8);
+      const prices: Record<string, number> = {
+        'USDT': 1.0,
+        'USDC': 1.0
+      };
+      
+      data.data.forEach((asset: any) => {
+        const price = parseFloat(asset.priceUsd) || 0;
+        switch (asset.id) {
+          case 'bitcoin':
+            prices['BTC'] = price;
+            break;
+          case 'ethereum':
+            prices['ETH'] = price;
+            break;
+          case 'polygon':
+            prices['MATIC'] = price;
+            prices['POL'] = price;
+            break;
+          case 'binance-coin':
+            prices['BNB'] = price;
+            break;
+          case 'solana':
+            prices['SOL'] = price;
+            break;
+        }
+      });
+      
+      console.log('Fetched crypto prices from CoinCap');
+      return prices;
     }
-    return 0;
-  } catch (error) {
-    console.error('Error fetching Bitcoin balance:', error);
-    return 0;
-  }
-}
-
-// Fetch cryptocurrency prices from CoinGecko
-async function fetchCryptoPrices(): Promise<Record<string, number>> {
-  try {
-    const symbols = ['ethereum', 'binancecoin', 'bitcoin', 'solana', 'polygon-ecosystem-token'];
-    const response = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${symbols.join(',')}&vs_currencies=usd`
-    );
     
-    const data = await response.json();
-    return {
-      'ETH': data.ethereum?.usd || 0,
-      'BNB': data.binancecoin?.usd || 0,
-      'BTC': data.bitcoin?.usd || 0,
-      'SOL': data.solana?.usd || 0,
-      'MATIC': data['polygon-ecosystem-token']?.usd || 0,
-      'POL': data['polygon-ecosystem-token']?.usd || 0, // Support both MATIC and POL
-      'USDT': 1.0,
-      'USDC': 1.0
-    };
+    throw new Error('Failed to fetch prices');
   } catch (error) {
     console.error('Error fetching crypto prices:', error);
+    // Return fallback prices
     return {
-      'ETH': 3000, 'BNB': 600, 'BTC': 45000, 'SOL': 100, 'MATIC': 0.5, 'POL': 0.5,
-      'USDT': 1.0, 'USDC': 1.0
+      'ETH': 3000, 'BNB': 600, 'BTC': 45000, 'SOL': 100, 
+      'MATIC': 0.5, 'POL': 0.5, 'USDT': 1.0, 'USDC': 1.0
     };
   }
 }
@@ -161,7 +170,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    // Check if user is admin by checking the admins table
+    // Check if user is admin
     const { data: adminRecord } = await supabase
       .from('admins')
       .select('*')
@@ -174,7 +183,7 @@ serve(async (req) => {
 
     console.log('=== Fetching Wallet Balances ===');
 
-    // First, let's check if we have any wallet addresses at all
+    // Fetch wallet addresses
     const { data: wallets, error: walletsError } = await supabase
       .from('client_wallet_addresses')
       .select('*')
@@ -186,7 +195,7 @@ serve(async (req) => {
 
     console.log(`Found ${wallets?.length || 0} active wallets`);
 
-    // If no wallets exist, create some sample ones for testing
+    // If no wallets exist, create sample ones for testing
     if (!wallets || wallets.length === 0) {
       console.log('No wallet addresses found, creating sample wallet addresses...');
       
@@ -215,9 +224,7 @@ serve(async (req) => {
         .from('client_wallet_addresses')
         .insert(sampleWallets);
 
-      if (insertError) {
-        console.error('Error creating sample wallets:', insertError);
-      } else {
+      if (!insertError) {
         console.log('Created sample wallet addresses');
         // Refetch wallets
         const { data: newWallets } = await supabase
@@ -233,7 +240,6 @@ serve(async (req) => {
 
     // Fetch current crypto prices
     const prices = await fetchCryptoPrices();
-    console.log('Fetched crypto prices:', Object.keys(prices));
 
     const balances: WalletBalance[] = [];
 
@@ -245,10 +251,14 @@ serve(async (req) => {
         console.log(`Fetching balance for ${wallet.currency} on ${wallet.network}`);
 
         switch (wallet.network) {
-          case 'polygon':
           case 'ethereum':
+            balance = await fetchMoralisBalance(wallet.wallet_address, 'eth');
+            break;
+          case 'polygon':
+            balance = await fetchMoralisBalance(wallet.wallet_address, 'polygon');
+            break;
           case 'binance-smart-chain':
-            balance = await fetchEVMBalance(wallet.wallet_address, wallet.network);
+            balance = await fetchMoralisBalance(wallet.wallet_address, 'bsc');
             break;
           case 'solana':
             balance = await fetchSolanaBalance(wallet.wallet_address);

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, DollarSign, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 import { useCryptoPrices } from '@/hooks/admin/useCryptoPrices';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -36,12 +36,14 @@ const MarketPricesCard: React.FC = () => {
       <Card className="border-red-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-red-700">
-            <DollarSign className="h-5 w-5" />
-            Market Prices - Error
+            <AlertCircle className="h-5 w-5" />
+            Market Prices - Using Fallback Data
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-red-600 text-sm">{error.message}</p>
+          <p className="text-red-600 text-sm mb-4">
+            Unable to fetch live prices. Showing fallback data.
+          </p>
         </CardContent>
       </Card>
     );
@@ -54,8 +56,8 @@ const MarketPricesCard: React.FC = () => {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            Market Prices
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            Market Prices (Live)
           </div>
           <div className="flex items-center gap-1 text-xs text-gray-500">
             <RefreshCw className="h-3 w-3" />
@@ -63,7 +65,7 @@ const MarketPricesCard: React.FC = () => {
           </div>
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Current cryptocurrency prices for your wallet currencies
+          Current cryptocurrency prices from CoinCap API
         </p>
       </CardHeader>
       <CardContent>

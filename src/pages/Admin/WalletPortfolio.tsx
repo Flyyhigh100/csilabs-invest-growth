@@ -70,16 +70,17 @@ const WalletPortfolioPage: React.FC = () => {
           </Button>
         </div>
 
-        {/* Info Alert */}
+        {/* Enhanced Info Alert */}
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="py-4">
             <div className="flex items-start gap-3">
               <Info className="h-5 w-5 text-blue-600 mt-0.5" />
               <div className="text-sm text-blue-800">
-                <p className="font-medium mb-1">Wallet Management Dashboard</p>
+                <p className="font-medium mb-1">Enhanced Wallet Management Dashboard</p>
                 <p>
-                  Below you can see current market prices and all your wallet addresses with direct links to blockchain explorers. 
-                  Use "View on Explorer" to manually check current balances.
+                  Now using Moralis API for reliable blockchain data and CoinCap for live prices. 
+                  Click "Refresh Balances" to fetch current wallet balances from the blockchain.
+                  Use "View on Explorer" to manually verify balances.
                 </p>
               </div>
             </div>
@@ -153,9 +154,12 @@ const WalletPortfolioPage: React.FC = () => {
         {balances && balances.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Live Balance Data</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-green-600" />
+                Live Balance Data
+              </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Automatically fetched balance information from blockchain APIs
+                Real-time balance information fetched from blockchain APIs using Moralis
               </p>
             </CardHeader>
             <CardContent>
@@ -224,16 +228,16 @@ const WalletPortfolioPage: React.FC = () => {
           </Card>
         )}
 
-        {/* Error Display */}
+        {/* Enhanced Error Display */}
         {error && (
-          <Card className="border-red-200">
+          <Card className="border-orange-200 bg-orange-50">
             <CardContent className="py-6">
               <div className="text-center">
-                <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-red-700 mb-2">Balance Fetching Error</h3>
+                <AlertCircle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-orange-700 mb-2">Balance Fetching Issue</h3>
                 <p className="text-gray-600 mb-4">{error.message}</p>
                 <p className="text-sm text-gray-500 mb-4">
-                  You can still view wallet addresses above and check balances manually on blockchain explorers.
+                  Market prices are still available above. Use "View on Explorer" to check balances manually.
                 </p>
                 <Button 
                   onClick={() => refreshBalances.mutate()}
@@ -241,7 +245,7 @@ const WalletPortfolioPage: React.FC = () => {
                   variant="outline"
                 >
                   <RefreshCw className={`h-4 w-4 mr-2 ${refreshBalances.isPending ? 'animate-spin' : ''}`} />
-                  Try Again
+                  Retry Balance Fetch
                 </Button>
               </div>
             </CardContent>
