@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Instagram, Facebook, MessageCircle } from 'lucide-react';
+import { X } from 'lucide-react';
 
 const Footer: React.FC = () => {
   return (
@@ -13,11 +14,17 @@ const Footer: React.FC = () => {
             <p className="text-blue-100 mb-4">
               Revolutionizing cancer treatment through Harvard-validated cannabinoid research.
             </p>
-            <div className="flex items-center">
+            <div className="mb-4">
               <a href="https://polygonscan.com/token/0xcba5ca199bca0af3f6046da01169035f2c6a7ff0" target="_blank" rel="noopener noreferrer" className="text-blue-100 hover:text-white flex items-center">
                 <span>View Token on Polygonscan</span>
                 <ExternalLink className="ml-1 h-4 w-4" />
               </a>
+            </div>
+            <div className="text-sm text-blue-200">
+              <div className="mb-1">
+                <span className="font-medium">$CSi-EDP/Labs FC (CSL)</span>
+              </div>
+              <div className="mb-1">Supply: 100,000,000 | Polygon</div>
             </div>
           </div>
           
@@ -84,25 +91,59 @@ const Footer: React.FC = () => {
           </div>
           
           <div>
-            <h3 className="text-lg font-semibold mb-4">Token Details</h3>
-            <ul className="space-y-2 text-blue-100">
-              <li className="flex justify-between">
-                <span>Name:</span>
-                <span>$CSi-EDP/Labs FC</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Symbol:</span>
-                <span>CSL</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Total Supply:</span>
-                <span>100,000,000</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Blockchain:</span>
-                <span>Polygon</span>
-              </li>
-            </ul>
+            <h3 className="text-lg font-semibold mb-4">Follow Us</h3>
+            <div className="flex flex-wrap gap-4">
+              <a 
+                href="https://www.instagram.com/csilabs?igsh=NW9scm14NmdsdWN4&utm_source=qr" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-100 hover:text-white transition-colors hover:scale-110 transform duration-200"
+                aria-label="Follow us on Instagram"
+              >
+                <Instagram className="h-6 w-6" />
+              </a>
+              <a 
+                href="https://www.tiktok.com/@1millstrong?_t=ZM-8wqhp1g5Szu&_r=1" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-100 hover:text-white transition-colors hover:scale-110 transform duration-200"
+                aria-label="Follow us on TikTok"
+              >
+                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-.88-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
+                </svg>
+              </a>
+              <a 
+                href="https://x.com/1millfight?s=11&t=K2_jpaPOwmtOryztX7lD9g" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-100 hover:text-white transition-colors hover:scale-110 transform duration-200"
+                aria-label="Follow us on X"
+              >
+                <X className="h-6 w-6" />
+              </a>
+              <a 
+                href="https://www.facebook.com/share/1Az834ZoGJ/?mibextid=wwXIfr" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-100 hover:text-white transition-colors hover:scale-110 transform duration-200"
+                aria-label="Follow us on Facebook"
+              >
+                <Facebook className="h-6 w-6" />
+              </a>
+              <a 
+                href="https://www.threads.com/@csilabs?invite=0" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-100 hover:text-white transition-colors hover:scale-110 transform duration-200"
+                aria-label="Follow us on Threads"
+              >
+                <MessageCircle className="h-6 w-6" />
+              </a>
+            </div>
+            <div className="mt-4 text-sm text-blue-200">
+              <p>Join our community and stay updated on our cancer research breakthroughs!</p>
+            </div>
           </div>
         </div>
         
