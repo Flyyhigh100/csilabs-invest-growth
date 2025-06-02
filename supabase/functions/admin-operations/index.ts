@@ -36,23 +36,39 @@ serve(async (req) => {
   }
 
   try {
+    console.log('=== ADMIN OPERATIONS REQUEST START ===');
+    console.log('Request method:', req.method);
+    console.log('Request URL:', req.url);
+    
     // Verify authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('❌ No authorization header provided');
       return createErrorResponse('No authorization header', 401);
     }
 
-    // Parse request body
-    const requestBody = await req.json();
-    console.log('Admin operations request received:', JSON.stringify(requestBody, null, 2));
+    console.log('✅ Authorization header found');
+
+    // Parse request body with enhanced error handling
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log('📝 Request body parsed:', JSON.stringify(requestBody, null, 2));
+    } catch (parseError) {
+      console.error('❌ Failed to parse request body:', parseError);
+      return createErrorResponse('Invalid JSON in request body', 400);
+    }
     
     // Handle both old format (operation) and new format (action)
     const operation = requestBody.operation || requestBody.action;
     const data = requestBody.data || requestBody;
 
     if (!operation) {
+      console.error('❌ Missing operation/action parameter');
       return createErrorResponse('Missing operation or action parameter', 400);
     }
+
+    console.log(`🎯 Operation identified: ${operation}`);
 
     // Create Supabase client
     const supabase = createClient(
@@ -60,13 +76,17 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    console.log('🔐 Supabase client created, verifying user...');
+
     // Verify that the user is an admin
     const { data: { user }, error: userError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
     
     if (userError || !user) {
-      console.error('Auth error:', userError);
+      console.error('❌ Auth error:', userError);
       return createErrorResponse('Invalid auth token', 401);
     }
+    
+    console.log(`✅ User authenticated: ${user.id} (${user.email})`);
     
     // Check if user is an admin
     const { data: adminData, error: adminError } = await supabase
@@ -76,26 +96,52 @@ serve(async (req) => {
       .maybeSingle();
     
     if (adminError || !adminData) {
-      console.error('Admin check error:', adminError);
+      console.error('❌ Admin check error:', adminError);
       return createErrorResponse('Unauthorized: Admin access required', 403);
     }
 
-    console.log(`Admin user ${user.id} authorized for operation: ${operation}`);
+    console.log(`✅ Admin user ${user.id} authorized for operation: ${operation}`);
 
-    // Handle different operations - route new operations to handlers.ts
-    if (['markTokensSent', 'processKyc', 'requestKycClarification', 'getUserDetails', 'getAllUsers', 'syncStripePaymentStatus', 'manuallyCompleteTransaction'].includes(operation)) {
-      console.log(`Routing operation ${operation} to handleAdminOperations`);
+    // Handle the markTokensSent operation specifically with enhanced error handling
+    if (operation === 'markTokensSent') {
+      console.log('🎯 Processing markTokensSent operation');
+      console.log('Data received:', JSON.stringify(data, null, 2));
       
-      // Call the comprehensive handler from handlers.ts
-      const result = await handleAdminOperations(operation, data, user, supabase);
-      
-      if (result?.error) {
-        console.error(`Error from handleAdminOperations for ${operation}:`, result.error);
-        return createErrorResponse(result.error.message || 'Operation failed', 500);
+      try {
+        // Call the comprehensive handler from handlers.ts
+        const result = await handleAdminOperations(operation, data, user, supabase);
+        
+        if (result?.error) {
+          console.error(`❌ Error from handleAdminOperations for ${operation}:`, result.error);
+          return createErrorResponse(result.error.message || 'Operation failed', 500);
+        }
+        
+        console.log(`✅ Successfully completed operation ${operation}:`, result);
+        return createSuccessResponse(result);
+      } catch (handlerError) {
+        console.error(`❌ Exception in handleAdminOperations for ${operation}:`, handlerError);
+        return createErrorResponse(`Handler error: ${handlerError.message}`, 500);
       }
+    }
+
+    // Handle other operations that use the new handler system
+    if (['processKyc', 'requestKycClarification', 'getUserDetails', 'getAllUsers', 'syncStripePaymentStatus', 'manuallyCompleteTransaction'].includes(operation)) {
+      console.log(`🎯 Routing operation ${operation} to handleAdminOperations`);
       
-      console.log(`Successfully completed operation ${operation}:`, result);
-      return createSuccessResponse(result);
+      try {
+        const result = await handleAdminOperations(operation, data, user, supabase);
+        
+        if (result?.error) {
+          console.error(`❌ Error from handleAdminOperations for ${operation}:`, result.error);
+          return createErrorResponse(result.error.message || 'Operation failed', 500);
+        }
+        
+        console.log(`✅ Successfully completed operation ${operation}:`, result);
+        return createSuccessResponse(result);
+      } catch (handlerError) {
+        console.error(`❌ Exception in handleAdminOperations for ${operation}:`, handlerError);
+        return createErrorResponse(`Handler error: ${handlerError.message}`, 500);
+      }
     }
 
     // Handle legacy operations
@@ -115,12 +161,13 @@ serve(async (req) => {
         return createSuccessResponse(usersData);
         
       default:
-        console.error(`Unknown operation: ${operation}`);
+        console.error(`❌ Unknown operation: ${operation}`);
         return createErrorResponse(`Unknown operation: ${operation}`, 400);
     }
 
   } catch (error) {
-    console.error('Unhandled exception in admin-operations:', error);
+    console.error('❌ Unhandled exception in admin-operations:', error);
+    console.error('Error stack:', error.stack);
     return createErrorResponse(`Internal server error: ${error.message}`, 500);
   }
 });

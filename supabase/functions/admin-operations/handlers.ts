@@ -4,7 +4,7 @@ import { transactionOperations } from "./transactions/index.ts";
 import { userOperations } from "./user-operations.ts";
 
 export async function handleAdminOperations(action, data, user, adminClient) {
-  console.log(`Processing admin operation: ${action}`, data);
+  console.log(`🎯 Processing admin operation: ${action}`, JSON.stringify(data, null, 2));
   
   try {
     // First verify basic parameters
@@ -20,10 +20,32 @@ export async function handleAdminOperations(action, data, user, adminClient) {
       throw new Error("Admin client is required");
     }
     
-    console.log(`User ${user.id} (${user.email}) attempting admin operation: ${action}`);
+    console.log(`✅ User ${user.id} (${user.email}) attempting admin operation: ${action}`);
     
     // Process different admin actions
     switch (action) {
+      case "markTokensSent":
+        console.log("🚀 Processing markTokensSent operation");
+        
+        // Enhanced validation for markTokensSent
+        if (!data || !data.transactionId || !data.blockchainTxId) {
+          console.error("❌ Missing required parameters for markTokensSent");
+          console.error("Received data:", JSON.stringify(data, null, 2));
+          throw new Error("Transaction ID and blockchain transaction ID are required");
+        }
+        
+        console.log(`✅ Valid markTokensSent request for transaction: ${data.transactionId}`);
+        console.log(`✅ Blockchain TX ID: ${data.blockchainTxId}`);
+        
+        try {
+          const result = await transactionOperations.markTokensSent(data, adminClient);
+          console.log("✅ markTokensSent completed successfully:", result);
+          return result;
+        } catch (markError) {
+          console.error("❌ Error in markTokensSent operation:", markError);
+          throw new Error(`Failed to mark tokens as sent: ${markError.message}`);
+        }
+
       case "getUserDetails":
         return await userOperations.getUserDetails(data, adminClient);
       
@@ -114,9 +136,6 @@ export async function handleAdminOperations(action, data, user, adminClient) {
         console.log("✅ KYC clarification request completed successfully:", clarificationResult);
         return clarificationResult;
 
-      case "markTokensSent":
-        return await transactionOperations.markTokensSent(data, adminClient);
-
       // Add the new syncStripePaymentStatus action
       case "syncStripePaymentStatus":
         const { Stripe } = await import("https://esm.sh/stripe@14.21.0");
@@ -137,6 +156,8 @@ export async function handleAdminOperations(action, data, user, adminClient) {
     }
   } catch (error) {
     console.error(`❌ Error in admin operation '${action}':`, error);
+    console.error("Error stack:", error.stack);
+    
     // Return a structured error response
     return {
       error: {
