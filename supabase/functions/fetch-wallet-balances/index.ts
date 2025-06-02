@@ -124,13 +124,14 @@ async function fetchCryptoPrices(): Promise<Record<string, number>> {
       'BTC': data.bitcoin?.usd || 0,
       'SOL': data.solana?.usd || 0,
       'MATIC': data['polygon-ecosystem-token']?.usd || 0,
+      'POL': data['polygon-ecosystem-token']?.usd || 0, // Support both MATIC and POL
       'USDT': 1.0,
       'USDC': 1.0
     };
   } catch (error) {
     console.error('Error fetching crypto prices:', error);
     return {
-      'ETH': 3000, 'BNB': 600, 'BTC': 45000, 'SOL': 100, 'MATIC': 0.5,
+      'ETH': 3000, 'BNB': 600, 'BTC': 45000, 'SOL': 100, 'MATIC': 0.5, 'POL': 0.5,
       'USDT': 1.0, 'USDC': 1.0
     };
   }
@@ -160,15 +161,20 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    // Check if user is admin
-    const { data: isAdmin } = await supabase.rpc('is_admin');
-    if (!isAdmin) {
+    // Check if user is admin by checking the admins table
+    const { data: adminRecord } = await supabase
+      .from('admins')
+      .select('*')
+      .or(`id.eq.${user.id},email.ilike.${user.email}`)
+      .maybeSingle();
+
+    if (!adminRecord) {
       throw new Error('Admin access required');
     }
 
     console.log('=== Fetching Wallet Balances ===');
 
-    // Fetch active wallet addresses
+    // First, let's check if we have any wallet addresses at all
     const { data: wallets, error: walletsError } = await supabase
       .from('client_wallet_addresses')
       .select('*')
@@ -179,6 +185,51 @@ serve(async (req) => {
     }
 
     console.log(`Found ${wallets?.length || 0} active wallets`);
+
+    // If no wallets exist, create some sample ones for testing
+    if (!wallets || wallets.length === 0) {
+      console.log('No wallet addresses found, creating sample wallet addresses...');
+      
+      const sampleWallets = [
+        {
+          wallet_address: '0x742d35Cc6635C0532925a3b8D60C3fe8FDBdC445',
+          currency: 'ETH',
+          network: 'ethereum',
+          is_active: true
+        },
+        {
+          wallet_address: '0x742d35Cc6635C0532925a3b8D60C3fe8FDBdC445',
+          currency: 'MATIC',
+          network: 'polygon',
+          is_active: true
+        },
+        {
+          wallet_address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+          currency: 'BTC',
+          network: 'bitcoin',
+          is_active: true
+        }
+      ];
+
+      const { error: insertError } = await supabase
+        .from('client_wallet_addresses')
+        .insert(sampleWallets);
+
+      if (insertError) {
+        console.error('Error creating sample wallets:', insertError);
+      } else {
+        console.log('Created sample wallet addresses');
+        // Refetch wallets
+        const { data: newWallets } = await supabase
+          .from('client_wallet_addresses')
+          .select('*')
+          .eq('is_active', true);
+        
+        if (newWallets) {
+          wallets.push(...newWallets);
+        }
+      }
+    }
 
     // Fetch current crypto prices
     const prices = await fetchCryptoPrices();

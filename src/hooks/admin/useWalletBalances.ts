@@ -42,6 +42,7 @@ export const useWalletBalances = () => {
       return data || [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1, // Only retry once to avoid spam
   });
 };
 
