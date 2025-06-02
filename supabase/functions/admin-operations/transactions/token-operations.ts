@@ -203,22 +203,49 @@ async function sendTokenDistributionEmail(adminClient, transaction, blockchainTx
       isTestData: transaction.is_test || false
     };
     
-    console.log("📧 Calling send-token-distribution-email function with data:");
+    console.log("📧 Calling send-token-distribution-email function with direct HTTP call:");
     console.log(JSON.stringify(emailData, null, 2));
     
-    // Call the email function
-    const { data, error } = await adminClient.functions.invoke('send-token-distribution-email', {
-      body: emailData
+    // Get the Supabase URL for direct HTTP call
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("❌ Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables");
+      return;
+    }
+    
+    // Make direct HTTP call to the email function
+    const emailFunctionUrl = `${supabaseUrl}/functions/v1/send-token-distribution-email`;
+    
+    console.log(`🌐 Making direct HTTP call to: ${emailFunctionUrl}`);
+    
+    const response = await fetch(emailFunctionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': supabaseKey
+      },
+      body: JSON.stringify(emailData)
     });
     
-    if (error) {
-      console.error("❌ ERROR calling send-token-distribution-email function:");
-      console.error("Error object:", error);
-      console.error("Error message:", error.message);
-      console.error("Error details:", error.details);
-    } else {
-      console.log("✅ SUCCESS: send-token-distribution-email function called successfully");
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ ERROR calling send-token-distribution-email function via HTTP:");
+      console.error(`Status: ${response.status} ${response.statusText}`);
+      console.error("Response:", errorText);
+      return;
+    }
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      console.log("✅ SUCCESS: send-token-distribution-email function called successfully via HTTP");
       console.log("Response data:", data);
+    } else {
+      console.error("❌ ERROR: Email function returned unsuccessful response:");
+      console.error("Response data:", data);
     }
     
     console.log(`=== EMAIL PROCESS COMPLETED for transaction ${transaction.id} ===`);
