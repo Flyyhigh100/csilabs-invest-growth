@@ -15,13 +15,16 @@ import {
 import { 
   ExternalLink,
   Wallet,
-  AlertCircle
+  AlertCircle,
+  DollarSign
 } from 'lucide-react';
 import { useWalletAddresses, WalletAddress } from '@/hooks/admin/useWalletAddresses';
+import { useCryptoPrices } from '@/hooks/admin/useCryptoPrices';
 import { formatDistanceToNow } from 'date-fns';
 
 const WalletAddressTable: React.FC = () => {
   const { data: walletAddresses, isLoading, error } = useWalletAddresses();
+  const { data: prices } = useCryptoPrices();
 
   const getExplorerUrl = (network: string, address: string) => {
     const explorers: Record<string, string> = {
@@ -48,6 +51,11 @@ const WalletAddressTable: React.FC = () => {
   const truncateAddress = (address: string) => {
     if (address.length <= 12) return address;
     return `${address.slice(0, 6)}...${address.slice(-6)}`;
+  };
+
+  const getCurrentPrice = (currency: string) => {
+    if (!prices) return null;
+    return prices[currency]?.price || null;
   };
 
   if (error) {
@@ -110,7 +118,7 @@ const WalletAddressTable: React.FC = () => {
           Wallet Addresses ({walletAddresses.length})
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Click "View on Explorer" to check balances manually on blockchain explorers
+          Your wallet addresses with current market prices. Click "View on Explorer" to check actual balances.
         </p>
       </CardHeader>
       <CardContent>
@@ -120,55 +128,71 @@ const WalletAddressTable: React.FC = () => {
               <TableHead>Network</TableHead>
               <TableHead>Currency</TableHead>
               <TableHead>Wallet Address</TableHead>
+              <TableHead className="text-right">Market Price</TableHead>
               <TableHead>Added</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {walletAddresses.map((wallet) => (
-              <TableRow key={wallet.id}>
-                <TableCell>
-                  <Badge variant="outline">
-                    {getNetworkDisplayName(wallet.network)}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="font-medium">{wallet.currency}</div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <code className="text-sm bg-gray-100 px-2 py-1 rounded">
-                      {truncateAddress(wallet.wallet_address)}
-                    </code>
-                    <CopyButton 
-                      value={wallet.wallet_address}
-                      variant="ghost"
-                      size="sm"
-                    />
-                  </div>
-                </TableCell>
-                <TableCell className="text-sm text-gray-500">
-                  {formatDistanceToNow(new Date(wallet.created_at), { addSuffix: true })}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center gap-2 justify-end">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const url = getExplorerUrl(wallet.network, wallet.wallet_address);
-                        if (url) window.open(url, '_blank');
-                      }}
-                      disabled={!getExplorerUrl(wallet.network, wallet.wallet_address)}
-                      className="flex items-center gap-1"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      View on Explorer
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+            {walletAddresses.map((wallet) => {
+              const currentPrice = getCurrentPrice(wallet.currency);
+              return (
+                <TableRow key={wallet.id}>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {getNetworkDisplayName(wallet.network)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium">{wallet.currency}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <code className="text-sm bg-gray-100 px-2 py-1 rounded">
+                        {truncateAddress(wallet.wallet_address)}
+                      </code>
+                      <CopyButton 
+                        value={wallet.wallet_address}
+                        variant="ghost"
+                        size="sm"
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {currentPrice ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <DollarSign className="h-3 w-3 text-green-600" />
+                        <span className="font-medium text-green-600">
+                          ${currentPrice.toFixed(currentPrice > 1 ? 2 : 6)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-sm">Loading...</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm text-gray-500">
+                    {formatDistanceToNow(new Date(wallet.created_at), { addSuffix: true })}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center gap-2 justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const url = getExplorerUrl(wallet.network, wallet.wallet_address);
+                          if (url) window.open(url, '_blank');
+                        }}
+                        disabled={!getExplorerUrl(wallet.network, wallet.wallet_address)}
+                        className="flex items-center gap-1"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        View on Explorer
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            )}
           </TableBody>
         </Table>
       </CardContent>

@@ -24,6 +24,7 @@ import { useWalletBalances, useWalletPortfolioSummary, useRefreshWalletBalances 
 import { formatDistanceToNow } from 'date-fns';
 import AdminLayout from '@/components/Admin/Layout';
 import WalletAddressTable from '@/components/Admin/WalletPortfolio/WalletAddressTable';
+import MarketPricesCard from '@/components/Admin/WalletPortfolio/MarketPricesCard';
 
 const WalletPortfolioPage: React.FC = () => {
   const { data: balances, isLoading: balancesLoading, error } = useWalletBalances();
@@ -77,13 +78,16 @@ const WalletPortfolioPage: React.FC = () => {
               <div className="text-sm text-blue-800">
                 <p className="font-medium mb-1">Wallet Management Dashboard</p>
                 <p>
-                  Below you can see all configured wallet addresses with direct links to blockchain explorers. 
-                  Use "View on Explorer" to manually check current balances. The automated balance fetching is being improved.
+                  Below you can see current market prices and all your wallet addresses with direct links to blockchain explorers. 
+                  Use "View on Explorer" to manually check current balances.
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Market Prices Card */}
+        <MarketPricesCard />
 
         {/* Portfolio Summary Cards - Only show if we have balance data */}
         {portfolio && !error && (
