@@ -17,11 +17,13 @@ import {
   TrendingUp, 
   DollarSign,
   ExternalLink,
-  AlertCircle
+  AlertCircle,
+  Info
 } from 'lucide-react';
 import { useWalletBalances, useWalletPortfolioSummary, useRefreshWalletBalances } from '@/hooks/admin/useWalletBalances';
 import { formatDistanceToNow } from 'date-fns';
 import AdminLayout from '@/components/Admin/Layout';
+import WalletAddressTable from '@/components/Admin/WalletPortfolio/WalletAddressTable';
 
 const WalletPortfolioPage: React.FC = () => {
   const { data: balances, isLoading: balancesLoading, error } = useWalletBalances();
@@ -52,34 +54,6 @@ const WalletPortfolioPage: React.FC = () => {
     return names[network] || network;
   };
 
-  if (error) {
-    return (
-      <AdminLayout title="Wallet Portfolio">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold">Wallet Portfolio</h1>
-          </div>
-          <Card>
-            <CardContent className="py-8">
-              <div className="text-center">
-                <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-red-700 mb-2">Error Loading Portfolio</h3>
-                <p className="text-gray-600 mb-4">{error.message}</p>
-                <Button 
-                  onClick={() => refreshBalances.mutate()}
-                  disabled={refreshBalances.isPending}
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${refreshBalances.isPending ? 'animate-spin' : ''}`} />
-                  Retry
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </AdminLayout>
-    );
-  }
-
   return (
     <AdminLayout title="Wallet Portfolio">
       <div className="space-y-6">
@@ -95,8 +69,24 @@ const WalletPortfolioPage: React.FC = () => {
           </Button>
         </div>
 
-        {/* Portfolio Summary Cards */}
-        {portfolio && (
+        {/* Info Alert */}
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div className="text-sm text-blue-800">
+                <p className="font-medium mb-1">Wallet Management Dashboard</p>
+                <p>
+                  Below you can see all configured wallet addresses with direct links to blockchain explorers. 
+                  Use "View on Explorer" to manually check current balances. The automated balance fetching is being improved.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Portfolio Summary Cards - Only show if we have balance data */}
+        {portfolio && !error && (
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -152,36 +142,19 @@ const WalletPortfolioPage: React.FC = () => {
           </div>
         )}
 
-        {/* Detailed Wallet Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Wallet Details</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="h-12 bg-gray-200 rounded"></div>
-                  </div>
-                ))}
-              </div>
-            ) : !balances || balances.length === 0 ? (
-              <div className="text-center py-8">
-                <Wallet className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Wallet Data</h3>
-                <p className="text-gray-500 mb-4">
-                  No wallet balance data found. Click refresh to fetch the latest balances.
-                </p>
-                <Button
-                  onClick={() => refreshBalances.mutate()}
-                  disabled={refreshBalances.isPending}
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${refreshBalances.isPending ? 'animate-spin' : ''}`} />
-                  Fetch Balances
-                </Button>
-              </div>
-            ) : (
+        {/* Wallet Addresses Table - Always show */}
+        <WalletAddressTable />
+
+        {/* Detailed Balance Table - Only show if we have balance data */}
+        {balances && balances.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Live Balance Data</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Automatically fetched balance information from blockchain APIs
+              </p>
+            </CardHeader>
+            <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -243,9 +216,33 @@ const WalletPortfolioPage: React.FC = () => {
                   ))}
                 </TableBody>
               </Table>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Error Display */}
+        {error && (
+          <Card className="border-red-200">
+            <CardContent className="py-6">
+              <div className="text-center">
+                <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-red-700 mb-2">Balance Fetching Error</h3>
+                <p className="text-gray-600 mb-4">{error.message}</p>
+                <p className="text-sm text-gray-500 mb-4">
+                  You can still view wallet addresses above and check balances manually on blockchain explorers.
+                </p>
+                <Button 
+                  onClick={() => refreshBalances.mutate()}
+                  disabled={refreshBalances.isPending}
+                  variant="outline"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${refreshBalances.isPending ? 'animate-spin' : ''}`} />
+                  Try Again
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </AdminLayout>
   );
