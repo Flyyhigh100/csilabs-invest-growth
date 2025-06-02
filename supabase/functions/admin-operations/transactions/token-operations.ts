@@ -30,7 +30,7 @@ export const markTokensSent = async ({ transactionId, blockchainTxId }, adminCli
     if (txData) {
       await createTokenDeliveryNotification(adminClient, txData, blockchainTxId);
       
-      // Send email notification to the user
+      // Send email notification to the user with enhanced error handling
       await sendTokenDistributionEmail(adminClient, txData, blockchainTxId);
     }
     
@@ -90,27 +90,87 @@ async function createTokenDeliveryNotification(adminClient, transaction, blockch
   }
 }
 
-// New function to send email notification to user
+// Enhanced function to send email notification to user
 async function sendTokenDistributionEmail(adminClient, transaction, blockchainTxId) {
   try {
-    console.log(`Sending token distribution email for transaction ${transaction.id}`);
+    console.log(`=== STARTING EMAIL PROCESS for transaction ${transaction.id} ===`);
     
-    // Get user profile information for email
+    // Get user profile information for email with enhanced logging
+    console.log(`Fetching profile for user_id: ${transaction.user_id}`);
+    
     const { data: profile, error: profileError } = await adminClient
       .from("profiles")
       .select("email, first_name, last_name")
       .eq("id", transaction.user_id)
       .single();
     
-    if (profileError || !profile?.email) {
-      console.error("Error fetching user profile for email:", profileError);
+    if (profileError) {
+      console.error("❌ ERROR fetching user profile:", profileError);
+      console.error("Profile fetch failed for user_id:", transaction.user_id);
       return;
+    }
+    
+    if (!profile) {
+      console.error("❌ ERROR: No profile found for user_id:", transaction.user_id);
+      return;
+    }
+    
+    console.log("✅ Profile fetched successfully:");
+    console.log(`- User ID: ${transaction.user_id}`);
+    console.log(`- Email: ${profile.email || 'NOT SET'}`);
+    console.log(`- Name: ${profile.first_name || 'N/A'} ${profile.last_name || 'N/A'}`);
+    
+    if (!profile.email) {
+      console.error("❌ CRITICAL: User profile exists but email is missing/null");
+      console.error("This should have been fixed by the recent migration. Check if migration ran correctly.");
+      
+      // Let's try to get the email directly from auth.users as a fallback
+      console.log("🔄 Attempting fallback: fetching email from auth.users table...");
+      
+      try {
+        const { data: authUser, error: authError } = await adminClient.auth.admin.getUserById(transaction.user_id);
+        
+        if (authError) {
+          console.error("❌ Failed to fetch user from auth.users:", authError);
+          return;
+        }
+        
+        if (authUser?.user?.email) {
+          console.log(`✅ Found email in auth.users: ${authUser.user.email}`);
+          
+          // Update the profile with the missing email
+          const { error: updateError } = await adminClient
+            .from("profiles")
+            .update({ email: authUser.user.email })
+            .eq("id", transaction.user_id);
+            
+          if (updateError) {
+            console.error("❌ Failed to update profile with email:", updateError);
+          } else {
+            console.log("✅ Successfully updated profile with email from auth.users");
+            profile.email = authUser.user.email; // Use for this request
+          }
+        } else {
+          console.error("❌ Email not found in auth.users either");
+          return;
+        }
+      } catch (fallbackError) {
+        console.error("❌ Fallback email fetch failed:", fallbackError);
+        return;
+      }
     }
     
     // Calculate token amount
     const tokenAmount = transaction.token_amount || 
       (transaction.token_price && transaction.token_price > 0 ? 
         transaction.amount / transaction.token_price : 0);
+    
+    console.log(`📊 Transaction details:`);
+    console.log(`- Token amount: ${tokenAmount}`);
+    console.log(`- Purchase amount: $${transaction.amount}`);
+    console.log(`- Wallet: ${transaction.wallet_address}`);
+    console.log(`- Blockchain TX: ${blockchainTxId}`);
+    console.log(`- Is test: ${transaction.is_test || false}`);
     
     // Prepare email data
     const emailData = {
@@ -125,19 +185,30 @@ async function sendTokenDistributionEmail(adminClient, transaction, blockchainTx
       isTestData: transaction.is_test || false
     };
     
+    console.log("📧 Calling send-token-distribution-email function with data:");
+    console.log(JSON.stringify(emailData, null, 2));
+    
     // Call the email function
     const { data, error } = await adminClient.functions.invoke('send-token-distribution-email', {
       body: emailData
     });
     
     if (error) {
-      console.error("Error calling send-token-distribution-email function:", error);
+      console.error("❌ ERROR calling send-token-distribution-email function:");
+      console.error("Error object:", error);
+      console.error("Error message:", error.message);
+      console.error("Error details:", error.details);
     } else {
-      console.log("Token distribution email sent successfully:", data);
+      console.log("✅ SUCCESS: send-token-distribution-email function called successfully");
+      console.log("Response data:", data);
     }
     
+    console.log(`=== EMAIL PROCESS COMPLETED for transaction ${transaction.id} ===`);
+    
   } catch (error) {
-    console.error("Error in sendTokenDistributionEmail:", error);
+    console.error("❌ EXCEPTION in sendTokenDistributionEmail:");
+    console.error("Error:", error);
+    console.error("Stack:", error.stack);
     // Don't throw error here - email failure shouldn't affect token marking
   }
 }

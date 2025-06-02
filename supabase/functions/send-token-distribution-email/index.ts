@@ -28,7 +28,10 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log("Token distribution email function called");
+    console.log("=== TOKEN DISTRIBUTION EMAIL FUNCTION CALLED ===");
+    
+    const requestBody = await req.json();
+    console.log("Request body received:", JSON.stringify(requestBody, null, 2));
     
     const {
       userEmail,
@@ -40,14 +43,46 @@ const handler = async (req: Request): Promise<Response> => {
       transactionAmount,
       tokenPrice,
       isTestData = false
-    }: TokenDistributionRequest = await req.json();
+    }: TokenDistributionRequest = requestBody;
 
-    console.log(`Sending token distribution email to: ${userEmail}`);
+    // Enhanced validation with detailed logging
+    if (!userEmail) {
+      console.error("❌ CRITICAL ERROR: userEmail is missing or empty");
+      console.error("Full request data:", JSON.stringify(requestBody, null, 2));
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "User email is required but was not provided",
+        debug: { userEmail, requestBody }
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (!tokenAmount || !walletAddress || !blockchainTxId) {
+      console.error("❌ VALIDATION ERROR: Missing required fields");
+      console.error("tokenAmount:", tokenAmount);
+      console.error("walletAddress:", walletAddress);
+      console.error("blockchainTxId:", blockchainTxId);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "Missing required token distribution data",
+        debug: { tokenAmount, walletAddress, blockchainTxId }
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    console.log(`✅ Validation passed - sending token distribution email to: ${userEmail}`);
+    console.log(`📧 Email details: ${tokenAmount} tokens to wallet ${walletAddress.slice(0, 8)}...`);
 
     // Format user name
     const userName = firstName && lastName 
       ? `${firstName} ${lastName}` 
       : firstName || lastName || 'Valued Customer';
+
+    console.log(`👤 User name formatted as: ${userName}`);
 
     // Determine blockchain explorer link
     const isSolana = blockchainTxId.includes('solana') || 
@@ -59,6 +94,8 @@ const handler = async (req: Request): Promise<Response> => {
     
     const explorerName = isSolana ? 'Solscan' : 'PolygonScan';
     const networkName = isSolana ? 'Solana' : 'Polygon';
+
+    console.log(`🔗 Blockchain details: ${networkName} network, explorer: ${explorerName}`);
 
     // Format token amount for display
     const formattedTokenAmount = tokenAmount.toLocaleString(undefined, { 
@@ -78,6 +115,8 @@ const handler = async (req: Request): Promise<Response> => {
     const emailSubject = isTestData 
       ? `[TEST] Your CSi Labs Tokens Have Been Delivered! 🎉`
       : `Your CSi Labs Tokens Have Been Delivered! 🎉`;
+
+    console.log(`📬 Email subject: ${emailSubject}`);
 
     // Create email HTML content
     const emailHtml = `
@@ -189,43 +228,82 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    // Send the email
-    const emailResponse = await resend.emails.send({
-      from: "CSi Labs <mail@mail.1millionstrongfightclub.com>",
-      to: [userEmail],
-      subject: emailSubject,
-      html: emailHtml,
-    });
+    console.log("📧 Preparing to send email via Resend...");
+    
+    // Send the email with enhanced error handling
+    try {
+      const emailResponse = await resend.emails.send({
+        from: "CSi Labs <mail@mail.1millionstrongfightclub.com>",
+        to: [userEmail],
+        subject: emailSubject,
+        html: emailHtml,
+      });
 
-    console.log("Token distribution email sent successfully:", emailResponse);
+      console.log("✅ EMAIL SENT SUCCESSFULLY!");
+      console.log("Resend response:", JSON.stringify(emailResponse, null, 2));
+      
+      if (emailResponse.error) {
+        console.error("❌ Resend returned an error:", emailResponse.error);
+        throw new Error(`Resend API error: ${JSON.stringify(emailResponse.error)}`);
+      }
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      messageId: emailResponse.data?.id,
-      recipient: userEmail 
-    }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
-    });
+      return new Response(JSON.stringify({ 
+        success: true, 
+        messageId: emailResponse.data?.id,
+        recipient: userEmail,
+        debug: {
+          tokenAmount: formattedTokenAmount,
+          walletAddress: shortWalletAddress,
+          network: networkName,
+          isTestData
+        }
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
 
-  } catch (error: any) {
-    console.error("Error sending token distribution email:", error);
-    return new Response(
-      JSON.stringify({ 
+    } catch (emailError: any) {
+      console.error("❌ CRITICAL: Failed to send email via Resend");
+      console.error("Email error details:", emailError);
+      console.error("Email error stack:", emailError.stack);
+      
+      return new Response(JSON.stringify({ 
         success: false, 
-        error: error.message 
-      }),
-      {
+        error: "Failed to send email via Resend",
+        details: emailError.message,
+        debug: {
+          userEmail,
+          emailError: emailError.toString()
+        }
+      }), {
         status: 500,
         headers: { 
           "Content-Type": "application/json", 
           ...corsHeaders 
         },
-      }
-    );
+      });
+    }
+
+  } catch (error: any) {
+    console.error("❌ FUNCTION ERROR: Unexpected error in token distribution email function");
+    console.error("Error details:", error);
+    console.error("Error stack:", error.stack);
+    
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: "Internal server error in email function",
+      details: error.message,
+      timestamp: new Date().toISOString()
+    }), {
+      status: 500,
+      headers: { 
+        "Content-Type": "application/json", 
+        ...corsHeaders 
+      },
+    });
   }
 };
 
