@@ -1,8 +1,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export const markTokensAsSent = async (transactionId: string, blockchainTxId: string) => {
-  console.log(`Frontend: Calling admin-operations edge function to mark transaction ${transactionId} as sent with blockchain TX: ${blockchainTxId}`);
+export const markTokensAsSent = async (transactionId: string, blockchainTxId: string, tokenAmount?: number, tokenPrice?: number) => {
+  console.log(`Frontend: Calling admin-operations edge function to mark transaction ${transactionId} as sent`);
+  console.log(`Blockchain TX: ${blockchainTxId}, Token Amount: ${tokenAmount}, Token Price: ${tokenPrice}`);
   
   try {
     // Call the admin-operations edge function instead of direct database update
@@ -11,7 +12,9 @@ export const markTokensAsSent = async (transactionId: string, blockchainTxId: st
         action: 'markTokensSent',
         data: {
           transactionId,
-          blockchainTxId
+          blockchainTxId,
+          tokenAmount,
+          tokenPrice
         }
       }
     });

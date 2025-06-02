@@ -59,15 +59,27 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    if (!tokenAmount || !walletAddress || !blockchainTxId) {
+    if (!walletAddress || !blockchainTxId) {
       console.error("❌ VALIDATION ERROR: Missing required fields");
-      console.error("tokenAmount:", tokenAmount);
       console.error("walletAddress:", walletAddress);
       console.error("blockchainTxId:", blockchainTxId);
       return new Response(JSON.stringify({ 
         success: false, 
         error: "Missing required token distribution data",
-        debug: { tokenAmount, walletAddress, blockchainTxId }
+        debug: { walletAddress, blockchainTxId }
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Updated validation to handle zero token amounts gracefully
+    if (tokenAmount === undefined || tokenAmount === null) {
+      console.error("❌ VALIDATION ERROR: Token amount is undefined or null");
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "Token amount is required",
+        debug: { tokenAmount }
       }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -97,11 +109,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`🔗 Blockchain details: ${networkName} network, explorer: ${explorerName}`);
 
-    // Format token amount for display
-    const formattedTokenAmount = tokenAmount.toLocaleString(undefined, { 
-      maximumFractionDigits: 2,
-      minimumFractionDigits: 2
-    });
+    // Format token amount for display - handle zero amounts gracefully
+    const formattedTokenAmount = tokenAmount > 0 
+      ? tokenAmount.toLocaleString(undefined, { 
+          maximumFractionDigits: 2,
+          minimumFractionDigits: 2
+        })
+      : "TBD"; // To Be Determined for zero amounts
 
     // Format wallet address for display
     const shortWalletAddress = `${walletAddress.slice(0, 8)}...${walletAddress.slice(-6)}`;
@@ -113,19 +127,31 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Prepare email subject (add test prefix if needed)
     const emailSubject = isTestData 
-      ? `[TEST] Your CSi Labs Tokens Have Been Delivered! 🎉`
-      : `Your CSi Labs Tokens Have Been Delivered! 🎉`;
+      ? `[TEST] Your CSL Tokens Have Been Delivered! 🎉`
+      : `Your CSL Tokens Have Been Delivered! 🎉`;
 
     console.log(`📬 Email subject: ${emailSubject}`);
 
-    // Create email HTML content
+    // Create email HTML content with improved token amount handling
+    const tokenDisplayText = tokenAmount > 0 
+      ? `${formattedTokenAmount} CSL tokens`
+      : "Your CSL tokens";
+    
+    const tokenAmountRow = tokenAmount > 0 
+      ? `<p style="margin: 8px 0; font-size: 16px;">
+           <strong>Tokens Delivered:</strong> ${formattedTokenAmount} CSL
+         </p>`
+      : `<p style="margin: 8px 0; font-size: 16px;">
+           <strong>Tokens Delivered:</strong> Your CSL tokens (amount calculated based on transaction)
+         </p>`;
+
     const emailHtml = `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>CSi Labs Token Delivery Confirmation</title>
+          <title>CSL Token Delivery Confirmation</title>
         </head>
         <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f8fafc;">
           <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
@@ -136,7 +162,7 @@ const handler = async (req: Request): Promise<Response> => {
                 🎉 Congratulations, ${userName}!
               </h1>
               <p style="color: #dcfce7; margin: 10px 0 0 0; font-size: 18px;">
-                Your CSi Labs tokens have been successfully delivered!
+                Your CSL tokens have been successfully delivered!
               </p>
             </div>
             
@@ -147,9 +173,7 @@ const handler = async (req: Request): Promise<Response> => {
               <div style="background-color: #f0fdf4; border: 2px solid #bbf7d0; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
                 <h2 style="color: #166534; margin: 0 0 15px 0; font-size: 20px;">Token Delivery Summary</h2>
                 <div style="color: #166534;">
-                  <p style="margin: 8px 0; font-size: 16px;">
-                    <strong>Tokens Delivered:</strong> ${formattedTokenAmount} CSL
-                  </p>
+                  ${tokenAmountRow}
                   <p style="margin: 8px 0; font-size: 16px;">
                     <strong>Delivered to Wallet:</strong> ${shortWalletAddress}
                   </p>
@@ -161,7 +185,7 @@ const handler = async (req: Request): Promise<Response> => {
                   </p>
                   ${tokenPrice ? `
                   <p style="margin: 8px 0; font-size: 16px;">
-                    <strong>Token Price:</strong> $${tokenPrice.toFixed(4)} per token
+                    <strong>Token Price:</strong> $${tokenPrice.toFixed(6)} per token
                   </p>
                   ` : ''}
                 </div>
@@ -188,7 +212,7 @@ const handler = async (req: Request): Promise<Response> => {
                 <ul style="color: #a16207; margin: 0; padding-left: 20px;">
                   <li style="margin-bottom: 8px;">Check your wallet to confirm the tokens have arrived</li>
                   <li style="margin-bottom: 8px;">Visit our platform to track your transaction status</li>
-                  <li style="margin-bottom: 8px;">Join our community to stay updated on CSi Labs developments</li>
+                  <li style="margin-bottom: 8px;">Join our community to stay updated on CSL developments</li>
                   <li style="margin-bottom: 8px;">Keep your wallet secure and never share your private keys</li>
                 </ul>
               </div>
@@ -208,10 +232,10 @@ const handler = async (req: Request): Promise<Response> => {
             <!-- Footer -->
             <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
               <p style="color: #6b7280; margin: 0 0 10px 0; font-size: 14px; font-weight: bold;">
-                CSi Labs - Innovation in Blockchain Technology
+                CSL - Innovation in Blockchain Technology
               </p>
               <p style="color: #9ca3af; margin: 0; font-size: 12px;">
-                This email confirms the successful delivery of your CSi Labs tokens. 
+                This email confirms the successful delivery of your CSL tokens. 
                 Please keep this email for your records.
               </p>
               ${isTestData ? `
@@ -233,7 +257,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send the email with enhanced error handling
     try {
       const emailResponse = await resend.emails.send({
-        from: "CSi Labs <mail@mail.1millionstrongfightclub.com>",
+        from: "CSL <mail@mail.1millionstrongfightclub.com>",
         to: [userEmail],
         subject: emailSubject,
         html: emailHtml,

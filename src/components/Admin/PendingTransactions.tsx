@@ -53,7 +53,7 @@ const PendingTransactions = () => {
     setIsDialogOpen(true);
   };
 
-  const handleConfirmSent = async () => {
+  const handleConfirmSent = async (tokenAmount?: number, tokenPrice?: number) => {
     if (!blockchainTxId.trim()) {
       toast.error('Please enter a blockchain transaction ID');
       return;
@@ -61,10 +61,10 @@ const PendingTransactions = () => {
 
     try {
       setIsSubmitting(true);
-      await markTokensAsSent(selectedTx!.id, blockchainTxId);
+      await markTokensAsSent(selectedTx!.id, blockchainTxId, tokenAmount, tokenPrice);
       setIsDialogOpen(false);
       refetch();
-      toast.success('Transaction marked as sent');
+      toast.success('Transaction marked as sent with calculated token amount');
     } catch (err) {
       console.error('Error marking transaction as sent:', err);
       toast.error('Failed to update transaction status');

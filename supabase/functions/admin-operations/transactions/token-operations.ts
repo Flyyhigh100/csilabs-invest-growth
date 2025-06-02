@@ -1,7 +1,8 @@
 
 // Functions related to token sending and marking tokens as sent
-export const markTokensSent = async ({ transactionId, blockchainTxId }, adminClient) => {
+export const markTokensSent = async ({ transactionId, blockchainTxId, tokenAmount, tokenPrice }, adminClient) => {
   console.log(`Marking transaction ${transactionId} as sent with blockchain TX: ${blockchainTxId}`);
+  console.log(`Token amount: ${tokenAmount}, Token price: ${tokenPrice}`);
   
   if (!transactionId || !blockchainTxId) {
     console.error("Missing required parameters for markTokensSent");
@@ -9,14 +10,28 @@ export const markTokensSent = async ({ transactionId, blockchainTxId }, adminCli
   }
   
   try {
+    // Prepare update data
+    const updateData = {
+      token_sent: true,
+      blockchain_tx_id: blockchainTxId,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Add token amount and price if provided
+    if (tokenAmount && tokenAmount > 0) {
+      updateData.token_amount = tokenAmount;
+    }
+    
+    if (tokenPrice && tokenPrice > 0) {
+      updateData.token_price = tokenPrice;
+    }
+
+    console.log("Updating transaction with data:", updateData);
+
     // Use the admin client to bypass RLS
     const { data: txData, error: txError } = await adminClient
       .from("transactions")
-      .update({
-        token_sent: true,
-        blockchain_tx_id: blockchainTxId,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq("id", transactionId)
       .select()
       .single();
@@ -26,6 +41,8 @@ export const markTokensSent = async ({ transactionId, blockchainTxId }, adminCli
       throw txError;
     }
     
+    console.log("Transaction updated successfully:", txData);
+
     // Create enhanced notification for the user about the token transfer
     if (txData) {
       await createTokenDeliveryNotification(adminClient, txData, blockchainTxId);
@@ -46,15 +63,15 @@ export const markTokensSent = async ({ transactionId, blockchainTxId }, adminCli
 // Enhanced token delivery notification function
 async function createTokenDeliveryNotification(adminClient, transaction, blockchainTxId) {
   try {
-    // Calculate token amount if available
+    // Calculate token amount if available (with fallback logic)
     const tokenAmount = transaction.token_amount || 
       (transaction.token_price && transaction.token_price > 0 ? 
         transaction.amount / transaction.token_price : null);
     
     // Format token amount for the message
-    const tokenText = tokenAmount 
-      ? `${Number(tokenAmount).toLocaleString()} CSI tokens`
-      : "your CSI tokens";
+    const tokenText = tokenAmount && tokenAmount > 0
+      ? `${Number(tokenAmount).toLocaleString()} CSL tokens`
+      : "your CSL tokens";
     
     // Determine blockchain explorer link
     const isSolana = blockchainTxId.includes('solana') || 
@@ -74,7 +91,7 @@ async function createTokenDeliveryNotification(adminClient, transaction, blockch
       .insert({
         user_id: transaction.user_id,
         type: "tokens",
-        title: "CSI Tokens Delivered Successfully",
+        title: "CSL Tokens Delivered Successfully",
         message: `🎉 ${tokenText} have been successfully sent to your wallet (${transaction.wallet_address?.slice(0, 6)}...${transaction.wallet_address?.slice(-4)}). Transaction ID: ${txIdDisplay}. You can verify the transaction on ${explorerName}.`,
         read: false,
         is_test: transaction.is_test || false
@@ -160,7 +177,7 @@ async function sendTokenDistributionEmail(adminClient, transaction, blockchainTx
       }
     }
     
-    // Calculate token amount
+    // Calculate token amount with enhanced logic
     const tokenAmount = transaction.token_amount || 
       (transaction.token_price && transaction.token_price > 0 ? 
         transaction.amount / transaction.token_price : 0);
@@ -168,16 +185,17 @@ async function sendTokenDistributionEmail(adminClient, transaction, blockchainTx
     console.log(`📊 Transaction details:`);
     console.log(`- Token amount: ${tokenAmount}`);
     console.log(`- Purchase amount: $${transaction.amount}`);
+    console.log(`- Token price: $${transaction.token_price || 'N/A'}`);
     console.log(`- Wallet: ${transaction.wallet_address}`);
     console.log(`- Blockchain TX: ${blockchainTxId}`);
     console.log(`- Is test: ${transaction.is_test || false}`);
     
-    // Prepare email data
+    // Prepare email data with improved validation
     const emailData = {
       userEmail: profile.email,
       firstName: profile.first_name,
       lastName: profile.last_name,
-      tokenAmount: Number(tokenAmount),
+      tokenAmount: Number(tokenAmount) || 0, // Ensure it's always a number
       walletAddress: transaction.wallet_address,
       blockchainTxId: blockchainTxId,
       transactionAmount: Number(transaction.amount),

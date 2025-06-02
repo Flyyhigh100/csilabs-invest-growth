@@ -37,6 +37,14 @@ export async function handleAdminOperations(action, data, user, adminClient) {
         console.log(`✅ Valid markTokensSent request for transaction: ${data.transactionId}`);
         console.log(`✅ Blockchain TX ID: ${data.blockchainTxId}`);
         
+        if (data.tokenAmount) {
+          console.log(`✅ Token amount provided: ${data.tokenAmount}`);
+        }
+        
+        if (data.tokenPrice) {
+          console.log(`✅ Token price provided: ${data.tokenPrice}`);
+        }
+        
         try {
           const result = await transactionOperations.markTokensSent(data, adminClient);
           console.log("✅ markTokensSent completed successfully:", result);
