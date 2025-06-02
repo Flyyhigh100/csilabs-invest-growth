@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -94,14 +95,39 @@ serve(async (req) => {
 
     const { amount, network, currency, wallet_address, token_price }: DirectPaymentRequest = await req.json();
 
+    console.log('=== Direct Crypto Payment Creation ===');
+    console.log('Request data:', {
+      amount,
+      network,
+      currency,
+      wallet_address: wallet_address?.substring(0, 10) + '...',
+      token_price,
+      user_id: user.id
+    });
+
     // Enhanced input validation
     if (!amount || amount < 1) {
       throw new Error('Invalid amount: minimum $1 required');
     }
 
-    // Validate token price if provided
-    if (token_price !== undefined && token_price <= 0) {
-      console.warn('Invalid token price provided, proceeding without estimation:', token_price);
+    // Enhanced token price validation and logging
+    let finalTokenPrice = null;
+    let estimatedTokenAmount = null;
+    
+    if (token_price && typeof token_price === 'number' && token_price > 0) {
+      finalTokenPrice = token_price;
+      estimatedTokenAmount = amount / token_price;
+      console.log('✅ Valid token price received:', {
+        token_price: finalTokenPrice,
+        estimated_tokens: estimatedTokenAmount,
+        calculation: `${amount} USD / ${finalTokenPrice} USD/token = ${estimatedTokenAmount.toFixed(4)} tokens`
+      });
+    } else {
+      console.warn('❌ Invalid or missing token price:', {
+        received_token_price: token_price,
+        type: typeof token_price,
+        is_positive: token_price > 0
+      });
     }
 
     const validNetworks = ['polygon', 'solana', 'ethereum', 'binance-smart-chain', 'bitcoin'];
@@ -119,13 +145,6 @@ serve(async (req) => {
     }
 
     console.log(`Creating direct crypto payment: $${amount} ${currency} on ${network} for user ${user.id}`);
-    
-    // Enhanced token price logging
-    if (token_price && token_price > 0) {
-      console.log(`CSL token price provided: $${token_price} - will calculate estimated tokens`);
-    } else {
-      console.log('No valid CSL token price provided - proceeding without token estimation');
-    }
 
     // Get the company wallet address for the selected network/currency
     const { data: clientWallet, error: walletError } = await supabase
@@ -144,18 +163,6 @@ serve(async (req) => {
     const cryptoPrice = await fetchCryptoPrice(currency);
     const expectedCryptoAmount = amount / cryptoPrice;
 
-    // Enhanced token amount calculation with validation
-    let estimatedTokenAmount = null;
-    let finalTokenPrice = null;
-    
-    if (token_price && token_price > 0) {
-      estimatedTokenAmount = amount / token_price;
-      finalTokenPrice = token_price;
-      console.log(`Calculated estimated CSL tokens: ${estimatedTokenAmount.toFixed(4)} tokens @ $${token_price} per token`);
-    } else {
-      console.log('Skipping token estimation due to missing or invalid token price');
-    }
-
     // Set payment timeout (30 minutes for volatile cryptos, 5 minutes for stablecoins)
     const isStablecoin = ['USDT', 'USDC'].includes(currency);
     const timeoutMinutes = isStablecoin ? 5 : 30;
@@ -165,7 +172,7 @@ serve(async (req) => {
     // Generate transaction ID
     const transactionId = `direct_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Enhanced transaction data with better validation
+    // Enhanced transaction data with proper token amount storage
     const transactionData = {
       user_id: user.id,
       transaction_id: transactionId,
@@ -185,12 +192,14 @@ serve(async (req) => {
       token_price: finalTokenPrice
     };
 
-    console.log('Creating transaction with token data:', {
+    console.log('Final transaction data for storage:', {
       transaction_id: transactionId,
       usd_amount: amount,
-      estimated_token_amount: estimatedTokenAmount,
-      token_price_at_purchase: finalTokenPrice,
-      has_token_estimation: !!(estimatedTokenAmount && finalTokenPrice)
+      token_amount: estimatedTokenAmount,
+      token_price: finalTokenPrice,
+      has_valid_token_data: !!(estimatedTokenAmount && finalTokenPrice),
+      crypto_amount: expectedCryptoAmount,
+      crypto_currency: currency
     });
 
     const { data: transaction, error: txError } = await supabase
@@ -200,7 +209,7 @@ serve(async (req) => {
       .single();
 
     if (txError) {
-      console.error('Error creating transaction:', txError);
+      console.error('❌ Error creating transaction:', txError);
       throw new Error(`Failed to create transaction: ${txError.message}`);
     }
 
@@ -209,7 +218,7 @@ serve(async (req) => {
       ? `with ${estimatedTokenAmount.toFixed(4)} estimated CSL tokens @ $${finalTokenPrice}`
       : 'without token estimation (price unavailable)';
     
-    console.log(`Direct crypto payment created successfully: ${transactionId} ${tokenEstimationStatus}`);
+    console.log(`✅ Direct crypto payment created successfully: ${transactionId} ${tokenEstimationStatus}`);
 
     // Enhanced admin notification
     try {
@@ -246,6 +255,11 @@ serve(async (req) => {
       }
     };
 
+    console.log('✅ Returning successful response with token data:', {
+      estimated_token_amount: estimatedTokenAmount,
+      estimated_token_price: finalTokenPrice
+    });
+
     return new Response(JSON.stringify(response), {
       headers: {
         ...corsHeaders,
@@ -254,7 +268,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in create-direct-crypto-payment:', error);
+    console.error('❌ Error in create-direct-crypto-payment:', error);
     
     return new Response(JSON.stringify({
       success: false,

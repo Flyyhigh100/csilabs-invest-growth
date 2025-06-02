@@ -82,15 +82,28 @@ const TransactionsTable = ({
   const getTokenAmount = (tx: PendingTransactionWithProfile): number | null => {
     // First priority: Use stored token amount from purchase time (most accurate)
     if (tx.token_amount && tx.token_amount > 0) {
+      console.log(`Using stored token amount for tx ${tx.id}:`, tx.token_amount);
       return tx.token_amount;
     }
     
     // Second priority: Calculate from stored token price (still accurate)
     if (tx.token_price && tx.token_price > 0) {
-      return tx.amount / tx.token_price;
+      const calculated = tx.amount / tx.token_price;
+      console.log(`Calculating token amount for tx ${tx.id}:`, {
+        amount: tx.amount,
+        token_price: tx.token_price,
+        calculated_tokens: calculated
+      });
+      return calculated;
     }
     
-    // Third priority: Return null to indicate no reliable calculation available
+    // Log when no reliable calculation is available
+    console.warn(`No token data available for transaction ${tx.id}:`, {
+      token_amount: tx.token_amount,
+      token_price: tx.token_price,
+      payment_method: tx.payment_method
+    });
+    
     return null;
   };
 
@@ -146,6 +159,7 @@ const TransactionsTable = ({
                   // Enhanced token amount display with production-safe fallbacks
                   const tokenAmount = getTokenAmount(tx);
                   const hasStoredTokenData = !!(tx.token_amount && tx.token_price);
+                  const isDirectCrypto = tx.payment_method === 'direct_crypto';
                   
                   return (
                     <TableRow 
@@ -202,7 +216,12 @@ const TransactionsTable = ({
                             )}
                           </div>
                         )}
-                        {!tokenAmount && (
+                        {!tokenAmount && isDirectCrypto && (
+                          <div className="text-xs text-red-600">
+                            Price missing - check logs
+                          </div>
+                        )}
+                        {!tokenAmount && !isDirectCrypto && (
                           <div className="text-xs text-amber-600">
                             Price unavailable
                           </div>

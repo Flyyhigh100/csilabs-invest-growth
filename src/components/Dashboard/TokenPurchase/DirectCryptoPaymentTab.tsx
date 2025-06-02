@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDirectCryptoPayment } from '@/hooks/payments/useDirectCryptoPayment';
+import { useCurrentPrice } from '@/hooks/token/useCurrentPrice';
 import { toast } from 'sonner';
 import PaymentConfigurationForm from './DirectCrypto/PaymentConfigurationForm';
 import PaymentInstructionsCard from './DirectCrypto/PaymentInstructionsCard';
@@ -12,16 +12,17 @@ import LoadingState from './DirectCrypto/LoadingState';
 interface DirectCryptoPaymentTabProps {
   walletAddress: string;
   amount: number;
-  tokenPrice?: number; // Current CSL token price
 }
 
 const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ 
   walletAddress, 
-  amount, 
-  tokenPrice 
+  amount
 }) => {
   const [showPaymentInstructions, setShowPaymentInstructions] = useState(false);
   const navigate = useNavigate();
+  
+  // Get current CSL token price
+  const { data: currentTokenPrice, isLoading: isPriceLoading } = useCurrentPrice();
   
   const {
     selectedNetwork,
@@ -38,16 +39,28 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({
     getNetworkDisplayName,
     getExplorerUrl,
     isStablecoin
-  } = useDirectCryptoPayment({ tokenPrice });
+  } = useDirectCryptoPayment({ tokenPrice: currentTokenPrice });
 
   // Calculate estimated token amount for display
-  const estimatedTokenAmount = tokenPrice && tokenPrice > 0 ? amount / tokenPrice : null;
+  const estimatedTokenAmount = currentTokenPrice && currentTokenPrice > 0 ? amount / currentTokenPrice : null;
 
   const handleCreatePayment = async () => {
     if (amount < 1) {
       toast.error('Minimum amount is $1');
       return;
     }
+
+    if (!currentTokenPrice || currentTokenPrice <= 0) {
+      console.warn('No valid token price available for direct crypto payment');
+      toast.error('Token price unavailable. Please try again in a moment.');
+      return;
+    }
+
+    console.log('Creating direct crypto payment with current token price:', {
+      amount,
+      tokenPrice: currentTokenPrice,
+      estimatedTokens: (amount / currentTokenPrice).toFixed(4)
+    });
 
     try {
       const result = await createPayment(amount, walletAddress);
@@ -79,7 +92,7 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({
     navigate('/dashboard/transactions');
   };
 
-  if (isLoadingAddresses) {
+  if (isLoadingAddresses || isPriceLoading) {
     return <LoadingState />;
   }
 
@@ -90,16 +103,25 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Show estimated token amount if token price is available */}
-      {estimatedTokenAmount && (
+      {estimatedTokenAmount && currentTokenPrice && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="text-sm text-blue-700">
             <p className="font-medium">Estimated CSL Tokens</p>
             <p>
-              You'll receive approximately <span className="font-semibold">{estimatedTokenAmount.toFixed(2)} CSL tokens</span> at the current price of ${tokenPrice?.toFixed(4)} per token.
+              You'll receive approximately <span className="font-semibold">{estimatedTokenAmount.toFixed(2)} CSL tokens</span> at the current price of ${currentTokenPrice.toFixed(4)} per token.
             </p>
             <p className="text-xs mt-1 text-blue-600">
               This amount will be locked in when your payment is created, protecting you from price changes during processing.
             </p>
+          </div>
+        </div>
+      )}
+
+      {!currentTokenPrice && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="text-sm text-amber-700">
+            <p className="font-medium">Token Price Loading</p>
+            <p>Fetching current CSL token price for accurate estimation...</p>
           </div>
         </div>
       )}
@@ -124,10 +146,20 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({
         <PaymentInstructionsCard
           amount={amount}
           paymentResult={paymentResult}
-          onCopyToClipboard={copyToClipboard}
-          onExternalLink={handleExternalLink}
+          onCopyToClipboard={(text, description) => {
+            if (!text) return;
+            navigator.clipboard.writeText(text);
+            toast.success(`Copied ${description} to clipboard`);
+          }}
+          onExternalLink={(address) => {
+            if (!address) return;
+            const url = getExplorerUrl(selectedNetwork, address);
+            if (url) {
+              window.open(url, '_blank');
+            }
+          }}
           onBackToOptions={() => setShowPaymentInstructions(false)}
-          onNavigateToTransactions={handleNavigateToTransactions}
+          onNavigateToTransactions={() => navigate('/dashboard/transactions')}
           getNetworkDisplayName={getNetworkDisplayName}
         />
       )}
