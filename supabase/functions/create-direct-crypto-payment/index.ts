@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -95,9 +94,14 @@ serve(async (req) => {
 
     const { amount, network, currency, wallet_address, token_price }: DirectPaymentRequest = await req.json();
 
-    // Validate input
+    // Enhanced input validation
     if (!amount || amount < 1) {
       throw new Error('Invalid amount: minimum $1 required');
+    }
+
+    // Validate token price if provided
+    if (token_price !== undefined && token_price <= 0) {
+      console.warn('Invalid token price provided, proceeding without estimation:', token_price);
     }
 
     const validNetworks = ['polygon', 'solana', 'ethereum', 'binance-smart-chain', 'bitcoin'];
@@ -115,7 +119,13 @@ serve(async (req) => {
     }
 
     console.log(`Creating direct crypto payment: $${amount} ${currency} on ${network} for user ${user.id}`);
-    console.log(`Estimated CSL token price provided: $${token_price || 'Not provided'}`);
+    
+    // Enhanced token price logging
+    if (token_price && token_price > 0) {
+      console.log(`CSL token price provided: $${token_price} - will calculate estimated tokens`);
+    } else {
+      console.log('No valid CSL token price provided - proceeding without token estimation');
+    }
 
     // Get the company wallet address for the selected network/currency
     const { data: clientWallet, error: walletError } = await supabase
@@ -134,16 +144,17 @@ serve(async (req) => {
     const cryptoPrice = await fetchCryptoPrice(currency);
     const expectedCryptoAmount = amount / cryptoPrice;
 
-    // Calculate estimated CSL token amount using provided token price
+    // Enhanced token amount calculation with validation
     let estimatedTokenAmount = null;
+    let finalTokenPrice = null;
+    
     if (token_price && token_price > 0) {
       estimatedTokenAmount = amount / token_price;
-      console.log(`Estimated CSL tokens at purchase: ${estimatedTokenAmount} tokens @ $${token_price} per token`);
+      finalTokenPrice = token_price;
+      console.log(`Calculated estimated CSL tokens: ${estimatedTokenAmount.toFixed(4)} tokens @ $${token_price} per token`);
     } else {
-      console.log('No CSL token price provided - estimated token amount will not be calculated');
+      console.log('Skipping token estimation due to missing or invalid token price');
     }
-
-    console.log(`Crypto price conversion: $${amount} USD = ${expectedCryptoAmount} ${currency} (price: $${cryptoPrice})`);
 
     // Set payment timeout (30 minutes for volatile cryptos, 5 minutes for stablecoins)
     const isStablecoin = ['USDT', 'USDC'].includes(currency);
@@ -154,7 +165,7 @@ serve(async (req) => {
     // Generate transaction ID
     const transactionId = `direct_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create transaction record with estimated token amount and price
+    // Enhanced transaction data with better validation
     const transactionData = {
       user_id: user.id,
       transaction_id: transactionId,
@@ -169,16 +180,17 @@ serve(async (req) => {
       payment_timeout_at: timeoutAt.toISOString(),
       currency: 'USD',
       is_test: false,
-      // Store estimated token amount and price from purchase time
+      // Store validated token amount and price from purchase time
       token_amount: estimatedTokenAmount,
-      token_price: token_price || null
+      token_price: finalTokenPrice
     };
 
-    console.log('Creating transaction with estimated token data:', {
+    console.log('Creating transaction with token data:', {
       transaction_id: transactionId,
-      amount: amount,
+      usd_amount: amount,
       estimated_token_amount: estimatedTokenAmount,
-      estimated_token_price: token_price
+      token_price_at_purchase: finalTokenPrice,
+      has_token_estimation: !!(estimatedTokenAmount && finalTokenPrice)
     });
 
     const { data: transaction, error: txError } = await supabase
@@ -192,19 +204,25 @@ serve(async (req) => {
       throw new Error(`Failed to create transaction: ${txError.message}`);
     }
 
-    console.log(`Direct crypto payment created successfully: ${transactionId} with estimated tokens: ${estimatedTokenAmount || 'N/A'}`);
+    // Enhanced success logging
+    const tokenEstimationStatus = estimatedTokenAmount 
+      ? `with ${estimatedTokenAmount.toFixed(4)} estimated CSL tokens @ $${finalTokenPrice}`
+      : 'without token estimation (price unavailable)';
+    
+    console.log(`Direct crypto payment created successfully: ${transactionId} ${tokenEstimationStatus}`);
 
-    // Notify admins about new direct crypto payment
+    // Enhanced admin notification
     try {
-      const notificationMessage = estimatedTokenAmount 
-        ? `New direct crypto payment of $${amount} (${expectedCryptoAmount.toFixed(6)} ${currency}) on ${network}. User expects ${estimatedTokenAmount.toFixed(2)} CSL tokens @ $${token_price} per token.`
-        : `New direct crypto payment of $${amount} (${expectedCryptoAmount.toFixed(6)} ${currency}) on ${network}`;
+      const baseMessage = `New direct crypto payment of $${amount} (${expectedCryptoAmount.toFixed(6)} ${currency}) on ${network}`;
+      const tokenMessage = estimatedTokenAmount 
+        ? ` User expects ${estimatedTokenAmount.toFixed(2)} CSL tokens @ $${finalTokenPrice} per token.`
+        : ' Token estimation unavailable (price not provided).';
 
       await supabase.functions.invoke('admin-notifications', {
         body: {
           type: 'direct_crypto_payment',
           title: 'New Direct Crypto Payment',
-          message: notificationMessage,
+          message: baseMessage + tokenMessage,
           transaction_id: transactionId,
           user_id: user.id
         }
@@ -224,7 +242,7 @@ serve(async (req) => {
         network: network,
         currency: currency,
         estimated_token_amount: estimatedTokenAmount,
-        estimated_token_price: token_price
+        estimated_token_price: finalTokenPrice
       }
     };
 

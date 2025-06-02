@@ -47,25 +47,6 @@ const TransactionsTable = ({
     return txs.reduce((sum, tx) => sum + tx.amount, 0);
   };
   
-  // Calculate wallet token totals
-  const getWalletTokenTotal = (txs: PendingTransactionWithProfile[]) => {
-    return txs.reduce((sum, tx) => {
-      const tokenAmount = tx.token_amount || 
-        (tx.token_price && tx.token_price > 0 ? tx.amount / tx.token_price : 0);
-      return sum + (tokenAmount || 0);
-    }, 0);
-  };
-  
-  // Calculate grand total
-  const grandTotal = transactions.reduce((sum, tx) => sum + tx.amount, 0);
-  
-  // Calculate grand token total
-  const grandTokenTotal = transactions.reduce((sum, tx) => {
-    const tokenAmount = tx.token_amount || 
-      (tx.token_price && tx.token_price > 0 ? tx.amount / tx.token_price : 0);
-    return sum + (tokenAmount || 0);
-  }, 0);
-  
   // Helper function to safely get user name from profiles
   const getUserName = (tx: PendingTransactionWithProfile): string => {
     if (!tx.profiles) return 'Unknown User';
@@ -96,6 +77,39 @@ const TransactionsTable = ({
   const getPolygonScanUrl = (txId: string) => {
     return `https://polygonscan.com/tx/${txId}`;
   };
+
+  // Enhanced token amount calculation with production-safe fallbacks
+  const getTokenAmount = (tx: PendingTransactionWithProfile): number | null => {
+    // First priority: Use stored token amount from purchase time (most accurate)
+    if (tx.token_amount && tx.token_amount > 0) {
+      return tx.token_amount;
+    }
+    
+    // Second priority: Calculate from stored token price (still accurate)
+    if (tx.token_price && tx.token_price > 0) {
+      return tx.amount / tx.token_price;
+    }
+    
+    // Third priority: Return null to indicate no reliable calculation available
+    return null;
+  };
+
+  // Enhanced wallet token total calculation
+  const getWalletTokenTotal = (txs: PendingTransactionWithProfile[]) => {
+    return txs.reduce((sum, tx) => {
+      const tokenAmount = getTokenAmount(tx);
+      return sum + (tokenAmount || 0);
+    }, 0);
+  };
+
+  // Enhanced grand token total calculation
+  const grandTokenTotal = transactions.reduce((sum, tx) => {
+    const tokenAmount = getTokenAmount(tx);
+    return sum + (tokenAmount || 0);
+  }, 0);
+  
+  // Calculate grand total
+  const grandTotal = transactions.reduce((sum, tx) => sum + tx.amount, 0);
   
   return (
     <>
@@ -129,10 +143,10 @@ const TransactionsTable = ({
             walletGroupsArray.map(([walletAddress, txs]) => (
               <React.Fragment key={walletAddress}>
                 {txs.map((tx, index) => {
-                  // Get token amount (if available) or calculate it based on price
-                  const tokenAmount = tx.token_amount || 
-                    (tx.token_price && tx.token_price > 0 ? tx.amount / tx.token_price : null);
-                    
+                  // Enhanced token amount display with production-safe fallbacks
+                  const tokenAmount = getTokenAmount(tx);
+                  const hasStoredTokenData = !!(tx.token_amount && tx.token_price);
+                  
                   return (
                     <TableRow 
                       key={tx.id}
@@ -165,11 +179,32 @@ const TransactionsTable = ({
                       <TableCell>
                         <div className="flex items-center text-cbis-blue font-medium">
                           <Coins className="h-4 w-4 mr-1 text-cbis-blue/70" />
-                          {tokenAmount ? tokenAmount.toFixed(2) : '—'} CSL
+                          {tokenAmount ? (
+                            <>
+                              {tokenAmount.toFixed(2)} CSL
+                              {hasStoredTokenData && (
+                                <span className="ml-1 text-xs text-green-600" title="Locked at purchase time">
+                                  ✓
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-gray-400">— CSL</span>
+                          )}
                         </div>
                         {tx.token_price && (
                           <div className="text-xs text-gray-500">
-                            @ ${tx.token_price.toFixed(2)}/token
+                            @ ${tx.token_price.toFixed(4)}/token
+                            {hasStoredTokenData && (
+                              <span className="text-green-600 ml-1" title="Price locked at purchase">
+                                (locked)
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {!tokenAmount && (
+                          <div className="text-xs text-amber-600">
+                            Price unavailable
                           </div>
                         )}
                       </TableCell>

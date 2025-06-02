@@ -1,5 +1,23 @@
-
 import { PendingTransactionWithProfile } from "@/hooks/admin/usePendingTransactions";
+
+/**
+ * Enhanced token amount calculation with production-safe fallbacks
+ */
+const calculateTokenAmount = (tx: PendingTransactionWithProfile): number => {
+  // First priority: Use stored token amount from purchase time (most accurate)
+  if (tx.token_amount && tx.token_amount > 0) {
+    return tx.token_amount;
+  }
+  
+  // Second priority: Calculate from stored token price (still accurate)
+  if (tx.token_price && tx.token_price > 0) {
+    return tx.amount / tx.token_price;
+  }
+  
+  // Third priority: Use USD amount as fallback (legacy behavior)
+  console.warn(`No token price data available for transaction ${tx.id}, using USD amount as fallback`);
+  return tx.amount;
+};
 
 /**
  * Creates and downloads a CSV file with pending token distribution data (detailed version)
@@ -8,15 +26,16 @@ export const downloadPendingDistributionsCSV = (transactions: PendingTransaction
   // Define CSV headers based on format type
   const headers = simplified 
     ? ['Wallet Address', 'CSL Tokens'] 
-    : ['Date', 'User Name', 'Email', 'USD Amount', 'CSL Tokens', 'Token Price', 'Wallet Address', 'Network'];
+    : ['Date', 'User Name', 'Email', 'USD Amount', 'CSL Tokens', 'Token Price', 'Price Source', 'Wallet Address', 'Network'];
   
-  // Format transaction data for CSV
+  // Format transaction data for CSV with enhanced token calculation
   const rows = transactions.map(tx => {
-    // Calculate token amount if not directly available
-    const tokenAmount = tx.token_amount || 
-      (tx.token_price && tx.token_price > 0 ? tx.amount / tx.token_price : tx.amount);
+    // Enhanced token amount calculation with source tracking
+    const tokenAmount = calculateTokenAmount(tx);
+    const hasStoredTokenData = !!(tx.token_amount && tx.token_price);
+    const priceSource = hasStoredTokenData ? 'Purchase Time' : 'Fallback';
     
-    // Determine if this is a Solana transaction based on available data
+    // Determine network with enhanced logic
     const isSolanaWallet = tx.wallet_address?.startsWith('sol:') || 
                          tx.payment_method?.toLowerCase().includes('solana') ||
                          tx.wallet_address?.length > 42; // Simple heuristic, Solana addresses are longer
@@ -32,7 +51,7 @@ export const downloadPendingDistributionsCSV = (transactions: PendingTransaction
       // For simplified version - just wallet and token amount (for MultiSender)
       return [cleanWalletAddress, tokenAmount.toFixed(2)];
     } else {
-      // For detailed version - all fields
+      // For detailed version - all fields including price source
       const userName = tx.profiles ? 
         `${tx.profiles.first_name || ''} ${tx.profiles.last_name || ''}`.trim() : 
         'Unknown User';
@@ -41,9 +60,9 @@ export const downloadPendingDistributionsCSV = (transactions: PendingTransaction
       const date = new Date(tx.created_at).toLocaleDateString();
       const usdAmount = tx.amount.toFixed(2);
       const formattedTokenAmount = tokenAmount.toFixed(2);
-      const tokenPrice = tx.token_price ? tx.token_price.toFixed(2) : 'N/A';
+      const tokenPrice = tx.token_price ? tx.token_price.toFixed(4) : 'N/A';
       
-      return [date, userName, email, usdAmount, formattedTokenAmount, tokenPrice, cleanWalletAddress, network];
+      return [date, userName, email, usdAmount, formattedTokenAmount, tokenPrice, priceSource, cleanWalletAddress, network];
     }
   });
   
@@ -78,18 +97,22 @@ export const downloadPendingDistributionsCSV = (transactions: PendingTransaction
 };
 
 /**
- * Returns distribution statistics for the pending transactions
+ * Enhanced distribution statistics with improved token calculations
  */
 export const getDistributionStats = (transactions: PendingTransactionWithProfile[]) => {
   // Calculate total USD amount
   const totalAmount = transactions.reduce((sum, tx) => sum + tx.amount, 0);
   
-  // Calculate total token amount
+  // Enhanced total token amount calculation
   const totalTokenAmount = transactions.reduce((sum, tx) => {
-    const tokenAmount = tx.token_amount || 
-      (tx.token_price && tx.token_price > 0 ? tx.amount / tx.token_price : tx.amount);
+    const tokenAmount = calculateTokenAmount(tx);
     return sum + tokenAmount;
   }, 0);
+  
+  // Count transactions with stored vs calculated token data
+  const transactionsWithStoredData = transactions.filter(tx => 
+    tx.token_amount && tx.token_price
+  ).length;
   
   // Count unique wallet addresses
   const uniqueWallets = new Set(transactions.map(tx => tx.wallet_address));
@@ -117,7 +140,12 @@ export const getDistributionStats = (transactions: PendingTransactionWithProfile
     transactionsSaved,
     estimatedGasSavings,
     polygonTransactions,
-    solanaTransactions
+    solanaTransactions,
+    // Additional stats for token data quality
+    transactionsWithStoredData,
+    dataQualityPercentage: transactions.length > 0 
+      ? (transactionsWithStoredData / transactions.length) * 100 
+      : 0
   };
 };
 

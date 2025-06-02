@@ -96,15 +96,27 @@ export const useDirectCryptoPayment = (props: UseDirectCryptoPaymentProps = {}) 
       return;
     }
 
+    // Ensure we have a token price for calculations
+    const currentTokenPrice = props.tokenPrice;
+    if (!currentTokenPrice || currentTokenPrice <= 0) {
+      console.warn('Token price not available for direct crypto payment, proceeding without estimation');
+    }
+
     const request: DirectPaymentRequest = {
       amount,
       network: selectedNetwork,
       currency: selectedCurrency,
       wallet_address: userWalletAddress,
-      token_price: props.tokenPrice // Pass the current CSL token price
+      token_price: currentTokenPrice // Pass the current CSL token price
     };
 
-    console.log('Creating payment with estimated token price:', props.tokenPrice);
+    console.log('Creating direct crypto payment with token price:', {
+      amount,
+      currency: selectedCurrency,
+      network: selectedNetwork,
+      tokenPrice: currentTokenPrice,
+      estimatedTokens: currentTokenPrice ? (amount / currentTokenPrice).toFixed(2) : 'N/A'
+    });
 
     return createPaymentMutation.mutateAsync(request);
   };
