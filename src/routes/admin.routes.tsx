@@ -11,7 +11,8 @@ import {
   WrenchIcon,
   BarChart2,
   FileText,
-  AlertTriangle
+  AlertTriangle,
+  Wallet
 } from 'lucide-react';
 
 // Lazy load admin pages for better performance
@@ -25,6 +26,7 @@ const AdminNotifications = lazy(() => import('@/pages/Admin/Notifications'));
 const AdminKYC = lazy(() => import('@/components/Admin/KYC'));
 const AdminTransactionTools = lazy(() => import('@/pages/Admin/TransactionTools'));
 const AdminResearchDocuments = lazy(() => import('@/pages/Admin/ResearchDocuments'));
+const AdminWalletPortfolio = lazy(() => import('@/pages/Admin/WalletPortfolio'));
 
 export const adminRoutes = [
   {
@@ -68,6 +70,15 @@ export const adminRoutes = [
     element: <AdminTransactionTools />,
     meta: {
       title: 'Transaction Tools',
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+  },
+  {
+    path: '/admin/wallet-portfolio',
+    element: <AdminWalletPortfolio />,
+    meta: {
+      title: 'Wallet Portfolio',
       requiresAuth: true,
       requiresAdmin: true,
     },
@@ -154,6 +165,11 @@ export const adminSidebarLinks = [
     title: 'Transaction Tools',
     path: '/admin/transaction-tools',
     icon: <WrenchIcon className="h-5 w-5" />,
+  },
+  {
+    title: 'Wallet Portfolio',
+    path: '/admin/wallet-portfolio',
+    icon: <Wallet className="h-5 w-5" />,
   },
   {
     title: 'Research Documents',

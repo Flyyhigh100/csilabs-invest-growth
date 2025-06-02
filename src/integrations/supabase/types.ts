@@ -408,6 +408,39 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_balances: {
+        Row: {
+          balance: number
+          balance_usd: number
+          created_at: string
+          currency: string
+          id: string
+          last_updated_at: string
+          network: string
+          wallet_address: string
+        }
+        Insert: {
+          balance?: number
+          balance_usd?: number
+          created_at?: string
+          currency: string
+          id?: string
+          last_updated_at?: string
+          network: string
+          wallet_address: string
+        }
+        Update: {
+          balance?: number
+          balance_usd?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          last_updated_at?: string
+          network?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

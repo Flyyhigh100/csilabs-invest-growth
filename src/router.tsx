@@ -11,6 +11,7 @@ import AdminDashboard from './components/Admin/Dashboard';
 import AdminKycPage from './pages/Admin/KYCVerifications';
 import AdminTransactionsPage from './pages/Admin/Transactions';
 import AdminSettingsPage from './pages/Admin/Settings';
+import AdminWalletPortfolioPage from './pages/Admin/WalletPortfolio';
 // TestToolsPage is still imported but only accessible by admins with proper permissions
 import TestToolsPage from './pages/Admin/TestTools'; 
 import CoinPaymentsSetupPage from "./pages/Admin/CoinPaymentsSetup";
@@ -65,6 +66,10 @@ const router = createBrowserRouter([
   {
     path: "/admin/transactions",
     element: <AdminRoute><AdminTransactionsPage /></AdminRoute>,
+  },
+  {
+    path: "/admin/wallet-portfolio",
+    element: <AdminRoute><AdminWalletPortfolioPage /></AdminRoute>,
   },
   {
     path: "/admin/settings",
