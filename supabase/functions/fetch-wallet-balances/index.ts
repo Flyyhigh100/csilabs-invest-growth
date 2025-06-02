@@ -14,17 +14,14 @@ interface WalletBalance {
 // Network configurations for API endpoints
 const NETWORK_CONFIGS = {
   'polygon': {
-    moralisChain: '0x89',
     rpcUrl: 'https://polygon-bor.publicnode.com/',
-    nativeSymbol: 'POL'
+    nativeSymbol: 'MATIC'
   },
   'ethereum': {
-    moralisChain: '0x1',
     rpcUrl: 'https://eth.llamarpc.com',
     nativeSymbol: 'ETH'
   },
   'binance-smart-chain': {
-    moralisChain: '0x38',
     rpcUrl: 'https://bsc-dataseed.binance.org/',
     nativeSymbol: 'BNB'
   },
@@ -126,14 +123,14 @@ async function fetchCryptoPrices(): Promise<Record<string, number>> {
       'BNB': data.binancecoin?.usd || 0,
       'BTC': data.bitcoin?.usd || 0,
       'SOL': data.solana?.usd || 0,
-      'POL': data['polygon-ecosystem-token']?.usd || 0,
+      'MATIC': data['polygon-ecosystem-token']?.usd || 0,
       'USDT': 1.0,
       'USDC': 1.0
     };
   } catch (error) {
     console.error('Error fetching crypto prices:', error);
     return {
-      'ETH': 3000, 'BNB': 600, 'BTC': 45000, 'SOL': 100, 'POL': 0.5,
+      'ETH': 3000, 'BNB': 600, 'BTC': 45000, 'SOL': 100, 'MATIC': 0.5,
       'USDT': 1.0, 'USDC': 1.0
     };
   }

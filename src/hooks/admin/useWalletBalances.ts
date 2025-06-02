@@ -26,15 +26,19 @@ export const useWalletBalances = () => {
   return useQuery({
     queryKey: ['wallet-balances'],
     queryFn: async (): Promise<WalletBalance[]> => {
+      console.log('Fetching wallet balances from database...');
+      
       const { data, error } = await supabase
         .from('wallet_balances')
         .select('*')
         .order('last_updated_at', { ascending: false });
 
       if (error) {
+        console.error('Error fetching wallet balances:', error);
         throw new Error(`Failed to fetch wallet balances: ${error.message}`);
       }
 
+      console.log(`Found ${data?.length || 0} wallet balance records`);
       return data || [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -47,22 +51,35 @@ export const useRefreshWalletBalances = () => {
 
   return useMutation({
     mutationFn: async () => {
+      console.log('Calling fetch-wallet-balances edge function...');
+      
       const { data, error } = await supabase.functions.invoke('fetch-wallet-balances');
 
       if (error) {
+        console.error('Edge function error:', error);
         throw new Error(`Failed to refresh balances: ${error.message}`);
       }
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to refresh balances');
+      if (!data?.success) {
+        console.error('Edge function returned unsuccessful result:', data);
+        throw new Error(data?.error || 'Failed to refresh balances');
       }
 
+      console.log('Successfully refreshed wallet balances:', data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       // Invalidate and refetch wallet balances
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
-      toast.success('Wallet balances refreshed successfully');
+      
+      const summary = data?.summary;
+      if (summary) {
+        toast.success(`Wallet balances refreshed successfully`, {
+          description: `${summary.total_wallets} wallets processed, $${summary.total_usd_value.toFixed(2)} total value`
+        });
+      } else {
+        toast.success('Wallet balances refreshed successfully');
+      }
     },
     onError: (error: Error) => {
       console.error('Error refreshing wallet balances:', error);
