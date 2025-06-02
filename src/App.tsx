@@ -47,6 +47,7 @@ import AdminSettingsPage from './pages/Admin/Settings';
 import AdminNotificationsPage from './pages/Admin/Notifications';
 import AdminTransactionToolsPage from './pages/Admin/TransactionTools';
 import AdminResearchDocuments from './pages/Admin/ResearchDocuments';
+import AdminWalletPortfolioPage from './pages/Admin/WalletPortfolio';
 import SystemFlowPage from './pages/Admin/SystemFlow';
 import CoinPaymentsSetupPage from './pages/Admin/CoinPaymentsSetup';
 import TransactionStatusManagerPage from './pages/Admin/TransactionStatusManager';
@@ -99,6 +100,7 @@ export default function App() {
                     <Route path="/admin/kyc" element={<AdminKycPage />} />
                     <Route path="/admin/users" element={<AdminUsersPage />} />
                     <Route path="/admin/transactions" element={<AdminTransactionsPage />} />
+                    <Route path="/admin/wallet-portfolio" element={<AdminWalletPortfolioPage />} />
                     <Route path="/admin/transaction-status" element={<TransactionStatusManagerPage />} />
                     <Route path="/admin/transaction-analytics" element={<TransactionAnalyticsPage />} />
                     <Route path="/admin/transaction-tools" element={<AdminTransactionToolsPage />} />
