@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Copy, ExternalLink, Clock } from 'lucide-react';
+import { Copy, ExternalLink, Clock, TrendingUp, AlertCircle } from 'lucide-react';
 import { Transaction } from '@/types/transactions';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -41,6 +41,9 @@ const DirectPaymentVerificationCard: React.FC<DirectPaymentVerificationCardProps
     ? new Date(transaction.payment_timeout_at) < new Date()
     : false;
 
+  // Check if we have estimated token data from purchase time
+  const hasEstimatedTokenData = transaction.token_amount && transaction.token_price;
+
   return (
     <Card className="w-full">
       <CardHeader className="pb-3">
@@ -59,6 +62,34 @@ const DirectPaymentVerificationCard: React.FC<DirectPaymentVerificationCardProps
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Estimated Token Information */}
+        {hasEstimatedTokenData && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="h-4 w-4 text-blue-600" />
+              <span className="font-medium text-blue-800">Token Estimate from Purchase Time</span>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <label className="text-blue-600">Estimated CSL Tokens</label>
+                <div className="font-semibold text-blue-800">
+                  {Number(transaction.token_amount).toLocaleString()} CSL
+                </div>
+              </div>
+              <div>
+                <label className="text-blue-600">Price at Purchase</label>
+                <div className="font-semibold text-blue-800">
+                  ${Number(transaction.token_price).toFixed(4)} per CSL
+                </div>
+              </div>
+            </div>
+            <div className="mt-2 text-xs text-blue-600 flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              Use this as the default token amount when marking as sent
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium text-gray-600">Transaction ID</label>

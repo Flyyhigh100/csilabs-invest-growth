@@ -9,7 +9,11 @@ import {
   ClientWalletAddress 
 } from '@/services/directCryptoPaymentService';
 
-export const useDirectCryptoPayment = () => {
+interface UseDirectCryptoPaymentProps {
+  tokenPrice?: number; // Current CSL token price
+}
+
+export const useDirectCryptoPayment = (props: UseDirectCryptoPaymentProps = {}) => {
   const [selectedNetwork, setSelectedNetwork] = useState<'polygon' | 'solana' | 'ethereum' | 'binance-smart-chain' | 'bitcoin'>('polygon');
   const [selectedCurrency, setSelectedCurrency] = useState<'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC' | 'SOL' | 'POL'>('USDC');
 
@@ -28,8 +32,12 @@ export const useDirectCryptoPayment = () => {
   const createPaymentMutation = useMutation({
     mutationFn: createDirectPayment,
     onSuccess: (data) => {
+      const tokenInfo = data.estimated_token_amount 
+        ? ` You'll receive approximately ${data.estimated_token_amount.toFixed(2)} CSL tokens.`
+        : '';
+      
       toast.success('Payment created successfully', {
-        description: 'Please send the exact amount to the provided address'
+        description: `Please send the exact amount to the provided address.${tokenInfo}`
       });
     },
     onError: (error: Error) => {
@@ -93,7 +101,10 @@ export const useDirectCryptoPayment = () => {
       network: selectedNetwork,
       currency: selectedCurrency,
       wallet_address: userWalletAddress,
+      token_price: props.tokenPrice // Pass the current CSL token price
     };
+
+    console.log('Creating payment with estimated token price:', props.tokenPrice);
 
     return createPaymentMutation.mutateAsync(request);
   };

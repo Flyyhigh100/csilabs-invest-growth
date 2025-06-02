@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDirectCryptoPayment } from '@/hooks/payments/useDirectCryptoPayment';
@@ -11,9 +12,14 @@ import LoadingState from './DirectCrypto/LoadingState';
 interface DirectCryptoPaymentTabProps {
   walletAddress: string;
   amount: number;
+  tokenPrice?: number; // Current CSL token price
 }
 
-const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletAddress, amount }) => {
+const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ 
+  walletAddress, 
+  amount, 
+  tokenPrice 
+}) => {
   const [showPaymentInstructions, setShowPaymentInstructions] = useState(false);
   const navigate = useNavigate();
   
@@ -32,7 +38,10 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
     getNetworkDisplayName,
     getExplorerUrl,
     isStablecoin
-  } = useDirectCryptoPayment();
+  } = useDirectCryptoPayment({ tokenPrice });
+
+  // Calculate estimated token amount for display
+  const estimatedTokenAmount = tokenPrice && tokenPrice > 0 ? amount / tokenPrice : null;
 
   const handleCreatePayment = async () => {
     if (amount < 1) {
@@ -80,6 +89,21 @@ const DirectCryptoPaymentTab: React.FC<DirectCryptoPaymentTabProps> = ({ walletA
 
   return (
     <div className="space-y-4 md:space-y-6">
+      {/* Show estimated token amount if token price is available */}
+      {estimatedTokenAmount && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="text-sm text-blue-700">
+            <p className="font-medium">Estimated CSL Tokens</p>
+            <p>
+              You'll receive approximately <span className="font-semibold">{estimatedTokenAmount.toFixed(2)} CSL tokens</span> at the current price of ${tokenPrice?.toFixed(4)} per token.
+            </p>
+            <p className="text-xs mt-1 text-blue-600">
+              This amount will be locked in when your payment is created, protecting you from price changes during processing.
+            </p>
+          </div>
+        </div>
+      )}
+
       {!showPaymentInstructions ? (
         <>
           <PaymentConfigurationForm

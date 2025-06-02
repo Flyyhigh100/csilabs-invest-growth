@@ -8,6 +8,7 @@ interface DirectPaymentRequest {
   network: 'polygon' | 'solana' | 'ethereum' | 'binance-smart-chain' | 'bitcoin';
   currency: 'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC' | 'SOL' | 'POL';
   wallet_address: string;
+  token_price?: number; // Estimated CSL token price at time of purchase
 }
 
 // Fetch cryptocurrency price from CoinGecko
@@ -92,7 +93,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { amount, network, currency, wallet_address }: DirectPaymentRequest = await req.json();
+    const { amount, network, currency, wallet_address, token_price }: DirectPaymentRequest = await req.json();
 
     // Validate input
     if (!amount || amount < 1) {
@@ -114,6 +115,7 @@ serve(async (req) => {
     }
 
     console.log(`Creating direct crypto payment: $${amount} ${currency} on ${network} for user ${user.id}`);
+    console.log(`Estimated CSL token price provided: $${token_price || 'Not provided'}`);
 
     // Get the company wallet address for the selected network/currency
     const { data: clientWallet, error: walletError } = await supabase
@@ -132,7 +134,16 @@ serve(async (req) => {
     const cryptoPrice = await fetchCryptoPrice(currency);
     const expectedCryptoAmount = amount / cryptoPrice;
 
-    console.log(`Price conversion: $${amount} USD = ${expectedCryptoAmount} ${currency} (price: $${cryptoPrice})`);
+    // Calculate estimated CSL token amount using provided token price
+    let estimatedTokenAmount = null;
+    if (token_price && token_price > 0) {
+      estimatedTokenAmount = amount / token_price;
+      console.log(`Estimated CSL tokens at purchase: ${estimatedTokenAmount} tokens @ $${token_price} per token`);
+    } else {
+      console.log('No CSL token price provided - estimated token amount will not be calculated');
+    }
+
+    console.log(`Crypto price conversion: $${amount} USD = ${expectedCryptoAmount} ${currency} (price: $${cryptoPrice})`);
 
     // Set payment timeout (30 minutes for volatile cryptos, 5 minutes for stablecoins)
     const isStablecoin = ['USDT', 'USDC'].includes(currency);
@@ -143,24 +154,36 @@ serve(async (req) => {
     // Generate transaction ID
     const transactionId = `direct_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create transaction record
+    // Create transaction record with estimated token amount and price
+    const transactionData = {
+      user_id: user.id,
+      transaction_id: transactionId,
+      amount: amount,
+      payment_method: 'direct_crypto',
+      status: 'pending',
+      wallet_address: wallet_address,
+      payment_address: clientWallet.wallet_address,
+      crypto_network: network,
+      crypto_currency_symbol: currency,
+      expected_crypto_amount: expectedCryptoAmount,
+      payment_timeout_at: timeoutAt.toISOString(),
+      currency: 'USD',
+      is_test: false,
+      // Store estimated token amount and price from purchase time
+      token_amount: estimatedTokenAmount,
+      token_price: token_price || null
+    };
+
+    console.log('Creating transaction with estimated token data:', {
+      transaction_id: transactionId,
+      amount: amount,
+      estimated_token_amount: estimatedTokenAmount,
+      estimated_token_price: token_price
+    });
+
     const { data: transaction, error: txError } = await supabase
       .from('transactions')
-      .insert({
-        user_id: user.id,
-        transaction_id: transactionId,
-        amount: amount,
-        payment_method: 'direct_crypto',
-        status: 'pending',
-        wallet_address: wallet_address,
-        payment_address: clientWallet.wallet_address,
-        crypto_network: network,
-        crypto_currency_symbol: currency,
-        expected_crypto_amount: expectedCryptoAmount,
-        payment_timeout_at: timeoutAt.toISOString(),
-        currency: 'USD',
-        is_test: false
-      })
+      .insert(transactionData)
       .select()
       .single();
 
@@ -169,15 +192,19 @@ serve(async (req) => {
       throw new Error(`Failed to create transaction: ${txError.message}`);
     }
 
-    console.log(`Direct crypto payment created successfully: ${transactionId}`);
+    console.log(`Direct crypto payment created successfully: ${transactionId} with estimated tokens: ${estimatedTokenAmount || 'N/A'}`);
 
     // Notify admins about new direct crypto payment
     try {
+      const notificationMessage = estimatedTokenAmount 
+        ? `New direct crypto payment of $${amount} (${expectedCryptoAmount.toFixed(6)} ${currency}) on ${network}. User expects ${estimatedTokenAmount.toFixed(2)} CSL tokens @ $${token_price} per token.`
+        : `New direct crypto payment of $${amount} (${expectedCryptoAmount.toFixed(6)} ${currency}) on ${network}`;
+
       await supabase.functions.invoke('admin-notifications', {
         body: {
           type: 'direct_crypto_payment',
           title: 'New Direct Crypto Payment',
-          message: `New direct crypto payment of $${amount} (${expectedCryptoAmount.toFixed(6)} ${currency}) on ${network}`,
+          message: notificationMessage,
           transaction_id: transactionId,
           user_id: user.id
         }
@@ -195,7 +222,9 @@ serve(async (req) => {
         expected_crypto_amount: expectedCryptoAmount,
         timeout_at: timeoutAt.toISOString(),
         network: network,
-        currency: currency
+        currency: currency,
+        estimated_token_amount: estimatedTokenAmount,
+        estimated_token_price: token_price
       }
     };
 

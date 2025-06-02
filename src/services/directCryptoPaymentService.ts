@@ -14,6 +14,7 @@ export interface DirectPaymentRequest {
   network: 'polygon' | 'solana' | 'ethereum' | 'binance-smart-chain' | 'bitcoin';
   currency: 'USDT' | 'USDC' | 'ETH' | 'BNB' | 'BTC' | 'SOL' | 'POL';
   wallet_address: string;
+  token_price?: number; // Estimated CSL token price at time of purchase
 }
 
 export interface DirectPaymentResponse {
@@ -23,6 +24,8 @@ export interface DirectPaymentResponse {
   timeout_at: string;
   network: string;
   currency: string;
+  estimated_token_amount?: number; // Estimated CSL tokens user will receive
+  estimated_token_price?: number; // Price per CSL token at purchase time
 }
 
 /**
@@ -56,7 +59,7 @@ export const fetchClientWalletAddresses = async (): Promise<ClientWalletAddress[
  */
 export const createDirectPayment = async (request: DirectPaymentRequest): Promise<DirectPaymentResponse> => {
   try {
-    console.log('Creating direct crypto payment:', request);
+    console.log('Creating direct crypto payment with token price:', request);
     
     const { data, error } = await supabase.functions.invoke('create-direct-crypto-payment', {
       body: request
