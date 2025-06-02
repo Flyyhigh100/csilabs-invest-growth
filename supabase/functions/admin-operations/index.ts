@@ -1,6 +1,8 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { userOperations } from "./user-operations.ts";
+import { handleAdminOperations } from "./handlers.ts";
 
 // CORS headers for preflight requests
 const corsHeaders = {
@@ -42,7 +44,15 @@ serve(async (req) => {
 
     // Parse request body
     const requestBody = await req.json();
-    const { operation } = requestBody;
+    console.log('Admin operations request received:', JSON.stringify(requestBody, null, 2));
+    
+    // Handle both old format (operation) and new format (action)
+    const operation = requestBody.operation || requestBody.action;
+    const data = requestBody.data || requestBody;
+
+    if (!operation) {
+      return createErrorResponse('Missing operation or action parameter', 400);
+    }
 
     // Create Supabase client
     const supabase = createClient(
@@ -54,6 +64,7 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
     
     if (userError || !user) {
+      console.error('Auth error:', userError);
       return createErrorResponse('Invalid auth token', 401);
     }
     
@@ -65,10 +76,29 @@ serve(async (req) => {
       .maybeSingle();
     
     if (adminError || !adminData) {
+      console.error('Admin check error:', adminError);
       return createErrorResponse('Unauthorized: Admin access required', 403);
     }
 
-    // Handle different operations
+    console.log(`Admin user ${user.id} authorized for operation: ${operation}`);
+
+    // Handle different operations - route new operations to handlers.ts
+    if (['markTokensSent', 'processKyc', 'requestKycClarification', 'getUserDetails', 'getAllUsers', 'syncStripePaymentStatus', 'manuallyCompleteTransaction'].includes(operation)) {
+      console.log(`Routing operation ${operation} to handleAdminOperations`);
+      
+      // Call the comprehensive handler from handlers.ts
+      const result = await handleAdminOperations(operation, data, user, supabase);
+      
+      if (result?.error) {
+        console.error(`Error from handleAdminOperations for ${operation}:`, result.error);
+        return createErrorResponse(result.error.message || 'Operation failed', 500);
+      }
+      
+      console.log(`Successfully completed operation ${operation}:`, result);
+      return createSuccessResponse(result);
+    }
+
+    // Handle legacy operations
     switch (operation) {
       case 'update_coinpayments_config':
         return await handleUpdateCoinPaymentsConfig(supabase, requestBody, user.id);
@@ -85,6 +115,7 @@ serve(async (req) => {
         return createSuccessResponse(usersData);
         
       default:
+        console.error(`Unknown operation: ${operation}`);
         return createErrorResponse(`Unknown operation: ${operation}`, 400);
     }
 
