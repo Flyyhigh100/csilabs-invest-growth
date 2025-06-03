@@ -25,6 +25,8 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    console.log('Processing magic link request for email:', email);
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -32,6 +34,8 @@ const handler = async (req: Request): Promise<Response> => {
     // Generate a secure token
     const token = crypto.randomUUID() + '-' + crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+
+    console.log('Generated token:', token.substring(0, 20) + '...');
 
     // Clean up old magic links for this email
     await supabase
@@ -53,9 +57,13 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Failed to create magic link');
     }
 
-    // Create the magic link URL
-    const baseUrl = req.headers.get('origin') || 'https://1millionstrongfightclub.com';
+    console.log('Magic link inserted successfully');
+
+    // Always use the production domain for magic link URLs
+    const baseUrl = 'https://1millionstrongfightclub.com';
     const magicLinkUrl = `${baseUrl}/auth/magic-link?token=${token}`;
+
+    console.log('Magic link URL created:', magicLinkUrl.substring(0, 50) + '...');
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({

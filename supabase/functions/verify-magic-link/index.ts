@@ -10,7 +10,6 @@ interface VerifyMagicLinkRequest {
 const handler = async (req: Request): Promise<Response> => {
   console.log('=== VERIFY MAGIC LINK START ===');
   console.log('Request method:', req.method);
-  console.log('Request URL:', req.url);
 
   if (req.method === 'OPTIONS') {
     console.log('Handling CORS preflight request');
@@ -55,25 +54,25 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('Creating Supabase client...');
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Find the magic link
+    // Find the magic link using maybeSingle() to avoid errors when no rows found
     console.log('Looking up magic link token...');
     const { data: magicLink, error: linkError } = await supabase
       .from('magic_links')
       .select('*')
       .eq('token', token)
       .eq('used', false)
-      .single();
+      .maybeSingle(); // Changed from .single() to .maybeSingle()
 
     if (linkError) {
       console.error('Database error finding magic link:', linkError);
       return new Response(
-        JSON.stringify({ error: 'Invalid or expired magic link' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Database error occurred' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (!magicLink) {
-      console.error('Magic link not found or already used');
+      console.error('Magic link not found or already used for token:', token.substring(0, 20) + '...');
       return new Response(
         JSON.stringify({ error: 'Invalid or expired magic link' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -91,7 +90,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Mark the magic link as used
+    // Mark the magic link as used first
     console.log('Marking magic link as used...');
     const { error: updateError } = await supabase
       .from('magic_links')
@@ -123,61 +122,64 @@ const handler = async (req: Request): Promise<Response> => {
         email_confirm: true,
       });
       
-      if (createError || !newUser.user) {
+      if (createError) {
         console.error('Error creating user:', createError);
+        // If user already exists, try to find them
+        if (createError.message.includes('already been registered')) {
+          console.log('User already exists, finding existing user...');
+          const existingUserRetry = usersData.users.find(user => user.email === magicLink.email);
+          if (existingUserRetry) {
+            userId = existingUserRetry.id;
+            console.log('Found existing user with ID:', userId);
+          } else {
+            throw new Error('Failed to create or find user account');
+          }
+        } else {
+          throw new Error('Failed to create user account');
+        }
+      } else if (newUser.user) {
+        userId = newUser.user.id;
+        console.log('New user created with ID:', userId);
+      } else {
         throw new Error('Failed to create user account');
       }
-      
-      userId = newUser.user.id;
-      console.log('New user created with ID:', userId);
     } else {
       userId = existingUser.id;
       console.log('Existing user found with ID:', userId);
     }
 
-    // Create a proper authentication session for the user
-    console.log('Creating authentication session...');
-    const { data: sessionData, error: sessionError } = await supabase.auth.admin.createSession({
-      user_id: userId,
+    // Generate a sign-in link for the user
+    console.log('Generating sign-in link...');
+    const { data: linkData, error: linkGenError } = await supabase.auth.admin.generateLink({
+      type: 'magiclink',
+      email: magicLink.email,
     });
 
-    if (sessionError || !sessionData) {
-      console.error('Error creating session:', sessionError);
-      // Fallback to sign in with OTP
-      console.log('Attempting fallback sign in...');
-      const { data: otpData, error: otpError } = await supabase.auth.admin.generateLink({
-        type: 'magiclink',
-        email: magicLink.email,
-      });
-
-      if (otpError) {
-        console.error('Fallback OTP generation failed:', otpError);
-        throw new Error('Failed to create authentication session');
-      }
-
-      console.log('Fallback OTP generated successfully');
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          user: { id: userId, email: magicLink.email },
-          authUrl: otpData.properties.action_link,
-          message: 'Please complete sign-in by clicking the link in your email'
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+    if (linkGenError || !linkData) {
+      console.error('Error generating sign-in link:', linkGenError);
+      throw new Error('Failed to create authentication session');
     }
 
-    console.log('Session created successfully');
+    console.log('Sign-in link generated successfully');
+    
+    // Extract tokens from the generated link
+    const actionLink = linkData.properties.action_link;
+    const urlParams = new URL(actionLink).searchParams;
+    const accessToken = urlParams.get('access_token');
+    const refreshToken = urlParams.get('refresh_token');
+
+    if (!accessToken || !refreshToken) {
+      console.error('Failed to extract tokens from action link');
+      throw new Error('Failed to create authentication session');
+    }
+
+    console.log('Tokens extracted successfully');
     return new Response(
       JSON.stringify({ 
         success: true,
         user: { id: userId, email: magicLink.email },
-        session: sessionData,
-        access_token: sessionData.access_token,
-        refresh_token: sessionData.refresh_token,
+        access_token: accessToken,
+        refresh_token: refreshToken,
         redirectUrl: '/dashboard/payments'
       }),
       {
