@@ -219,6 +219,33 @@ export type Database = {
         }
         Relationships: []
       }
+      magic_links: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          token: string
+          used: boolean
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          token: string
+          used?: boolean
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used?: boolean
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -262,6 +289,7 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          magic_link_preference: boolean | null
           preferred_network: string | null
           rejection_reason: string | null
           role: string | null
@@ -276,6 +304,7 @@ export type Database = {
           first_name?: string | null
           id: string
           last_name?: string | null
+          magic_link_preference?: boolean | null
           preferred_network?: string | null
           rejection_reason?: string | null
           role?: string | null
@@ -290,6 +319,7 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          magic_link_preference?: boolean | null
           preferred_network?: string | null
           rejection_reason?: string | null
           role?: string | null
@@ -446,6 +476,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_magic_links: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       execute_sql: {
         Args: { sql_query: string }
         Returns: Json[]

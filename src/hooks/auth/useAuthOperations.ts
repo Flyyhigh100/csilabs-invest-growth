@@ -69,10 +69,26 @@ export const useAuthOperations = () => {
     }
   };
 
+  const signInWithMagicLink = async (email: string): Promise<void> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('send-magic-link', {
+        body: { email }
+      });
+
+      if (error) throw error;
+
+      toast.success('Magic link sent! Check your email to sign in.');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send magic link');
+      throw error;
+    }
+  };
+
   return {
     signIn,
     signUp,
     signOut,
-    resetPassword
+    resetPassword,
+    signInWithMagicLink
   };
 };
