@@ -21,6 +21,7 @@ import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import ForgotPassword from './pages/Auth/ForgotPassword';
 import ResetPassword from './pages/Auth/ResetPassword';
+import MagicLinkVerification from './pages/Auth/MagicLinkVerification';
 import NotFound from './pages/NotFound';
 import Payments from './pages/Dashboard/Payments';
 import Transactions from './pages/Dashboard/Transactions';
@@ -72,6 +73,7 @@ export default function App() {
                   <Route path="/signup" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/auth/magic-link" element={<MagicLinkVerification />} />
                   <Route path="/research-documents" element={<ResearchDocuments />} />
                   <Route path="/token-info" element={<TokenInfo />} />
                   <Route path="/contact" element={<ContactUs />} />
