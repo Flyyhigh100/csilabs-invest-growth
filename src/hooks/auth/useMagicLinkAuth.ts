@@ -28,15 +28,44 @@ export const useMagicLinkAuth = () => {
   const verifyMagicLink = async (token: string): Promise<void> => {
     setIsLoading(true);
     try {
+      console.log('Verifying magic link token:', token.substring(0, 20) + '...');
+      
       const { data, error } = await supabase.functions.invoke('verify-magic-link', {
         body: { token }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
 
-      if (data?.session) {
-        // The session will be handled by the auth state change listener
+      console.log('Magic link verification response:', data);
+
+      if (data?.success) {
+        // If we got session tokens, set them in Supabase
+        if (data.access_token && data.refresh_token) {
+          console.log('Setting session tokens...');
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: data.access_token,
+            refresh_token: data.refresh_token
+          });
+
+          if (sessionError) {
+            console.error('Error setting session:', sessionError);
+            throw sessionError;
+          }
+
+          console.log('Session set successfully');
+        } else if (data.authUrl) {
+          // Fallback case - redirect to auth URL
+          console.log('Redirecting to auth URL...');
+          window.location.href = data.authUrl;
+          return;
+        }
+
         toast.success('Successfully signed in!');
+      } else {
+        throw new Error(data?.error || 'Magic link verification failed');
       }
     } catch (error: any) {
       console.error('Error verifying magic link:', error);

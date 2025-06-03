@@ -18,6 +18,7 @@ const MagicLinkVerification = () => {
 
   useEffect(() => {
     if (!token) {
+      console.error('No token found in URL');
       setVerificationState('error');
       setErrorMessage('Invalid magic link - no token provided');
       return;
@@ -25,14 +26,18 @@ const MagicLinkVerification = () => {
 
     const verifyToken = async () => {
       try {
+        console.log('Starting magic link verification...');
         await verifyMagicLink(token);
+        console.log('Magic link verification completed successfully');
         setVerificationState('success');
-        // Small delay to allow auth state to update before redirect
+        
+        // Wait a bit for auth state to update, then redirect
         setTimeout(() => {
+          console.log('Redirecting to dashboard...');
           window.location.href = '/dashboard/payments';
-        }, 2000);
+        }, 1500);
       } catch (error: any) {
-        console.error('Magic link verification error:', error);
+        console.error('Magic link verification failed:', error);
         setVerificationState('error');
         setErrorMessage(error.message || 'Failed to verify magic link');
       }
