@@ -27,7 +27,12 @@ const MagicLinkVerification = () => {
       try {
         await verifyMagicLink(token);
         setVerificationState('success');
+        // Small delay to allow auth state to update before redirect
+        setTimeout(() => {
+          window.location.href = '/dashboard/payments';
+        }, 2000);
       } catch (error: any) {
+        console.error('Magic link verification error:', error);
         setVerificationState('error');
         setErrorMessage(error.message || 'Failed to verify magic link');
       }
@@ -36,8 +41,8 @@ const MagicLinkVerification = () => {
     verifyToken();
   }, [token, verifyMagicLink]);
 
-  // If user is authenticated, redirect to dashboard
-  if (user) {
+  // If user is authenticated and verification was successful, show success state
+  if (user && verificationState === 'success') {
     return <Navigate to="/dashboard/payments" replace />;
   }
 
@@ -57,7 +62,7 @@ const MagicLinkVerification = () => {
           <div className="text-center space-y-4">
             <CheckCircle className="h-8 w-8 mx-auto text-green-600" />
             <h2 className="text-xl font-semibold text-green-700">Successfully signed in!</h2>
-            <p className="text-gray-600">You will be redirected to your dashboard shortly.</p>
+            <p className="text-gray-600">Redirecting you to your dashboard...</p>
           </div>
         );
 

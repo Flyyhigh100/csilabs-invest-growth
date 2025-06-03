@@ -55,12 +55,19 @@ const handler = async (req: Request): Promise<Response> => {
       .update({ used: true })
       .eq('token', token);
 
-    // Check if user exists, if not create them
-    const { data: existingUser, error: userError } = await supabase.auth.admin.getUserByEmail(magicLink.email);
+    // Check if user exists using the correct Admin API method
+    const { data: usersData, error: userError } = await supabase.auth.admin.listUsers();
+    
+    if (userError) {
+      console.error('Error listing users:', userError);
+      throw new Error('Failed to check user existence');
+    }
+
+    const existingUser = usersData.users.find(user => user.email === magicLink.email);
     
     let userId: string;
     
-    if (userError || !existingUser.user) {
+    if (!existingUser) {
       // Create new user
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email: magicLink.email,
@@ -74,10 +81,10 @@ const handler = async (req: Request): Promise<Response> => {
       
       userId = newUser.user.id;
     } else {
-      userId = existingUser.user.id;
+      userId = existingUser.id;
     }
 
-    // Generate session for the user
+    // Generate a proper session token for the user
     const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email: magicLink.email,
@@ -91,6 +98,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         success: true,
+        user: { id: userId, email: magicLink.email },
         session: sessionData,
         redirectUrl: '/dashboard/payments'
       }),
