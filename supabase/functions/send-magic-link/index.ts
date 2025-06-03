@@ -54,31 +54,31 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Create the magic link URL
-    const baseUrl = req.headers.get('origin') || 'https://your-app-domain.com';
+    const baseUrl = req.headers.get('origin') || 'https://1millionstrongfightclub.com';
     const magicLinkUrl = `${baseUrl}/auth/magic-link?token=${token}`;
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({
-      from: "CSi Labs <noreply@your-domain.com>", // Update with your verified domain
+      from: "1 Million Strong Fight Club <team@mail.1millionstrongfightclub.com>",
       to: [email],
-      subject: "Sign in to CSi Labs",
+      subject: "Sign in to 1 Million Strong Fight Club",
       html: `
         <!DOCTYPE html>
         <html>
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Sign in to CSi Labs</title>
+            <title>Sign in to 1 Million Strong Fight Club</title>
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <img src="${baseUrl}/Newlogo.jpg" alt="CSi Labs" style="height: 60px; width: auto;">
+              <img src="${baseUrl}/Newlogo.jpg" alt="1 Million Strong Fight Club" style="height: 60px; width: auto;">
             </div>
             
-            <h1 style="color: #1e40af; text-align: center; margin-bottom: 30px;">Sign in to CSi Labs</h1>
+            <h1 style="color: #1e40af; text-align: center; margin-bottom: 30px;">Sign in to 1 Million Strong Fight Club</h1>
             
             <p style="font-size: 16px; margin-bottom: 20px;">
-              Hello! You requested to sign in to your CSi Labs account. Click the button below to securely access your dashboard:
+              Hello! You requested to sign in to your 1 Million Strong Fight Club account. Click the button below to securely access your dashboard:
             </p>
             
             <div style="text-align: center; margin: 30px 0;">
@@ -90,7 +90,7 @@ const handler = async (req: Request): Promise<Response> => {
                         border-radius: 6px; 
                         font-weight: bold; 
                         display: inline-block;">
-                Sign In to CSi Labs
+                Sign In to 1 Million Strong Fight Club
               </a>
             </div>
             
@@ -105,7 +105,7 @@ const handler = async (req: Request): Promise<Response> => {
               <p>This link will expire in 30 minutes for security reasons.</p>
               <p>If you didn't request this email, you can safely ignore it.</p>
               <p style="text-align: center; margin-top: 20px;">
-                <strong>CSi Labs</strong> - Revolutionizing Cancer Research
+                <strong>1 Million Strong Fight Club</strong> - Building Community Strength
               </p>
             </div>
           </body>
