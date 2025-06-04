@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from './contexts/AuthContext';
+import { SecurityProvider } from './contexts/SecurityContext';
 import { Toaster } from 'sonner';
 import { NavbarContextProvider } from './contexts/NavbarContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -55,106 +55,94 @@ import SystemFlowPage from './pages/Admin/SystemFlow';
 import CoinPaymentsSetupPage from './pages/Admin/CoinPaymentsSetup';
 import TransactionStatusManagerPage from './pages/Admin/TransactionStatusManager';
 
-const queryClient = new QueryClient();
+// Create a query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+    },
+  },
+});
 
-export default function App() {
-  console.log('🚀 App component rendering...');
-  console.log('🔗 Router configuration loaded - magic link route should be available at /auth/magic-link');
-  
+function App() {
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+        <TooltipProvider>
+          <SecurityProvider>
             <AuthProvider>
               <NavbarContextProvider>
-                <TooltipProvider>
-                  <GlobalLoading />
-                  <Routes>
-                    {/* Debug route to test routing */}
-                    <Route path="/test-route" element={<RouteTest />} />
-                    
-                    {/* Public Routes */}
-                    <Route path="/" element={<Index />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    {/* Add redirect from /signup to /register */}
-                    <Route path="/signup" element={<Register />} />
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
-                    
-                    {/* Magic Link Route - Enhanced with debugging */}
-                    <Route 
-                      path="/auth/magic-link" 
-                      element={
-                        <ErrorBoundary fallback={
-                          <div className="min-h-screen flex items-center justify-center">
-                            <div className="text-center">
-                              <h1 className="text-2xl font-bold text-red-600 mb-4">Magic Link Error</h1>
-                              <p className="text-gray-600 mb-4">There was an error loading the magic link verification page.</p>
-                              <button 
-                                onClick={() => window.location.href = '/login'}
-                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                              >
-                                Go to Login
-                              </button>
-                            </div>
-                          </div>
-                        }>
-                          <MagicLinkVerification />
-                        </ErrorBoundary>
-                      } 
-                    />
-                    
-                    <Route path="/research-documents" element={<ResearchDocuments />} />
-                    <Route path="/token-info" element={<TokenInfo />} />
-                    <Route path="/contact" element={<ContactUs />} />
-                    
-                    {/* Legal Routes */}
-                    <Route path="/legal/terms-and-conditions" element={<TermsOfService />} />
-                    <Route path="/legal/foundation-disclosure" element={<FoundationDisclosure />} />
-                    <Route path="/legal/geographic-restrictions" element={<GeographicRestrictions />} />
-                    <Route path="/legal/token-disclaimer" element={<TokenDisclaimer />} />
-                    
-                    {/* Protected Routes */}
-                    <Route element={<ProtectedRoute />}>
-                      <Route path="/dashboard" element={<DashboardHome />} />
-                      <Route path="/dashboard/kyc" element={<KYCVerificationPage />} />
-                      <Route path="/dashboard/transactions" element={<Transactions />} />
-                      <Route path="/dashboard/profile" element={<Profile />} />
-                      <Route path="/dashboard/documents" element={<Documents />} />
-                      <Route path="/dashboard/wallet" element={<div>Wallet</div>} />
-                      <Route path="/dashboard/payments" element={<Payments />} />
-                    </Route>
-                    
-                    {/* Admin Routes */}
-                    <Route element={<AdminRoute />}>
-                      <Route path="/admin" element={<AdminDashboard />} />
-                      <Route path="/admin/system-flow" element={<SystemFlowPage />} />
-                      <Route path="/admin/kyc" element={<AdminKycPage />} />
-                      <Route path="/admin/users" element={<AdminUsersPage />} />
-                      <Route path="/admin/transactions" element={<AdminTransactionsPage />} />
-                      <Route path="/admin/wallet-portfolio" element={<AdminWalletPortfolioPage />} />
-                      <Route path="/admin/transaction-status" element={<TransactionStatusManagerPage />} />
-                      <Route path="/admin/transaction-analytics" element={<TransactionAnalyticsPage />} />
-                      <Route path="/admin/transaction-tools" element={<AdminTransactionToolsPage />} />
-                      <Route path="/admin/settings" element={<AdminSettingsPage />} />
-                      <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
-                      <Route path="/admin/research-documents" element={<AdminResearchDocuments />} />
-                      <Route path="/admin/token-pricing" element={<TokenPricingPage />} />
-                      <Route path="/admin/coinpayments-setup" element={<CoinPaymentsSetupPage />} />
-                    </Route>
-                    
-                    {/* Fallback */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                  <Toaster position="top-right" richColors />
-                </TooltipProvider>
+                <Router>
+                  <ErrorBoundary>
+                    <div className="min-h-screen bg-white">
+                      <GlobalLoading />
+                      <Toaster position="top-right" richColors />
+                      
+                      <Routes>
+                        {/* Public routes */}
+                        <Route path="/" element={<Index />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/signup" element={<Register />} />
+                        <Route path="/forgot-password" element={<ForgotPassword />} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
+                        <Route path="/magic-link-verification" element={<MagicLinkVerification />} />
+                        <Route path="/research-documents" element={<ResearchDocuments />} />
+                        <Route path="/token-info" element={<TokenInfo />} />
+                        <Route path="/contact" element={<ContactUs />} />
+                        
+                        {/* Legal pages */}
+                        <Route path="/legal/terms" element={<TermsOfService />} />
+                        <Route path="/legal/foundation-disclosure" element={<FoundationDisclosure />} />
+                        <Route path="/legal/geographic-restrictions" element={<GeographicRestrictions />} />
+                        <Route path="/legal/token-disclaimer" element={<TokenDisclaimer />} />
+                        
+                        {/* Protected routes */}
+                        <Route path="/dashboard" element={<ProtectedRoute />}>
+                          <Route index element={<DashboardHome />} />
+                          <Route path="home" element={<DashboardHome />} />
+                          <Route path="payments" element={<Payments />} />
+                          <Route path="transactions" element={<Transactions />} />
+                          <Route path="kyc" element={<KYCVerificationPage />} />
+                          <Route path="profile" element={<Profile />} />
+                          <Route path="documents" element={<Documents />} />
+                        </Route>
+                        
+                        {/* Admin routes */}
+                        <Route path="/admin" element={<AdminRoute />}>
+                          <Route index element={<AdminDashboard />} />
+                          <Route path="dashboard" element={<AdminDashboard />} />
+                          <Route path="transactions" element={<AdminTransactionsPage />} />
+                          <Route path="users" element={<AdminUsersPage />} />
+                          <Route path="kyc" element={<AdminKycPage />} />
+                          <Route path="settings" element={<AdminSettingsPage />} />
+                          <Route path="notifications" element={<AdminNotificationsPage />} />
+                          <Route path="transaction-tools" element={<AdminTransactionToolsPage />} />
+                          <Route path="research-documents" element={<AdminResearchDocuments />} />
+                          <Route path="wallet-portfolio" element={<AdminWalletPortfolioPage />} />
+                          <Route path="system-flow" element={<SystemFlowPage />} />
+                          <Route path="coinpayments-setup" element={<CoinPaymentsSetupPage />} />
+                          <Route path="transaction-status" element={<TransactionStatusManagerPage />} />
+                          <Route path="token-pricing" element={<TokenPricingPage />} />
+                          <Route path="analytics" element={<TransactionAnalyticsPage />} />
+                        </Route>
+                        
+                        {/* Test route */}
+                        <Route path="/route-test" element={<RouteTest />} />
+                        
+                        {/* Catch all route */}
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </div>
+                  </ErrorBoundary>
+                </Router>
               </NavbarContextProvider>
             </AuthProvider>
-          </ThemeProvider>
-        </Router>
-      </QueryClientProvider>
-    </ErrorBoundary>
+          </SecurityProvider>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
+
+export default App;

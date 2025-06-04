@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizeText } from '@/utils/security/inputSanitization';
 
 interface UserSelectorProps {
   userId: string;
@@ -37,18 +38,40 @@ const UserSelector: React.FC<UserSelectorProps> = ({
   const displayUsers = allUsers || users;
   const loading = isLoading || isLoadingUsers;
 
-  // Filter out any users with empty IDs
-  const validUsers = displayUsers.filter(user => user.id && user.id.trim() !== '');
+  // Filter out any users with empty IDs and sanitize data
+  const validUsers = displayUsers
+    .filter(user => user.id && user.id.trim() !== '')
+    .map(user => ({
+      ...user,
+      email: user.email ? sanitizeText(user.email) : '',
+      first_name: (user as any).first_name ? sanitizeText((user as any).first_name) : '',
+      last_name: (user as any).last_name ? sanitizeText((user as any).last_name) : ''
+    }));
   
   // Default placeholder value when no user is selected
   const SELECT_USER_PLACEHOLDER = "select-user";
+
+  const handleUserSelection = (selectedUserId: string) => {
+    if (selectedUserId === SELECT_USER_PLACEHOLDER) {
+      return;
+    }
+    
+    // Validate that the selected user exists in our list
+    const isValidUser = validUsers.some(user => user.id === selectedUserId);
+    
+    if (isValidUser) {
+      setUserId(selectedUserId);
+    } else {
+      console.error('Invalid user selection attempted');
+    }
+  };
 
   return (
     <div className="space-y-2">
       <Label htmlFor="user">User</Label>
       <Select 
         value={userId || SELECT_USER_PLACEHOLDER} 
-        onValueChange={setUserId}
+        onValueChange={handleUserSelection}
         disabled={loading}
       >
         <SelectTrigger>
@@ -57,13 +80,18 @@ const UserSelector: React.FC<UserSelectorProps> = ({
         <SelectContent>
           <ScrollArea className="h-72">
             {validUsers.length > 0 ? (
-              validUsers.map(user => (
-                <SelectItem key={user.id} value={user.id}>
-                  {user.email || (user as any).first_name && (user as any).last_name 
-                    ? `${(user as any).first_name || ''} ${(user as any).last_name || ''}`.trim() 
-                    : user.id}
-                </SelectItem>
-              ))
+              validUsers.map(user => {
+                const displayName = user.email || 
+                  (user.first_name && user.last_name 
+                    ? `${user.first_name} ${user.last_name}`.trim() 
+                    : user.id);
+                
+                return (
+                  <SelectItem key={user.id} value={user.id}>
+                    {displayName}
+                  </SelectItem>
+                );
+              })
             ) : (
               <div className="px-2 py-4 text-center text-sm text-muted-foreground">
                 No users available

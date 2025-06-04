@@ -11,6 +11,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSecurity } from '@/contexts/SecurityContext';
+import { sanitizeEmail } from '@/utils/security/inputSanitization';
 import MagicLinkForm from '@/components/Auth/MagicLinkForm';
 
 const loginSchema = z.object({
@@ -22,6 +24,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const { signIn, user } = useAuth();
+  const { csrfToken } = useSecurity();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [authMode, setAuthMode] = useState<'password' | 'magic-link'>('password');
@@ -42,7 +45,10 @@ const Login = () => {
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
     try {
-      await signIn(values.email, values.password);
+      // Sanitize email input
+      const sanitizedEmail = sanitizeEmail(values.email);
+      
+      await signIn(sanitizedEmail, values.password);
       // No need to navigate here as it's handled in AuthContext
     } catch (error) {
       console.error("Login error:", error);
@@ -115,6 +121,9 @@ const Login = () => {
 
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  {/* Hidden CSRF token field */}
+                  <input type="hidden" name="csrf_token" value={csrfToken || ''} />
+                  
                   <FormField
                     control={form.control}
                     name="email"
@@ -127,6 +136,7 @@ const Login = () => {
                             <Input 
                               placeholder="name@example.com" 
                               className="pl-10" 
+                              autoComplete="email"
                               {...field} 
                             />
                           </div>
@@ -148,6 +158,7 @@ const Login = () => {
                               type={showPassword ? "text" : "password"} 
                               placeholder="••••••••" 
                               className="pl-10 pr-10" 
+                              autoComplete="current-password"
                               {...field} 
                             />
                             <Button

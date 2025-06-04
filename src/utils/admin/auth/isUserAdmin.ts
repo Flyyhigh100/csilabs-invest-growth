@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { checkAdminByEmail, checkAdminById } from './adminCheckers';
@@ -17,26 +18,6 @@ export const isUserAdmin = async (): Promise<boolean> => {
     const userEmail = session.user.email;
     
     console.log(`Checking admin status for user ${userId} (${userEmail})`);
-    
-    // Special case: directly approve known admin email as admin (case insensitive)
-    if (userEmail && userEmail.toLowerCase() === 'chris.d.conley@gmail.com') {
-      console.log(`User ${userEmail} is admin by special case match`);
-      
-      // Ensure this user is in the admins table
-      const { data: existingAdmin } = await supabase
-        .from('admins')
-        .select('id')
-        .eq('email', userEmail.toLowerCase())
-        .maybeSingle();
-      
-      if (!existingAdmin) {
-        console.log(`Adding ${userEmail} to admins table automatically`);
-        await updateAdminRecord(userId, userEmail);
-      }
-      
-      // Removed direct toast to avoid duplicate notifications; rely on higher-level smart notification.
-      return true;
-    }
     
     // Try multiple methods to check admin status for reliability
     try {
