@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Table, TableBody, TableCell, TableHead, 
@@ -15,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import UserDetailView from './UserDetailView';
 import UserAuthDetailDialog from './UserAuthDetailDialog';
 import {
@@ -432,9 +434,9 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
         </Button>
       </div>
     
-      {/* Add horizontal scroll container wrapper */}
-      <div className="w-full overflow-x-auto border rounded-md">
-        <div className="min-w-[1200px]"> {/* Minimum width to ensure proper column spacing */}
+      {/* Replace the overflow wrapper with ScrollArea */}
+      <ScrollArea className="w-full border rounded-md">
+        <div className="min-w-[1200px]">
           <Table>
             <TableHeader>
               <TableRow>
@@ -672,7 +674,8 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
             </TableBody>
           </Table>
         </div>
-      </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
       
       <div className="mt-4 text-xs text-muted-foreground flex items-center">
         <span className="text-green-600 font-semibold mr-1">*Real Value:</span> Only completed, non-test transactions are counted as real value.
