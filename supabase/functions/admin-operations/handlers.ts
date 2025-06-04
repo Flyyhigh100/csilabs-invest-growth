@@ -32,3 +32,30 @@ export const handlers = {
     return result;
   }
 };
+
+// Main handler function that routes operations to appropriate handlers
+export const handleAdminOperations = async (operation, data, user, adminClient) => {
+  console.log(`🎯 handleAdminOperations called with operation: ${operation}`);
+  
+  try {
+    // Check if the operation exists in our handlers
+    if (!handlers[operation]) {
+      throw new Error(`Unknown operation: ${operation}`);
+    }
+    
+    // Call the appropriate handler
+    const result = await handlers[operation](data, adminClient);
+    
+    console.log(`✅ Operation ${operation} completed successfully`);
+    return result;
+    
+  } catch (error) {
+    console.error(`❌ Error in handleAdminOperations for ${operation}:`, error);
+    return {
+      error: {
+        message: error.message || 'Operation failed',
+        operation: operation
+      }
+    };
+  }
+};
