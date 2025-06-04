@@ -73,10 +73,10 @@ export const kycOperations = {
     console.log("Admin processing KYC verification with update data:", updateData);
     
     try {
-      // First, fetch the current KYC record to verify it exists
+      // First, fetch the current KYC record to verify it exists and get user_id
       const { data: currentKyc, error: fetchError } = await adminClient
         .from("kyc_verifications")
-        .select("*")
+        .select("*, profiles!inner(first_name, last_name, email)")
         .eq("id", kycId)
         .single();
       
@@ -139,6 +139,38 @@ export const kycOperations = {
       
       console.log("Status update verified successfully");
       
+      // Send email notification after successful KYC update
+      try {
+        console.log(`Sending email notification for KYC ${kycId} with status ${status}`);
+        
+        const emailPayload = {
+          userId: currentKyc.user_id,
+          kycId: kycId,
+          status: status,
+          rejectionReason: status === 'rejected' ? rejectionReason : undefined,
+          clarificationMessage: status === 'needs_clarification' ? rejectionReason : undefined
+        };
+        
+        const { data: emailData, error: emailError } = await adminClient.functions.invoke(
+          'send-kyc-notification-email',
+          {
+            body: emailPayload
+          }
+        );
+        
+        if (emailError) {
+          console.error("Error sending KYC notification email:", emailError);
+          // Don't throw error here - we don't want email failure to break KYC processing
+          console.warn("KYC status updated successfully but email notification failed");
+        } else {
+          console.log("KYC notification email sent successfully:", emailData);
+        }
+      } catch (emailException) {
+        console.error("Exception while sending KYC notification email:", emailException);
+        // Log but don't throw - email is supplementary to the main KYC operation
+        console.warn("KYC status updated successfully but email notification failed due to exception");
+      }
+      
       return { kyc: kycData, success: true };
     } catch (error) {
       console.error("Error in KYC update operation:", error);
@@ -189,10 +221,10 @@ export const kycOperations = {
     }
     
     try {
-      // Log current state before update
+      // Log current state before update and get user_id
       const { data: beforeKyc, error: beforeError } = await adminClient
         .from("kyc_verifications")
-        .select("*")
+        .select("*, profiles!inner(first_name, last_name, email)")
         .eq("id", kycId)
         .single();
         
@@ -260,6 +292,35 @@ export const kycOperations = {
       } 
       
       console.log("Status update to needs_clarification verified successfully");
+      
+      // Send email notification for clarification request
+      try {
+        console.log(`Sending clarification email notification for KYC ${kycId}`);
+        
+        const emailPayload = {
+          userId: beforeKyc.user_id,
+          kycId: kycId,
+          status: 'needs_clarification',
+          clarificationMessage: message
+        };
+        
+        const { data: emailData, error: emailError } = await adminClient.functions.invoke(
+          'send-kyc-notification-email',
+          {
+            body: emailPayload
+          }
+        );
+        
+        if (emailError) {
+          console.error("Error sending clarification notification email:", emailError);
+          console.warn("KYC clarification updated successfully but email notification failed");
+        } else {
+          console.log("Clarification notification email sent successfully:", emailData);
+        }
+      } catch (emailException) {
+        console.error("Exception while sending clarification notification email:", emailException);
+        console.warn("KYC clarification updated successfully but email notification failed due to exception");
+      }
       
       return { kyc: clarifyData, success: true };
     } catch (error) {
