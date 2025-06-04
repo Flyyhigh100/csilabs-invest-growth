@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Table, TableBody, TableCell, TableHead, 
@@ -6,7 +5,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Eye, Wallet, RefreshCw } from 'lucide-react';
+import { AlertCircle, Eye, Wallet, RefreshCw, Shield } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/format';
@@ -17,6 +16,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import UserDetailView from './UserDetailView';
+import UserAuthDetailDialog from './UserAuthDetailDialog';
 import {
   Tooltip,
   TooltipContent,
@@ -24,7 +24,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { TestIconLucide } from '@/components/icons/TestIcon';
-import AuthStatusBadge from './AuthStatusBadge';
+import { useUserAuthDetails } from '@/hooks/admin/useUserAuthDetails';
 
 // Import the useTestDataToggle hook to synchronize test data visibility
 import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
@@ -44,17 +44,6 @@ interface User {
   has_test_data?: boolean;
   test_transaction_count?: number;
   test_transaction_value?: number;
-  // Enhanced authentication fields
-  email_confirmed_at?: string | null;
-  confirmed_at?: string | null;
-  last_sign_in_at?: string | null;
-  auth_created_at?: string | null;
-  phone_confirmed_at?: string | null;
-  email_confirmed?: boolean;
-  auth_method?: string;
-  signup_method?: string;
-  is_anonymous?: boolean;
-  providers?: string[];
 }
 
 interface TransactionStats {
@@ -124,6 +113,7 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
 }) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isAuthDetailDialogOpen, setIsAuthDetailDialogOpen] = useState(false);
   const [isLoadingTransactionStats, setIsLoadingTransactionStats] = useState(false);
   
   // Get access to the QueryClient for manual cache invalidation
@@ -134,6 +124,9 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
   
   // Force refresh stats by incrementing this counter
   const [statsRefreshCounter, setStatsRefreshCounter] = useState(0);
+  
+  // User auth details hook
+  const { authDetails, isLoading: isLoadingAuthDetails, fetchUserAuthDetails } = useUserAuthDetails();
   
   // Refresh when refreshTrigger changes
   useEffect(() => {
@@ -415,6 +408,12 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
     setIsDetailDialogOpen(true);
   };
 
+  const handleViewAuthDetails = (user: User) => {
+    setSelectedUser(user);
+    fetchUserAuthDetails(user.id);
+    setIsAuthDetailDialogOpen(true);
+  };
+
   return (
     <>
       <div className="flex justify-between items-center mb-4">
@@ -439,7 +438,6 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Authentication Status</TableHead>
               <TableHead>Wallet Address</TableHead>
               <TableHead>KYC Status</TableHead>
               <TableHead className="text-right">
@@ -474,15 +472,6 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
                     {user.first_name} {user.last_name}
                   </TableCell>
                   <TableCell>{user.email || 'N/A'}</TableCell>
-                  <TableCell>
-                    <AuthStatusBadge
-                      emailConfirmed={user.email_confirmed || false}
-                      emailConfirmedAt={user.email_confirmed_at}
-                      authMethod={user.auth_method}
-                      signupMethod={user.signup_method}
-                      lastSignInAt={user.last_sign_in_at}
-                    />
-                  </TableCell>
                   <TableCell>
                     {user.wallet_address ? (
                       <div className="flex items-center">
@@ -647,6 +636,14 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
                       <Button 
                         variant="outline" 
                         size="sm"
+                        onClick={() => handleViewAuthDetails(user)}
+                      >
+                        <Shield className="h-4 w-4 mr-1" />
+                        Auth Details
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
                         onClick={() => onCheckKyc(user.id)}
                       >
                         Check KYC
@@ -665,7 +662,7 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                   No users found
                 </TableCell>
               </TableRow>
@@ -698,6 +695,14 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
           <UserDetailView user={selectedUser} />
         </DialogContent>
       </Dialog>
+
+      {/* User Auth Detail Dialog */}
+      <UserAuthDetailDialog
+        open={isAuthDetailDialogOpen}
+        onOpenChange={setIsAuthDetailDialogOpen}
+        authDetails={authDetails}
+        isLoading={isLoadingAuthDetails}
+      />
     </>
   );
 };

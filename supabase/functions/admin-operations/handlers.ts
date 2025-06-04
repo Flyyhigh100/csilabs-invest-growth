@@ -1,181 +1,34 @@
 
-import { kycOperations } from "./kyc-operations.ts";
-import { transactionOperations } from "./transactions/index.ts";
-import { userOperations } from "./user-operations.ts";
+import { userOperations } from './user-operations.ts';
+import { userAuthOperations } from './user-auth-operations.ts';
+import { kycOperations } from './kyc-operations.ts';
+import { transactionOperations } from './transaction-operations.ts';
 
-export async function handleAdminOperations(action, data, user, adminClient) {
-  console.log(`🎯 Processing admin operation: ${action}`, JSON.stringify(data, null, 2));
+export const handlers = {
+  // User operations
+  getUserDetails: userOperations.getUserDetails,
+  getAllUsers: userOperations.getAllUsers,
+  getUserAuthDetails: userAuthOperations.getUserAuthDetails,
   
-  try {
-    // First verify basic parameters
-    if (!action) {
-      throw new Error("Action parameter is required");
-    }
-    
-    if (!user || !user.id) {
-      throw new Error("User authentication required");
-    }
-    
-    if (!adminClient) {
-      throw new Error("Admin client is required");
-    }
-    
-    console.log(`✅ User ${user.id} (${user.email}) attempting admin operation: ${action}`);
-    
-    // Process different admin actions
-    switch (action) {
-      case "markTokensSent":
-        console.log("🚀 Processing markTokensSent operation");
-        
-        // Enhanced validation for markTokensSent
-        if (!data || !data.transactionId || !data.blockchainTxId) {
-          console.error("❌ Missing required parameters for markTokensSent");
-          console.error("Received data:", JSON.stringify(data, null, 2));
-          throw new Error("Transaction ID and blockchain transaction ID are required");
-        }
-        
-        console.log(`✅ Valid markTokensSent request for transaction: ${data.transactionId}`);
-        console.log(`✅ Blockchain TX ID: ${data.blockchainTxId}`);
-        
-        if (data.tokenAmount) {
-          console.log(`✅ Token amount provided: ${data.tokenAmount}`);
-        }
-        
-        if (data.tokenPrice) {
-          console.log(`✅ Token price provided: ${data.tokenPrice}`);
-        }
-        
-        try {
-          const result = await transactionOperations.markTokensSent(data, adminClient);
-          console.log("✅ markTokensSent completed successfully:", result);
-          return result;
-        } catch (markError) {
-          console.error("❌ Error in markTokensSent operation:", markError);
-          throw new Error(`Failed to mark tokens as sent: ${markError.message}`);
-        }
-
-      case "getUserDetails":
-        return await userOperations.getUserDetails(data, adminClient);
-      
-      case "getAllUsers":
-        return await userOperations.getAllUsers(data, adminClient);
-
-      case "processKyc":
-        console.log("🔍 Processing KYC operation with data:", data);
-        
-        // Add extra validation for KYC operations
-        if (!data || !data.kycId) {
-          console.error("Missing kycId in KYC operation data");
-          throw new Error("KYC ID is required");
-        }
-        
-        if (!data.status || !['approved', 'rejected', 'needs_clarification'].includes(data.status)) {
-          console.error("Invalid status in KYC operation:", data.status);
-          throw new Error("Invalid status. Must be one of: approved, rejected, needs_clarification");
-        }
-        
-        // Check if the specified KYC record exists first
-        const { data: kycCheck, error: kycCheckError } = await adminClient
-          .from("kyc_verifications")
-          .select("id, status")
-          .eq("id", data.kycId)
-          .maybeSingle();
-          
-        if (kycCheckError) {
-          console.error("Error checking KYC existence:", kycCheckError);
-          throw new Error(`Error verifying KYC record: ${kycCheckError.message}`);
-        }
-        
-        if (!kycCheck) {
-          console.error(`KYC record with ID ${data.kycId} not found`);
-          throw new Error(`KYC record with ID ${data.kycId} not found`);
-        }
-        
-        console.log(`Found KYC record with current status: ${kycCheck.status}`);
-        
-        // Add validation for rejection reason if status is 'rejected'
-        if (data.status === 'rejected' && !data.rejectionReason) {
-          console.error("Missing rejection reason for rejected KYC");
-          throw new Error("Rejection reason is required for rejected KYC verifications");
-        }
-        
-        // Proceed with KYC processing
-        console.log(`🚀 Executing KYC operation for ID ${data.kycId} with status ${data.status}`);
-        const kycResult = await kycOperations.processKyc(data, user, adminClient);
-        console.log("✅ KYC operation completed successfully:", kycResult);
-        return kycResult;
-
-      case "requestKycClarification":
-        console.log("🔍 Processing KYC clarification request with data:", data);
-        
-        // Add extra validation for clarification requests
-        if (!data || !data.kycId) {
-          console.error("Missing kycId in clarification request data");
-          throw new Error("KYC ID is required");
-        }
-        
-        if (!data.message) {
-          console.error("Missing message in clarification request");
-          throw new Error("Clarification message is required");
-        }
-        
-        // Check if the specified KYC record exists first
-        const { data: clarifyCheck, error: clarifyCheckError } = await adminClient
-          .from("kyc_verifications")
-          .select("id, status")
-          .eq("id", data.kycId)
-          .maybeSingle();
-          
-        if (clarifyCheckError) {
-          console.error("Error checking KYC existence for clarification:", clarifyCheckError);
-          throw new Error(`Error verifying KYC record: ${clarifyCheckError.message}`);
-        }
-        
-        if (!clarifyCheck) {
-          console.error(`KYC record with ID ${data.kycId} not found for clarification`);
-          throw new Error(`KYC record with ID ${data.kycId} not found`);
-        }
-        
-        console.log(`Found KYC record for clarification with current status: ${clarifyCheck.status}`);
-        
-        // Proceed with clarification request
-        console.log(`🚀 Executing KYC clarification request for ID ${data.kycId}`);
-        const clarificationResult = await kycOperations.requestKycClarification(data, user, adminClient);
-        console.log("✅ KYC clarification request completed successfully:", clarificationResult);
-        return clarificationResult;
-
-      // Add the new syncStripePaymentStatus action
-      case "syncStripePaymentStatus":
-        const { Stripe } = await import("https://esm.sh/stripe@14.21.0");
-        const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
-        if (!stripeSecretKey) {
-          throw new Error("STRIPE_SECRET_KEY is not configured");
-        }
-        const stripe = new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" });
-        return await transactionOperations.syncStripePaymentStatus(data, adminClient, stripe);
-
-      // Add our new manually complete transaction action
-      case "manuallyCompleteTransaction":
-        return await transactionOperations.manuallyCompleteTransaction(data, adminClient);
-
-      default:
-        console.error("Unknown admin operation:", action);
-        throw new Error(`Unknown action: ${action}`);
-    }
-  } catch (error) {
-    console.error(`❌ Error in admin operation '${action}':`, error);
-    console.error("Error stack:", error.stack);
-    
-    // Return a structured error response
-    return {
-      error: {
-        message: error.message,
-        details: error.details || {},
-        code: error.code || 'UNKNOWN_ERROR',
-        action: action,
-        data: error.data || null,
-        timestamp: new Date().toISOString()
-      }
-    };
+  // KYC operations
+  getKycVerifications: kycOperations.getKycVerifications,
+  approveKyc: kycOperations.approveKyc,
+  rejectKyc: kycOperations.rejectKyc,
+  requestKycClarification: kycOperations.requestKycClarification,
+  getKycVerification: kycOperations.getKycVerification,
+  
+  // Transaction operations
+  getAllTransactions: transactionOperations.getAllTransactions,
+  updateTransactionStatus: transactionOperations.updateTransactionStatus,
+  getTransactionDetails: transactionOperations.getTransactionDetails,
+  manualSync: transactionOperations.manualSync,
+  syncAllTransactions: transactionOperations.syncAllTransactions,
+  cleanupPendingTransactions: transactionOperations.cleanupPendingTransactions,
+  
+  // Test data operations
+  markDataAsTest: async (data, adminClient) => {
+    const { data: result, error } = await adminClient.rpc('mark_data_as_test');
+    if (error) throw error;
+    return result;
   }
-}
+};
