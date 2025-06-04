@@ -4,14 +4,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Form } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import SecureInput from '@/components/Security/SecureInput';
-import SecureForm from '@/components/Security/SecureForm';
 
 const profileFormSchema = z.object({
   first_name: z.string().min(2, { message: "First name must be at least 2 characters" }),
@@ -59,20 +58,29 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profileData, isLoading }) => 
     }
   });
 
-  const [firstName, setFirstName] = React.useState('');
-  const [lastName, setLastName] = React.useState('');
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+      first_name: "",
+      last_name: "",
+      email: user?.email || "",
+    },
+  });
 
   useEffect(() => {
     if (profileData) {
-      setFirstName(profileData.first_name || '');
-      setLastName(profileData.last_name || '');
+      form.reset({
+        first_name: profileData.first_name || "",
+        last_name: profileData.last_name || "",
+        email: user?.email || "",
+      });
     }
-  }, [profileData]);
+  }, [profileData, user, form]);
 
-  const onSubmit = async (sanitizedData: Record<string, any>) => {
+  const onSubmit = async (values: ProfileFormValues) => {
     await updateProfile.mutateAsync({
-      first_name: sanitizedData.first_name,
-      last_name: sanitizedData.last_name,
+      first_name: values.first_name,
+      last_name: values.last_name,
     });
   };
 
@@ -85,52 +93,67 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profileData, isLoading }) => 
   }
 
   return (
-    <SecureForm onSubmit={onSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <SecureInput
-          label="First Name"
-          value={firstName}
-          onChange={setFirstName}
-          placeholder="John"
-          maxLength={50}
-          required
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="first_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>First Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="John" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="last_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Last Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Doe" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input placeholder="john.doe@example.com" {...field} disabled />
+              </FormControl>
+              <FormDescription>
+                Your email address cannot be changed.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-        <SecureInput
-          label="Last Name"
-          value={lastName}
-          onChange={setLastName}
-          placeholder="Doe"
-          maxLength={50}
-          required
-        />
-      </div>
-      
-      <SecureInput
-        label="Email"
-        value={user?.email || ''}
-        onChange={() => {}} // Read-only
-        type="email"
-        placeholder="john.doe@example.com"
-        className="opacity-50 cursor-not-allowed"
-      />
-      
-      <input type="hidden" name="first_name" value={firstName} />
-      <input type="hidden" name="last_name" value={lastName} />
-      
-      <Button 
-        type="submit" 
-        disabled={updateProfile.isPending}
-      >
-        {updateProfile.isPending ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Saving...
-          </>
-        ) : (
-          "Save Changes"
-        )}
-      </Button>
-    </SecureForm>
+        <Button 
+          type="submit" 
+          disabled={updateProfile.isPending || !form.formState.isDirty}
+        >
+          {updateProfile.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            "Save Changes"
+          )}
+        </Button>
+      </form>
+    </Form>
   );
 };
 

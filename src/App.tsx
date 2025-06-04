@@ -1,91 +1,147 @@
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from '@/components/theme-provider';
+import { AuthProvider } from './contexts/AuthContext';
+import { SecurityProvider } from './contexts/SecurityContext';
+import { Toaster } from 'sonner';
+import { NavbarContextProvider } from './contexts/NavbarContext';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import ErrorBoundary from './components/ErrorBoundary';
+import RouteTest from './components/RouteTest';
+import TokenPricingPage from './pages/Admin/TokenPricing';
+import TransactionAnalyticsPage from './pages/Admin/TransactionAnalytics';
 
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { SecurityProvider } from "@/contexts/SecurityContext";
-import { CSRFProvider } from "@/components/Security/CSRFProtection";
-import SessionManager from "@/components/Security/SessionManager";
-import { NavbarContextProvider } from "@/contexts/NavbarContext";
-import { TokenPriceProvider } from "@/context/TokenPriceContext";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import GlobalLoading from "@/components/GlobalLoading";
-import Index from "@/pages/Index";
-import Dashboard from "@/pages/Dashboard";
-import ProfilePage from "@/pages/Dashboard/Profile";
-import TransactionsPage from "@/pages/Dashboard/Transactions";
-import KYCPage from "@/pages/Dashboard/KYCVerification";
-import AdminDashboard from "@/pages/Admin/Dashboard";
-import AdminUsers from "@/pages/Admin/Users";
-import AdminTransactions from "@/pages/Admin/Transactions";
-import AdminKYC from "@/pages/Admin/KYCVerifications";
-import AdminResearchDocuments from "@/pages/Admin/ResearchDocuments";
-import AdminSettings from "@/pages/Admin/Settings";
-import AdminTransactionTools from "@/pages/Admin/TransactionTools";
-import Register from "@/pages/Auth/Register";
-import Login from "@/pages/Auth/Login";
-import ForgotPassword from "@/pages/Auth/ForgotPassword";
-import ResetPassword from "@/pages/Auth/ResetPassword";
-import ResearchDocuments from "@/pages/ResearchDocuments";
-import NotFound from "@/pages/NotFound";
+// Import components
+import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
+import GlobalLoading from './components/GlobalLoading';
 
-const queryClient = new QueryClient();
+// Import pages
+import Index from './pages/Index';
+import Login from './pages/Auth/Login';
+import Register from './pages/Auth/Register';
+import ForgotPassword from './pages/Auth/ForgotPassword';
+import ResetPassword from './pages/Auth/ResetPassword';
+import MagicLinkVerification from './pages/Auth/MagicLinkVerification';
+import NotFound from './pages/NotFound';
+import Payments from './pages/Dashboard/Payments';
+import Transactions from './pages/Dashboard/Transactions';
+import ResearchDocuments from './pages/ResearchDocuments';
+import TokenInfo from './pages/TokenInfo';
+import ContactUs from './pages/ContactUs';
+import KYCVerificationPage from './pages/Dashboard/KYCVerification/KYCVerificationPage';
+import Profile from './pages/Dashboard/Profile';
+import Documents from './pages/Dashboard/Documents';
+import DashboardHome from './pages/Dashboard/DashboardHome';
+
+// Import Legal pages
+import TermsOfService from './pages/Legal/TermsAndConditions';
+import FoundationDisclosure from './pages/Legal/FoundationDisclosure';
+import GeographicRestrictions from './pages/Legal/GeographicRestrictions';
+import TokenDisclaimer from './pages/Legal/TokenDisclaimer';
+
+// Import Admin pages explicitly
+import AdminDashboard from './pages/Admin/Dashboard';
+import AdminTransactionsPage from './pages/Admin/Transactions';
+import AdminUsersPage from './pages/Admin/Users';
+import AdminKycPage from './pages/Admin/KYCVerifications';
+import AdminSettingsPage from './pages/Admin/Settings';
+import AdminNotificationsPage from './pages/Admin/Notifications';
+import AdminTransactionToolsPage from './pages/Admin/TransactionTools';
+import AdminResearchDocuments from './pages/Admin/ResearchDocuments';
+import AdminWalletPortfolioPage from './pages/Admin/WalletPortfolio';
+import SystemFlowPage from './pages/Admin/SystemFlow';
+import CoinPaymentsSetupPage from './pages/Admin/CoinPaymentsSetup';
+import TransactionStatusManagerPage from './pages/Admin/TransactionStatusManager';
+
+// Create a query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+    },
+  },
+});
 
 function App() {
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         <TooltipProvider>
           <SecurityProvider>
             <AuthProvider>
-              <CSRFProvider>
-                <NavbarContextProvider>
-                  <TokenPriceProvider>
-                    <BrowserRouter>
-                      <SessionManager timeoutMinutes={30} warningMinutes={5}>
-                        <div className="min-h-screen bg-background font-sans antialiased">
-                          <GlobalLoading />
-                          <Routes>
-                            <Route path="/" element={<Index />} />
-                            <Route path="/dashboard" element={<Dashboard />} />
-                            <Route path="/profile" element={<ProfilePage />} />
-                            <Route path="/transactions" element={<TransactionsPage />} />
-                            <Route path="/kyc" element={<KYCPage />} />
-                            
-                            {/* Admin Routes */}
-                            <Route path="/admin" element={<AdminDashboard />} />
-                            <Route path="/admin/users" element={<AdminUsers />} />
-                            <Route path="/admin/transactions" element={<AdminTransactions />} />
-                            <Route path="/admin/kyc" element={<AdminKYC />} />
-                            <Route path="/admin/documents" element={<AdminResearchDocuments />} />
-                            <Route path="/admin/settings" element={<AdminSettings />} />
-                            <Route path="/admin/transaction-tools" element={<AdminTransactionTools />} />
-                            
-                            {/* Auth Routes */}
-                            <Route path="/register" element={<Register />} />
-                            <Route path="/login" element={<Login />} />
-                            <Route path="/forgot-password" element={<ForgotPassword />} />
-                            <Route path="/reset-password" element={<ResetPassword />} />
-                            
-                            {/* Document Route */}
-                            <Route path="/documents" element={<ResearchDocuments />} />
-                            
-                            {/* Not Found Route */}
-                            <Route path="*" element={<NotFound />} />
-                          </Routes>
-                        </div>
-                        <Toaster />
-                      </SessionManager>
-                    </BrowserRouter>
-                  </TokenPriceProvider>
-                </NavbarContextProvider>
-              </CSRFProvider>
+              <NavbarContextProvider>
+                <Router>
+                  <ErrorBoundary>
+                    <div className="min-h-screen bg-white">
+                      <GlobalLoading />
+                      <Toaster position="top-right" richColors />
+                      
+                      <Routes>
+                        {/* Public routes */}
+                        <Route path="/" element={<Index />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/signup" element={<Register />} />
+                        <Route path="/forgot-password" element={<ForgotPassword />} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
+                        <Route path="/magic-link-verification" element={<MagicLinkVerification />} />
+                        <Route path="/research-documents" element={<ResearchDocuments />} />
+                        <Route path="/token-info" element={<TokenInfo />} />
+                        <Route path="/contact" element={<ContactUs />} />
+                        
+                        {/* Legal pages */}
+                        <Route path="/legal/terms" element={<TermsOfService />} />
+                        <Route path="/legal/foundation-disclosure" element={<FoundationDisclosure />} />
+                        <Route path="/legal/geographic-restrictions" element={<GeographicRestrictions />} />
+                        <Route path="/legal/token-disclaimer" element={<TokenDisclaimer />} />
+                        
+                        {/* Protected routes */}
+                        <Route path="/dashboard" element={<ProtectedRoute />}>
+                          <Route index element={<DashboardHome />} />
+                          <Route path="home" element={<DashboardHome />} />
+                          <Route path="payments" element={<Payments />} />
+                          <Route path="transactions" element={<Transactions />} />
+                          <Route path="kyc" element={<KYCVerificationPage />} />
+                          <Route path="profile" element={<Profile />} />
+                          <Route path="documents" element={<Documents />} />
+                        </Route>
+                        
+                        {/* Admin routes */}
+                        <Route path="/admin" element={<AdminRoute />}>
+                          <Route index element={<AdminDashboard />} />
+                          <Route path="dashboard" element={<AdminDashboard />} />
+                          <Route path="transactions" element={<AdminTransactionsPage />} />
+                          <Route path="users" element={<AdminUsersPage />} />
+                          <Route path="kyc" element={<AdminKycPage />} />
+                          <Route path="settings" element={<AdminSettingsPage />} />
+                          <Route path="notifications" element={<AdminNotificationsPage />} />
+                          <Route path="transaction-tools" element={<AdminTransactionToolsPage />} />
+                          <Route path="research-documents" element={<AdminResearchDocuments />} />
+                          <Route path="wallet-portfolio" element={<AdminWalletPortfolioPage />} />
+                          <Route path="system-flow" element={<SystemFlowPage />} />
+                          <Route path="coinpayments-setup" element={<CoinPaymentsSetupPage />} />
+                          <Route path="transaction-status" element={<TransactionStatusManagerPage />} />
+                          <Route path="token-pricing" element={<TokenPricingPage />} />
+                          <Route path="analytics" element={<TransactionAnalyticsPage />} />
+                        </Route>
+                        
+                        {/* Test route */}
+                        <Route path="/route-test" element={<RouteTest />} />
+                        
+                        {/* Catch all route */}
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </div>
+                  </ErrorBoundary>
+                </Router>
+              </NavbarContextProvider>
             </AuthProvider>
           </SecurityProvider>
         </TooltipProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

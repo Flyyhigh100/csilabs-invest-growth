@@ -7,9 +7,9 @@ import { Form } from '@/components/ui/form';
 import { useAuth } from '@/contexts/AuthContext';
 import { registerSchema, RegisterFormValues } from './schema/registerSchema';
 import RegisterFormContainer from './FormContainers/RegisterFormContainer';
-import SecureInput from '@/components/Security/SecureInput';
-import SecureForm from '@/components/Security/SecureForm';
+import IconInput from './FormInputs/IconInput';
 import PasswordInput from './FormInputs/PasswordInput';
+import NameInputGroup from './FormInputs/NameInputGroup';
 import PhoneInput from './FormInputs/PhoneInput';
 import AddressInputGroup from './FormInputs/AddressInputGroup';
 
@@ -39,22 +39,24 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
     },
   });
 
-  const onSubmit = async (sanitizedValues: RegisterFormValues) => {
+  const onSubmit = async (values: RegisterFormValues) => {
     setIsLoading(true);
     try {
+      // Update the signUp call to use metadata for the additional fields
       await signUp({
-        email: sanitizedValues.email,
-        password: sanitizedValues.password,
+        email: values.email,
+        password: values.password,
         metadata: {
-          firstName: sanitizedValues.firstName,
-          lastName: sanitizedValues.lastName,
-          phoneNumber: sanitizedValues.phoneNumber,
-          address: sanitizedValues.address
+          firstName: values.firstName,
+          lastName: values.lastName,
+          phoneNumber: values.phoneNumber,
+          address: values.address
         }
       });
       onSuccess();
     } catch (error) {
       console.error("Registration error:", error);
+      // Error already handled in signUp function
     } finally {
       setIsLoading(false);
     }
@@ -62,56 +64,36 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
 
   return (
     <Form {...form}>
-      <SecureForm onSubmit={onSubmit} className="space-y-4">
-        <RegisterFormContainer 
-          onSubmit={() => {}} // SecureForm handles submission
-          isLoading={isLoading}
-        >
-          <div className="grid grid-cols-2 gap-4">
-            <SecureInput
-              label="First Name"
-              value={form.watch('firstName')}
-              onChange={(value) => form.setValue('firstName', value)}
-              placeholder="John"
-              maxLength={50}
-              required
-            />
-            <SecureInput
-              label="Last Name"
-              value={form.watch('lastName')}
-              onChange={(value) => form.setValue('lastName', value)}
-              placeholder="Doe"
-              maxLength={50}
-              required
-            />
-          </div>
-          
-          <SecureInput
-            label="Email"
-            value={form.watch('email')}
-            onChange={(value) => form.setValue('email', value)}
-            type="email"
-            placeholder="name@example.com"
-            required
-          />
-          
-          <PhoneInput form={form} />
-          
-          <AddressInputGroup form={form} />
-          
-          <PasswordInput
-            form={form}
-            name="password"
-            label="Password"
-          />
-          
-          <PasswordInput
-            form={form}
-            name="confirmPassword"
-            label="Confirm Password"
-          />
-        </RegisterFormContainer>
-      </SecureForm>
+      <RegisterFormContainer 
+        onSubmit={form.handleSubmit(onSubmit)} 
+        isLoading={isLoading}
+      >
+        <NameInputGroup form={form} />
+        
+        <IconInput
+          form={form}
+          name="email"
+          label="Email"
+          placeholder="name@example.com"
+          icon={Mail}
+        />
+        
+        <PhoneInput form={form} />
+        
+        <AddressInputGroup form={form} />
+        
+        <PasswordInput
+          form={form}
+          name="password"
+          label="Password"
+        />
+        
+        <PasswordInput
+          form={form}
+          name="confirmPassword"
+          label="Confirm Password"
+        />
+      </RegisterFormContainer>
     </Form>
   );
 };

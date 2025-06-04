@@ -1,10 +1,12 @@
 
 import React from 'react';
+import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
-import { PersonalInfoValues } from './schema/personalInfoSchema';
-import SecureForm from '@/components/Security/SecureForm';
-import SecurePersonalInfoFields from './SecurePersonalInfoFields';
+import { PersonalInfoValues, personalInfoSchema } from './schema/personalInfoSchema';
+import PersonalInfoFormFields from './PersonalInfoFormFields';
 
 interface PersonalInfoFormProps {
   defaultValues: PersonalInfoValues;
@@ -17,41 +19,32 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
   onSubmit, 
   isPending 
 }) => {
-  const handleSecureSubmit = async (sanitizedData: Record<string, any>) => {
-    // Convert sanitized data back to PersonalInfoValues format
-    const personalInfoValues: PersonalInfoValues = {
-      first_name: sanitizedData.first_name || '',
-      last_name: sanitizedData.last_name || '',
-      date_of_birth: sanitizedData.date_of_birth || '',
-      nationality: sanitizedData.nationality || '',
-      address: sanitizedData.address || '',
-      city: sanitizedData.city || '',
-      postal_code: sanitizedData.postal_code || '',
-      country: sanitizedData.country || '',
-    };
-    
-    await onSubmit(personalInfoValues);
-  };
+  const form = useForm<PersonalInfoValues>({
+    resolver: zodResolver(personalInfoSchema),
+    defaultValues,
+  });
 
   return (
-    <SecureForm onSubmit={handleSecureSubmit} className="space-y-6">
-      <SecurePersonalInfoFields defaultValues={defaultValues} />
-      
-      <Button 
-        type="submit" 
-        className="w-full"
-        disabled={isPending}
-      >
-        {isPending ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Saving...
-          </>
-        ) : (
-          "Save and Continue"
-        )}
-      </Button>
-    </SecureForm>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <PersonalInfoFormFields form={form} />
+        
+        <Button 
+          type="submit" 
+          className="w-full"
+          disabled={isPending}
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            "Save and Continue"
+          )}
+        </Button>
+      </form>
+    </Form>
   );
 };
 

@@ -3,7 +3,6 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { showSmartNotification } from '@/utils/notification/smartNotifications';
-import SecureInput from '@/components/Security/SecureInput';
 
 interface KycRejectFormProps {
   rejectionReason: string;
@@ -20,6 +19,16 @@ const KycRejectForm: React.FC<KycRejectFormProps> = ({
   isPending,
   maxRetries = 3
 }) => {
+  // Handle keyboard submission (Ctrl/Cmd + Enter)
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && rejectionReason.trim()) {
+      e.preventDefault(); // Prevent any default behavior
+      if (!isPending) {
+        handleRejectClick(e as unknown as React.MouseEvent);
+      }
+    }
+  };
+
   const handleRejectClick = (e: React.MouseEvent) => {
     e.preventDefault();
     
@@ -51,22 +60,18 @@ const KycRejectForm: React.FC<KycRejectFormProps> = ({
         <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" />
         <h4 className="font-medium text-red-800">Reject Verification</h4>
       </div>
-      
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">
-          Rejection Reason (required)
-        </label>
-        <textarea
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
-          rows={3}
-          value={rejectionReason}
-          onChange={(e) => setRejectionReason(e.target.value)}
-          placeholder="Provide a reason for rejection..."
-          disabled={isPending}
-          maxLength={500}
-        />
-      </div>
-      
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Rejection Reason (required)
+      </label>
+      <textarea
+        className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
+        rows={3}
+        value={rejectionReason}
+        onChange={(e) => setRejectionReason(e.target.value)}
+        placeholder="Provide a reason for rejection..."
+        disabled={isPending}
+        onKeyDown={handleKeyDown}
+      />
       <div className="flex justify-end mt-3">
         <Button 
           variant="destructive"

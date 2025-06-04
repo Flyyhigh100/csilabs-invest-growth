@@ -17,6 +17,16 @@ const KycClarifyForm: React.FC<KycClarifyFormProps> = ({
   onRequestClarification,
   isPending
 }) => {
+  // Handle keyboard submission (Ctrl/Cmd + Enter)
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && clarificationMessage.trim()) {
+      e.preventDefault();
+      if (!isPending) {
+        handleClarifyClick(e as unknown as React.MouseEvent);
+      }
+    }
+  };
+
   const handleClarifyClick = (e: React.MouseEvent) => {
     e.preventDefault();
     
@@ -48,22 +58,18 @@ const KycClarifyForm: React.FC<KycClarifyFormProps> = ({
         <HelpCircle className="h-5 w-5 text-blue-500 mt-0.5" />
         <h4 className="font-medium text-blue-800">Request Clarification</h4>
       </div>
-      
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">
-          Clarification Details (required)
-        </label>
-        <textarea
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none"
-          rows={3}
-          value={clarificationMessage}
-          onChange={(e) => setClarificationMessage(e.target.value)}
-          placeholder="What additional information do you need from the user?"
-          disabled={isPending}
-          maxLength={500}
-        />
-      </div>
-      
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Clarification Details (required)
+      </label>
+      <textarea
+        className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none"
+        rows={3}
+        value={clarificationMessage}
+        onChange={(e) => setClarificationMessage(e.target.value)}
+        placeholder="What additional information do you need from the user?"
+        disabled={isPending}
+        onKeyDown={handleKeyDown}
+      />
       <div className="flex justify-end mt-3">
         <Button 
           variant="default"
