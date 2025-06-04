@@ -2,6 +2,22 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, Instagram, Facebook } from 'lucide-react';
 
+// Custom Threads icon component
+const ThreadsIcon = ({ className }: { className?: string }) => (
+  <svg 
+    className={className}
+    viewBox="0 0 24 24" 
+    fill="currentColor"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M12.186 24h-.007c-5.947-.002-11.183-3.51-13.597-9.113L0 14.396l1.593-.51c2.59-2.837 5.955-4.401 9.593-4.401 4.368 0 8.368 2.186 10.715 5.85l1.591.51-1.414.491C19.65 20.49 16.17 24 12.186 24zM2.78 14.396c1.947 4.729 6.427 7.604 11.405 7.604 3.176 0 6.082-1.244 8.176-3.507-1.982-2.749-5.1-4.378-8.549-4.378-3.074 0-5.965 1.235-8.032 3.281z"/>
+    <path d="M12.025 18.163c-1.061 0-1.931-.281-2.609-.84-.678-.56-1.017-1.297-1.017-2.214 0-.916.339-1.654 1.017-2.214.678-.559 1.548-.84 2.609-.84s1.931.281 2.609.84c.678.56 1.017 1.298 1.017 2.214 0 .917-.339 1.654-1.017 2.214-.678.559-1.548.84-2.609.84zm0-4.908c-.726 0-1.326.185-1.8.555-.474.37-.711.851-.711 1.444s.237 1.074.711 1.444c.474.37 1.074.555 1.8.555s1.326-.185 1.8-.555c.474-.37.711-.851.711-1.444s-.237-1.074-.711-1.444c-.474-.37-1.074-.555-1.8-.555z"/>
+    <path d="M12.025 11.097c-.528 0-.956-.428-.956-.956V6.715c0-.528.428-.956.956-.956s.956.428.956.956v3.426c0 .528-.428.956-.956.956z"/>
+    <path d="M8.599 8.525c-.245 0-.485-.094-.669-.278-.184-.184-.278-.424-.278-.669s.094-.485.278-.669l2.426-2.426c.369-.369.969-.369 1.338 0s.369.969 0 1.338L9.268 8.247c-.184.184-.424.278-.669.278z"/>
+    <path d="M15.451 8.525c-.245 0-.485-.094-.669-.278L12.356 5.821c-.369-.369-.369-.969 0-1.338s.969-.369 1.338 0l2.426 2.426c.184.184.278.424.278.669s-.094.485-.278.669c-.184.184-.424.278-.669.278z"/>
+  </svg>
+);
+
 const Footer: React.FC = () => {
   return (
     <footer className="bg-cbis-blue text-white py-12 mt-auto">
@@ -99,6 +115,15 @@ const Footer: React.FC = () => {
                 aria-label="Follow us on Instagram"
               >
                 <Instagram className="h-6 w-6" />
+              </a>
+              <a 
+                href="https://www.threads.com/@csilabs?invite=0" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-100 hover:text-white transition-colors hover:scale-110 transform duration-200"
+                aria-label="Follow us on Threads"
+              >
+                <ThreadsIcon className="h-6 w-6" />
               </a>
               <a 
                 href="https://www.tiktok.com/@1millstrong?_t=ZM-8wqhp1g5Szu&_r=1" 
