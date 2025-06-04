@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Table, TableBody, TableCell, TableHead, 
   TableHeader, TableRow 
@@ -115,6 +115,10 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isAuthDetailDialogOpen, setIsAuthDetailDialogOpen] = useState(false);
   const [isLoadingTransactionStats, setIsLoadingTransactionStats] = useState(false);
+  
+  // Refs for scroll synchronization
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
   
   // Get access to the QueryClient for manual cache invalidation
   const queryClient = useQueryClient();
@@ -324,6 +328,19 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
     refetchTransactionStats();
   };
 
+  // Scroll synchronization functions
+  const handleTopScroll = () => {
+    if (topScrollRef.current && tableContainerRef.current) {
+      tableContainerRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    }
+  };
+
+  const handleTableScroll = () => {
+    if (topScrollRef.current && tableContainerRef.current) {
+      topScrollRef.current.scrollLeft = tableContainerRef.current.scrollLeft;
+    }
+  };
+
   const renderKycStatusBadge = (status?: string, hasKycRecord?: boolean, kycComplete?: boolean) => {
     if (hasKycRecord === false) {
       return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100 flex items-center gap-1">
@@ -432,24 +449,36 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
         </Button>
       </div>
     
-      {/* Custom horizontal scroll container with floating scrollbar */}
+      {/* Floating horizontal scrollbar */}
       <div className="relative">
-        {/* Floating horizontal scrollbar at the top */}
-        <div className="w-full overflow-x-auto mb-2 bg-gray-100 rounded-md p-1">
-          <div className="min-w-[1200px] h-2 bg-transparent"></div>
-        </div>
-        
-        {/* Table container with synchronized horizontal scroll */}
+        {/* Top floating scrollbar */}
         <div 
-          className="w-full overflow-x-auto border rounded-md"
-          onScroll={(e) => {
-            // Sync the top scrollbar with the table scroll
-            const topScrollbar = e.currentTarget.previousElementSibling?.querySelector('div > div') as HTMLElement;
-            if (topScrollbar) {
-              topScrollbar.parentElement!.scrollLeft = e.currentTarget.scrollLeft;
-            }
+          ref={topScrollRef}
+          className="w-full overflow-x-auto mb-2 bg-gray-200 rounded-md"
+          onScroll={handleTopScroll}
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#64748b #e2e8f0'
           }}
         >
+          <div className="min-w-[1200px] h-4 bg-transparent"></div>
+        </div>
+        
+        {/* Table container with hidden scrollbar */}
+        <div 
+          ref={tableContainerRef}
+          className="w-full overflow-x-auto border rounded-md"
+          onScroll={handleTableScroll}
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
+          <style jsx>{`
+            div::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
           <div className="min-w-[1200px]">
             <Table>
               <TableHeader>
