@@ -92,68 +92,46 @@ const handler = async (req: Request): Promise<Response> => {
 
     // DON'T mark the magic link as used yet - wait until authentication is successful
 
-    // Helper function to fetch current users list
-    const fetchUsersList = async () => {
-      const { data: usersData, error: userError } = await supabase.auth.admin.listUsers();
-      if (userError) {
-        console.error('Error listing users:', userError);
-        throw new Error('Failed to check user existence');
-      }
-      return usersData.users;
-    };
-
-    // Check if user exists
-    console.log('Checking if user exists...');
-    let users = await fetchUsersList();
-    let existingUser = users.find(user => user.email === magicLink.email);
+    // Check if user exists by trying to list users with this email
+    console.log('Checking if user exists with email:', magicLink.email);
+    const { data: usersData, error: userError } = await supabase.auth.admin.listUsers();
     
+    if (userError) {
+      console.error('Error listing users:', userError);
+      throw new Error('Failed to check user existence');
+    }
+
+    const existingUser = usersData.users.find(user => user.email === magicLink.email);
     let userId: string;
     
-    if (!existingUser) {
-      console.log('Creating new user...');
-      try {
-        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-          email: magicLink.email,
-          email_confirm: true,
-        });
-        
-        if (createError) {
-          console.error('Error creating user:', createError);
-          
-          // If user already exists (race condition), refresh user list and try to find them
-          if (createError.message.includes('already been registered')) {
-            console.log('User already exists (race condition), re-fetching user list...');
-            users = await fetchUsersList(); // Refresh the user list
-            existingUser = users.find(user => user.email === magicLink.email);
-            
-            if (existingUser) {
-              userId = existingUser.id;
-              console.log('Found existing user with ID:', userId);
-            } else {
-              console.error('User creation failed and user not found in refreshed list');
-              throw new Error('Failed to create or find user account');
-            }
-          } else {
-            throw new Error('Failed to create user account: ' + createError.message);
-          }
-        } else if (newUser.user) {
-          userId = newUser.user.id;
-          console.log('New user created with ID:', userId);
-        } else {
-          console.error('User creation returned no user object');
-          throw new Error('Failed to create user account');
-        }
-      } catch (userCreationError: any) {
-        console.error('User creation process failed:', userCreationError);
-        throw new Error('Failed to create user account: ' + userCreationError.message);
-      }
-    } else {
+    if (existingUser) {
+      // User already exists - use their ID
       userId = existingUser.id;
-      console.log('Existing user found with ID:', userId);
+      console.log('Found existing user with ID:', userId);
+    } else {
+      // User doesn't exist - create them
+      console.log('User does not exist, creating new user...');
+      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+        email: magicLink.email,
+        email_confirm: true,
+      });
+      
+      if (createError) {
+        console.error('Error creating user:', createError);
+        throw new Error('Failed to create user account: ' + createError.message);
+      }
+      
+      if (!newUser.user) {
+        console.error('User creation returned no user object');
+        throw new Error('Failed to create user account');
+      }
+      
+      userId = newUser.user.id;
+      console.log('New user created with ID:', userId);
     }
 
     // Generate a sign-in link for the user
-    console.log('Generating sign-in link...');
+    console.log('Generating sign-in link for user ID:', userId);
     const { data: linkData, error: linkGenError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email: magicLink.email,
