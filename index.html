@@ -6,10 +6,10 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <!-- Content Security Policy -->
+    <!-- Enhanced Content Security Policy -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.lovable.dev https://*.supabase.co https://js.stripe.com https://checkout.stripe.com;
+      script-src 'self' 'strict-dynamic' 'nonce-random' https://api.lovable.dev https://*.supabase.co https://js.stripe.com https://checkout.stripe.com;
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
       img-src 'self' data: blob: https://*.supabase.co https://lovable.dev https://api.lovable.dev;
@@ -18,13 +18,16 @@
       object-src 'none';
       base-uri 'self';
       form-action 'self';
+      frame-ancestors 'none';
+      upgrade-insecure-requests;
     ">
     
-    <!-- Additional Security Headers -->
+    <!-- Enhanced Security Headers -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="X-XSS-Protection" content="1; mode=block">
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()">
     
     <title>CSI Labs - Cancer Research Token Platform</title>
   </head>
