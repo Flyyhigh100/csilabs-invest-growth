@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
@@ -11,87 +11,73 @@ import {
 } from '@/components/ui/form';
 import { UseFormReturn } from 'react-hook-form';
 import { RegisterFormValues } from '../schema/registerSchema';
+import SecureInput from '@/components/Security/SecureInput';
 
 interface AddressInputGroupProps {
   form: UseFormReturn<RegisterFormValues>;
 }
 
 const AddressInputGroup: React.FC<AddressInputGroupProps> = ({ form }) => {
+  const [addressData, setAddressData] = useState({
+    street: '',
+    city: '',
+    state: '',
+    postalCode: ''
+  });
+
+  // Update form values when secure inputs change
+  useEffect(() => {
+    form.setValue('address.street', addressData.street);
+    form.setValue('address.city', addressData.city);
+    form.setValue('address.state', addressData.state);
+    form.setValue('address.postalCode', addressData.postalCode);
+  }, [addressData, form]);
+
   return (
     <div className="space-y-4">
-      <FormField
-        control={form.control}
-        name="address.street"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Street Address</FormLabel>
-            <FormControl>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                <Input 
-                  placeholder="123 Main St" 
-                  className="pl-10" 
-                  {...field} 
-                />
-              </div>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+      <SecureInput
+        label="Street Address"
+        value={addressData.street}
+        onChange={(value) => setAddressData(prev => ({ ...prev, street: value }))}
+        placeholder="123 Main St"
+        maxLength={200}
+        required
       />
 
       <div className="grid grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="address.city"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>City</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="City" 
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+        <SecureInput
+          label="City"
+          value={addressData.city}
+          onChange={(value) => setAddressData(prev => ({ ...prev, city: value }))}
+          placeholder="City"
+          maxLength={100}
+          required
         />
 
-        <FormField
-          control={form.control}
-          name="address.state"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>State/Province</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="State" 
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+        <SecureInput
+          label="State/Province"
+          value={addressData.state}
+          onChange={(value) => setAddressData(prev => ({ ...prev, state: value }))}
+          placeholder="State"
+          maxLength={100}
+          required
         />
       </div>
 
-      <FormField
-        control={form.control}
-        name="address.postalCode"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Postal/ZIP Code</FormLabel>
-            <FormControl>
-              <Input 
-                placeholder="ZIP/Postal Code" 
-                {...field} 
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+      <SecureInput
+        label="Postal/ZIP Code"
+        value={addressData.postalCode}
+        onChange={(value) => setAddressData(prev => ({ ...prev, postalCode: value }))}
+        placeholder="ZIP/Postal Code"
+        maxLength={20}
+        required
       />
+
+      {/* Hidden inputs for form submission */}
+      <input type="hidden" name="address.street" value={addressData.street} />
+      <input type="hidden" name="address.city" value={addressData.city} />
+      <input type="hidden" name="address.state" value={addressData.state} />
+      <input type="hidden" name="address.postalCode" value={addressData.postalCode} />
     </div>
   );
 };

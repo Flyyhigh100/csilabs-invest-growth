@@ -1,53 +1,35 @@
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.gpteng.co https://api.defined.fi https://js.stripe.com https://crypto-js.stripe.com https://*.tawk.to *.tawk.to cdn.jsdelivr.net *.dextools.io; style-src 'self' 'unsafe-inline' *.tawk.to fonts.googleapis.com cdn.jsdelivr.net *.dextools.io; frame-src *.tawk.to *.dextools.io *.youtube.com hrhvliqkmetcdphnetxb.supabase.co; font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com https://*.stripe.com *.tawk.to fonts.gstatic.com; img-src 'self' *.tawk.to cdn.jsdelivr.net tawk.link s3.amazonaws.com data: *.dextools.io; connect-src 'self' https://*.tawk.to wss://*.tawk.to api.dexscreener.com *.dextools.io *.supabase.co wss://*.supabase.co hrhvliqkmetcdphnetxb.supabase.co; media-src 'self'; form-action *.tawk.to;">
-    <title>CSI Labs 1-Million Strong Fight Club</title>
-    <meta name="description" content="CSI token supporting cannabinoid-based cancer research and low-cost drug development for FDA clinical trials and cancer treatment innovations." />
-    <meta name="author" content="CSI Labs" />
-
-    <link rel="icon" href="/Newlogo.jpg" type="image/jpeg" />
-
-    <!-- Open Graph / Facebook Meta Tags -->
-    <meta property="og:title" content="CSI Labs | Cannabinoid Cancer Research" />
-    <meta property="og:description" content="Support groundbreaking cannabinoid cancer research with CSI token contributions which supports laboratory work, clinical trials, and development of low-cost cancer-fighting treatments." />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="/Newlogo.jpg" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:url" content="https://1millionstrongfightclub.com/" />
-    <meta property="og:site_name" content="CSI Labs" />
-
-    <!-- Twitter Card Meta Tags -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@csilabs" />
-    <meta name="twitter:title" content="CSI Labs | Cannabinoid Cancer Research" />
-    <meta name="twitter:description" content="Join the 1-Million STRONG campaign with CBIS token to support cannabinoid cancer research, clinical trials, and innovative treatments for multiple cancer types." />
-    <meta name="twitter:image" content="/Newlogo.jpg" />
+    
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.lovable.dev https://*.supabase.co https://js.stripe.com https://checkout.stripe.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: blob: https://*.supabase.co https://lovable.dev https://api.lovable.dev;
+      connect-src 'self' https://*.supabase.co https://api.lovable.dev https://api.stripe.com https://checkout.stripe.com wss://*.supabase.co;
+      frame-src 'self' https://js.stripe.com https://checkout.stripe.com;
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+    ">
+    
+    <!-- Additional Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    
+    <title>CSI Labs - Cancer Research Token Platform</title>
   </head>
-
   <body>
     <div id="root"></div>
-    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
-    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
-    
-    <!--Start of Tawk.to Script-->
-    <script type="text/javascript">
-    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-    (function(){
-    var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-    s1.async=true;
-    s1.src='https://embed.tawk.to/6837aed1186f411913ffd565/1isco5p0o';
-    s1.charset='UTF-8';
-    s1.setAttribute('crossorigin','*');
-    s0.parentNode.insertBefore(s1,s0);
-    })();
-    </script>
-    <!--End of Tawk.to Script-->
-    
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
