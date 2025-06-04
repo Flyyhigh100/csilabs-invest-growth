@@ -40,10 +40,10 @@ function App() {
           <SecurityProvider>
             <AuthProvider>
               <CSRFProvider>
-                <SessionManager timeoutMinutes={30} warningMinutes={5}>
-                  <NavbarContextProvider>
-                    <TokenPriceProvider>
-                      <BrowserRouter>
+                <NavbarContextProvider>
+                  <TokenPriceProvider>
+                    <BrowserRouter>
+                      <SessionManager timeoutMinutes={30} warningMinutes={5}>
                         <div className="min-h-screen bg-background font-sans antialiased">
                           <GlobalLoading />
                           <Routes>
@@ -76,10 +76,10 @@ function App() {
                           </Routes>
                         </div>
                         <Toaster />
-                      </BrowserRouter>
-                    </TokenPriceProvider>
-                  </NavbarContextProvider>
-                </SessionManager>
+                      </SessionManager>
+                    </BrowserRouter>
+                  </TokenPriceProvider>
+                </NavbarContextProvider>
               </CSRFProvider>
             </AuthProvider>
           </SecurityProvider>
