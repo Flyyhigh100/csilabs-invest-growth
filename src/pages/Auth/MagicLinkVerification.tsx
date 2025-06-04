@@ -19,10 +19,13 @@ const MagicLinkVerificationContent = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [hasAttemptedVerification, setHasAttemptedVerification] = useState(false);
 
+  // Extract token and type from URL parameters (Supabase format)
   const token = searchParams.get('token');
+  const type = searchParams.get('type') || 'email';
   
   console.log('🔍 Magic link verification state:', {
     token: token ? `${token.substring(0, 20)}...` : 'null',
+    type,
     verificationState,
     isLoading,
     hasUser: !!user,
@@ -53,6 +56,7 @@ const MagicLinkVerificationContent = () => {
         setVerificationState('loading');
         setHasAttemptedVerification(true);
         
+        // Pass the token exactly as received from Supabase
         await verifyMagicLink(token);
         
         console.log('✅ Magic link verification completed successfully');
@@ -69,8 +73,8 @@ const MagicLinkVerificationContent = () => {
         
         // Provide more specific error messages based on the error
         if (error.message.includes('expired')) {
-          setErrorMessage('This magic link has expired. Magic links are only valid for 30 minutes.');
-        } else if (error.message.includes('already used') || error.message.includes('Invalid or expired')) {
+          setErrorMessage('This magic link has expired. Magic links are only valid for 1 hour.');
+        } else if (error.message.includes('already used') || error.message.includes('Invalid')) {
           setErrorMessage('This magic link has already been used or is no longer valid.');
         } else if (error.message.includes('not found')) {
           setErrorMessage('This magic link is not valid or has been removed from our system.');
@@ -122,7 +126,7 @@ const MagicLinkVerificationContent = () => {
               <h3 className="font-medium text-yellow-800 mb-2">What can you do?</h3>
               <ul className="text-sm text-yellow-700 space-y-1">
                 <li>• Request a new magic link from the login page</li>
-                <li>• Magic links expire after 30 minutes for security</li>
+                <li>• Magic links expire after 1 hour for security</li>
                 <li>• Each magic link can only be used once</li>
                 <li>• Make sure you're using the most recent email</li>
               </ul>

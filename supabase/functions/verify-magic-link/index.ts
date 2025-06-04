@@ -5,6 +5,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 
 interface VerifyMagicLinkRequest {
   token: string;
+  type?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -23,9 +24,12 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('Raw request body:', requestBody);
     
     let token: string;
+    let type: string = 'email'; // Default type
+    
     try {
       const parsed = JSON.parse(requestBody);
       token = parsed.token;
+      type = parsed.type || 'email';
     } catch (parseError) {
       console.error('Failed to parse request body:', parseError);
       return new Response(
@@ -43,6 +47,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log('Token received:', token.substring(0, 20) + '...');
+    console.log('Type:', type);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -55,148 +60,86 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('Creating Supabase client...');
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Step 1: Validate the magic link token
-    console.log('Looking up magic link token...');
-    const { data: magicLink, error: linkError } = await supabase
-      .from('magic_links')
-      .select('*')
-      .eq('token', token)
-      .eq('used', false)
-      .maybeSingle();
-
-    if (linkError) {
-      console.error('Database error finding magic link:', linkError);
-      return new Response(
-        JSON.stringify({ error: 'Database error occurred' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!magicLink) {
-      console.error('Magic link not found or already used for token:', token.substring(0, 20) + '...');
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired magic link' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('Magic link found for email:', magicLink.email);
-
-    // Step 2: Check if link has expired
-    if (new Date(magicLink.expires_at) < new Date()) {
-      console.error('Magic link has expired');
-      return new Response(
-        JSON.stringify({ error: 'Magic link has expired' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Step 3: Use Supabase's native signInWithOtp for reliable authentication
-    console.log('Attempting sign in with OTP using Supabase native method...');
+    // Extract email from the token if it's embedded (Supabase format)
+    let email: string | null = null;
     
+    // Try to decode the token to extract email
     try {
-      // Create a custom OTP token for this email
-      const { data: otpData, error: otpError } = await supabase.auth.admin.generateLink({
-        type: 'magiclink',
-        email: magicLink.email,
-        options: {
-          redirectTo: 'https://1millionstrongfightclub.com/dashboard/payments'
-        }
-      });
+      // Supabase tokens are typically base64 encoded JSON
+      const decodedToken = atob(token);
+      const tokenData = JSON.parse(decodedToken);
+      email = tokenData.email;
+    } catch (decodeError) {
+      console.log('Could not decode token, will proceed with verification anyway');
+    }
 
-      if (otpError) {
-        console.error('Error generating OTP link:', otpError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to generate authentication link' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    if (email) {
+      console.log('Extracted email from token:', email);
+    }
 
-      console.log('OTP link generated successfully');
+    // Use Supabase's native verifyOtp method
+    console.log('Verifying OTP token with Supabase...');
+    
+    const verifyData: any = {
+      token: token,
+      type: type as any
+    };
 
-      // Extract the actual OTP token from the action link
-      const actionLink = otpData.properties.action_link;
-      console.log('Action link generated:', actionLink.substring(0, 100) + '...');
+    if (email) {
+      verifyData.email = email;
+    }
+
+    const { data: verifyResult, error: verifyError } = await supabase.auth.verifyOtp(verifyData);
+
+    if (verifyError) {
+      console.error('Error verifying OTP:', verifyError);
       
-      const url = new URL(actionLink);
-      const otpToken = url.searchParams.get('token');
-      const type = url.searchParams.get('type');
-
-      if (!otpToken) {
-        console.error('Failed to extract OTP token from action link');
+      // Handle specific error cases with user-friendly messages
+      if (verifyError.message && verifyError.message.includes('expired')) {
         return new Response(
-          JSON.stringify({ error: 'Failed to generate valid authentication token' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'This magic link has expired. Please request a new one.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
-      }
-
-      console.log('OTP token extracted successfully');
-
-      // Now verify the OTP using Supabase's native method
-      console.log('Verifying OTP token...');
-      const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
-        email: magicLink.email,
-        token: otpToken,
-        type: 'email'
-      });
-
-      if (verifyError) {
-        console.error('Error verifying OTP:', verifyError);
+      } else if (verifyError.message && verifyError.message.includes('invalid')) {
         return new Response(
-          JSON.stringify({ error: 'Failed to verify authentication token' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'Invalid magic link. Please request a new one.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
-      }
-
-      if (!verifyData.user || !verifyData.session) {
-        console.error('OTP verification returned no user or session');
-        return new Response(
-          JSON.stringify({ error: 'Authentication verification failed' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      console.log('OTP verified successfully for user:', verifyData.user.id);
-
-      // Step 4: Mark magic link as used ONLY after successful authentication
-      console.log('Marking magic link as used...');
-      const { error: updateError } = await supabase
-        .from('magic_links')
-        .update({ used: true })
-        .eq('token', token);
-
-      if (updateError) {
-        console.error('Error marking magic link as used:', updateError);
-        // Don't fail here - authentication was successful
       } else {
-        console.log('Magic link marked as used successfully');
+        return new Response(
+          JSON.stringify({ error: 'Magic link verification failed: ' + verifyError.message }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
+    }
 
-      // Step 5: Return the session tokens
+    if (!verifyResult.user || !verifyResult.session) {
+      console.error('OTP verification returned no user or session');
       return new Response(
-        JSON.stringify({ 
-          success: true,
-          user: { 
-            id: verifyData.user.id, 
-            email: verifyData.user.email 
-          },
-          access_token: verifyData.session.access_token,
-          refresh_token: verifyData.session.refresh_token,
-          redirectUrl: '/dashboard/payments'
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-
-    } catch (authError: any) {
-      console.error('Authentication process failed:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Authentication failed: ' + authError.message }),
+        JSON.stringify({ error: 'Authentication verification failed - no session created' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('OTP verified successfully for user:', verifyResult.user.id);
+
+    // Return the session tokens
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        user: { 
+          id: verifyResult.user.id, 
+          email: verifyResult.user.email 
+        },
+        access_token: verifyResult.session.access_token,
+        refresh_token: verifyResult.session.refresh_token,
+        redirectUrl: '/dashboard/payments'
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
 
   } catch (error: any) {
     console.error('Unhandled error in verify-magic-link function:', error);

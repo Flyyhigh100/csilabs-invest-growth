@@ -38,7 +38,10 @@ export const useMagicLinkAuth = () => {
       console.log('📡 Calling verify-magic-link function...');
       
       const { data, error } = await supabase.functions.invoke('verify-magic-link', {
-        body: { token }
+        body: { 
+          token,
+          type: 'email' // Specify the type for Supabase verification
+        }
       });
 
       console.log('📡 verify-magic-link response:', { data, error });
@@ -47,12 +50,10 @@ export const useMagicLinkAuth = () => {
         console.error('❌ Edge function error:', error);
         
         // Handle specific error cases with user-friendly messages
-        if (error.message && error.message.includes('Invalid or expired magic link')) {
-          throw new Error('This magic link has expired or has already been used. Please request a new one.');
-        } else if (error.message && error.message.includes('not found')) {
-          throw new Error('Magic link not found. It may have expired or been used already.');
-        } else if (error.message && error.message.includes('expired')) {
+        if (error.message && error.message.includes('expired')) {
           throw new Error('This magic link has expired. Please request a new one.');
+        } else if (error.message && error.message.includes('invalid')) {
+          throw new Error('Invalid magic link. Please request a new one.');
         } else {
           throw new Error(error.message || 'Magic link verification failed');
         }
@@ -69,9 +70,7 @@ export const useMagicLinkAuth = () => {
         // Handle specific backend error messages
         if (data.error && data.error.includes('expired')) {
           throw new Error('This magic link has expired. Please request a new one.');
-        } else if (data.error && data.error.includes('already used')) {
-          throw new Error('This magic link has already been used. Please request a new one.');
-        } else if (data.error && data.error.includes('not found')) {
+        } else if (data.error && data.error.includes('invalid')) {
           throw new Error('Invalid magic link. Please request a new one.');
         } else {
           throw new Error(data.error || 'Magic link verification failed');
