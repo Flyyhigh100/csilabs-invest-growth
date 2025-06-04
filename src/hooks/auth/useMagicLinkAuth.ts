@@ -45,7 +45,15 @@ export const useMagicLinkAuth = () => {
 
       if (error) {
         console.error('❌ Edge function error:', error);
-        throw new Error(error.message || 'Verification request failed');
+        
+        // Handle specific error cases
+        if (error.message && error.message.includes('Invalid or expired magic link')) {
+          throw new Error('This magic link has expired or has already been used. Please request a new one.');
+        } else if (error.message && error.message.includes('not found')) {
+          throw new Error('Magic link not found. It may have expired or been used already.');
+        } else {
+          throw new Error(error.message || 'Magic link verification failed');
+        }
       }
 
       if (!data) {
@@ -55,7 +63,15 @@ export const useMagicLinkAuth = () => {
 
       if (!data.success) {
         console.error('❌ Verification failed:', data.error);
-        throw new Error(data.error || 'Magic link verification failed');
+        
+        // Handle specific backend error messages
+        if (data.error && data.error.includes('expired')) {
+          throw new Error('This magic link has expired. Please request a new one.');
+        } else if (data.error && data.error.includes('already used')) {
+          throw new Error('This magic link has already been used. Please request a new one.');
+        } else {
+          throw new Error(data.error || 'Magic link verification failed');
+        }
       }
 
       console.log('✅ Magic link verification response received:', data);

@@ -17,6 +17,7 @@ const MagicLinkVerificationContent = () => {
   const { user } = useAuth();
   const [verificationState, setVerificationState] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
+  const [hasAttemptedVerification, setHasAttemptedVerification] = useState(false);
 
   const token = searchParams.get('token');
   
@@ -25,6 +26,7 @@ const MagicLinkVerificationContent = () => {
     verificationState,
     isLoading,
     hasUser: !!user,
+    hasAttemptedVerification,
     currentURL: window.location.href
   });
 
@@ -39,10 +41,17 @@ const MagicLinkVerificationContent = () => {
       return;
     }
 
+    // Prevent multiple verification attempts with the same token
+    if (hasAttemptedVerification) {
+      console.log('🚫 Verification already attempted for this token, skipping...');
+      return;
+    }
+
     const verifyToken = async () => {
       try {
         console.log('🚀 Starting magic link verification process...');
         setVerificationState('loading');
+        setHasAttemptedVerification(true);
         
         await verifyMagicLink(token);
         
@@ -57,12 +66,22 @@ const MagicLinkVerificationContent = () => {
       } catch (error: any) {
         console.error('❌ Magic link verification failed:', error);
         setVerificationState('error');
-        setErrorMessage(error.message || 'Failed to verify magic link');
+        
+        // Provide more specific error messages based on the error
+        if (error.message.includes('expired')) {
+          setErrorMessage('This magic link has expired. Magic links are only valid for 30 minutes.');
+        } else if (error.message.includes('already used') || error.message.includes('Invalid or expired')) {
+          setErrorMessage('This magic link has already been used or is no longer valid.');
+        } else if (error.message.includes('not found')) {
+          setErrorMessage('This magic link is not valid or has been removed from our system.');
+        } else {
+          setErrorMessage(error.message || 'Failed to verify magic link');
+        }
       }
     };
 
     verifyToken();
-  }, [token, verifyMagicLink]);
+  }, [token, verifyMagicLink, hasAttemptedVerification]);
 
   // If user is authenticated and verification was successful, show success state
   if (user && verificationState === 'success') {
@@ -80,7 +99,6 @@ const MagicLinkVerificationContent = () => {
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-cbis-blue" />
             <h2 className="text-xl font-semibold">Verifying your magic link...</h2>
             <p className="text-gray-600">Please wait while we sign you in.</p>
-            <p className="text-xs text-gray-400">Debug: Route loaded successfully, processing token...</p>
           </div>
         );
 
@@ -97,23 +115,25 @@ const MagicLinkVerificationContent = () => {
         return (
           <div className="text-center space-y-4">
             <XCircle className="h-8 w-8 mx-auto text-red-600" />
-            <h2 className="text-xl font-semibold text-red-700">Verification failed</h2>
-            <p className="text-gray-600">{errorMessage}</p>
-            <div className="space-y-2">
-              <p className="text-sm text-gray-500">This could happen if:</p>
-              <ul className="text-sm text-gray-500 space-y-1">
-                <li>• The magic link has expired (links expire after 30 minutes)</li>
-                <li>• The link has already been used</li>
-                <li>• The link is invalid or corrupted</li>
-                <li>• There was a server error during verification</li>
+            <h2 className="text-xl font-semibold text-red-700">Magic Link Error</h2>
+            <p className="text-gray-600 mb-4">{errorMessage}</p>
+            
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-left">
+              <h3 className="font-medium text-yellow-800 mb-2">What can you do?</h3>
+              <ul className="text-sm text-yellow-700 space-y-1">
+                <li>• Request a new magic link from the login page</li>
+                <li>• Magic links expire after 30 minutes for security</li>
+                <li>• Each magic link can only be used once</li>
+                <li>• Make sure you're using the most recent email</li>
               </ul>
             </div>
-            <div className="flex flex-col gap-2 mt-4">
-              <Button asChild>
-                <a href="/login">Try signing in again</a>
+            
+            <div className="flex flex-col gap-2 mt-6">
+              <Button asChild className="w-full">
+                <a href="/login">Get a New Magic Link</a>
               </Button>
-              <Button variant="outline" onClick={() => window.location.reload()}>
-                Retry verification
+              <Button variant="outline" asChild className="w-full">
+                <a href="/login">Sign In with Password</a>
               </Button>
             </div>
           </div>
