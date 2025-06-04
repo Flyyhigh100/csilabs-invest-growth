@@ -56,13 +56,14 @@ export const FileUploadValidator: React.FC<FileUploadValidatorProps> = ({
     return true;
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleFileChange = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
     if (file && validateFile(file)) {
       onValidFile(file);
     }
     // Clear input to allow same file selection again
-    event.target.value = '';
+    target.value = '';
   };
 
   return (
