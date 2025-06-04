@@ -61,7 +61,7 @@ const handler = async (req: Request): Promise<Response> => {
       .select('*')
       .eq('token', token)
       .eq('used', false)
-      .maybeSingle(); // Changed from .single() to .maybeSingle()
+      .maybeSingle();
 
     if (linkError) {
       console.error('Database error finding magic link:', linkError);
@@ -101,47 +101,60 @@ const handler = async (req: Request): Promise<Response> => {
       console.error('Error marking magic link as used:', updateError);
     }
 
+    // Helper function to fetch current users list
+    const fetchUsersList = async () => {
+      const { data: usersData, error: userError } = await supabase.auth.admin.listUsers();
+      if (userError) {
+        console.error('Error listing users:', userError);
+        throw new Error('Failed to check user existence');
+      }
+      return usersData.users;
+    };
+
     // Check if user exists
     console.log('Checking if user exists...');
-    const { data: usersData, error: userError } = await supabase.auth.admin.listUsers();
-    
-    if (userError) {
-      console.error('Error listing users:', userError);
-      throw new Error('Failed to check user existence');
-    }
-
-    const existingUser = usersData.users.find(user => user.email === magicLink.email);
+    let users = await fetchUsersList();
+    let existingUser = users.find(user => user.email === magicLink.email);
     
     let userId: string;
     
     if (!existingUser) {
       console.log('Creating new user...');
-      // Create new user
-      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email: magicLink.email,
-        email_confirm: true,
-      });
-      
-      if (createError) {
-        console.error('Error creating user:', createError);
-        // If user already exists, try to find them
-        if (createError.message.includes('already been registered')) {
-          console.log('User already exists, finding existing user...');
-          const existingUserRetry = usersData.users.find(user => user.email === magicLink.email);
-          if (existingUserRetry) {
-            userId = existingUserRetry.id;
-            console.log('Found existing user with ID:', userId);
+      try {
+        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+          email: magicLink.email,
+          email_confirm: true,
+        });
+        
+        if (createError) {
+          console.error('Error creating user:', createError);
+          
+          // If user already exists (race condition), refresh user list and try to find them
+          if (createError.message.includes('already been registered')) {
+            console.log('User already exists (race condition), re-fetching user list...');
+            users = await fetchUsersList(); // Refresh the user list
+            existingUser = users.find(user => user.email === magicLink.email);
+            
+            if (existingUser) {
+              userId = existingUser.id;
+              console.log('Found existing user with ID:', userId);
+            } else {
+              console.error('User creation failed and user not found in refreshed list');
+              throw new Error('Failed to create or find user account');
+            }
           } else {
-            throw new Error('Failed to create or find user account');
+            throw new Error('Failed to create user account: ' + createError.message);
           }
+        } else if (newUser.user) {
+          userId = newUser.user.id;
+          console.log('New user created with ID:', userId);
         } else {
+          console.error('User creation returned no user object');
           throw new Error('Failed to create user account');
         }
-      } else if (newUser.user) {
-        userId = newUser.user.id;
-        console.log('New user created with ID:', userId);
-      } else {
-        throw new Error('Failed to create user account');
+      } catch (userCreationError: any) {
+        console.error('User creation process failed:', userCreationError);
+        throw new Error('Failed to create user account: ' + userCreationError.message);
       }
     } else {
       userId = existingUser.id;
