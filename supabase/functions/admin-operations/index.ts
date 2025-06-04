@@ -1,6 +1,6 @@
 
 // Force redeployment by adding a timestamp comment
-// Last updated: 2025-06-04T12:00:00Z
+// Last updated: 2025-06-04T14:30:00Z
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
@@ -8,7 +8,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { handleAdminOperations } from './handlers.ts';
 import { AdminOperationsSecurity } from './security.ts';
 
-console.log("🚀 Admin Operations Edge Function Starting (Hardened)...");
+console.log("🚀 Admin Operations Edge Function Starting (Hardened - Fixed Admin Auth)...");
 
 serve(async (req) => {
   console.log("=== SECURE ADMIN OPERATIONS REQUEST START ===");
@@ -101,13 +101,28 @@ serve(async (req) => {
       );
     }
 
-    // Use the standardized is_admin() function instead of direct queries
-    const { data: isAdminResult, error: adminError } = await adminClient.rpc('is_admin', {}, {
-      headers: { Authorization: authHeader }
-    });
+    // FIXED: Direct admin verification using database query instead of RPC
+    console.log("🔍 Checking admin status directly from database...");
+    
+    const { data: adminRecord, error: adminError } = await adminClient
+      .from('admins')
+      .select('id, email, role')
+      .or(`id.eq.${user.id},email.ilike.${user.email}`)
+      .maybeSingle();
 
-    if (adminError || !isAdminResult) {
-      console.error("❌ User is not an admin:", adminError);
+    if (adminError) {
+      console.error("❌ Error checking admin status:", adminError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to verify admin permissions' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    if (!adminRecord) {
+      console.error(`❌ User ${user.id} (${user.email}) is not an admin`);
       return new Response(
         JSON.stringify({ error: 'Unauthorized: Admin access required' }),
         { 
@@ -117,7 +132,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`✅ Admin user ${user.id} authorized for operation: ${operation}`);
+    console.log(`✅ Admin user ${user.id} (${user.email}) authorized for operation: ${operation}`);
 
     // Log the operation for audit purposes
     await AdminOperationsSecurity.logOperation(
