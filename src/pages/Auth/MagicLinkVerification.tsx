@@ -4,12 +4,13 @@ import { useSearchParams, Navigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { useMagicLinkAuth } from '@/hooks/auth/useMagicLinkAuth';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
 const MagicLinkVerificationContent = () => {
-  console.log('🚀 PRODUCTION DEBUGGING - MagicLinkVerification component rendering...');
+  console.log('🚀 NATIVE SUPABASE - MagicLinkVerification component rendering...');
   console.log('🔗 Route /auth/magic-link successfully loaded!');
   console.log('🌐 Current URL:', window.location.href);
   console.log('🌐 Full search params:', window.location.search);
@@ -17,23 +18,21 @@ const MagicLinkVerificationContent = () => {
   console.log('📍 Timestamp:', new Date().toISOString());
   
   const [searchParams] = useSearchParams();
-  const { verifyMagicLink, isLoading } = useMagicLinkAuth();
   const { user } = useAuth();
   const [verificationState, setVerificationState] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
-  const [hasAttemptedVerification, setHasAttemptedVerification] = useState(false);
+  const [hasProcessedAuth, setHasProcessedAuth] = useState(false);
 
-  // Extract all possible token parameters and log them extensively
+  // Extract URL parameters for debugging
   const token = searchParams.get('token');
-  const type = searchParams.get('type') || 'email';
+  const type = searchParams.get('type');
   const accessToken = searchParams.get('access_token');
   const refreshToken = searchParams.get('refresh_token');
   const errorParam = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
-  const redirectTo = searchParams.get('redirect_to');
   
-  // Log all URL parameters for production debugging
-  console.log('🔍 PRODUCTION URL ANALYSIS:', {
+  // Log all URL parameters for debugging
+  console.log('🔍 NATIVE FLOW URL ANALYSIS:', {
     currentUrl: window.location.href,
     pathname: window.location.pathname,
     search: window.location.search,
@@ -51,26 +50,21 @@ const MagicLinkVerificationContent = () => {
     refreshToken: refreshToken ? `${refreshToken.substring(0, 30)}... (${refreshToken.length} chars)` : 'null',
     error: errorParam,
     errorDescription,
-    redirectTo,
     allParams: Object.fromEntries(searchParams.entries()),
     searchParamsString: searchParams.toString()
   });
 
   console.log('🔍 COMPONENT STATE:', {
     verificationState,
-    isLoading,
     hasUser: !!user,
-    hasAttemptedVerification,
+    hasProcessedAuth,
     userAgent: navigator.userAgent,
     referrer: document.referrer,
     timestamp: new Date().toISOString()
   });
 
   useEffect(() => {
-    console.log('🔍 useEffect triggered - PRODUCTION ANALYSIS...');
-    console.log('🔍 Raw URL search:', window.location.search);
-    console.log('🔍 Hash fragment:', window.location.hash);
-    console.log('🔍 Document referrer:', document.referrer);
+    console.log('🔍 Native flow useEffect triggered...');
     
     // Check for errors first
     if (errorParam) {
@@ -80,102 +74,122 @@ const MagicLinkVerificationContent = () => {
       return;
     }
 
-    // Check if we have tokens directly in URL (Supabase format)
-    if (accessToken && refreshToken) {
-      console.log('✅ Found access and refresh tokens in URL, setting session directly...');
-      
-      const handleDirectTokens = async () => {
-        try {
-          setVerificationState('loading');
-          setHasAttemptedVerification(true);
-          
-          // Import supabase client directly to set session
-          const { supabase } = await import('@/integrations/supabase/client');
-          
-          console.log('🔑 Setting session with tokens from URL...');
+    if (hasProcessedAuth) {
+      console.log('🚫 Already processed auth, skipping...');
+      return;
+    }
+
+    // Handle Supabase's native magic link flow using auth state changes
+    console.log('🔐 Setting up Supabase auth state listener for native flow...');
+    
+    const handleAuthFlow = async () => {
+      try {
+        setHasProcessedAuth(true);
+        
+        // Check if we have URL fragments that need to be processed by Supabase
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const hashAccessToken = hashParams.get('access_token');
+        const hashRefreshToken = hashParams.get('refresh_token');
+        
+        console.log('🔍 Hash parameters:', {
+          hasHashAccessToken: !!hashAccessToken,
+          hasHashRefreshToken: !!hashRefreshToken,
+          hashString: window.location.hash
+        });
+
+        // If we have tokens in URL params, try to set session
+        if (accessToken && refreshToken) {
+          console.log('🔑 Found tokens in URL params, setting session...');
           const { error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
           });
 
           if (sessionError) {
-            console.error('❌ Error setting session with URL tokens:', sessionError);
+            console.error('❌ Error setting session from URL params:', sessionError);
             throw sessionError;
           }
 
-          console.log('✅ Session set successfully with URL tokens');
+          console.log('✅ Session set from URL params');
           setVerificationState('success');
+          toast.success('Successfully signed in!');
           
-          // Wait for auth state to update, then redirect
           setTimeout(() => {
-            console.log('🔄 Redirecting to dashboard...');
             window.location.href = '/dashboard/payments';
           }, 1500);
-          
-        } catch (error: any) {
-          console.error('❌ Failed to process URL tokens:', error);
-          setVerificationState('error');
-          setErrorMessage('Failed to process authentication tokens: ' + error.message);
+          return;
         }
-      };
 
-      handleDirectTokens();
-      return;
-    }
+        // If we have hash tokens, let Supabase handle them
+        if (hashAccessToken && hashRefreshToken) {
+          console.log('🔑 Found tokens in hash, letting Supabase handle...');
+          // Supabase will automatically process these via onAuthStateChange
+          return;
+        }
 
-    // If we have a token parameter, try our custom verification
-    if (token) {
-      console.log('🔍 Found token parameter, attempting custom verification...');
-      
-      if (hasAttemptedVerification) {
-        console.log('🚫 Verification already attempted for this token, skipping...');
-        return;
-      }
-
-      const verifyToken = async () => {
-        try {
-          console.log('🚀 Starting custom magic link verification process...');
-          setVerificationState('loading');
-          setHasAttemptedVerification(true);
-          
-          await verifyMagicLink(token);
-          
-          console.log('✅ Custom magic link verification completed successfully');
-          setVerificationState('success');
-          
-          setTimeout(() => {
-            console.log('🔄 Redirecting to dashboard...');
-            window.location.href = '/dashboard/payments';
-          }, 1500);
-        } catch (error: any) {
-          console.error('❌ Custom magic link verification failed:', error);
-          setVerificationState('error');
-          
-          if (error.message.includes('expired')) {
-            setErrorMessage('This magic link has expired. Magic links are only valid for 1 hour.');
-          } else if (error.message.includes('already used') || error.message.includes('Invalid')) {
-            setErrorMessage('This magic link has already been used or is no longer valid.');
-          } else if (error.message.includes('not found')) {
-            setErrorMessage('This magic link is not valid or has been removed from our system.');
-          } else {
-            setErrorMessage(error.message || 'Failed to verify magic link');
+        // Set up auth state listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            console.log('🔄 Auth state change event:', event, 'Session:', !!session);
+            
+            if (event === 'SIGNED_IN' && session) {
+              console.log('✅ User successfully signed in via magic link');
+              setVerificationState('success');
+              toast.success('Successfully signed in!');
+              
+              setTimeout(() => {
+                window.location.href = '/dashboard/payments';
+              }, 1500);
+            } else if (event === 'TOKEN_REFRESHED' && session) {
+              console.log('🔄 Token refreshed, user is authenticated');
+              setVerificationState('success');
+            }
           }
+        );
+
+        // Check current session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('❌ Error getting session:', error);
+          throw error;
         }
-      };
 
-      verifyToken();
-      return;
-    }
+        if (session) {
+          console.log('✅ Already have active session');
+          setVerificationState('success');
+          toast.success('Already signed in!');
+          
+          setTimeout(() => {
+            window.location.href = '/dashboard/payments';
+          }, 1500);
+        } else {
+          // No session found, show instructions
+          console.log('ℹ️ No active session, waiting for auth state change...');
+          setTimeout(() => {
+            if (verificationState === 'loading') {
+              setVerificationState('error');
+              setErrorMessage('No authentication tokens found. Please check your email and click the magic link.');
+            }
+          }, 5000); // Wait 5 seconds for auth state change
+        }
 
-    // If no tokens found, show error
-    console.error('❌ CRITICAL: No authentication tokens found in URL');
-    console.error('❌ This suggests the magic link redirect is not working properly');
-    setVerificationState('error');
-    setErrorMessage('Invalid magic link - no authentication tokens provided. Please check your email for a new link.');
+        return () => {
+          subscription.unsubscribe();
+        };
+
+      } catch (error: any) {
+        console.error('❌ Error in native auth flow:', error);
+        setVerificationState('error');
+        setErrorMessage(error.message || 'Failed to process magic link authentication');
+      }
+    };
+
+    handleAuthFlow();
     
-  }, [token, accessToken, refreshToken, verifyMagicLink, hasAttemptedVerification, errorParam, errorDescription]);
+  }, [accessToken, refreshToken, errorParam, errorDescription, hasProcessedAuth, verificationState]);
 
-  // If user is authenticated and verification was successful, show success state
+  // If user is authenticated and verification was successful, redirect
   if (user && verificationState === 'success') {
     console.log('✅ User authenticated, redirecting...');
     return <Navigate to="/dashboard/payments" replace />;
@@ -189,12 +203,13 @@ const MagicLinkVerificationContent = () => {
         return (
           <div className="text-center space-y-4">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-cbis-blue" />
-            <h2 className="text-xl font-semibold">Verifying your magic link...</h2>
-            <p className="text-gray-600">Please wait while we sign you in.</p>
+            <h2 className="text-xl font-semibold">Processing your magic link...</h2>
+            <p className="text-gray-600">Please wait while we sign you in using Supabase's native authentication.</p>
             <div className="text-xs text-gray-400 bg-gray-50 p-3 rounded">
-              <strong>Debug Info:</strong> Checking {token ? 'custom token' : accessToken ? 'URL tokens' : 'no tokens found'}<br/>
+              <strong>Debug Info:</strong> Native Supabase flow processing<br/>
               <strong>Timestamp:</strong> {new Date().toISOString()}<br/>
-              <strong>Environment:</strong> Production
+              <strong>Environment:</strong> Production<br/>
+              <strong>Flow:</strong> Pure Supabase Authentication
             </div>
           </div>
         );
@@ -215,30 +230,28 @@ const MagicLinkVerificationContent = () => {
         return (
           <div className="text-center space-y-4">
             <XCircle className="h-8 w-8 mx-auto text-red-600" />
-            <h2 className="text-xl font-semibold text-red-700">Magic Link Error</h2>
+            <h2 className="text-xl font-semibold text-red-700">Magic Link Processing Issue</h2>
             <p className="text-gray-600 mb-4">{errorMessage}</p>
             
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-left">
-              <h3 className="font-medium text-yellow-800 mb-2">What can you do?</h3>
+              <h3 className="font-medium text-yellow-800 mb-2">What to try:</h3>
               <ul className="text-sm text-yellow-700 space-y-1">
-                <li>• Request a new magic link from the login page</li>
-                <li>• Magic links expire after 1 hour for security</li>
-                <li>• Each magic link can only be used once</li>
-                <li>• Make sure you're using the most recent email</li>
-                <li>• Try opening the link in a different browser if issues persist</li>
+                <li>• Check your email for the Supabase magic link</li>
+                <li>• Click the link in the original email from Supabase</li>
+                <li>• Make sure you're opening the link in the same browser</li>
+                <li>• Try requesting a new magic link if this one expired</li>
+                <li>• Check spam/junk folder for the authentication email</li>
               </ul>
             </div>
             
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
-              <h3 className="font-medium text-blue-800 mb-2">Production Debug Information:</h3>
+              <h3 className="font-medium text-blue-800 mb-2">Debug Information:</h3>
               <div className="text-xs text-blue-700 space-y-1">
                 <div><strong>URL:</strong> {window.location.href}</div>
-                <div><strong>Has token param:</strong> {token ? 'Yes' : 'No'}</div>
                 <div><strong>Has access_token:</strong> {accessToken ? 'Yes' : 'No'}</div>
                 <div><strong>Has refresh_token:</strong> {refreshToken ? 'Yes' : 'No'}</div>
                 <div><strong>Error param:</strong> {errorParam || 'None'}</div>
-                <div><strong>Browser:</strong> {navigator.userAgent.includes('Chrome') ? 'Chrome' : navigator.userAgent.includes('Firefox') ? 'Firefox' : navigator.userAgent.includes('Safari') ? 'Safari' : 'Other'}</div>
-                <div><strong>Referrer:</strong> {document.referrer || 'Direct'}</div>
+                <div><strong>Flow:</strong> Native Supabase Authentication</div>
                 <div><strong>Timestamp:</strong> {new Date().toISOString()}</div>
               </div>
             </div>
@@ -264,7 +277,7 @@ const MagicLinkVerificationContent = () => {
     }
   };
 
-  console.log('🎨 Final render of MagicLinkVerification component');
+  console.log('🎨 Final render of Native Supabase MagicLinkVerification component');
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-50 to-blue-100 p-4">
@@ -272,10 +285,10 @@ const MagicLinkVerificationContent = () => {
         <Card>
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">
-              🔐 Magic Link Verification
+              🔐 Magic Link Authentication
             </CardTitle>
             <CardDescription className="text-center">
-              Processing your secure sign-in request
+              Processing your secure Supabase authentication
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -288,8 +301,8 @@ const MagicLinkVerificationContent = () => {
 };
 
 const MagicLinkVerification = () => {
-  console.log('🚀 MagicLinkVerification wrapper component rendering...');
-  console.log('🔗 Magic link route is working correctly!');
+  console.log('🚀 Native Supabase MagicLinkVerification wrapper component rendering...');
+  console.log('🔗 Magic link route is working correctly with native flow!');
   
   return (
     <ErrorBoundary>

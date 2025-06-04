@@ -12,7 +12,7 @@ interface MagicLinkRequest {
 
 const handler = async (req: Request): Promise<Response> => {
   console.log('=== SEND MAGIC LINK START ===');
-  console.log('🔧 DEBUGGING MODE - Enhanced logging for production site');
+  console.log('🔧 PURE SUPABASE - Using native magic link flow');
   console.log('Request method:', req.method);
   console.log('Request URL:', req.url);
   console.log('Request origin:', req.headers.get('origin'));
@@ -37,64 +37,39 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log('🎯 Processing magic link request for email:', email);
+    console.log('🎯 Processing pure Supabase magic link for email:', email);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Use the production domain consistently
+    // Use the production domain for direct redirect to dashboard
     const productionUrl = 'https://1millionstrongfightclub.com';
-    const redirectUrl = `${productionUrl}/auth/magic-link`;
+    const redirectUrl = `${productionUrl}/dashboard/payments`;
     
-    console.log('🔗 Using redirect URL:', redirectUrl);
+    console.log('🔗 Using direct redirect URL:', redirectUrl);
     console.log('🏠 Production base URL:', productionUrl);
 
-    // Generate magic link using Supabase's native method
-    console.log('🔐 Generating Supabase magic link...');
-    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-      type: 'magiclink',
+    // Send magic link using Supabase's native signInWithOtp
+    console.log('🔐 Sending Supabase native magic link...');
+    const { data: linkData, error: linkError } = await supabase.auth.signInWithOtp({
       email: email,
       options: {
-        redirectTo: redirectUrl
+        emailRedirectTo: redirectUrl,
+        shouldCreateUser: true
       }
     });
 
     if (linkError) {
-      console.error('❌ Error generating magic link:', linkError);
-      throw new Error('Failed to generate magic link: ' + linkError.message);
+      console.error('❌ Error sending magic link:', linkError);
+      throw new Error('Failed to send magic link: ' + linkError.message);
     }
 
-    if (!linkData || !linkData.properties) {
-      console.error('❌ No link data returned from generateLink');
-      throw new Error('Failed to generate magic link - no data returned');
-    }
+    console.log('✅ Magic link sent successfully via Supabase native flow');
+    console.log('📧 Response data:', linkData);
 
-    console.log('✅ Magic link generated successfully');
-    console.log('📧 Link data structure:', {
-      hasProperties: !!linkData.properties,
-      hasActionLink: !!linkData.properties.action_link,
-      hasUser: !!linkData.user,
-      userEmail: linkData.user?.email
-    });
-
-    const actionLink = linkData.properties.action_link;
-    console.log('🔗 Action link created:', actionLink.substring(0, 100) + '...');
-    
-    // Parse the action link to understand its structure
-    const actionUrl = new URL(actionLink);
-    console.log('🔍 Action link analysis:', {
-      hostname: actionUrl.hostname,
-      pathname: actionUrl.pathname,
-      hasToken: actionUrl.searchParams.has('token'),
-      hasType: actionUrl.searchParams.has('type'),
-      hasRedirectTo: actionUrl.searchParams.has('redirect_to'),
-      redirectToValue: actionUrl.searchParams.get('redirect_to'),
-      allParams: Object.fromEntries(actionUrl.searchParams.entries())
-    });
-
-    // Send email with enhanced debugging
-    console.log('📬 Sending email via Resend...');
+    // Send custom email with enhanced branding
+    console.log('📬 Sending branded email via Resend...');
     const emailResponse = await resend.emails.send({
       from: "1 Million Strong Fight Club <team@mail.1millionstrongfightclub.com>",
       to: [email],
@@ -115,43 +90,42 @@ const handler = async (req: Request): Promise<Response> => {
             <h1 style="color: #1e40af; text-align: center; margin-bottom: 30px;">🔐 Sign in to 1 Million Strong Fight Club</h1>
             
             <p style="font-size: 16px; margin-bottom: 20px;">
-              Hello! You requested to sign in to your 1 Million Strong Fight Club account. Click the button below to securely access your dashboard:
+              Hello! You requested to sign in to your 1 Million Strong Fight Club account. 
+              <strong>Check your email for the magic link we just sent you.</strong>
             </p>
             
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${actionLink}" 
-                 style="background: linear-gradient(to right, #1e40af, #0891b2); 
-                        color: white; 
-                        padding: 15px 35px; 
-                        text-decoration: none; 
-                        border-radius: 8px; 
-                        font-weight: bold; 
-                        font-size: 16px;
-                        display: inline-block;">
-                🚀 Sign In Now
-              </a>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 30px 0; text-align: center;">
+              <p style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #1e40af;">
+                📧 Magic Link Sent!
+              </p>
+              <p style="margin: 0; font-size: 14px; color: #666;">
+                Look for an email from Supabase with the subject line containing "Confirm your signup" or "Magic Link".
+                Click the link in that email to securely access your dashboard.
+              </p>
+            </div>
+            
+            <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 6px; margin: 20px 0;">
+              <p style="margin: 0; font-size: 14px; color: #856404;">
+                <strong>📧 Email Issues?</strong> 
+                Hotmail/Outlook users should check their spam/junk folder. 
+                Gmail users should check the Promotions tab.
+              </p>
             </div>
             
             <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
               <p style="margin: 0; font-size: 14px; color: #666;">
-                <strong>🔍 Debug Info (Production):</strong><br>
+                <strong>🔍 Debug Info (Native Flow):</strong><br>
                 Generated at: ${new Date().toISOString()}<br>
                 Redirect target: ${redirectUrl}<br>
-                Link type: Supabase Magic Link
+                Link type: Supabase Native Magic Link<br>
+                Flow: Pure Supabase Authentication
               </p>
             </div>
-            
-            <p style="font-size: 14px; color: #666; margin-top: 30px;">
-              If the button doesn't work, copy and paste this link into your browser:
-            </p>
-            <p style="font-size: 12px; word-break: break-all; background: #f5f5f5; padding: 15px; border-radius: 4px; border: 1px solid #ddd;">
-              ${actionLink}
-            </p>
             
             <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
               <p><strong>⏰ Important:</strong> This link will expire in 1 hour for security reasons.</p>
               <p><strong>🛡️ Security:</strong> If you didn't request this email, you can safely ignore it.</p>
-              <p><strong>📧 Email Issues?</strong> Hotmail/Outlook users should check their spam/junk folder.</p>
+              <p><strong>📱 Mobile Users:</strong> The magic link will work best if opened in the same browser where you requested it.</p>
               <p style="text-align: center; margin-top: 20px;">
                 <strong>1 Million Strong Fight Club</strong> - Building Community Strength
               </p>
@@ -169,15 +143,15 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (emailResponse.error) {
       console.error('❌ Failed to send email:', emailResponse.error);
-      throw new Error('Failed to send email: ' + emailResponse.error.message);
+      // Don't throw here - the magic link was still sent by Supabase
     }
 
-    console.log('✅ Magic link email sent successfully:', {
+    console.log('✅ Magic link process completed successfully:', {
       emailId: emailResponse.data?.id,
       recipientEmail: email,
-      actionLinkPreview: actionLink.substring(0, 100) + '...',
       redirectTarget: redirectUrl,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      flow: 'native-supabase'
     });
 
     return new Response(
@@ -186,10 +160,11 @@ const handler = async (req: Request): Promise<Response> => {
         message: 'Magic link sent to your email',
         debug: {
           emailId: emailResponse.data?.id,
-          linkGenerated: true,
+          linkSent: true,
           redirectUrl: redirectUrl,
           timestamp: new Date().toISOString(),
-          environment: 'production'
+          environment: 'production',
+          flow: 'native-supabase'
         }
       }),
       {
@@ -209,7 +184,8 @@ const handler = async (req: Request): Promise<Response> => {
         error: error.message || 'Failed to send magic link',
         details: error.stack,
         timestamp: new Date().toISOString(),
-        environment: 'production'
+        environment: 'production',
+        flow: 'native-supabase'
       }),
       {
         status: 500,
