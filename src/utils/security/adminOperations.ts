@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeText, sanitizeNumeric } from './inputSanitization';
 import { toast } from 'sonner';
@@ -11,6 +10,7 @@ interface AdminOperationOptions {
 
 /**
  * Securely executes admin operations with proper validation and logging
+ * Now uses standardized admin verification
  */
 export const executeAdminOperation = async (
   operation: string,
@@ -18,7 +18,7 @@ export const executeAdminOperation = async (
   options: AdminOperationOptions = {}
 ): Promise<any> => {
   try {
-    // Verify admin status
+    // Verify admin status using the standardized is_admin() function
     const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
     
     if (adminError || !isAdmin) {
@@ -36,12 +36,7 @@ export const executeAdminOperation = async (
     // Sanitize input data
     const sanitizedData = sanitizeAdminInput(data);
 
-    // Log the operation attempt
-    if (options.auditLog !== false) {
-      await logAdminOperation(operation, sanitizedData);
-    }
-
-    // Execute the operation
+    // Execute the operation through the hardened edge function
     const { data: result, error } = await supabase.functions.invoke('admin-operations', {
       body: {
         operation,

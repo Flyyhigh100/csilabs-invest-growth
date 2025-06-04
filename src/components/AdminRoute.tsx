@@ -1,9 +1,8 @@
 
-import React, { ReactNode, useState, useEffect } from 'react';
+import React, { ReactNode } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { isUserAdmin } from '@/utils/admin';
-import { toast } from 'sonner';
+import { useStandardizedAdminVerification } from '@/hooks/admin/useStandardizedAdminVerification';
 
 interface AdminRouteProps {
   children?: ReactNode;
@@ -11,33 +10,9 @@ interface AdminRouteProps {
 
 const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   const { user } = useAuth();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { isAdmin, isLoading, error } = useStandardizedAdminVerification();
 
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) {
-        setIsAdmin(false);
-        setIsLoading(false);
-        return;
-      }
-      
-      try {
-        const adminStatus = await isUserAdmin();
-        console.log("Admin status check result:", adminStatus);
-        setIsAdmin(adminStatus);
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-        toast.error("Failed to verify admin permissions");
-        setIsAdmin(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    checkAdminStatus();
-  }, [user]);
-
+  // Show loading state while checking authentication and admin status
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -49,7 +24,25 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     );
   }
 
-  if (!isAdmin) {
+  // Redirect to login if not authenticated
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Show error state if admin verification failed
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <p className="text-red-600">Failed to verify admin permissions</p>
+          <p className="text-gray-600 mt-2">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to dashboard if not admin
+  if (isAdmin === false) {
     return <Navigate to="/dashboard" replace />;
   }
 

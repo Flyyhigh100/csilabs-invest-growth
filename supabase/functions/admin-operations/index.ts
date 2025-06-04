@@ -1,16 +1,17 @@
 
 // Force redeployment by adding a timestamp comment
-// Last updated: 2025-06-04T10:21:00Z
+// Last updated: 2025-06-04T12:00:00Z
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { corsHeaders } from '../_shared/cors.ts';
 import { handleAdminOperations } from './handlers.ts';
+import { AdminOperationsSecurity } from './security.ts';
 
-console.log("🚀 Admin Operations Edge Function Starting...");
+console.log("🚀 Admin Operations Edge Function Starting (Hardened)...");
 
 serve(async (req) => {
-  console.log("=== ADMIN OPERATIONS REQUEST START ===");
+  console.log("=== SECURE ADMIN OPERATIONS REQUEST START ===");
   console.log("Request method:", req.method);
   console.log("Request URL:", req.url);
 
@@ -35,11 +36,11 @@ serve(async (req) => {
     
     console.log("✅ Authorization header found");
 
-    // Parse request body
-    const body = await req.json();
-    console.log("📝 Request body parsed:", JSON.stringify(body, null, 2));
+    // Parse and validate request body
+    const rawBody = await req.json();
+    console.log("📝 Raw request received");
     
-    const { operation, data } = body;
+    const { operation, data } = AdminOperationsSecurity.validateAndSanitizeInput(rawBody);
     
     if (!operation) {
       console.error("❌ No operation specified");
@@ -87,14 +88,25 @@ serve(async (req) => {
     
     console.log(`✅ User authenticated: ${user.id} (${user.email})`);
 
-    // Check if user is admin
-    const { data: adminData, error: adminError } = await adminClient
-      .from('admins')
-      .select('*')
-      .or(`id.eq.${user.id},email.eq.${user.email}`)
-      .single();
+    // Security validation (rate limiting, etc.)
+    const securityCheck = await AdminOperationsSecurity.validateRequest(req, user);
+    if (!securityCheck.isValid) {
+      console.error("❌ Security validation failed:", securityCheck.error);
+      return new Response(
+        JSON.stringify({ error: securityCheck.error }),
+        { 
+          status: 429, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
 
-    if (adminError || !adminData) {
+    // Use the standardized is_admin() function instead of direct queries
+    const { data: isAdminResult, error: adminError } = await adminClient.rpc('is_admin', {}, {
+      headers: { Authorization: authHeader }
+    });
+
+    if (adminError || !isAdminResult) {
       console.error("❌ User is not an admin:", adminError);
       return new Response(
         JSON.stringify({ error: 'Unauthorized: Admin access required' }),
@@ -106,6 +118,15 @@ serve(async (req) => {
     }
 
     console.log(`✅ Admin user ${user.id} authorized for operation: ${operation}`);
+
+    // Log the operation for audit purposes
+    await AdminOperationsSecurity.logOperation(
+      adminClient, 
+      operation, 
+      user, 
+      data, 
+      securityCheck.clientInfo
+    );
 
     // Route to appropriate handler
     console.log(`🎯 Routing operation ${operation} to handleAdminOperations`);
@@ -124,10 +145,12 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("💥 Unhandled error in admin operations:", error);
+    const sanitizedError = AdminOperationsSecurity.handleError(error);
+    
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        details: error.message 
+        details: sanitizedError
       }),
       { 
         status: 500, 
