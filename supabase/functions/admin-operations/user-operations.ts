@@ -11,7 +11,7 @@ export const userOperations = {
   },
   
   async getAllUsers(_, adminClient) {
-    console.log("Fetching all users for admin...");
+    console.log("Fetching all users for admin with enhanced auth data...");
     
     try {
       // Get all user profiles using the admin client
@@ -58,8 +58,10 @@ export const userOperations = {
       
       console.log("KYC map created:", Object.keys(kycMap).length);
       
-      // Try to get user emails from auth (may fail if user doesn't have admin permissions)
+      // Get enhanced auth data from auth.users table
       let authUsersMap = {};
+      let enhancedAuthData = {};
+      
       try {
         const { data: authUsers, error: authError } = await adminClient.auth.admin.listUsers();
         
@@ -68,7 +70,38 @@ export const userOperations = {
             acc[user.id] = user.email;
             return acc;
           }, {});
-          console.log("Auth users fetched successfully");
+          
+          // Create enhanced auth data map with authentication details
+          enhancedAuthData = authUsers.users.reduce((acc, user) => {
+            // Determine authentication method based on user data
+            const hasPassword = user.encrypted_password ? true : false;
+            const hasMagicLink = user.app_metadata?.provider === 'email' && !hasPassword;
+            
+            // Determine signup method
+            let signupMethod = 'Unknown';
+            if (user.app_metadata?.provider) {
+              signupMethod = user.app_metadata.provider === 'email' ? 
+                (hasPassword ? 'Email/Password' : 'Magic Link') : 
+                user.app_metadata.provider;
+            }
+            
+            acc[user.id] = {
+              email_confirmed_at: user.email_confirmed_at,
+              confirmed_at: user.confirmed_at,
+              last_sign_in_at: user.last_sign_in_at,
+              auth_created_at: user.created_at,
+              phone_confirmed_at: user.phone_confirmed_at,
+              email_confirmed: Boolean(user.email_confirmed_at),
+              auth_method: hasPassword ? 'Email/Password' : 'Magic Link',
+              signup_method: signupMethod,
+              is_anonymous: user.is_anonymous || false,
+              providers: user.identities?.map(identity => identity.provider) || []
+            };
+            
+            return acc;
+          }, {});
+          
+          console.log("Enhanced auth data fetched successfully for", Object.keys(enhancedAuthData).length, "users");
         } else if (authError) {
           console.warn("Could not fetch auth users:", authError);
           // Continue without auth emails
@@ -81,6 +114,7 @@ export const userOperations = {
       // Combine all data into a comprehensive users list
       const usersWithDetails = (profilesData || []).map(profile => {
         const kycInfo = kycMap[profile.id] || { status: 'not_started', kycComplete: false };
+        const authInfo = enhancedAuthData[profile.id] || {};
         
         return {
           id: profile.id,
@@ -93,11 +127,22 @@ export const userOperations = {
           kyc_status: kycInfo.status,
           kyc_id: kycInfo.id,
           has_kyc_record: Boolean(kycInfo.id),
-          kyc_complete: kycInfo.kycComplete
+          kyc_complete: kycInfo.kycComplete,
+          // Enhanced authentication data
+          email_confirmed_at: authInfo.email_confirmed_at,
+          confirmed_at: authInfo.confirmed_at,
+          last_sign_in_at: authInfo.last_sign_in_at,
+          auth_created_at: authInfo.auth_created_at,
+          phone_confirmed_at: authInfo.phone_confirmed_at,
+          email_confirmed: authInfo.email_confirmed || false,
+          auth_method: authInfo.auth_method || 'Unknown',
+          signup_method: authInfo.signup_method || 'Unknown',
+          is_anonymous: authInfo.is_anonymous || false,
+          providers: authInfo.providers || []
         };
       });
       
-      console.log(`Returning ${usersWithDetails.length} enhanced user records`);
+      console.log(`Returning ${usersWithDetails.length} enhanced user records with auth data`);
       
       return {
         users: usersWithDetails,

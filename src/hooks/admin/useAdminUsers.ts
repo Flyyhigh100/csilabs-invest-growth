@@ -20,6 +20,17 @@ export interface User {
   has_test_data?: boolean;
   test_transaction_count?: number;
   test_transaction_value?: number;
+  // Enhanced authentication fields
+  email_confirmed_at?: string | null;
+  confirmed_at?: string | null;
+  last_sign_in_at?: string | null;
+  auth_created_at?: string | null;
+  phone_confirmed_at?: string | null;
+  email_confirmed?: boolean;
+  auth_method?: string;
+  signup_method?: string;
+  is_anonymous?: boolean;
+  providers?: string[];
 }
 
 export const useAdminUsers = () => {
@@ -30,7 +41,7 @@ export const useAdminUsers = () => {
   
   // Use direct edge function call to fetch users with better error handling
   const fetchUsers = async (): Promise<User[]> => {
-    console.log('Fetching users for admin dashboard...');
+    console.log('Fetching users for admin dashboard with enhanced auth data...');
     
     try {
       // Use the edge function to get all users
@@ -58,7 +69,7 @@ export const useAdminUsers = () => {
         throw new Error(data.error.message || 'Failed to fetch users');
       }
       
-      console.log(`Fetched ${data.users?.length || 0} users with details`);
+      console.log(`Fetched ${data.users?.length || 0} users with enhanced auth details`);
       
       // Process users to check for test data
       const usersWithTestDataFlag = await addTestDataFlags(data.users || []);

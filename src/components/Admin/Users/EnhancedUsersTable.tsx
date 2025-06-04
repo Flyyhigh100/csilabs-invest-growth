@@ -24,6 +24,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { TestIconLucide } from '@/components/icons/TestIcon';
+import AuthStatusBadge from './AuthStatusBadge';
 
 // Import the useTestDataToggle hook to synchronize test data visibility
 import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
@@ -43,6 +44,17 @@ interface User {
   has_test_data?: boolean;
   test_transaction_count?: number;
   test_transaction_value?: number;
+  // Enhanced authentication fields
+  email_confirmed_at?: string | null;
+  confirmed_at?: string | null;
+  last_sign_in_at?: string | null;
+  auth_created_at?: string | null;
+  phone_confirmed_at?: string | null;
+  email_confirmed?: boolean;
+  auth_method?: string;
+  signup_method?: string;
+  is_anonymous?: boolean;
+  providers?: string[];
 }
 
 interface TransactionStats {
@@ -427,6 +439,7 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Authentication Status</TableHead>
               <TableHead>Wallet Address</TableHead>
               <TableHead>KYC Status</TableHead>
               <TableHead className="text-right">
@@ -461,6 +474,15 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
                     {user.first_name} {user.last_name}
                   </TableCell>
                   <TableCell>{user.email || 'N/A'}</TableCell>
+                  <TableCell>
+                    <AuthStatusBadge
+                      emailConfirmed={user.email_confirmed || false}
+                      emailConfirmedAt={user.email_confirmed_at}
+                      authMethod={user.auth_method}
+                      signupMethod={user.signup_method}
+                      lastSignInAt={user.last_sign_in_at}
+                    />
+                  </TableCell>
                   <TableCell>
                     {user.wallet_address ? (
                       <div className="flex items-center">
@@ -643,7 +665,7 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                   No users found
                 </TableCell>
               </TableRow>
