@@ -90,16 +90,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Mark the magic link as used first
-    console.log('Marking magic link as used...');
-    const { error: updateError } = await supabase
-      .from('magic_links')
-      .update({ used: true })
-      .eq('token', token);
-
-    if (updateError) {
-      console.error('Error marking magic link as used:', updateError);
-    }
+    // DON'T mark the magic link as used yet - wait until authentication is successful
 
     // Helper function to fetch current users list
     const fetchUsersList = async () => {
@@ -187,6 +178,21 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log('Tokens extracted successfully');
+
+    // ONLY NOW mark the magic link as used - after everything succeeded
+    console.log('Marking magic link as used after successful authentication...');
+    const { error: updateError } = await supabase
+      .from('magic_links')
+      .update({ used: true })
+      .eq('token', token);
+
+    if (updateError) {
+      console.error('Error marking magic link as used:', updateError);
+      // Don't fail here - authentication was successful
+    } else {
+      console.log('Magic link successfully marked as used');
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true,
