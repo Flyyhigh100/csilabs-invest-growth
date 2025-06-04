@@ -46,11 +46,13 @@ export const useMagicLinkAuth = () => {
       if (error) {
         console.error('❌ Edge function error:', error);
         
-        // Handle specific error cases
+        // Handle specific error cases with user-friendly messages
         if (error.message && error.message.includes('Invalid or expired magic link')) {
           throw new Error('This magic link has expired or has already been used. Please request a new one.');
         } else if (error.message && error.message.includes('not found')) {
           throw new Error('Magic link not found. It may have expired or been used already.');
+        } else if (error.message && error.message.includes('expired')) {
+          throw new Error('This magic link has expired. Please request a new one.');
         } else {
           throw new Error(error.message || 'Magic link verification failed');
         }
@@ -69,6 +71,8 @@ export const useMagicLinkAuth = () => {
           throw new Error('This magic link has expired. Please request a new one.');
         } else if (data.error && data.error.includes('already used')) {
           throw new Error('This magic link has already been used. Please request a new one.');
+        } else if (data.error && data.error.includes('not found')) {
+          throw new Error('Invalid magic link. Please request a new one.');
         } else {
           throw new Error(data.error || 'Magic link verification failed');
         }
@@ -76,7 +80,7 @@ export const useMagicLinkAuth = () => {
 
       console.log('✅ Magic link verification response received:', data);
 
-      // If we got session tokens, set them in Supabase
+      // Set the session using the tokens from our verification
       if (data.access_token && data.refresh_token) {
         console.log('🔑 Setting session tokens...');
         const { error: sessionError } = await supabase.auth.setSession({
@@ -90,20 +94,28 @@ export const useMagicLinkAuth = () => {
         }
 
         console.log('✅ Session set successfully');
-      } else if (data.authUrl) {
-        // Fallback case - redirect to auth URL
-        console.log('🔄 Redirecting to auth URL:', data.authUrl);
-        window.location.href = data.authUrl;
-        return;
+        toast.success('Successfully signed in!');
       } else {
-        console.error('❌ No session tokens or auth URL provided');
-        throw new Error('Invalid response from verification service');
+        console.error('❌ No session tokens provided');
+        throw new Error('Invalid response from verification service - no session tokens');
       }
 
-      toast.success('Successfully signed in!');
     } catch (error: any) {
       console.error('❌ Error verifying magic link:', error);
-      const errorMessage = error.message || 'Invalid or expired magic link';
+      
+      // Provide user-friendly error messages
+      let errorMessage = error.message || 'Magic link verification failed';
+      
+      // Handle network errors
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      }
+      
+      // Handle timeout errors
+      if (error.message && error.message.includes('timeout')) {
+        errorMessage = 'Request timed out. Please try again.';
+      }
+      
       toast.error(errorMessage);
       throw new Error(errorMessage);
     } finally {

@@ -10,6 +10,7 @@ interface VerifyMagicLinkRequest {
 const handler = async (req: Request): Promise<Response> => {
   console.log('=== VERIFY MAGIC LINK START ===');
   console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
 
   if (req.method === 'OPTIONS') {
     console.log('Handling CORS preflight request');
@@ -54,7 +55,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('Creating Supabase client...');
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Find the magic link using maybeSingle() to avoid errors when no rows found
+    // Step 1: Validate the magic link token
     console.log('Looking up magic link token...');
     const { data: magicLink, error: linkError } = await supabase
       .from('magic_links')
@@ -81,7 +82,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Magic link found for email:', magicLink.email);
 
-    // Check if link has expired
+    // Step 2: Check if link has expired
     if (new Date(magicLink.expires_at) < new Date()) {
       console.error('Magic link has expired');
       return new Response(
@@ -90,198 +91,111 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Step 1: Check if user exists
-    console.log('Step 1: Checking if user exists with email:', magicLink.email);
-    const { data: usersData, error: userError } = await supabase.auth.admin.listUsers();
+    // Step 3: Use Supabase's native signInWithOtp for reliable authentication
+    console.log('Attempting sign in with OTP using Supabase native method...');
     
-    if (userError) {
-      console.error('Error listing users:', userError);
+    try {
+      // Create a custom OTP token for this email
+      const { data: otpData, error: otpError } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email: magicLink.email,
+        options: {
+          redirectTo: 'https://1millionstrongfightclub.com/dashboard/payments'
+        }
+      });
+
+      if (otpError) {
+        console.error('Error generating OTP link:', otpError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to generate authentication link' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('OTP link generated successfully');
+
+      // Extract the actual OTP token from the action link
+      const actionLink = otpData.properties.action_link;
+      console.log('Action link generated:', actionLink.substring(0, 100) + '...');
+      
+      const url = new URL(actionLink);
+      const otpToken = url.searchParams.get('token');
+      const type = url.searchParams.get('type');
+
+      if (!otpToken) {
+        console.error('Failed to extract OTP token from action link');
+        return new Response(
+          JSON.stringify({ error: 'Failed to generate valid authentication token' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('OTP token extracted successfully');
+
+      // Now verify the OTP using Supabase's native method
+      console.log('Verifying OTP token...');
+      const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+        email: magicLink.email,
+        token: otpToken,
+        type: 'email'
+      });
+
+      if (verifyError) {
+        console.error('Error verifying OTP:', verifyError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to verify authentication token' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!verifyData.user || !verifyData.session) {
+        console.error('OTP verification returned no user or session');
+        return new Response(
+          JSON.stringify({ error: 'Authentication verification failed' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('OTP verified successfully for user:', verifyData.user.id);
+
+      // Step 4: Mark magic link as used ONLY after successful authentication
+      console.log('Marking magic link as used...');
+      const { error: updateError } = await supabase
+        .from('magic_links')
+        .update({ used: true })
+        .eq('token', token);
+
+      if (updateError) {
+        console.error('Error marking magic link as used:', updateError);
+        // Don't fail here - authentication was successful
+      } else {
+        console.log('Magic link marked as used successfully');
+      }
+
+      // Step 5: Return the session tokens
       return new Response(
-        JSON.stringify({ error: 'Failed to verify user status' }),
+        JSON.stringify({ 
+          success: true,
+          user: { 
+            id: verifyData.user.id, 
+            email: verifyData.user.email 
+          },
+          access_token: verifyData.session.access_token,
+          refresh_token: verifyData.session.refresh_token,
+          redirectUrl: '/dashboard/payments'
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+
+    } catch (authError: any) {
+      console.error('Authentication process failed:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Authentication failed: ' + authError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-    }
-
-    const existingUser = usersData.users.find(user => user.email === magicLink.email);
-    let userId: string;
-    
-    if (existingUser) {
-      // Step 2A: User exists - authenticate them
-      console.log('Step 2A: User exists with ID:', existingUser.id);
-      userId = existingUser.id;
-      
-      // For existing users, we'll generate a session directly
-      console.log('Generating session for existing user...');
-      try {
-        const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
-          type: 'magiclink',
-          email: magicLink.email,
-          options: {
-            redirectTo: 'https://1millionstrongfightclub.com/dashboard/payments'
-          }
-        });
-
-        if (sessionError) {
-          console.error('Error generating session for existing user:', sessionError);
-          return new Response(
-            JSON.stringify({ error: 'Failed to create authentication session' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        console.log('Session generated successfully for existing user');
-        
-        // Extract tokens from the generated link
-        const actionLink = sessionData.properties.action_link;
-        console.log('Action link generated:', actionLink.substring(0, 100) + '...');
-        
-        const url = new URL(actionLink);
-        const accessToken = url.searchParams.get('access_token');
-        const refreshToken = url.searchParams.get('refresh_token');
-
-        if (!accessToken || !refreshToken) {
-          console.error('Failed to extract tokens from action link');
-          console.log('Available URL params:', Array.from(url.searchParams.keys()));
-          return new Response(
-            JSON.stringify({ error: 'Failed to create authentication session - no tokens' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        console.log('Tokens extracted successfully for existing user');
-
-        // Mark magic link as used ONLY after successful authentication
-        console.log('Marking magic link as used...');
-        const { error: updateError } = await supabase
-          .from('magic_links')
-          .update({ used: true })
-          .eq('token', token);
-
-        if (updateError) {
-          console.error('Error marking magic link as used:', updateError);
-          // Don't fail here - authentication was successful
-        }
-
-        return new Response(
-          JSON.stringify({ 
-            success: true,
-            user: { id: userId, email: magicLink.email },
-            access_token: accessToken,
-            refresh_token: refreshToken,
-            redirectUrl: '/dashboard/payments'
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-
-      } catch (authError: any) {
-        console.error('Authentication failed for existing user:', authError);
-        return new Response(
-          JSON.stringify({ error: 'Authentication failed: ' + authError.message }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-    } else {
-      // Step 2B: User doesn't exist - create new user
-      console.log('Step 2B: User does not exist, creating new user...');
-      try {
-        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-          email: magicLink.email,
-          email_confirm: true,
-        });
-        
-        if (createError) {
-          console.error('Error creating user:', createError);
-          return new Response(
-            JSON.stringify({ error: 'Failed to create user account: ' + createError.message }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        
-        if (!newUser.user) {
-          console.error('User creation returned no user object');
-          return new Response(
-            JSON.stringify({ error: 'Failed to create user account - no user returned' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        
-        userId = newUser.user.id;
-        console.log('New user created with ID:', userId);
-
-        // Generate session for new user
-        console.log('Generating session for new user...');
-        const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
-          type: 'magiclink',
-          email: magicLink.email,
-          options: {
-            redirectTo: 'https://1millionstrongfightclub.com/dashboard/payments'
-          }
-        });
-
-        if (sessionError) {
-          console.error('Error generating session for new user:', sessionError);
-          return new Response(
-            JSON.stringify({ error: 'Failed to create authentication session for new user' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        // Extract tokens from the generated link
-        const actionLink = sessionData.properties.action_link;
-        console.log('Action link generated for new user:', actionLink.substring(0, 100) + '...');
-        
-        const url = new URL(actionLink);
-        const accessToken = url.searchParams.get('access_token');
-        const refreshToken = url.searchParams.get('refresh_token');
-
-        if (!accessToken || !refreshToken) {
-          console.error('Failed to extract tokens from action link for new user');
-          console.log('Available URL params:', Array.from(url.searchParams.keys()));
-          return new Response(
-            JSON.stringify({ error: 'Failed to create authentication session - no tokens for new user' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        console.log('Tokens extracted successfully for new user');
-
-        // Mark magic link as used
-        console.log('Marking magic link as used for new user...');
-        const { error: updateError } = await supabase
-          .from('magic_links')
-          .update({ used: true })
-          .eq('token', token);
-
-        if (updateError) {
-          console.error('Error marking magic link as used:', updateError);
-          // Don't fail here - authentication was successful
-        }
-
-        return new Response(
-          JSON.stringify({ 
-            success: true,
-            user: { id: userId, email: magicLink.email },
-            access_token: accessToken,
-            refresh_token: refreshToken,
-            redirectUrl: '/dashboard/payments'
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-
-      } catch (createError: any) {
-        console.error('User creation process failed:', createError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to create new user: ' + createError.message }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
     }
 
   } catch (error: any) {
