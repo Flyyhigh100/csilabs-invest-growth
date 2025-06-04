@@ -40,7 +40,7 @@ export const useUserAuthDetails = () => {
     setAuthDetails(null);
     
     try {
-      console.log(`Fetching auth details for user: ${userId}`);
+      console.log(`🔍 Fetching auth details for user: ${userId}`);
       
       const { data, error } = await supabase.functions.invoke('admin-operations', {
         body: {
@@ -49,24 +49,32 @@ export const useUserAuthDetails = () => {
         }
       });
       
+      console.log('📡 Function response received:', { data, error });
+      
       if (error) {
-        console.error('Error calling getUserAuthDetails function:', error);
-        toast.error('Failed to fetch authentication details');
+        console.error('❌ Error calling getUserAuthDetails function:', error);
+        toast.error('Failed to fetch authentication details - Function error');
         return;
       }
       
-      if (data.error) {
-        console.error('Error in function response:', data.error);
+      if (data?.error) {
+        console.error('❌ Error in function response:', data.error);
         toast.error(data.error.message || 'Failed to fetch authentication details');
         return;
       }
       
-      console.log('Successfully fetched auth details:', data.authDetails);
+      if (!data?.authDetails) {
+        console.error('❌ No auth details in response');
+        toast.error('No authentication details received');
+        return;
+      }
+      
+      console.log('✅ Successfully fetched auth details:', data.authDetails);
       setAuthDetails(data.authDetails);
       
     } catch (err) {
-      console.error('Error fetching user auth details:', err);
-      toast.error('Failed to fetch authentication details');
+      console.error('💥 Error fetching user auth details:', err);
+      toast.error('Failed to fetch authentication details - Network error');
     } finally {
       setIsLoading(false);
     }

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -111,7 +110,16 @@ const UserAuthDetailDialog: React.FC<UserAuthDetailDialogProps> = ({
           <div className="flex items-center justify-center p-8">
             <div className="text-center">
               <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
-              <p>Failed to load authentication details</p>
+              <p className="text-red-600 font-medium">Failed to load authentication details</p>
+              <p className="text-sm text-gray-500 mt-2">
+                This might be a temporary issue. Please try again in a moment.
+              </p>
+              <button 
+                onClick={() => onOpenChange(false)}
+                className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Close
+              </button>
             </div>
           </div>
         </DialogContent>
