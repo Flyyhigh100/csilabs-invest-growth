@@ -31,39 +31,83 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Generate a secure token
-    const token = crypto.randomUUID() + '-' + crypto.randomUUID();
+    // Generate a truly unique token using crypto.randomUUID() and timestamp
+    const timestamp = Date.now().toString();
+    const randomPart1 = crypto.randomUUID();
+    const randomPart2 = crypto.randomUUID();
+    const token = `${randomPart1}-${timestamp}-${randomPart2}`;
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
 
-    console.log('Generated token:', token.substring(0, 20) + '...');
+    console.log('Generated new unique token:', token.substring(0, 30) + '...');
+    console.log('Token timestamp:', timestamp);
 
-    // Clean up old magic links for this email
-    await supabase
+    // Clean up ALL old magic links for this email (expired, used, and unused)
+    console.log('Cleaning up all existing magic links for email:', email);
+    const { error: cleanupError } = await supabase
       .from('magic_links')
       .delete()
       .eq('email', email);
 
-    // Insert new magic link
+    if (cleanupError) {
+      console.error('Error cleaning up old magic links:', cleanupError);
+      // Continue anyway - this isn't critical
+    } else {
+      console.log('Successfully cleaned up old magic links');
+    }
+
+    // Also clean up any expired magic links globally
+    console.log('Cleaning up globally expired magic links...');
+    const { error: globalCleanupError } = await supabase
+      .from('magic_links')
+      .delete()
+      .lt('expires_at', new Date().toISOString());
+
+    if (globalCleanupError) {
+      console.error('Error with global cleanup:', globalCleanupError);
+      // Continue anyway
+    }
+
+    // Insert new magic link with the unique token
+    console.log('Inserting new magic link with token:', token.substring(0, 30) + '...');
     const { error: insertError } = await supabase
       .from('magic_links')
       .insert({
         email,
         token,
         expires_at: expiresAt.toISOString(),
+        used: false
       });
 
     if (insertError) {
       console.error('Error inserting magic link:', insertError);
-      throw new Error('Failed to create magic link');
+      throw new Error('Failed to create magic link: ' + insertError.message);
     }
 
-    console.log('Magic link inserted successfully');
+    console.log('Magic link inserted successfully with unique token');
+
+    // Verify the token was inserted correctly
+    const { data: verifyToken, error: verifyError } = await supabase
+      .from('magic_links')
+      .select('token, email, expires_at, used')
+      .eq('token', token)
+      .single();
+
+    if (verifyError || !verifyToken) {
+      console.error('Token verification failed:', verifyError);
+      throw new Error('Failed to verify token insertion');
+    }
+
+    console.log('Token verified in database:', {
+      token: verifyToken.token.substring(0, 30) + '...',
+      email: verifyToken.email,
+      used: verifyToken.used
+    });
 
     // Always use the production domain for magic link URLs
     const baseUrl = 'https://1millionstrongfightclub.com';
     const magicLinkUrl = `${baseUrl}/auth/magic-link?token=${token}`;
 
-    console.log('Magic link URL created:', magicLinkUrl.substring(0, 50) + '...');
+    console.log('Magic link URL created:', magicLinkUrl.substring(0, 60) + '...');
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({
@@ -121,12 +165,16 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log('Magic link email sent:', emailResponse);
+    console.log('Magic link email sent successfully:', {
+      emailId: emailResponse.data?.id,
+      token: token.substring(0, 30) + '...'
+    });
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Magic link sent to your email' 
+        message: 'Magic link sent to your email',
+        tokenPreview: token.substring(0, 20) + '...' // For debugging
       }),
       {
         status: 200,
