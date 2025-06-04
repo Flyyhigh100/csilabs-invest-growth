@@ -3,18 +3,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, Instagram, Facebook } from 'lucide-react';
 
-// Custom Threads icon component - simple @ symbol
+// Simple Threads "@" symbol component
 const ThreadsIcon = ({ className }: { className?: string }) => (
-  <svg 
-    className={className}
-    viewBox="0 0 24 24" 
-    fill="currentColor"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-    <path d="M12 6c-2.76 0-5 2.24-5 5s2.24 5 5 5c1.38 0 2.63-.56 3.54-1.46.91-.91 1.46-2.16 1.46-3.54 0-1.38-.56-2.63-1.46-3.54C14.63 6.56 13.38 6 12 6zm0 8c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
-    <path d="M12 8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-  </svg>
+  <div className={`${className} flex items-center justify-center font-bold text-lg`}>
+    @
+  </div>
 );
 
 const Footer: React.FC = () => {
