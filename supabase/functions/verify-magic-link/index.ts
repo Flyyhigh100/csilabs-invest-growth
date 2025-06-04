@@ -12,6 +12,8 @@ const handler = async (req: Request): Promise<Response> => {
   console.log('=== VERIFY MAGIC LINK START ===');
   console.log('Request method:', req.method);
   console.log('Request URL:', req.url);
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+  console.log('Timestamp:', new Date().toISOString());
 
   if (req.method === 'OPTIONS') {
     console.log('Handling CORS preflight request');
@@ -19,17 +21,24 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log('Parsing request body...');
+    console.log('🔍 VERIFY MAGIC LINK FUNCTION CALLED - This should appear in logs!');
+    
     const requestBody = await req.text();
-    console.log('Raw request body:', requestBody);
+    console.log('Raw request body received:', requestBody);
     
     let token: string;
-    let type: string = 'email'; // Default type
+    let type: string = 'email';
     
     try {
       const parsed = JSON.parse(requestBody);
       token = parsed.token;
       type = parsed.type || 'email';
+      console.log('Parsed request:', { 
+        hasToken: !!token, 
+        tokenLength: token?.length,
+        tokenPreview: token?.substring(0, 20) + '...',
+        type 
+      });
     } catch (parseError) {
       console.error('Failed to parse request body:', parseError);
       return new Response(
@@ -46,8 +55,8 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log('Token received:', token.substring(0, 20) + '...');
-    console.log('Type:', type);
+    console.log('Token received for verification:', token.substring(0, 20) + '...');
+    console.log('Verification type:', type);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -60,36 +69,30 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('Creating Supabase client...');
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Extract email from the token if it's embedded (Supabase format)
-    let email: string | null = null;
-    
-    // Try to decode the token to extract email
-    try {
-      // Supabase tokens are typically base64 encoded JSON
-      const decodedToken = atob(token);
-      const tokenData = JSON.parse(decodedToken);
-      email = tokenData.email;
-    } catch (decodeError) {
-      console.log('Could not decode token, will proceed with verification anyway');
-    }
-
-    if (email) {
-      console.log('Extracted email from token:', email);
-    }
-
     // Use Supabase's native verifyOtp method
-    console.log('Verifying OTP token with Supabase...');
+    console.log('🔐 Verifying OTP token with Supabase...');
     
-    const verifyData: any = {
+    const verifyPayload = {
       token: token,
       type: type as any
     };
+    
+    console.log('Verification payload:', { 
+      hasToken: !!verifyPayload.token,
+      type: verifyPayload.type 
+    });
 
-    if (email) {
-      verifyData.email = email;
-    }
+    const { data: verifyResult, error: verifyError } = await supabase.auth.verifyOtp(verifyPayload);
 
-    const { data: verifyResult, error: verifyError } = await supabase.auth.verifyOtp(verifyData);
+    console.log('Supabase verifyOtp response:', {
+      hasData: !!verifyResult,
+      hasUser: !!verifyResult?.user,
+      hasSession: !!verifyResult?.session,
+      userId: verifyResult?.user?.id,
+      userEmail: verifyResult?.user?.email,
+      hasError: !!verifyError,
+      errorMessage: verifyError?.message
+    });
 
     if (verifyError) {
       console.error('Error verifying OTP:', verifyError);
@@ -121,20 +124,30 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log('OTP verified successfully for user:', verifyResult.user.id);
+    console.log('✅ OTP verified successfully for user:', verifyResult.user.id);
+    console.log('Session tokens available:', {
+      hasAccessToken: !!verifyResult.session.access_token,
+      hasRefreshToken: !!verifyResult.session.refresh_token,
+      accessTokenLength: verifyResult.session.access_token?.length,
+      refreshTokenLength: verifyResult.session.refresh_token?.length
+    });
 
     // Return the session tokens
+    const response = {
+      success: true,
+      user: { 
+        id: verifyResult.user.id, 
+        email: verifyResult.user.email 
+      },
+      access_token: verifyResult.session.access_token,
+      refresh_token: verifyResult.session.refresh_token,
+      redirectUrl: '/dashboard/payments'
+    };
+
+    console.log('Returning successful verification response');
+
     return new Response(
-      JSON.stringify({ 
-        success: true,
-        user: { 
-          id: verifyResult.user.id, 
-          email: verifyResult.user.email 
-        },
-        access_token: verifyResult.session.access_token,
-        refresh_token: verifyResult.session.refresh_token,
-        redirectUrl: '/dashboard/payments'
-      }),
+      JSON.stringify(response),
       {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -142,12 +155,16 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
   } catch (error: any) {
-    console.error('Unhandled error in verify-magic-link function:', error);
+    console.error('🚨 Unhandled error in verify-magic-link function:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
+    
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Failed to verify magic link',
-        details: error.stack
+        details: error.stack,
+        timestamp: new Date().toISOString()
       }),
       {
         status: 500,

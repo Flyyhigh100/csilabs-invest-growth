@@ -11,14 +11,24 @@ interface MagicLinkRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log('=== SEND MAGIC LINK START ===');
+  console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { email }: MagicLinkRequest = await req.json();
+    const requestBody = await req.text();
+    console.log('Raw request body:', requestBody);
+    
+    const { email }: MagicLinkRequest = JSON.parse(requestBody);
     
     if (!email) {
+      console.error('No email provided in request');
       return new Response(
         JSON.stringify({ error: 'Email is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -31,13 +41,19 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Use Supabase's native generateLink method
+    // Determine the correct base URL for redirects
+    const requestUrl = new URL(req.url);
+    const origin = req.headers.get('origin') || 'https://1millionstrongfightclub.com';
+    console.log('Request origin:', origin);
+    console.log('Determined redirect base URL:', origin);
+
+    // Use Supabase's native generateLink method with proper redirect
     console.log('Generating Supabase magic link...');
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email: email,
       options: {
-        redirectTo: 'https://1millionstrongfightclub.com/auth/magic-link'
+        redirectTo: `${origin}/auth/magic-link`
       }
     });
 
@@ -52,15 +68,32 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log('Magic link generated successfully');
+    console.log('Link data structure:', {
+      hasProperties: !!linkData.properties,
+      hasActionLink: !!linkData.properties.action_link,
+      hasUser: !!linkData.user,
+      userEmail: linkData.user?.email
+    });
 
     // Extract the action link from Supabase's response
     const actionLink = linkData.properties.action_link;
     console.log('Action link created:', actionLink.substring(0, 100) + '...');
+    
+    // Parse the action link to understand its structure
+    const actionUrl = new URL(actionLink);
+    console.log('Action link analysis:', {
+      hostname: actionUrl.hostname,
+      pathname: actionUrl.pathname,
+      hasToken: actionUrl.searchParams.has('token'),
+      hasType: actionUrl.searchParams.has('type'),
+      allParams: Object.fromEntries(actionUrl.searchParams.entries())
+    });
 
-    // Always use the production domain for magic link URLs
+    // Use the production domain for email links
     const baseUrl = 'https://1millionstrongfightclub.com';
 
-    // Send email via Resend with custom domain for better deliverability
+    // Send email via Resend with enhanced logging
+    console.log('Sending email via Resend...');
     const emailResponse = await resend.emails.send({
       from: "1 Million Strong Fight Club <team@mail.1millionstrongfightclub.com>",
       to: [email],
@@ -107,6 +140,7 @@ const handler = async (req: Request): Promise<Response> => {
             <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
               <p>This link will expire in 1 hour for security reasons.</p>
               <p>If you didn't request this email, you can safely ignore it.</p>
+              <p><strong>For Hotmail/Outlook users:</strong> Please check your spam/junk folder if you don't see this email in your inbox.</p>
               <p style="text-align: center; margin-top: 20px;">
                 <strong>1 Million Strong Fight Club</strong> - Building Community Strength
               </p>
@@ -116,15 +150,32 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
+    console.log('Email sending result:', {
+      success: !!emailResponse.data,
+      emailId: emailResponse.data?.id,
+      error: emailResponse.error?.message
+    });
+
+    if (emailResponse.error) {
+      console.error('Failed to send email:', emailResponse.error);
+      throw new Error('Failed to send email: ' + emailResponse.error.message);
+    }
+
     console.log('Magic link email sent successfully:', {
       emailId: emailResponse.data?.id,
-      actionLinkPreview: actionLink.substring(0, 50) + '...'
+      actionLinkPreview: actionLink.substring(0, 50) + '...',
+      recipientEmail: email
     });
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Magic link sent to your email'
+        message: 'Magic link sent to your email',
+        debug: {
+          emailId: emailResponse.data?.id,
+          linkGenerated: true,
+          redirectUrl: `${origin}/auth/magic-link`
+        }
       }),
       {
         status: 200,
@@ -134,9 +185,11 @@ const handler = async (req: Request): Promise<Response> => {
 
   } catch (error: any) {
     console.error('Error in send-magic-link function:', error);
+    console.error('Error stack:', error.stack);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Failed to send magic link' 
+        error: error.message || 'Failed to send magic link',
+        details: error.stack
       }),
       {
         status: 500,
