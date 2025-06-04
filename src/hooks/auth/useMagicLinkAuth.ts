@@ -7,8 +7,10 @@ export const useMagicLinkAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const sendMagicLink = async (email: string): Promise<void> => {
-    console.log('📧 Sending magic link to:', email);
+    console.log('📧 PRODUCTION - Sending magic link to:', email);
     console.log('🌐 Current origin:', window.location.origin);
+    console.log('🕐 Timestamp:', new Date().toISOString());
+    
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('send-magic-link', {
@@ -36,12 +38,13 @@ export const useMagicLinkAuth = () => {
   };
 
   const verifyMagicLink = async (token: string): Promise<void> => {
-    console.log('🔐 Starting magic link verification for token:', token.substring(0, 20) + '...');
+    console.log('🔐 PRODUCTION - Starting magic link verification for token:', token.substring(0, 30) + '...');
     console.log('🔐 Token length:', token.length);
     console.log('🔐 Browser info:', {
       userAgent: navigator.userAgent,
       origin: window.location.origin,
-      url: window.location.href
+      url: window.location.href,
+      timestamp: new Date().toISOString()
     });
     
     setIsLoading(true);
@@ -61,7 +64,8 @@ export const useMagicLinkAuth = () => {
         hasData: !!data, 
         hasError: !!error,
         data: data ? JSON.stringify(data, null, 2) : null,
-        error: error ? JSON.stringify(error, null, 2) : null
+        error: error ? JSON.stringify(error, null, 2) : null,
+        timestamp: new Date().toISOString()
       });
 
       if (error) {
@@ -121,7 +125,8 @@ export const useMagicLinkAuth = () => {
           hasSession: !!sessionCheck.session,
           hasUser: !!sessionCheck.session?.user,
           userId: sessionCheck.session?.user?.id,
-          userEmail: sessionCheck.session?.user?.email
+          userEmail: sessionCheck.session?.user?.email,
+          timestamp: new Date().toISOString()
         });
         
         toast.success('Successfully signed in!');
@@ -135,7 +140,8 @@ export const useMagicLinkAuth = () => {
       console.error('❌ Error details:', {
         name: error.name,
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
+        timestamp: new Date().toISOString()
       });
       
       // Provide user-friendly error messages

@@ -9,10 +9,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
 const MagicLinkVerificationContent = () => {
-  console.log('🔍 MagicLinkVerification component rendering...');
+  console.log('🚀 PRODUCTION DEBUGGING - MagicLinkVerification component rendering...');
   console.log('🔗 Route /auth/magic-link successfully loaded!');
   console.log('🌐 Current URL:', window.location.href);
   console.log('🌐 Full search params:', window.location.search);
+  console.log('🌐 Hash fragment:', window.location.hash);
+  console.log('📍 Timestamp:', new Date().toISOString());
   
   const [searchParams] = useSearchParams();
   const { verifyMagicLink, isLoading } = useMagicLinkAuth();
@@ -21,34 +23,54 @@ const MagicLinkVerificationContent = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [hasAttemptedVerification, setHasAttemptedVerification] = useState(false);
 
-  // Extract all possible token parameters and log them
+  // Extract all possible token parameters and log them extensively
   const token = searchParams.get('token');
   const type = searchParams.get('type') || 'email';
   const accessToken = searchParams.get('access_token');
   const refreshToken = searchParams.get('refresh_token');
   const errorParam = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
+  const redirectTo = searchParams.get('redirect_to');
   
-  // Log all URL parameters for debugging
-  console.log('🔍 All URL parameters:', {
-    token: token ? `${token.substring(0, 20)}...` : 'null',
+  // Log all URL parameters for production debugging
+  console.log('🔍 PRODUCTION URL ANALYSIS:', {
+    currentUrl: window.location.href,
+    pathname: window.location.pathname,
+    search: window.location.search,
+    hash: window.location.hash,
+    origin: window.location.origin,
+    protocol: window.location.protocol,
+    hostname: window.location.hostname,
+    port: window.location.port
+  });
+
+  console.log('🔍 EXTRACTED PARAMETERS:', {
+    token: token ? `${token.substring(0, 30)}... (${token.length} chars)` : 'null',
     type,
-    accessToken: accessToken ? `${accessToken.substring(0, 20)}...` : 'null',
-    refreshToken: refreshToken ? `${refreshToken.substring(0, 20)}...` : 'null',
+    accessToken: accessToken ? `${accessToken.substring(0, 30)}... (${accessToken.length} chars)` : 'null',
+    refreshToken: refreshToken ? `${refreshToken.substring(0, 30)}... (${refreshToken.length} chars)` : 'null',
     error: errorParam,
     errorDescription,
+    redirectTo,
     allParams: Object.fromEntries(searchParams.entries()),
+    searchParamsString: searchParams.toString()
+  });
+
+  console.log('🔍 COMPONENT STATE:', {
     verificationState,
     isLoading,
     hasUser: !!user,
     hasAttemptedVerification,
-    userAgent: navigator.userAgent
+    userAgent: navigator.userAgent,
+    referrer: document.referrer,
+    timestamp: new Date().toISOString()
   });
 
   useEffect(() => {
-    console.log('🔍 useEffect triggered - analyzing URL parameters...');
+    console.log('🔍 useEffect triggered - PRODUCTION ANALYSIS...');
     console.log('🔍 Raw URL search:', window.location.search);
     console.log('🔍 Hash fragment:', window.location.hash);
+    console.log('🔍 Document referrer:', document.referrer);
     
     // Check for errors first
     if (errorParam) {
@@ -146,9 +168,10 @@ const MagicLinkVerificationContent = () => {
     }
 
     // If no tokens found, show error
-    console.error('❌ No authentication tokens found in URL');
+    console.error('❌ CRITICAL: No authentication tokens found in URL');
+    console.error('❌ This suggests the magic link redirect is not working properly');
     setVerificationState('error');
-    setErrorMessage('Invalid magic link - no authentication tokens provided');
+    setErrorMessage('Invalid magic link - no authentication tokens provided. Please check your email for a new link.');
     
   }, [token, accessToken, refreshToken, verifyMagicLink, hasAttemptedVerification, errorParam, errorDescription]);
 
@@ -168,8 +191,10 @@ const MagicLinkVerificationContent = () => {
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-cbis-blue" />
             <h2 className="text-xl font-semibold">Verifying your magic link...</h2>
             <p className="text-gray-600">Please wait while we sign you in.</p>
-            <div className="text-xs text-gray-400 bg-gray-50 p-2 rounded">
-              Debug: Checking {token ? 'custom token' : accessToken ? 'URL tokens' : 'no tokens found'}
+            <div className="text-xs text-gray-400 bg-gray-50 p-3 rounded">
+              <strong>Debug Info:</strong> Checking {token ? 'custom token' : accessToken ? 'URL tokens' : 'no tokens found'}<br/>
+              <strong>Timestamp:</strong> {new Date().toISOString()}<br/>
+              <strong>Environment:</strong> Production
             </div>
           </div>
         );
@@ -180,6 +205,9 @@ const MagicLinkVerificationContent = () => {
             <CheckCircle className="h-8 w-8 mx-auto text-green-600" />
             <h2 className="text-xl font-semibold text-green-700">Successfully signed in!</h2>
             <p className="text-gray-600">Redirecting you to your dashboard...</p>
+            <div className="text-xs text-gray-400 bg-green-50 p-2 rounded border border-green-200">
+              Authentication completed at {new Date().toISOString()}
+            </div>
           </div>
         );
 
@@ -197,18 +225,21 @@ const MagicLinkVerificationContent = () => {
                 <li>• Magic links expire after 1 hour for security</li>
                 <li>• Each magic link can only be used once</li>
                 <li>• Make sure you're using the most recent email</li>
+                <li>• Try opening the link in a different browser if issues persist</li>
               </ul>
             </div>
             
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
-              <h3 className="font-medium text-blue-800 mb-2">Debug Information:</h3>
+              <h3 className="font-medium text-blue-800 mb-2">Production Debug Information:</h3>
               <div className="text-xs text-blue-700 space-y-1">
-                <div>URL: {window.location.href}</div>
-                <div>Has token param: {token ? 'Yes' : 'No'}</div>
-                <div>Has access_token: {accessToken ? 'Yes' : 'No'}</div>
-                <div>Has refresh_token: {refreshToken ? 'Yes' : 'No'}</div>
-                <div>Error param: {errorParam || 'None'}</div>
-                <div>User Agent: {navigator.userAgent.includes('Chrome') ? 'Chrome' : navigator.userAgent.includes('Firefox') ? 'Firefox' : 'Other'}</div>
+                <div><strong>URL:</strong> {window.location.href}</div>
+                <div><strong>Has token param:</strong> {token ? 'Yes' : 'No'}</div>
+                <div><strong>Has access_token:</strong> {accessToken ? 'Yes' : 'No'}</div>
+                <div><strong>Has refresh_token:</strong> {refreshToken ? 'Yes' : 'No'}</div>
+                <div><strong>Error param:</strong> {errorParam || 'None'}</div>
+                <div><strong>Browser:</strong> {navigator.userAgent.includes('Chrome') ? 'Chrome' : navigator.userAgent.includes('Firefox') ? 'Firefox' : navigator.userAgent.includes('Safari') ? 'Safari' : 'Other'}</div>
+                <div><strong>Referrer:</strong> {document.referrer || 'Direct'}</div>
+                <div><strong>Timestamp:</strong> {new Date().toISOString()}</div>
               </div>
             </div>
             
@@ -241,7 +272,7 @@ const MagicLinkVerificationContent = () => {
         <Card>
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">
-              Magic Link Verification
+              🔐 Magic Link Verification
             </CardTitle>
             <CardDescription className="text-center">
               Processing your secure sign-in request
