@@ -8,6 +8,7 @@ import { Toaster } from 'sonner';
 import { NavbarContextProvider } from './contexts/NavbarContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import ErrorBoundary from './components/ErrorBoundary';
+import RouteTest from './components/RouteTest';
 import TokenPricingPage from './pages/Admin/TokenPricing';
 import TransactionAnalyticsPage from './pages/Admin/TransactionAnalytics';
 
@@ -58,6 +59,7 @@ const queryClient = new QueryClient();
 
 export default function App() {
   console.log('🚀 App component rendering...');
+  console.log('🔗 Router configuration loaded - magic link route should be available at /auth/magic-link');
   
   return (
     <ErrorBoundary>
@@ -69,6 +71,9 @@ export default function App() {
                 <TooltipProvider>
                   <GlobalLoading />
                   <Routes>
+                    {/* Debug route to test routing */}
+                    <Route path="/test-route" element={<RouteTest />} />
+                    
                     {/* Public Routes */}
                     <Route path="/" element={<Index />} />
                     <Route path="/login" element={<Login />} />
@@ -77,6 +82,8 @@ export default function App() {
                     <Route path="/signup" element={<Register />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
+                    
+                    {/* Magic Link Route - Enhanced with debugging */}
                     <Route 
                       path="/auth/magic-link" 
                       element={
@@ -98,6 +105,7 @@ export default function App() {
                         </ErrorBoundary>
                       } 
                     />
+                    
                     <Route path="/research-documents" element={<ResearchDocuments />} />
                     <Route path="/token-info" element={<TokenInfo />} />
                     <Route path="/contact" element={<ContactUs />} />

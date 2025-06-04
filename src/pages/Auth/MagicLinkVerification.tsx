@@ -10,6 +10,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 
 const MagicLinkVerificationContent = () => {
   console.log('🔍 MagicLinkVerification component rendering...');
+  console.log('🔗 Route /auth/magic-link successfully loaded!');
   
   const [searchParams] = useSearchParams();
   const { verifyMagicLink, isLoading } = useMagicLinkAuth();
@@ -23,11 +24,13 @@ const MagicLinkVerificationContent = () => {
     token: token ? `${token.substring(0, 20)}...` : 'null',
     verificationState,
     isLoading,
-    hasUser: !!user
+    hasUser: !!user,
+    currentURL: window.location.href
   });
 
   useEffect(() => {
     console.log('🔍 useEffect triggered with token:', token ? `${token.substring(0, 20)}...` : 'null');
+    console.log('🔍 Current page URL:', window.location.href);
     
     if (!token) {
       console.error('❌ No token found in URL parameters');
@@ -77,6 +80,7 @@ const MagicLinkVerificationContent = () => {
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-cbis-blue" />
             <h2 className="text-xl font-semibold">Verifying your magic link...</h2>
             <p className="text-gray-600">Please wait while we sign you in.</p>
+            <p className="text-xs text-gray-400">Debug: Route loaded successfully, processing token...</p>
           </div>
         );
 
@@ -150,6 +154,7 @@ const MagicLinkVerificationContent = () => {
 
 const MagicLinkVerification = () => {
   console.log('🚀 MagicLinkVerification wrapper component rendering...');
+  console.log('🔗 Magic link route is working correctly!');
   
   return (
     <ErrorBoundary>
