@@ -432,243 +432,246 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
         </Button>
       </div>
     
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Wallet Address</TableHead>
-              <TableHead>KYC Status</TableHead>
-              <TableHead className="text-right">
-                Transactions{' '}
-                {isLoadingTransactionStats && (
-                  <RefreshCw className="h-3 w-3 inline-block animate-spin ml-1" />
-                )}
-              </TableHead>
-              <TableHead>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div>Value <span className="text-xs text-green-600">(Real*)</span></div>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <div className="text-xs">
-                        <div className="font-semibold">Value (Real*)</div>
-                        <div>Only completed, non-test transactions</div>
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredUsers.length > 0 ? (
-              filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">
-                    {user.first_name} {user.last_name}
-                  </TableCell>
-                  <TableCell>{user.email || 'N/A'}</TableCell>
-                  <TableCell>
-                    {user.wallet_address ? (
-                      <div className="flex items-center">
-                        <Wallet className="h-3 w-3 mr-1" />
-                        <div className="font-mono text-xs truncate max-w-[150px]">
-                          {user.wallet_address}
+      {/* Add horizontal scroll container wrapper */}
+      <div className="w-full overflow-x-auto border rounded-md">
+        <div className="min-w-[1200px]"> {/* Minimum width to ensure proper column spacing */}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-[150px]">Name</TableHead>
+                <TableHead className="min-w-[200px]">Email</TableHead>
+                <TableHead className="min-w-[180px]">Wallet Address</TableHead>
+                <TableHead className="min-w-[120px]">KYC Status</TableHead>
+                <TableHead className="text-right min-w-[140px]">
+                  Transactions{' '}
+                  {isLoadingTransactionStats && (
+                    <RefreshCw className="h-3 w-3 inline-block animate-spin ml-1" />
+                  )}
+                </TableHead>
+                <TableHead className="min-w-[160px]">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>Value <span className="text-xs text-green-600">(Real*)</span></div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <div className="text-xs">
+                          <div className="font-semibold">Value (Real*)</div>
+                          <div>Only completed, non-test transactions</div>
                         </div>
-                      </div>
-                    ) : 'Not set'}
-                  </TableCell>
-                  <TableCell>
-                    {renderKycStatusBadge(user.kyc_status, user.has_kyc_record, user.kyc_complete)}
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center justify-end gap-1">
-                            {/* Display the real transaction count */}
-                            <span>{user.transaction_count}</span>
-                            
-                            {/* Test data indicator */}
-                            {user.has_test_data && (
-                              <span className="inline-flex items-center">
-                                <TestIconLucide className="h-3.5 w-3.5 text-amber-500" />
-                                <span className="text-xs text-amber-500 ml-0.5">+{user.test_transaction_count}</span>
-                              </span>
-                            )}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </TableHead>
+                <TableHead className="min-w-[300px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">
+                      {user.first_name} {user.last_name}
+                    </TableCell>
+                    <TableCell>{user.email || 'N/A'}</TableCell>
+                    <TableCell>
+                      {user.wallet_address ? (
+                        <div className="flex items-center">
+                          <Wallet className="h-3 w-3 mr-1" />
+                          <div className="font-mono text-xs truncate max-w-[150px]">
+                            {user.wallet_address}
                           </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="w-64">
-                          <div className="text-xs">
-                            <div className="font-semibold">Transaction Stats:</div>
-                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-1">
-                              <div className="font-semibold text-green-600">Real (completed):</div>
-                              <div className="text-right text-green-600">{user.completed_transaction_count}</div>
-                              <div className="text-green-600">Real value:</div>
-                              <div className="text-right text-green-600">{formatCurrency(user.completed_transaction_value)}</div>
+                        </div>
+                      ) : 'Not set'}
+                    </TableCell>
+                    <TableCell>
+                      {renderKycStatusBadge(user.kyc_status, user.has_kyc_record, user.kyc_complete)}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center justify-end gap-1">
+                              {/* Display the real transaction count */}
+                              <span>{user.transaction_count}</span>
                               
-                              {user.pending_transaction_count > 0 && (
-                                <>
-                                  <div className="text-amber-600">Pending transactions:</div>
-                                  <div className="text-right text-amber-600">{user.pending_transaction_count}</div>
-                                  <div className="text-amber-600">Pending value:</div>
-                                  <div className="text-right text-amber-600">{formatCurrency(user.pending_transaction_value)}</div>
-                                </>
-                              )}
-                              
-                              {user.cancelled_transaction_count > 0 && (
-                                <>
-                                  <div className="text-gray-600">Cancelled transactions:</div>
-                                  <div className="text-right text-gray-600">{user.cancelled_transaction_count}</div>
-                                  <div className="text-gray-600">Cancelled value:</div>
-                                  <div className="text-right text-gray-600">{formatCurrency(user.cancelled_transaction_value)}</div>
-                                </>
-                              )}
-                              
-                              {user.failed_transaction_count > 0 && (
-                                <>
-                                  <div className="text-red-600">Failed transactions:</div>
-                                  <div className="text-right text-red-600">{user.failed_transaction_count}</div>
-                                  <div className="text-red-600">Failed value:</div>
-                                  <div className="text-right text-red-600">{formatCurrency(user.failed_transaction_value)}</div>
-                                </>
-                              )}
-                              
-                              <div>Total transactions:</div>
-                              <div className="text-right">{user.transaction_count}</div>
-                              <div>Total value:</div>
-                              <div className="text-right">{formatCurrency(user.transaction_value)}</div>
-                              
-                              {user.latest_transaction && (
-                                <>
-                                  <div>Last real TX:</div>
-                                  <div className="text-right">{new Date(user.latest_transaction).toLocaleDateString()}</div>
-                                </>
-                              )}
-                              
+                              {/* Test data indicator */}
                               {user.has_test_data && (
-                                <>
-                                  <div className="text-amber-600 font-semibold mt-1">Test transactions:</div>
-                                  <div className="text-amber-600 text-right mt-1">{user.test_transaction_count}</div>
-                                  <div className="text-amber-600">Test value:</div>
-                                  <div className="text-amber-600 text-right">{formatCurrency(user.test_transaction_value)}</div>
-                                </>
+                                <span className="inline-flex items-center">
+                                  <TestIconLucide className="h-3.5 w-3.5 text-amber-500" />
+                                  <span className="text-xs text-amber-500 ml-0.5">+{user.test_transaction_count}</span>
+                                </span>
                               )}
                             </div>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    {user.latest_transaction && (
-                      <span className="block text-xs text-muted-foreground">
-                        Last: {new Date(user.latest_transaction).toLocaleDateString()}
-                      </span>
-                    )}
-                    
-                    {/* Add status indicators for pending/cancelled/failed transactions */}
-                    <div className="flex flex-wrap gap-1 justify-end mt-1">
-                      {user.pending_transaction_count > 0 && (
-                        <Badge variant="outline" className="text-[10px] px-1 py-0 bg-amber-50 text-amber-700 border-amber-200">
-                          {user.pending_transaction_count} pending
-                        </Badge>
-                      )}
-                      {user.cancelled_transaction_count > 0 && (
-                        <Badge variant="outline" className="text-[10px] px-1 py-0 bg-gray-50 text-gray-700 border-gray-200">
-                          {user.cancelled_transaction_count} cancelled
-                        </Badge>
-                      )}
-                      {user.failed_transaction_count > 0 && (
-                        <Badge variant="outline" className="text-[10px] px-1 py-0 bg-red-50 text-red-700 border-red-200">
-                          {user.failed_transaction_count} failed
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center gap-1">
-                            <span className="text-green-600 font-medium">
-                              {formatCurrency(user.completed_transaction_value > 0 ? user.completed_transaction_value : 0)}
-                            </span>
-                            {user.pending_transaction_count > 0 && (
-                              <span className="text-xs text-amber-600">
-                                (+{formatCurrency(user.pending_transaction_value)} pending)
-                              </span>
-                            )}
-                            {user.test_transaction_value > 0 && (
-                              <span className="text-xs text-amber-500">
-                                (+{formatCurrency(user.test_transaction_value)} test)
-                              </span>
-                            )}
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="w-52">
-                          <div className="text-xs">
-                            <div className="text-green-600 font-semibold">Real value (completed): {formatCurrency(user.completed_transaction_value)}</div>
-                            {user.pending_transaction_value > 0 && (
-                              <div className="text-amber-600">Pending value: {formatCurrency(user.pending_transaction_value)}</div>
-                            )}
-                            {user.cancelled_transaction_value > 0 && (
-                              <div className="text-gray-600">Cancelled value: {formatCurrency(user.cancelled_transaction_value)}</div>
-                            )}
-                            {user.failed_transaction_value > 0 && (
-                              <div className="text-red-600">Failed value: {formatCurrency(user.failed_transaction_value)}</div>
-                            )}
-                            {user.test_transaction_value > 0 && (
-                              <div className="text-amber-500">Test value: {formatCurrency(user.test_transaction_value)}</div>
-                            )}
-                            <div className="font-semibold mt-1">
-                              Total: {formatCurrency(user.transaction_value + user.test_transaction_value)}
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="w-64">
+                            <div className="text-xs">
+                              <div className="font-semibold">Transaction Stats:</div>
+                              <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-1">
+                                <div className="font-semibold text-green-600">Real (completed):</div>
+                                <div className="text-right text-green-600">{user.completed_transaction_count}</div>
+                                <div className="text-green-600">Real value:</div>
+                                <div className="text-right text-green-600">{formatCurrency(user.completed_transaction_value)}</div>
+                                
+                                {user.pending_transaction_count > 0 && (
+                                  <>
+                                    <div className="text-amber-600">Pending transactions:</div>
+                                    <div className="text-right text-amber-600">{user.pending_transaction_count}</div>
+                                    <div className="text-amber-600">Pending value:</div>
+                                    <div className="text-right text-amber-600">{formatCurrency(user.pending_transaction_value)}</div>
+                                  </>
+                                )}
+                                
+                                {user.cancelled_transaction_count > 0 && (
+                                  <>
+                                    <div className="text-gray-600">Cancelled transactions:</div>
+                                    <div className="text-right text-gray-600">{user.cancelled_transaction_count}</div>
+                                    <div className="text-gray-600">Cancelled value:</div>
+                                    <div className="text-right text-gray-600">{formatCurrency(user.cancelled_transaction_value)}</div>
+                                  </>
+                                )}
+                                
+                                {user.failed_transaction_count > 0 && (
+                                  <>
+                                    <div className="text-red-600">Failed transactions:</div>
+                                    <div className="text-right text-red-600">{user.failed_transaction_count}</div>
+                                    <div className="text-red-600">Failed value:</div>
+                                    <div className="text-right text-red-600">{formatCurrency(user.failed_transaction_value)}</div>
+                                  </>
+                                )}
+                                
+                                <div>Total transactions:</div>
+                                <div className="text-right">{user.transaction_count}</div>
+                                <div>Total value:</div>
+                                <div className="text-right">{formatCurrency(user.transaction_value)}</div>
+                                
+                                {user.latest_transaction && (
+                                  <>
+                                    <div>Last real TX:</div>
+                                    <div className="text-right">{new Date(user.latest_transaction).toLocaleDateString()}</div>
+                                  </>
+                                )}
+                                
+                                {user.has_test_data && (
+                                  <>
+                                    <div className="text-amber-600 font-semibold mt-1">Test transactions:</div>
+                                    <div className="text-amber-600 text-right mt-1">{user.test_transaction_count}</div>
+                                    <div className="text-amber-600">Test value:</div>
+                                    <div className="text-amber-600 text-right">{formatCurrency(user.test_transaction_value)}</div>
+                                  </>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleViewAuthDetails(user)}
-                      >
-                        <Shield className="h-4 w-4 mr-1" />
-                        Auth Details
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => onCheckKyc(user.id)}
-                      >
-                        Check KYC
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleViewDetails(user)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        Details
-                      </Button>
-                    </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      {user.latest_transaction && (
+                        <span className="block text-xs text-muted-foreground">
+                          Last: {new Date(user.latest_transaction).toLocaleDateString()}
+                        </span>
+                      )}
+                      
+                      {/* Add status indicators for pending/cancelled/failed transactions */}
+                      <div className="flex flex-wrap gap-1 justify-end mt-1">
+                        {user.pending_transaction_count > 0 && (
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 bg-amber-50 text-amber-700 border-amber-200">
+                            {user.pending_transaction_count} pending
+                          </Badge>
+                        )}
+                        {user.cancelled_transaction_count > 0 && (
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 bg-gray-50 text-gray-700 border-gray-200">
+                            {user.cancelled_transaction_count} cancelled
+                          </Badge>
+                        )}
+                        {user.failed_transaction_count > 0 && (
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 bg-red-50 text-red-700 border-red-200">
+                            {user.failed_transaction_count} failed
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1">
+                              <span className="text-green-600 font-medium">
+                                {formatCurrency(user.completed_transaction_value > 0 ? user.completed_transaction_value : 0)}
+                              </span>
+                              {user.pending_transaction_count > 0 && (
+                                <span className="text-xs text-amber-600">
+                                  (+{formatCurrency(user.pending_transaction_value)} pending)
+                                </span>
+                              )}
+                              {user.test_transaction_value > 0 && (
+                                <span className="text-xs text-amber-500">
+                                  (+{formatCurrency(user.test_transaction_value)} test)
+                                </span>
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="w-52">
+                            <div className="text-xs">
+                              <div className="text-green-600 font-semibold">Real value (completed): {formatCurrency(user.completed_transaction_value)}</div>
+                              {user.pending_transaction_value > 0 && (
+                                <div className="text-amber-600">Pending value: {formatCurrency(user.pending_transaction_value)}</div>
+                              )}
+                              {user.cancelled_transaction_value > 0 && (
+                                <div className="text-gray-600">Cancelled value: {formatCurrency(user.cancelled_transaction_value)}</div>
+                              )}
+                              {user.failed_transaction_value > 0 && (
+                                <div className="text-red-600">Failed value: {formatCurrency(user.failed_transaction_value)}</div>
+                              )}
+                              {user.test_transaction_value > 0 && (
+                                <div className="text-amber-500">Test value: {formatCurrency(user.test_transaction_value)}</div>
+                              )}
+                              <div className="font-semibold mt-1">
+                                Total: {formatCurrency(user.transaction_value + user.test_transaction_value)}
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewAuthDetails(user)}
+                        >
+                          <Shield className="h-4 w-4 mr-1" />
+                          Auth Details
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => onCheckKyc(user.id)}
+                        >
+                          Check KYC
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewDetails(user)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Details
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                    No users found
                   </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                  No users found
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
       
       <div className="mt-4 text-xs text-muted-foreground flex items-center">
