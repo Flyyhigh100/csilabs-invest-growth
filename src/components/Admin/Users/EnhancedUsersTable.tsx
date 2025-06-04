@@ -341,6 +341,7 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
     }
   };
 
+  // Render the KYC status badge
   const renderKycStatusBadge = (status?: string, hasKycRecord?: boolean, kycComplete?: boolean) => {
     if (hasKycRecord === false) {
       return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100 flex items-center gap-1">
@@ -368,6 +369,7 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
     }
   };
 
+  // Map users to enhanced users with transaction stats
   const enhancedUsers: EnhancedUser[] = users.map(user => {
     const stats = transactionStats[user.id] || { 
       count: 0, 
@@ -408,6 +410,7 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
     };
   });
 
+  // Filter users based on search query
   const filteredUsers = enhancedUsers.filter(user => {
     if (!searchQuery) return true;
     
@@ -420,11 +423,13 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
     );
   });
 
+  // Handle view details for a user
   const handleViewDetails = (user: User) => {
     setSelectedUser(user);
     setIsDetailDialogOpen(true);
   };
 
+  // Handle view auth details for a user
   const handleViewAuthDetails = (user: User) => {
     setSelectedUser(user);
     fetchUserAuthDetails(user.id);
@@ -454,12 +459,8 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
         {/* Top floating scrollbar */}
         <div 
           ref={topScrollRef}
-          className="w-full overflow-x-auto mb-2 bg-gray-200 rounded-md"
+          className="w-full overflow-x-auto mb-2 bg-gray-200 rounded-md scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-200"
           onScroll={handleTopScroll}
-          style={{
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#64748b #e2e8f0'
-          }}
         >
           <div className="min-w-[1200px] h-4 bg-transparent"></div>
         </div>
@@ -467,18 +468,9 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
         {/* Table container with hidden scrollbar */}
         <div 
           ref={tableContainerRef}
-          className="w-full overflow-x-auto border rounded-md"
+          className="w-full overflow-x-auto border rounded-md [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           onScroll={handleTableScroll}
-          style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none'
-          }}
         >
-          <style jsx>{`
-            div::-webkit-scrollbar {
-              display: none;
-            }
-          `}</style>
           <div className="min-w-[1200px]">
             <Table>
               <TableHeader>
@@ -568,14 +560,14 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className="flex items-center gap-1">
-                                {/* Display the real transaction count */}
-                                <span>{user.transaction_count}</span>
+                                {/* Display the completed transaction value (real money) */}
+                                <span>{formatCurrency(user.completed_transaction_value)}</span>
                                 
                                 {/* Test data indicator */}
                                 {user.has_test_data && (
                                   <span className="inline-flex items-center">
                                     <TestIconLucide className="h-3.5 w-3.5 text-amber-500" />
-                                    <span className="text-xs text-amber-500 ml-0.5">+{user.test_transaction_count}</span>
+                                    <span className="text-xs text-amber-500 ml-0.5">+{formatCurrency(user.test_completed_value)}</span>
                                   </span>
                                 )}
                               </div>
