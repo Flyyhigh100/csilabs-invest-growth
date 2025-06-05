@@ -245,8 +245,8 @@ serve(async (req) => {
       // Solana network
       { wallet_address: 'ESbg8PzA6atCgaq5ZtgxQN2XcixsBzag87Ci4dNRLGjb', currency: 'SOL', network: 'solana', token_address: null },
       
-      // Bitcoin network (placeholder address - you mentioned you need to find it)
-      { wallet_address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', currency: 'BTC', network: 'bitcoin', token_address: null }
+      // Bitcoin network (updated with correct address)
+      { wallet_address: 'bc1pqxs99swgqt9u39tt3206zfkrpscv3jk9jm2l8rdgyzznpmlwsfus6ujdc4', currency: 'BTC', network: 'bitcoin', token_address: null }
     ];
 
     // Insert actual wallet addresses
