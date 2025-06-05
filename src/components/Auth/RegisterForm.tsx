@@ -10,8 +10,8 @@ import RegisterFormContainer from './FormContainers/RegisterFormContainer';
 import IconInput from './FormInputs/IconInput';
 import PasswordInput from './FormInputs/PasswordInput';
 import NameInputGroup from './FormInputs/NameInputGroup';
-import PhoneInput from './FormInputs/PhoneInput';
-import AddressInputGroup from './FormInputs/AddressInputGroup';
+import SharedPhoneInput from '@/components/shared/FormComponents/SharedPhoneInput';
+import SharedAddressInputGroup from '@/components/shared/FormComponents/SharedAddressInputGroup';
 
 interface RegisterFormProps {
   onSuccess: () => void;
@@ -78,9 +78,17 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
           icon={Mail}
         />
         
-        <PhoneInput form={form} />
+        <SharedPhoneInput 
+          form={form} 
+          fieldName="phoneNumber" 
+          required={true}
+        />
         
-        <AddressInputGroup form={form} />
+        <SharedAddressInputGroup 
+          form={form} 
+          fieldPrefix="address" 
+          required={true}
+        />
         
         <PasswordInput
           form={form}

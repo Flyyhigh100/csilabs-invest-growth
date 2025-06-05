@@ -323,47 +323,62 @@ export type Database = {
       }
       profiles: {
         Row: {
+          city: string | null
           created_at: string
           email: string | null
           first_name: string | null
           id: string
           last_name: string | null
           magic_link_preference: boolean | null
+          phone_number: string | null
+          postal_code: string | null
           preferred_network: string | null
           rejection_reason: string | null
           role: string | null
           solana_wallet_address: string | null
+          state_province: string | null
           status: string | null
+          street_address: string | null
           updated_at: string
           wallet_address: string | null
         }
         Insert: {
+          city?: string | null
           created_at?: string
           email?: string | null
           first_name?: string | null
           id: string
           last_name?: string | null
           magic_link_preference?: boolean | null
+          phone_number?: string | null
+          postal_code?: string | null
           preferred_network?: string | null
           rejection_reason?: string | null
           role?: string | null
           solana_wallet_address?: string | null
+          state_province?: string | null
           status?: string | null
+          street_address?: string | null
           updated_at?: string
           wallet_address?: string | null
         }
         Update: {
+          city?: string | null
           created_at?: string
           email?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
           magic_link_preference?: boolean | null
+          phone_number?: string | null
+          postal_code?: string | null
           preferred_network?: string | null
           rejection_reason?: string | null
           role?: string | null
           solana_wallet_address?: string | null
+          state_province?: string | null
           status?: string | null
+          street_address?: string | null
           updated_at?: string
           wallet_address?: string | null
         }
