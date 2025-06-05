@@ -1,17 +1,17 @@
-
 import { User } from '@/hooks/admin/useAdminUsers';
 import { formatTimestamp } from '../date';
 
 /**
- * Converts user data to CSV format
+ * Converts user data to CSV format with separate wallet address columns
  */
 export const generateUsersCsv = (users: User[]): string => {
-  // Define CSV headers
+  // Define CSV headers with separate wallet address columns
   const headers = [
     'First Name',
     'Last Name',
     'Email',
-    'Wallet Address',
+    'Polygon Address',
+    'Solana Address',
     'KYC Status',
     'Registration Date',
     'User ID'
@@ -23,6 +23,7 @@ export const generateUsersCsv = (users: User[]): string => {
     escapeCsvField(user.last_name || ''),
     escapeCsvField(user.email || ''),
     escapeCsvField(user.wallet_address || ''),
+    escapeCsvField(user.solana_wallet_address || ''),
     escapeCsvField(user.kyc_status || 'Not started'),
     escapeCsvField(formatTimestamp(user.created_at)),
     escapeCsvField(user.id)

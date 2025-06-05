@@ -1,3 +1,4 @@
+
 import { PendingTransactionWithProfile } from "@/hooks/admin/usePendingTransactions";
 
 /**
@@ -20,49 +21,103 @@ const calculateTokenAmount = (tx: PendingTransactionWithProfile): number => {
 };
 
 /**
+ * Enhanced network detection and wallet address selection
+ */
+const getNetworkAndAddress = (tx: PendingTransactionWithProfile): { network: string; address: string } => {
+  // Check if user has both addresses
+  const polygonAddress = tx.profiles?.wallet_address;
+  const solanaAddress = tx.profiles?.solana_wallet_address;
+  
+  // First, check if the transaction specifies a network preference
+  if (tx.payment_method?.toLowerCase().includes('solana') || 
+      tx.wallet_address?.startsWith('sol:') ||
+      (tx.wallet_address && tx.wallet_address.length > 44)) { // Solana addresses are typically 44 chars
+    return {
+      network: 'Solana',
+      address: solanaAddress || tx.wallet_address?.replace('sol:', '') || tx.wallet_address || ''
+    };
+  }
+  
+  // Check user's preferred network from profile
+  if (tx.profiles?.preferred_network === 'solana' && solanaAddress) {
+    return {
+      network: 'Solana',
+      address: solanaAddress
+    };
+  }
+  
+  // Default to Polygon if available, otherwise use what's available
+  if (polygonAddress) {
+    return {
+      network: 'Polygon',
+      address: polygonAddress
+    };
+  }
+  
+  if (solanaAddress) {
+    return {
+      network: 'Solana', 
+      address: solanaAddress
+    };
+  }
+  
+  // Fallback to transaction wallet address
+  return {
+    network: 'Unknown',
+    address: tx.wallet_address || ''
+  };
+};
+
+/**
  * Creates and downloads a CSV file with pending token distribution data (detailed version)
  */
 export const downloadPendingDistributionsCSV = (transactions: PendingTransactionWithProfile[], simplified = false): void => {
   // Define CSV headers based on format type
   const headers = simplified 
-    ? ['Wallet Address', 'CSL Tokens'] 
-    : ['Date', 'User Name', 'Email', 'USD Amount', 'CSL Tokens', 'Token Price', 'Price Source', 'Wallet Address', 'Network'];
+    ? ['Wallet Address', 'CSL Tokens', 'Network'] 
+    : ['Date', 'User Name', 'Email', 'USD Amount', 'CSL Tokens', 'Token Price', 'Price Source', 'Polygon Address', 'Solana Address', 'Distribution Network', 'Distribution Address'];
   
-  // Format transaction data for CSV with enhanced token calculation
+  // Format transaction data for CSV with enhanced token calculation and network handling
   const rows = transactions.map(tx => {
     // Enhanced token amount calculation with source tracking
     const tokenAmount = calculateTokenAmount(tx);
     const hasStoredTokenData = !!(tx.token_amount && tx.token_price);
     const priceSource = hasStoredTokenData ? 'Purchase Time' : 'Fallback';
     
-    // Determine network with enhanced logic
-    const isSolanaWallet = tx.wallet_address?.startsWith('sol:') || 
-                         tx.payment_method?.toLowerCase().includes('solana') ||
-                         tx.wallet_address?.length > 42; // Simple heuristic, Solana addresses are longer
+    // Get network and address information
+    const { network, address } = getNetworkAndAddress(tx);
     
-    const network = isSolanaWallet ? 'Solana' : 'Polygon';
-    
-    // Clean the wallet address (remove any network prefixes)
-    const cleanWalletAddress = tx.wallet_address?.startsWith('sol:') 
-      ? tx.wallet_address.substring(4) 
-      : tx.wallet_address;
+    const userName = tx.profiles ? 
+      `${tx.profiles.first_name || ''} ${tx.profiles.last_name || ''}`.trim() : 
+      'Unknown User';
+      
+    const email = tx.profiles?.email || '';
+    const polygonAddress = tx.profiles?.wallet_address || '';
+    const solanaAddress = tx.profiles?.solana_wallet_address || '';
     
     if (simplified) {
-      // For simplified version - just wallet and token amount (for MultiSender)
-      return [cleanWalletAddress, tokenAmount.toFixed(2)];
+      // For simplified version - wallet, token amount, and network (for MultiSender)
+      return [address, tokenAmount.toFixed(2), network];
     } else {
-      // For detailed version - all fields including price source
-      const userName = tx.profiles ? 
-        `${tx.profiles.first_name || ''} ${tx.profiles.last_name || ''}`.trim() : 
-        'Unknown User';
-        
-      const email = tx.profiles?.email || '';
+      // For detailed version - all fields including both addresses
       const date = new Date(tx.created_at).toLocaleDateString();
       const usdAmount = tx.amount.toFixed(2);
       const formattedTokenAmount = tokenAmount.toFixed(2);
       const tokenPrice = tx.token_price ? tx.token_price.toFixed(4) : 'N/A';
       
-      return [date, userName, email, usdAmount, formattedTokenAmount, tokenPrice, priceSource, cleanWalletAddress, network];
+      return [
+        date, 
+        userName, 
+        email, 
+        usdAmount, 
+        formattedTokenAmount, 
+        tokenPrice, 
+        priceSource, 
+        polygonAddress,
+        solanaAddress,
+        network,
+        address
+      ];
     }
   });
   
