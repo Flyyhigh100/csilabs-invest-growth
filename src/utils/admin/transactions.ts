@@ -9,7 +9,7 @@ export const markTokensAsSent = async (transactionId: string, blockchainTxId: st
     // Call the admin-operations edge function instead of direct database update
     const { data, error } = await supabase.functions.invoke('admin-operations', {
       body: {
-        action: 'markTokensSent',
+        operation: 'markTokensSent',
         data: {
           transactionId,
           blockchainTxId,
