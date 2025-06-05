@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -130,107 +131,122 @@ async function fetchSolanaBalance(address: string): Promise<number> {
   }
 }
 
-// Updated crypto price fetching with current market prices and Moralis as primary source
+// Updated to use CoinGecko API for consistent pricing with frontend
 async function fetchCryptoPrices(): Promise<Record<string, number>> {
   try {
-    const moralisApiKey = Deno.env.get('MORALIS_API_KEY');
-    if (!moralisApiKey) {
-      console.log('No Moralis API key found, using current fallback prices');
-      return getCurrentFallbackPrices();
-    }
+    console.log('Fetching prices from CoinGecko API...');
+    
+    // CoinGecko coin IDs mapping (same as frontend)
+    const coinGeckoIds = [
+      'bitcoin',
+      'ethereum', 
+      'binancecoin',
+      'solana',
+      'matic-network',
+      'tether',
+      'usd-coin',
+      'binance-usd',
+      'dai'
+    ].join(',');
 
-    const prices: Record<string, number> = {
-      // Stablecoins always $1.00
-      'USDT': 1.0,
-      'USDC': 1.0,
-      'BUSD': 1.0,
-      'DAI': 1.0
-    };
-
-    // Updated token addresses for accurate price lookups
-    const tokenPriceQueries = [
-      { symbol: 'BTC', address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599', chain: 'eth' }, // WBTC
-      { symbol: 'ETH', address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', chain: 'eth' }, // WETH
-      { symbol: 'POL', address: '0x455e53408b856ef23bcab6dfaf2a825b89bd2d90', chain: 'eth' }, // POL token
-      { symbol: 'BNB', address: '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c', chain: 'bsc' }, // WBNB
-      { symbol: 'SOL', address: '0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0', chain: 'eth' }, // SOL on Ethereum
-    ];
-
-    // Fetch prices from Moralis with better error handling
-    for (const token of tokenPriceQueries) {
-      try {
-        const response = await fetch(
-          `https://deep-index.moralis.io/api/v2/erc20/${token.address}/price?chain=${token.chain}`,
-          {
-            headers: {
-              'X-API-Key': moralisApiKey,
-              'accept': 'application/json'
-            }
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          const price = parseFloat(data.usdPrice) || 0;
-          
-          // Price validation - reject obviously wrong prices
-          if (isValidPrice(token.symbol, price)) {
-            prices[token.symbol] = price;
-            console.log(`✅ Moralis price for ${token.symbol}: $${price}`);
-          } else {
-            console.warn(`❌ Invalid price for ${token.symbol}: $${price}, using fallback`);
-            prices[token.symbol] = getCurrentFallbackPrices()[token.symbol] || 0;
-          }
-        } else {
-          console.error(`Moralis API error for ${token.symbol}: ${response.status}`);
-          prices[token.symbol] = getCurrentFallbackPrices()[token.symbol] || 0;
+    const response = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${coinGeckoIds}&vs_currencies=usd&include_24hr_change=true`,
+      {
+        headers: {
+          'Accept': 'application/json',
         }
-      } catch (error) {
-        console.error(`Error fetching Moralis price for ${token.symbol}:`, error);
-        prices[token.symbol] = getCurrentFallbackPrices()[token.symbol] || 0;
       }
+    );
+    
+    if (!response.ok) {
+      throw new Error(`CoinGecko API error: ${response.status}`);
     }
-
-    // Handle MATIC to POL transition
+    
+    const data = await response.json();
+    const prices: Record<string, number> = {};
+    
+    // Map CoinGecko data to our format (same as frontend)
+    const symbolMap: Record<string, string> = {
+      'bitcoin': 'BTC',
+      'ethereum': 'ETH',
+      'binancecoin': 'BNB',
+      'solana': 'SOL',
+      'matic-network': 'POL',
+      'tether': 'USDT',
+      'usd-coin': 'USDC',
+      'binance-usd': 'BUSD',
+      'dai': 'DAI'
+    };
+    
+    // Process each cryptocurrency
+    Object.entries(data).forEach(([coinId, coinData]: [string, any]) => {
+      const symbol = symbolMap[coinId];
+      if (symbol && coinData.usd) {
+        const price = coinData.usd;
+        
+        if (isValidPrice(symbol, price)) {
+          prices[symbol] = price;
+          console.log(`✅ CoinGecko price for ${symbol}: $${price.toFixed(2)}`);
+        } else {
+          console.warn(`❌ Invalid price for ${symbol}: $${price}, using fallback`);
+          prices[symbol] = getCurrentFallbackPrices()[symbol] || 0;
+        }
+      }
+    });
+    
+    // Add MATIC as alias for POL for backward compatibility
     if (prices['POL']) {
-      prices['MATIC'] = prices['POL']; // Map MATIC to POL price for backward compatibility
+      prices['MATIC'] = prices['POL'];
     }
-
-    console.log('✅ Final crypto prices:', prices);
+    
+    // Fill in missing currencies with fallback data
+    const fallbackData = getCurrentFallbackPrices();
+    Object.keys(fallbackData).forEach(symbol => {
+      if (!prices[symbol]) {
+        prices[symbol] = fallbackData[symbol];
+        console.warn(`⚠️ Using fallback price for ${symbol}: $${fallbackData[symbol]}`);
+      }
+    });
+    
+    const validCount = Object.values(prices).filter(p => isValidPrice(Object.keys(prices).find(k => prices[k] === p) || '', p)).length;
+    const totalCount = Object.keys(prices).length;
+    
+    console.log(`✅ CoinGecko pricing: ${validCount}/${totalCount} live prices fetched successfully`);
     return prices;
 
   } catch (error) {
-    console.error('Error fetching crypto prices from Moralis:', error);
+    console.error('❌ Error fetching from CoinGecko:', error);
+    console.log('🔄 Falling back to static prices');
     return getCurrentFallbackPrices();
   }
 }
 
-// Price validation function with updated ranges
+// Price validation function with updated ranges (same as frontend)
 function isValidPrice(symbol: string, price: number): boolean {
   const priceRanges: Record<string, { min: number; max: number }> = {
-    'BTC': { min: 90000, max: 200000 },   // Updated Bitcoin range
-    'ETH': { min: 2500, max: 10000 },     // Updated Ethereum range
-    'BNB': { min: 500, max: 1500 },       // Updated BNB range
-    'SOL': { min: 180, max: 500 },        // Updated Solana range
-    'POL': { min: 0.3, max: 2.0 },        // Polygon range
+    'BTC': { min: 90000, max: 200000 },
+    'ETH': { min: 2500, max: 10000 },
+    'BNB': { min: 500, max: 1500 },
+    'SOL': { min: 180, max: 500 },
+    'POL': { min: 0.3, max: 2.0 },
   };
 
   const range = priceRanges[symbol];
-  if (!range) return true; // If no range defined, accept the price
+  if (!range) return true;
 
   return price >= range.min && price <= range.max;
 }
 
-// Current fallback prices (updated to match frontend)
+// Current fallback prices (identical to frontend)
 function getCurrentFallbackPrices(): Record<string, number> {
   console.log('Using current market fallback prices');
   return {
-    'BTC': 104000,   // Updated Bitcoin price
-    'ETH': 3800,     // Updated Ethereum price
-    'BNB': 720,      // Updated BNB price
-    'SOL': 250,      // Updated Solana price
-    'POL': 0.52,     // Updated Polygon price
-    'MATIC': 0.52,   // Legacy support
+    'BTC': 104000,
+    'ETH': 3800,
+    'BNB': 720,
+    'SOL': 250,
+    'POL': 0.52,
+    'MATIC': 0.52,
     'USDT': 1.0, 
     'USDC': 1.0, 
     'BUSD': 1.0, 
@@ -273,7 +289,7 @@ serve(async (req) => {
       throw new Error('Admin access required');
     }
 
-    console.log('=== Enhanced Wallet Balance Fetching with Accurate Moralis Pricing ===');
+    console.log('=== Enhanced Wallet Balance Fetching with CoinGecko Pricing ===');
 
     // Clear existing wallet addresses and create your actual ones
     await supabase.from('client_wallet_addresses').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -318,7 +334,7 @@ serve(async (req) => {
       console.log(`Inserted ${actualWallets.length} actual wallet addresses`);
     }
 
-    // Fetch current crypto prices using Moralis with validation
+    // Fetch current crypto prices using CoinGecko (same as frontend)
     const prices = await fetchCryptoPrices();
 
     const balances: WalletBalance[] = [];
@@ -403,7 +419,7 @@ serve(async (req) => {
 
     const totalUsd = balances.reduce((sum, b) => sum + b.balance_usd, 0);
     
-    console.log(`=== Portfolio Summary with Accurate Pricing ===`);
+    console.log(`=== Portfolio Summary with CoinGecko Pricing ===`);
     console.log(`Total wallets processed: ${balances.length}`);
     console.log(`Total USD value: $${totalUsd.toFixed(2)}`);
 

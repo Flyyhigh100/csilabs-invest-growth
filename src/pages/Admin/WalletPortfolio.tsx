@@ -22,11 +22,14 @@ import {
   Info,
   Search,
   Filter,
-  Download,
   Eye,
-  EyeOff
+  EyeOff,
+  Clock,
+  Activity
 } from 'lucide-react';
 import { useWalletBalances, useWalletPortfolioSummary, useRefreshWalletBalances } from '@/hooks/admin/useWalletBalances';
+import { useWalletLastTransactions } from '@/hooks/admin/useWalletTransactions';
+import { useEnhancedCryptoPrices } from '@/hooks/admin/useEnhancedCryptoPrices';
 import { formatDistanceToNow } from 'date-fns';
 import AdminLayout from '@/components/Admin/Layout';
 import WalletAddressTable from '@/components/Admin/WalletPortfolio/WalletAddressTable';
@@ -35,6 +38,8 @@ import EnhancedMarketPricesCard from '@/components/Admin/WalletPortfolio/Enhance
 const WalletPortfolioPage: React.FC = () => {
   const { data: balances, isLoading: balancesLoading, error } = useWalletBalances();
   const { data: portfolio, isLoading: portfolioLoading } = useWalletPortfolioSummary();
+  const { data: walletTransactions, isLoading: transactionsLoading } = useWalletLastTransactions();
+  const { data: livePrice } = useEnhancedCryptoPrices();
   const refreshBalances = useRefreshWalletBalances();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -76,6 +81,14 @@ const WalletPortfolioPage: React.FC = () => {
     return colors[network] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
+  const getLastTransaction = (walletAddress: string) => {
+    return walletTransactions?.find(wt => wt.wallet_address === walletAddress)?.last_transaction;
+  };
+
+  const getCurrentPrice = (currency: string) => {
+    return livePrice?.[currency]?.price || 0;
+  };
+
   // Filter balances based on search and network selection
   const filteredBalances = balances?.filter(balance => {
     const matchesSearch = balance.currency.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -97,7 +110,7 @@ const WalletPortfolioPage: React.FC = () => {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Wallet Portfolio
             </h1>
-            <p className="text-gray-600 mt-1">Real-time portfolio monitoring across multiple blockchains</p>
+            <p className="text-gray-600 mt-1">Real-time portfolio monitoring with live CoinGecko pricing</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -119,8 +132,8 @@ const WalletPortfolioPage: React.FC = () => {
               <div className="text-sm text-blue-800">
                 <p className="font-medium mb-1">Enhanced Portfolio Management</p>
                 <p>
-                  Real-time pricing with Moralis API integration. Auto-refresh every 30 seconds. 
-                  Prices are validated to ensure accuracy - Bitcoin should now show ~$100k+.
+                  Live pricing from CoinGecko API synchronized across frontend and backend. 
+                  Auto-refresh every 30 seconds with transaction history tracking.
                 </p>
               </div>
             </div>
@@ -192,7 +205,7 @@ const WalletPortfolioPage: React.FC = () => {
         {/* Wallet Addresses Table */}
         <WalletAddressTable />
 
-        {/* Enhanced Balance Table with Filters */}
+        {/* Enhanced Balance Table with Filters and Transaction History */}
         {balances && balances.length > 0 && (
           <Card className="border-2 border-gray-100 shadow-lg">
             <CardHeader>
@@ -200,10 +213,10 @@ const WalletPortfolioPage: React.FC = () => {
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-green-600" />
-                    Live Balance Data
+                    Live Balance Data with Transaction History
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Real-time balance information with enhanced pricing validation
+                    Real-time balance information with synchronized CoinGecko pricing and latest transaction data
                   </p>
                 </div>
                 
@@ -252,59 +265,106 @@ const WalletPortfolioPage: React.FC = () => {
                       <TableHead className="font-semibold">Currency</TableHead>
                       <TableHead className="font-semibold">Wallet Address</TableHead>
                       <TableHead className="text-right font-semibold">Balance</TableHead>
+                      <TableHead className="text-right font-semibold">Live Price</TableHead>
                       <TableHead className="text-right font-semibold">USD Value</TableHead>
-                      <TableHead className="text-right font-semibold">Last Updated</TableHead>
+                      <TableHead className="font-semibold">Last Transaction</TableHead>
                       <TableHead className="text-right font-semibold">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredBalances.map((balance) => (
-                      <TableRow key={balance.id} className="hover:bg-gray-50 transition-colors">
-                        <TableCell>
-                          <Badge variant="outline" className={getNetworkColor(balance.network)}>
-                            {getNetworkDisplayName(balance.network)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium text-lg">{balance.currency}</div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-mono text-sm max-w-[200px] truncate bg-gray-100 px-2 py-1 rounded">
-                            {balance.wallet_address}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="font-semibold text-lg">
-                            {balance.balance.toFixed(6)}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {balance.currency}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="font-semibold text-lg text-green-600">
-                            ${balance.balance_usd.toFixed(2)}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right text-xs text-gray-500">
-                          {formatDistanceToNow(new Date(balance.last_updated_at), { addSuffix: true })}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              const url = getExplorerUrl(balance.network, balance.wallet_address);
-                              if (url) window.open(url, '_blank');
-                            }}
-                            disabled={!getExplorerUrl(balance.network, balance.wallet_address)}
-                            className="hover:bg-blue-100"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredBalances.map((balance) => {
+                      const lastTx = getLastTransaction(balance.wallet_address);
+                      const currentPrice = getCurrentPrice(balance.currency);
+                      const liveUsdValue = balance.balance * currentPrice;
+
+                      return (
+                        <TableRow key={balance.id} className="hover:bg-gray-50 transition-colors">
+                          <TableCell>
+                            <Badge variant="outline" className={getNetworkColor(balance.network)}>
+                              {getNetworkDisplayName(balance.network)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium text-lg">{balance.currency}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-mono text-sm max-w-[200px] truncate bg-gray-100 px-2 py-1 rounded">
+                              {balance.wallet_address}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="font-semibold text-lg">
+                              {balance.balance.toFixed(6)}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {balance.currency}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="font-semibold text-lg text-blue-600">
+                              ${currentPrice > 0 ? currentPrice.toFixed(currentPrice > 1 ? 2 : 6) : 'Loading...'}
+                            </div>
+                            <div className="text-xs text-blue-500">
+                              Live from CoinGecko
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="font-semibold text-lg text-green-600">
+                              ${liveUsdValue > 0 ? liveUsdValue.toFixed(2) : balance.balance_usd.toFixed(2)}
+                            </div>
+                            {liveUsdValue !== balance.balance_usd && liveUsdValue > 0 && (
+                              <div className="text-xs text-gray-500">
+                                Stored: ${balance.balance_usd.toFixed(2)}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {transactionsLoading ? (
+                              <div className="flex items-center gap-1 text-gray-400">
+                                <Clock className="h-3 w-3 animate-spin" />
+                                <span className="text-xs">Loading...</span>
+                              </div>
+                            ) : lastTx ? (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1">
+                                  <Badge 
+                                    variant={lastTx.status === 'completed' ? 'default' : 'outline'}
+                                    className="text-xs"
+                                  >
+                                    {lastTx.status}
+                                  </Badge>
+                                </div>
+                                <div className="text-xs text-gray-600">
+                                  ${lastTx.amount.toFixed(2)}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {formatDistanceToNow(new Date(lastTx.created_at), { addSuffix: true })}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-xs text-gray-400 flex items-center gap-1">
+                                <Activity className="h-3 w-3" />
+                                No transactions
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const url = getExplorerUrl(balance.network, balance.wallet_address);
+                                if (url) window.open(url, '_blank');
+                              }}
+                              disabled={!getExplorerUrl(balance.network, balance.wallet_address)}
+                              className="hover:bg-blue-100"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
