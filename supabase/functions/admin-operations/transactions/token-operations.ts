@@ -1,5 +1,55 @@
 
 // Functions related to token sending and marking tokens as sent
+
+// Enhanced network detection function using multi-layered approach
+function detectNetworkFromTransaction(transaction, blockchainTxId, walletAddress) {
+  console.log("🔍 Detecting network with data:", {
+    crypto_network: transaction.crypto_network,
+    walletAddress: walletAddress?.slice(0, 10) + "...",
+    blockchainTxId: blockchainTxId?.slice(0, 10) + "..."
+  });
+
+  // Priority 1: Use database field if available (most reliable)
+  if (transaction.crypto_network) {
+    const networkFromDB = transaction.crypto_network.toLowerCase();
+    if (networkFromDB === 'solana') {
+      console.log("✅ Network detected from database: Solana");
+      return 'solana';
+    } else if (networkFromDB === 'polygon' || networkFromDB === 'ethereum') {
+      console.log("✅ Network detected from database: Polygon");
+      return 'polygon';
+    }
+  }
+  
+  // Priority 2: Detect by wallet address format
+  if (walletAddress) {
+    if (walletAddress.startsWith('0x') && walletAddress.length === 42) {
+      console.log("✅ Network detected from wallet address format: Polygon");
+      return 'polygon';
+    }
+    if (walletAddress.length >= 32 && walletAddress.length <= 55 && !walletAddress.startsWith('0x')) {
+      console.log("✅ Network detected from wallet address format: Solana");
+      return 'solana';
+    }
+  }
+  
+  // Priority 3: Detect by transaction ID characteristics
+  if (blockchainTxId) {
+    if (blockchainTxId.startsWith('0x') && blockchainTxId.length === 66) {
+      console.log("✅ Network detected from transaction ID format: Polygon");
+      return 'polygon';
+    }
+    if (blockchainTxId.length >= 80 && !blockchainTxId.startsWith('0x')) {
+      console.log("✅ Network detected from transaction ID format: Solana");
+      return 'solana';
+    }
+  }
+  
+  // Fallback to polygon (most common)
+  console.log("⚠️ Network detection fallback: Polygon");
+  return 'polygon';
+}
+
 export const markTokensSent = async ({ transactionId, blockchainTxId, tokenAmount, tokenPrice }, adminClient) => {
   console.log(`Marking transaction ${transactionId} as sent with blockchain TX: ${blockchainTxId}`);
   console.log(`Token amount: ${tokenAmount}, Token price: ${tokenPrice}`);
@@ -60,7 +110,7 @@ export const markTokensSent = async ({ transactionId, blockchainTxId, tokenAmoun
   }
 };
 
-// Enhanced token delivery notification function
+// Enhanced token delivery notification function with improved network detection
 async function createTokenDeliveryNotification(adminClient, transaction, blockchainTxId) {
   try {
     // Calculate token amount if available (with fallback logic)
@@ -73,18 +123,21 @@ async function createTokenDeliveryNotification(adminClient, transaction, blockch
       ? `${Number(tokenAmount).toLocaleString()} CSL tokens`
       : "your CSL tokens";
     
-    // Determine blockchain explorer link
-    const isSolana = blockchainTxId.includes('solana') || 
-                    transaction.payment_method?.toLowerCase().includes('solana');
+    // Use enhanced network detection
+    const detectedNetwork = detectNetworkFromTransaction(transaction, blockchainTxId, transaction.wallet_address);
+    const isSolana = detectedNetwork === 'solana';
     
     const explorerUrl = isSolana 
       ? `https://solscan.io/tx/${blockchainTxId}`
       : `https://polygonscan.com/tx/${blockchainTxId}`;
     
     const explorerName = isSolana ? 'Solscan' : 'PolygonScan';
+    const networkName = isSolana ? 'Solana' : 'Polygon';
     const txIdDisplay = blockchainTxId.length > 20 
       ? blockchainTxId.slice(0, 8) + '...' + blockchainTxId.slice(-6)
       : blockchainTxId;
+    
+    console.log(`📧 Creating notification with network: ${networkName}, explorer: ${explorerName}`);
     
     const { error: notificationError } = await adminClient
       .from("notifications")
@@ -92,7 +145,7 @@ async function createTokenDeliveryNotification(adminClient, transaction, blockch
         user_id: transaction.user_id,
         type: "tokens",
         title: "CSL Tokens Delivered Successfully",
-        message: `🎉 ${tokenText} have been successfully sent to your wallet (${transaction.wallet_address?.slice(0, 6)}...${transaction.wallet_address?.slice(-4)}). Transaction ID: ${txIdDisplay}. You can verify the transaction on ${explorerName}.`,
+        message: `🎉 ${tokenText} have been successfully sent to your ${networkName} wallet (${transaction.wallet_address?.slice(0, 6)}...${transaction.wallet_address?.slice(-4)}). Transaction ID: ${txIdDisplay}. You can verify the transaction on ${explorerName}.`,
         read: false,
         is_test: transaction.is_test || false
       });
@@ -100,7 +153,7 @@ async function createTokenDeliveryNotification(adminClient, transaction, blockch
     if (notificationError) {
       console.error("Error creating token delivery notification:", notificationError);
     } else {
-      console.log(`Successfully created token delivery notification for user ${transaction.user_id}`);
+      console.log(`Successfully created token delivery notification for user ${transaction.user_id} with ${networkName} network`);
     }
   } catch (error) {
     console.error("Error in createTokenDeliveryNotification:", error);
@@ -200,7 +253,12 @@ async function sendTokenDistributionEmail(adminClient, transaction, blockchainTx
       blockchainTxId: blockchainTxId,
       transactionAmount: Number(transaction.amount),
       tokenPrice: transaction.token_price ? Number(transaction.token_price) : undefined,
-      isTestData: transaction.is_test || false
+      isTestData: transaction.is_test || false,
+      // Pass transaction data for enhanced network detection in email function
+      transactionData: {
+        crypto_network: transaction.crypto_network,
+        payment_method: transaction.payment_method
+      }
     };
     
     console.log("📧 Calling send-token-distribution-email function with direct HTTP call:");

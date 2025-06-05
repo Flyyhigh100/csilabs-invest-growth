@@ -19,6 +19,60 @@ interface TokenDistributionRequest {
   transactionAmount: number;
   tokenPrice?: number;
   isTestData?: boolean;
+  transactionData?: {
+    crypto_network?: string;
+    payment_method?: string;
+  };
+}
+
+// Enhanced network detection function using multi-layered approach
+function detectNetworkFromRequest(blockchainTxId: string, walletAddress: string, transactionData?: any) {
+  console.log("🔍 Detecting network with data:", {
+    crypto_network: transactionData?.crypto_network,
+    payment_method: transactionData?.payment_method,
+    walletAddress: walletAddress?.slice(0, 10) + "...",
+    blockchainTxId: blockchainTxId?.slice(0, 10) + "..."
+  });
+
+  // Priority 1: Use database field if available (most reliable)
+  if (transactionData?.crypto_network) {
+    const networkFromDB = transactionData.crypto_network.toLowerCase();
+    if (networkFromDB === 'solana') {
+      console.log("✅ Network detected from database: Solana");
+      return 'solana';
+    } else if (networkFromDB === 'polygon' || networkFromDB === 'ethereum') {
+      console.log("✅ Network detected from database: Polygon");
+      return 'polygon';
+    }
+  }
+  
+  // Priority 2: Detect by wallet address format
+  if (walletAddress) {
+    if (walletAddress.startsWith('0x') && walletAddress.length === 42) {
+      console.log("✅ Network detected from wallet address format: Polygon");
+      return 'polygon';
+    }
+    if (walletAddress.length >= 32 && walletAddress.length <= 55 && !walletAddress.startsWith('0x')) {
+      console.log("✅ Network detected from wallet address format: Solana");
+      return 'solana';
+    }
+  }
+  
+  // Priority 3: Detect by transaction ID characteristics
+  if (blockchainTxId) {
+    if (blockchainTxId.startsWith('0x') && blockchainTxId.length === 66) {
+      console.log("✅ Network detected from transaction ID format: Polygon");
+      return 'polygon';
+    }
+    if (blockchainTxId.length >= 80 && !blockchainTxId.startsWith('0x')) {
+      console.log("✅ Network detected from transaction ID format: Solana");
+      return 'solana';
+    }
+  }
+  
+  // Fallback to polygon (most common)
+  console.log("⚠️ Network detection fallback: Polygon");
+  return 'polygon';
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -42,7 +96,8 @@ const handler = async (req: Request): Promise<Response> => {
       blockchainTxId,
       transactionAmount,
       tokenPrice,
-      isTestData = false
+      isTestData = false,
+      transactionData
     }: TokenDistributionRequest = requestBody;
 
     // Enhanced validation with detailed logging
@@ -96,9 +151,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`👤 User name formatted as: ${userName}`);
 
-    // Determine blockchain explorer link
-    const isSolana = blockchainTxId.includes('solana') || 
-                    blockchainTxId.toLowerCase().includes('sol');
+    // Use enhanced network detection
+    const detectedNetwork = detectNetworkFromRequest(blockchainTxId, walletAddress, transactionData);
+    const isSolana = detectedNetwork === 'solana';
     
     const explorerUrl = isSolana 
       ? `https://solscan.io/tx/${blockchainTxId}`
@@ -210,7 +265,7 @@ const handler = async (req: Request): Promise<Response> => {
               <div style="background-color: #fefce8; border: 2px solid #fde047; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
                 <h3 style="color: #a16207; margin: 0 0 15px 0; font-size: 18px;">What's Next?</h3>
                 <ul style="color: #a16207; margin: 0; padding-left: 20px;">
-                  <li style="margin-bottom: 8px;">Check your wallet to confirm the tokens have arrived</li>
+                  <li style="margin-bottom: 8px;">Check your ${networkName} wallet to confirm the tokens have arrived</li>
                   <li style="margin-bottom: 8px;">Visit our platform to track your transaction status</li>
                   <li style="margin-bottom: 8px;">Join our community to stay updated on CSL developments</li>
                   <li style="margin-bottom: 8px;">Keep your wallet secure and never share your private keys</li>
@@ -279,6 +334,7 @@ const handler = async (req: Request): Promise<Response> => {
           tokenAmount: formattedTokenAmount,
           walletAddress: shortWalletAddress,
           network: networkName,
+          detectedNetwork: detectedNetwork,
           isTestData
         }
       }), {
