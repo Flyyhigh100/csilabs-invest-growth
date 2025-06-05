@@ -1,58 +1,43 @@
 
 import React from 'react';
-import { Search, RefreshCw, Download } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Search, RefreshCw } from 'lucide-react';
 
 interface UsersToolbarProps {
   searchQuery: string;
-  onSearchChange: (value: string) => void;
+  onSearchChange: (query: string) => void;
   onRefresh: () => void;
-  onTestDbConnection: () => void;
-  onDownloadCsv?: () => void;
-  isDownloading?: boolean;
+  isLoading?: boolean;
 }
 
-const UsersToolbar: React.FC<UsersToolbarProps> = ({ 
-  searchQuery, 
-  onSearchChange, 
+const UsersToolbar: React.FC<UsersToolbarProps> = ({
+  searchQuery,
+  onSearchChange,
   onRefresh,
-  onDownloadCsv,
-  isDownloading = false
+  isLoading = false
 }) => {
   return (
-    <div className="flex items-center justify-between mb-4">
-      <div className="relative flex items-center">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-        <Input 
-          type="search"
-          placeholder="Search users..." 
-          className="pl-8 w-[300px]"
+    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <div className="relative flex-1 max-w-sm">
+        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+        <Input
+          placeholder="Search users by name, email, or wallet..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
+          className="pl-10"
         />
       </div>
-      <div className="flex gap-2">
-        {onDownloadCsv && (
-          <Button 
-            variant="outline" 
-            onClick={onDownloadCsv}
-            className="flex items-center gap-2"
-            disabled={isDownloading}
-          >
-            <Download className="h-4 w-4" />
-            {isDownloading ? 'Exporting...' : 'Export CSV'}
-          </Button>
-        )}
-        <Button 
-          variant="outline" 
-          onClick={onRefresh}
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
+      
+      <Button
+        variant="outline"
+        onClick={onRefresh}
+        disabled={isLoading}
+        className="flex items-center gap-2"
+      >
+        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+        {isLoading ? 'Loading...' : 'Refresh'}
+      </Button>
     </div>
   );
 };

@@ -22,18 +22,18 @@ const SharedAddressInputGroup: React.FC<SharedAddressInputGroupProps> = ({
   fieldPrefix = 'address',
   required = false 
 }) => {
-  const getFieldName = (field: string) => {
+  const getFieldName = (field: string): string => {
     if (fieldPrefix === 'address') {
-      return `address.${field}` as const;
+      return `address.${field}`;
     }
-    return field as const;
+    return fieldPrefix === '' ? field : `${fieldPrefix}.${field}`;
   };
 
   return (
     <div className="space-y-4">
       <FormField
         control={form.control}
-        name={fieldPrefix === 'address' ? 'address.street' : 'street_address'}
+        name={fieldPrefix === 'address' ? 'address.street' : fieldPrefix === '' ? 'street_address' : 'street'}
         render={({ field }) => (
           <FormItem>
             <FormLabel>Street Address {required && '*'}</FormLabel>
@@ -55,7 +55,7 @@ const SharedAddressInputGroup: React.FC<SharedAddressInputGroupProps> = ({
       <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
-          name={fieldPrefix === 'address' ? 'address.city' : 'city'}
+          name={fieldPrefix === 'address' ? 'address.city' : fieldPrefix === '' ? 'city' : 'city'}
           render={({ field }) => (
             <FormItem>
               <FormLabel>City {required && '*'}</FormLabel>
@@ -72,7 +72,7 @@ const SharedAddressInputGroup: React.FC<SharedAddressInputGroupProps> = ({
 
         <FormField
           control={form.control}
-          name={fieldPrefix === 'address' ? 'address.state' : 'state_province'}
+          name={fieldPrefix === 'address' ? 'address.state' : fieldPrefix === '' ? 'state_province' : 'state'}
           render={({ field }) => (
             <FormItem>
               <FormLabel>State/Province {required && '*'}</FormLabel>
@@ -90,7 +90,7 @@ const SharedAddressInputGroup: React.FC<SharedAddressInputGroupProps> = ({
 
       <FormField
         control={form.control}
-        name={fieldPrefix === 'address' ? 'address.postalCode' : 'postal_code'}
+        name={fieldPrefix === 'address' ? 'address.postalCode' : fieldPrefix === '' ? 'postal_code' : 'postalCode'}
         render={({ field }) => (
           <FormItem>
             <FormLabel>Postal/ZIP Code {required && '*'}</FormLabel>
