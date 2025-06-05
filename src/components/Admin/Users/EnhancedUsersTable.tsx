@@ -35,6 +35,7 @@ interface User {
   last_name: string | null;
   email: string | null;
   wallet_address: string | null;
+  solana_wallet_address: string | null;
   created_at: string;
   updated_at: string;
   kyc_status?: string;
@@ -369,6 +370,41 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
     }
   };
 
+  // New function to render wallet addresses with network badges
+  const renderWalletAddresses = (polygonAddress: string | null, solanaAddress: string | null) => {
+    const hasPolygonAddress = polygonAddress && polygonAddress.trim() !== '';
+    const hasSolanaAddress = solanaAddress && solanaAddress.trim() !== '';
+    
+    if (!hasPolygonAddress && !hasSolanaAddress) {
+      return <span className="text-gray-500">No delivery address set</span>;
+    }
+
+    return (
+      <div className="space-y-1">
+        {hasPolygonAddress && (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200 text-xs">
+              Polygon
+            </Badge>
+            <div className="font-mono text-xs truncate max-w-[150px] bg-gray-100 px-2 py-1 rounded">
+              {polygonAddress}
+            </div>
+          </div>
+        )}
+        {hasSolanaAddress && (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200 text-xs">
+              Solana
+            </Badge>
+            <div className="font-mono text-xs truncate max-w-[150px] bg-gray-100 px-2 py-1 rounded">
+              {solanaAddress}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Map users to enhanced users with transaction stats
   const enhancedUsers: EnhancedUser[] = users.map(user => {
     const stats = transactionStats[user.id] || { 
@@ -419,7 +455,8 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
       (user.first_name && user.first_name.toLowerCase().includes(searchLower)) ||
       (user.last_name && user.last_name.toLowerCase().includes(searchLower)) ||
       (user.email && user.email.toLowerCase().includes(searchLower)) ||
-      (user.wallet_address && user.wallet_address.toLowerCase().includes(searchLower))
+      (user.wallet_address && user.wallet_address.toLowerCase().includes(searchLower)) ||
+      (user.solana_wallet_address && user.solana_wallet_address.toLowerCase().includes(searchLower))
     );
   });
 
@@ -477,7 +514,7 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
                 <TableRow>
                   <TableHead className="min-w-[150px]">Name</TableHead>
                   <TableHead className="min-w-[200px]">Email</TableHead>
-                  <TableHead className="min-w-[180px]">Wallet Address</TableHead>
+                  <TableHead className="min-w-[200px]">Delivery Addresses</TableHead>
                   <TableHead className="min-w-[120px]">KYC Status</TableHead>
                   <TableHead className="text-right min-w-[140px]">
                     Transactions{' '}
@@ -512,14 +549,7 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
                       </TableCell>
                       <TableCell>{user.email || 'N/A'}</TableCell>
                       <TableCell>
-                        {user.wallet_address ? (
-                          <div className="flex items-center">
-                            <Wallet className="h-3 w-3 mr-1" />
-                            <div className="font-mono text-xs truncate max-w-[150px]">
-                              {user.wallet_address}
-                            </div>
-                          </div>
-                        ) : 'Not set'}
+                        {renderWalletAddresses(user.wallet_address, user.solana_wallet_address)}
                       </TableCell>
                       <TableCell>
                         {renderKycStatusBadge(user.kyc_status, user.has_kyc_record, user.kyc_complete)}
