@@ -1,22 +1,17 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ExternalLink, Shield, Download, Settings, CheckCircle } from 'lucide-react';
-
 const WalletSetupGuide: React.FC = () => {
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <div className="grid md:grid-cols-2 gap-6">
         {/* MetaMask for Polygon */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" className="w-8 h-8" />
-              </div>
+              
               <div>
                 <CardTitle className="flex items-center gap-2">
                   MetaMask Wallet
@@ -83,11 +78,7 @@ const WalletSetupGuide: React.FC = () => {
               </Button>
               
               <Button variant="outline" className="w-full justify-start" asChild>
-                <a href="https://polygon.technology/wallet" target="_blank" rel="noopener noreferrer">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Add Polygon Network
-                  <ExternalLink className="h-4 w-4 ml-auto" />
-                </a>
+                
               </Button>
             </div>
           </CardContent>
@@ -97,9 +88,7 @@ const WalletSetupGuide: React.FC = () => {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg"></div>
-              </div>
+              
               <div>
                 <CardTitle className="flex items-center gap-2">
                   Phantom Wallet
@@ -166,11 +155,7 @@ const WalletSetupGuide: React.FC = () => {
               </Button>
               
               <Button variant="outline" className="w-full justify-start" asChild>
-                <a href="https://help.phantom.app/hc/en-us/articles/4406388623251-How-to-create-a-new-wallet" target="_blank" rel="noopener noreferrer">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Setup Guide
-                  <ExternalLink className="h-4 w-4 ml-auto" />
-                </a>
+                
               </Button>
             </div>
           </CardContent>
@@ -204,8 +189,6 @@ const WalletSetupGuide: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 export default WalletSetupGuide;
