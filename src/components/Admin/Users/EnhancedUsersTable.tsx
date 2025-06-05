@@ -12,6 +12,7 @@ import AuthStatusBadge from './AuthStatusBadge';
 import LastLoginDisplay from './LastLoginDisplay';
 import UserAuthDetailDialog from './UserAuthDetailDialog';
 import { User } from '@/hooks/admin/useAdminUsers';
+import { useUserAuthDetails } from '@/hooks/admin/useUserAuthDetails';
 
 interface EnhancedUsersTableProps {
   users: User[];
@@ -29,6 +30,12 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
   error = null
 }) => {
   const [selectedUserId, setSelectedUserId] = React.useState<string | null>(null);
+
+  // Fetch auth details for selected user
+  const { 
+    authDetails, 
+    isLoading: isLoadingAuthDetails 
+  } = useUserAuthDetails(selectedUserId);
 
   console.log('🎯 EnhancedUsersTable render:', {
     usersCount: users.length,
@@ -264,13 +271,16 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
       )}
 
       {/* User Auth Detail Dialog */}
-      {selectedUserId && (
-        <UserAuthDetailDialog
-          userId={selectedUserId}
-          isOpen={!!selectedUserId}
-          onClose={() => setSelectedUserId(null)}
-        />
-      )}
+      <UserAuthDetailDialog
+        open={!!selectedUserId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedUserId(null);
+          }
+        }}
+        authDetails={authDetails}
+        isLoading={isLoadingAuthDetails}
+      />
     </>
   );
 };
