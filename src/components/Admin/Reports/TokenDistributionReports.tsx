@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,17 +19,7 @@ const TokenDistributionReports: React.FC = () => {
 
       const { data: transactions, error } = await supabase
         .from('transactions')
-        .select(`
-          *,
-          profiles:user_id (
-            first_name,
-            last_name,
-            email,
-            wallet_address,
-            solana_wallet_address,
-            preferred_network
-          )
-        `)
+        .select('*')
         .eq('is_test', false)
         .eq('status', 'completed')
         .gte('created_at', daysAgo.toISOString())
@@ -38,9 +27,25 @@ const TokenDistributionReports: React.FC = () => {
 
       if (error) throw error;
 
+      // Get user profiles for wallet address information
+      const userIds = [...new Set(transactions.map(t => t.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email, wallet_address, solana_wallet_address, preferred_network')
+        .in('id', userIds);
+
+      // Create profile map for quick lookup
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+      // Add profile data to transactions
+      const enrichedTransactions = transactions.map(t => ({
+        ...t,
+        profile: profileMap.get(t.user_id)
+      }));
+
       // Calculate distribution metrics
-      const distributedTransactions = transactions.filter(t => t.token_sent);
-      const pendingDistributions = transactions.filter(t => !t.token_sent);
+      const distributedTransactions = enrichedTransactions.filter(t => t.token_sent);
+      const pendingDistributions = enrichedTransactions.filter(t => !t.token_sent);
 
       const totalTokensDistributed = distributedTransactions.reduce((sum, t) => 
         sum + (Number(t.token_amount) || 0), 0
@@ -51,10 +56,10 @@ const TokenDistributionReports: React.FC = () => {
       );
 
       // Network breakdown
-      const networkStats = transactions.reduce((acc, t) => {
+      const networkStats = enrichedTransactions.reduce((acc, t) => {
         const network = t.crypto_network || 
-          (t.profiles?.wallet_address?.startsWith('0x') ? 'polygon' : 
-           t.profiles?.solana_wallet_address ? 'solana' : 'unknown');
+          (t.profile?.wallet_address?.startsWith('0x') ? 'polygon' : 
+           t.profile?.solana_wallet_address ? 'solana' : 'unknown');
         
         if (!acc[network]) acc[network] = { 
           total: 0, 
@@ -80,12 +85,12 @@ const TokenDistributionReports: React.FC = () => {
       }, {} as Record<string, any>);
 
       // Token price impact analysis
-      const priceImpactTransactions = transactions.filter(t => t.token_price && t.token_amount);
+      const priceImpactTransactions = enrichedTransactions.filter(t => t.token_price && t.token_amount);
       const averageTokenPrice = priceImpactTransactions.length > 0 ? 
         priceImpactTransactions.reduce((sum, t) => sum + Number(t.token_price), 0) / priceImpactTransactions.length : 0;
 
       return {
-        totalTransactions: transactions.length,
+        totalTransactions: enrichedTransactions.length,
         distributedCount: distributedTransactions.length,
         pendingCount: pendingDistributions.length,
         totalTokensDistributed,
@@ -95,7 +100,7 @@ const TokenDistributionReports: React.FC = () => {
           network,
           ...stats
         })),
-        transactions: transactions.slice(0, 50) // Recent 50 for the table
+        transactions: enrichedTransactions.slice(0, 50) // Recent 50 for the table
       };
     }
   });
@@ -105,18 +110,10 @@ const TokenDistributionReports: React.FC = () => {
       const daysAgo = new Date();
       daysAgo.setDate(daysAgo.getDate() - parseInt(timeRange));
 
+      // Fetch transactions
       const { data: transactions } = await supabase
         .from('transactions')
-        .select(`
-          *,
-          profiles:user_id (
-            first_name,
-            last_name,
-            email,
-            wallet_address,
-            solana_wallet_address
-          )
-        `)
+        .select('*')
         .eq('is_test', false)
         .eq('status', 'completed')
         .gte('created_at', daysAgo.toISOString())
@@ -126,6 +123,16 @@ const TokenDistributionReports: React.FC = () => {
         toast.error('No data to export');
         return;
       }
+
+      // Fetch user profiles
+      const userIds = [...new Set(transactions.map(t => t.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email, wallet_address, solana_wallet_address')
+        .in('id', userIds);
+
+      // Create profile map
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
       // Create CSV content
       const headers = [
@@ -142,19 +149,22 @@ const TokenDistributionReports: React.FC = () => {
         'Distribution Status'
       ];
 
-      const csvRows = transactions.map(tx => [
-        new Date(tx.created_at).toLocaleDateString(),
-        tx.profiles ? `${tx.profiles.first_name || ''} ${tx.profiles.last_name || ''}`.trim() : 'N/A',
-        tx.profiles?.email || 'N/A',
-        Number(tx.amount).toFixed(2),
-        tx.token_amount ? Number(tx.token_amount).toFixed(6) : 'TBD',
-        tx.token_price ? Number(tx.token_price).toFixed(6) : 'N/A',
-        tx.crypto_network || 'Auto-detected',
-        tx.profiles?.wallet_address || tx.profiles?.solana_wallet_address || 'N/A',
-        tx.token_sent ? 'Yes' : 'No',
-        tx.blockchain_tx_id || 'Pending',
-        tx.token_sent ? 'Completed' : 'Pending Distribution'
-      ]);
+      const csvRows = transactions.map(tx => {
+        const profile = profileMap.get(tx.user_id);
+        return [
+          new Date(tx.created_at).toLocaleDateString(),
+          profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'N/A',
+          profile?.email || 'N/A',
+          Number(tx.amount).toFixed(2),
+          tx.token_amount ? Number(tx.token_amount).toFixed(6) : 'TBD',
+          tx.token_price ? Number(tx.token_price).toFixed(6) : 'N/A',
+          tx.crypto_network || 'Auto-detected',
+          profile?.wallet_address || profile?.solana_wallet_address || 'N/A',
+          tx.token_sent ? 'Yes' : 'No',
+          tx.blockchain_tx_id || 'Pending',
+          tx.token_sent ? 'Completed' : 'Pending Distribution'
+        ];
+      });
 
       const csvContent = [headers, ...csvRows]
         .map(row => row.map(cell => `"${cell}"`).join(','))

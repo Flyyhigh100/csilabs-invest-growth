@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -76,16 +75,10 @@ const FinancialReports: React.FC = () => {
       const daysAgo = new Date();
       daysAgo.setDate(daysAgo.getDate() - parseInt(timeRange));
 
+      // Fetch transactions
       const { data: transactions } = await supabase
         .from('transactions')
-        .select(`
-          *,
-          profiles:user_id (
-            first_name,
-            last_name,
-            email
-          )
-        `)
+        .select('*')
         .eq('is_test', false)
         .gte('created_at', daysAgo.toISOString())
         .order('created_at', { ascending: false });
@@ -94,6 +87,16 @@ const FinancialReports: React.FC = () => {
         toast.error('No data to export');
         return;
       }
+
+      // Fetch user profiles for the users in transactions
+      const userIds = [...new Set(transactions.map(t => t.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email')
+        .in('id', userIds);
+
+      // Create a map for quick profile lookup
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
       // Create CSV content
       const headers = [
@@ -108,17 +111,20 @@ const FinancialReports: React.FC = () => {
         'Blockchain TX ID'
       ];
 
-      const csvRows = transactions.map(tx => [
-        new Date(tx.created_at).toLocaleDateString(),
-        tx.transaction_id,
-        tx.profiles ? `${tx.profiles.first_name || ''} ${tx.profiles.last_name || ''}`.trim() : 'N/A',
-        tx.profiles?.email || 'N/A',
-        Number(tx.amount).toFixed(2),
-        tx.payment_method,
-        tx.status,
-        tx.token_sent ? 'Yes' : 'No',
-        tx.blockchain_tx_id || 'N/A'
-      ]);
+      const csvRows = transactions.map(tx => {
+        const profile = profileMap.get(tx.user_id);
+        return [
+          new Date(tx.created_at).toLocaleDateString(),
+          tx.transaction_id,
+          profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'N/A',
+          profile?.email || 'N/A',
+          Number(tx.amount).toFixed(2),
+          tx.payment_method,
+          tx.status,
+          tx.token_sent ? 'Yes' : 'No',
+          tx.blockchain_tx_id || 'N/A'
+        ];
+      });
 
       const csvContent = [headers, ...csvRows]
         .map(row => row.map(cell => `"${cell}"`).join(','))
