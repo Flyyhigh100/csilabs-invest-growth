@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { CreditCard, DollarSign, Clock, ArrowRight, Shield } from 'lucide-react';
+import { CreditCard, DollarSign, Clock, ArrowRight, Shield, ExternalLink } from 'lucide-react';
 
 const CryptoPurchaseGuide: React.FC = () => {
   return (
