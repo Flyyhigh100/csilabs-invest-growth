@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -26,6 +25,11 @@ export const getAdminNavItems = (): NavItem[] => {
       title: 'Dashboard',
       path: '/admin',
       icon: <HomeIcon className="h-5 w-5" />,
+    },
+    {
+      title: 'Reports',
+      path: '/admin/reports',
+      icon: <BarChart2 className="h-5 w-5" />,
     },
     {
       title: 'KYC Verifications',
