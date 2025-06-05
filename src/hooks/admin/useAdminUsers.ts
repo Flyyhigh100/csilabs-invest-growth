@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -165,9 +164,6 @@ export const useAdminUsers = () => {
     refetchInterval: 60000, // Refresh every minute
     retry: 2, // Retry twice on failure
     refetchOnWindowFocus: true,
-    onError: (error) => {
-      console.error('🔥 Query error in useAdminUsers:', error);
-    }
   });
 
   const handleRefresh = () => {
