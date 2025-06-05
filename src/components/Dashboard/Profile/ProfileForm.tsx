@@ -9,9 +9,9 @@ import { Loader2 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
 import { enhancedProfileFormSchema, EnhancedProfileFormValues } from './schema/enhancedProfileSchema';
 import PhoneNumberInput from './FormInputs/PhoneNumberInput';
+import { User } from '@supabase/supabase-js';
 import AddressInputs from './FormInputs/AddressInputs';
 
 interface ProfileFormProps {
@@ -26,10 +26,10 @@ interface ProfileFormProps {
     postal_code: string | null;
   } | null;
   isLoading: boolean;
+  user: User | null; // Pass user as prop instead of using useAuth()
 }
 
-const ProfileForm: React.FC<ProfileFormProps> = ({ profileData, isLoading }) => {
-  const { user } = useAuth();
+const ProfileForm: React.FC<ProfileFormProps> = ({ profileData, isLoading, user }) => {
   const queryClient = useQueryClient();
 
   const updateProfile = useMutation({

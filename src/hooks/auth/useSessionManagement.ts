@@ -35,8 +35,25 @@ export const useSessionManagement = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log("Auth state change:", event);
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        
+        // Prevent session invalidation during profile updates
+        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+        } else if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+        } else if (event === 'USER_UPDATED' && currentSession) {
+          // For user updates, maintain the existing session but update user data
+          setUser(currentSession.user);
+          if (!session) {
+            setSession(currentSession);
+          }
+        } else if (currentSession && !session) {
+          // Only set session if we don't have one already
+          setSession(currentSession);
+          setUser(currentSession.user);
+        }
       }
     );
 

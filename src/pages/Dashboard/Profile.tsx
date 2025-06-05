@@ -3,12 +3,14 @@ import React from 'react';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useProfileData } from '@/hooks/useProfileData';
+import { useAuth } from '@/contexts/AuthContext';
 import KycStatusCard from '@/components/Dashboard/Profile/KycStatusCard';
 import ProfileForm from '@/components/Dashboard/Profile/ProfileForm';
 import TokenBalanceCard from '@/components/Dashboard/Profile/TokenBalanceCard';
 import WalletInfoCard from '@/components/Dashboard/Profile/WalletInfoCard';
 
 const Profile = () => {
+  const { user } = useAuth();
   const { profileData, isLoading } = useProfileData();
 
   return (
@@ -31,7 +33,11 @@ const Profile = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ProfileForm profileData={profileData} isLoading={isLoading} />
+          <ProfileForm 
+            profileData={profileData} 
+            isLoading={isLoading} 
+            user={user}
+          />
         </CardContent>
       </Card>
     </DashboardLayout>

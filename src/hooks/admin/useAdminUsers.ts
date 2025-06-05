@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 import { useTestDataToggle } from './useTestDataToggle';
 
 export interface User {
@@ -37,11 +38,18 @@ export const useAdminUsers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [retryCount, setRetryCount] = useState(0);
   const { includeTestData } = useTestDataToggle();
+  const { session, user } = useAuth();
   const queryClient = useQueryClient();
   
   // Use direct edge function call to fetch users with better error handling
   const fetchUsers = async (): Promise<User[]> => {
     console.log('Fetching users for admin dashboard with enhanced auth data...');
+    
+    // Validate session before making Edge Function call
+    if (!session || !user) {
+      console.error('No valid session found for admin users fetch');
+      throw new Error('Authentication required - please log in again');
+    }
     
     try {
       // Use the edge function to get all users
@@ -131,6 +139,7 @@ export const useAdminUsers = () => {
     refetchInterval: 60000, // Refresh every minute
     retry: 1, // Only retry once
     refetchOnWindowFocus: true,
+    enabled: !!(session && user), // Only fetch when we have a valid session
   });
 
   const handleRefresh = () => {
