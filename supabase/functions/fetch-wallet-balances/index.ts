@@ -11,8 +11,8 @@ interface WalletBalance {
   balance_usd: number;
 }
 
-// Fetch balance using Moralis API
-async function fetchMoralisBalance(address: string, chain: string): Promise<number> {
+// Enhanced balance fetching with Moralis API
+async function fetchMoralisNativeBalance(address: string, chain: string): Promise<number> {
   try {
     const moralisApiKey = Deno.env.get('MORALIS_API_KEY');
     if (!moralisApiKey) {
@@ -34,14 +34,50 @@ async function fetchMoralisBalance(address: string, chain: string): Promise<numb
       const data = await response.json();
       // Convert from wei to ether (18 decimals for most chains)
       const balance = parseInt(data.balance) / Math.pow(10, 18);
-      console.log(`Moralis balance for ${address} on ${chain}: ${balance}`);
+      console.log(`Moralis native balance for ${address} on ${chain}: ${balance}`);
       return balance;
     } else {
       console.error(`Moralis API error for ${address}: ${response.status}`);
       return 0;
     }
   } catch (error) {
-    console.error(`Error fetching Moralis balance for ${address}:`, error);
+    console.error(`Error fetching Moralis native balance for ${address}:`, error);
+    return 0;
+  }
+}
+
+// Fetch ERC-20 token balances using Moralis
+async function fetchMoralisTokenBalance(address: string, chain: string, tokenAddress: string, decimals: number): Promise<number> {
+  try {
+    const moralisApiKey = Deno.env.get('MORALIS_API_KEY');
+    if (!moralisApiKey) {
+      console.log('No Moralis API key found, skipping token balance fetch');
+      return 0;
+    }
+
+    const response = await fetch(
+      `https://deep-index.moralis.io/api/v2.2/${address}/erc20?chain=${chain}&token_addresses%5B0%5D=${tokenAddress}`,
+      {
+        headers: {
+          'X-API-Key': moralisApiKey,
+          'accept': 'application/json'
+        }
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const balance = parseInt(data[0].balance) / Math.pow(10, decimals);
+        console.log(`Moralis token balance for ${tokenAddress} on ${chain}: ${balance}`);
+        return balance;
+      }
+    } else {
+      console.error(`Moralis token API error for ${address}: ${response.status}`);
+    }
+    return 0;
+  } catch (error) {
+    console.error(`Error fetching Moralis token balance:`, error);
     return 0;
   }
 }
@@ -95,7 +131,7 @@ async function fetchSolanaBalance(address: string): Promise<number> {
   }
 }
 
-// Fetch cryptocurrency prices from CoinCap API
+// Enhanced crypto price fetching with proper stablecoin handling
 async function fetchCryptoPrices(): Promise<Record<string, number>> {
   try {
     const response = await fetch(
@@ -105,8 +141,11 @@ async function fetchCryptoPrices(): Promise<Record<string, number>> {
     if (response.ok) {
       const data = await response.json();
       const prices: Record<string, number> = {
+        // Stablecoins always $1.00
         'USDT': 1.0,
-        'USDC': 1.0
+        'USDC': 1.0,
+        'BUSD': 1.0,
+        'DAI': 1.0
       };
       
       data.data.forEach((asset: any) => {
@@ -131,7 +170,7 @@ async function fetchCryptoPrices(): Promise<Record<string, number>> {
         }
       });
       
-      console.log('Fetched crypto prices from CoinCap');
+      console.log('Fetched crypto prices from CoinCap:', prices);
       return prices;
     }
     
@@ -141,7 +180,7 @@ async function fetchCryptoPrices(): Promise<Record<string, number>> {
     // Return fallback prices
     return {
       'ETH': 3000, 'BNB': 600, 'BTC': 45000, 'SOL': 100, 
-      'MATIC': 0.5, 'POL': 0.5, 'USDT': 1.0, 'USDC': 1.0
+      'MATIC': 0.5, 'POL': 0.5, 'USDT': 1.0, 'USDC': 1.0, 'BUSD': 1.0, 'DAI': 1.0
     };
   }
 }
@@ -181,61 +220,49 @@ serve(async (req) => {
       throw new Error('Admin access required');
     }
 
-    console.log('=== Fetching Wallet Balances ===');
+    console.log('=== Enhanced Wallet Balance Fetching ===');
 
-    // Fetch wallet addresses
-    const { data: wallets, error: walletsError } = await supabase
-      .from('client_wallet_addresses')
-      .select('*')
-      .eq('is_active', true);
+    // Clear existing wallet addresses and create your actual ones
+    await supabase.from('client_wallet_addresses').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
-    if (walletsError) {
-      throw new Error(`Failed to fetch wallets: ${walletsError.message}`);
-    }
-
-    console.log(`Found ${wallets?.length || 0} active wallets`);
-
-    // If no wallets exist, create sample ones for testing
-    if (!wallets || wallets.length === 0) {
-      console.log('No wallet addresses found, creating sample wallet addresses...');
+    // Your actual wallet addresses for all supported networks and tokens
+    const actualWallets = [
+      // Ethereum network
+      { wallet_address: '0x122aFBa94695Fe9E742627Cf2365De69c598F7ad', currency: 'ETH', network: 'ethereum', token_address: null },
+      { wallet_address: '0x122aFBa94695Fe9E742627Cf2365De69c598F7ad', currency: 'USDT', network: 'ethereum', token_address: '0xdac17f958d2ee523a2206206994597c13d831ec7' },
+      { wallet_address: '0x122aFBa94695Fe9E742627Cf2365De69c598F7ad', currency: 'USDC', network: 'ethereum', token_address: '0xa0b86a33e6ba8bc2b7c59e6b8b62e6b9ce90a78b' },
       
-      const sampleWallets = [
-        {
-          wallet_address: '0x742d35Cc6635C0532925a3b8D60C3fe8FDBdC445',
-          currency: 'ETH',
-          network: 'ethereum',
-          is_active: true
-        },
-        {
-          wallet_address: '0x742d35Cc6635C0532925a3b8D60C3fe8FDBdC445',
-          currency: 'MATIC',
-          network: 'polygon',
-          is_active: true
-        },
-        {
-          wallet_address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-          currency: 'BTC',
-          network: 'bitcoin',
-          is_active: true
-        }
-      ];
+      // Polygon network
+      { wallet_address: '0x122aFBa94695Fe9E742627Cf2365De69c598F7ad', currency: 'MATIC', network: 'polygon', token_address: null },
+      { wallet_address: '0x122aFBa94695Fe9E742627Cf2365De69c598F7ad', currency: 'USDT', network: 'polygon', token_address: '0xc2132d05d31c914a87c6611c10748aeb04b58e8f' },
+      { wallet_address: '0x122aFBa94695Fe9E742627Cf2365De69c598F7ad', currency: 'USDC', network: 'polygon', token_address: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174' },
+      
+      // BSC network
+      { wallet_address: '0x122aFBa94695Fe9E742627Cf2365De69c598F7ad', currency: 'BNB', network: 'binance-smart-chain', token_address: null },
+      { wallet_address: '0x122aFBa94695Fe9E742627Cf2365De69c598F7ad', currency: 'USDT', network: 'binance-smart-chain', token_address: '0x55d398326f99059ff775485246999027b3197955' },
+      { wallet_address: '0x122aFBa94695Fe9E742627Cf2365De69c598F7ad', currency: 'USDC', network: 'binance-smart-chain', token_address: '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' },
+      
+      // Solana network
+      { wallet_address: 'ESbg8PzA6atCgaq5ZtgxQN2XcixsBzag87Ci4dNRLGjb', currency: 'SOL', network: 'solana', token_address: null },
+      
+      // Bitcoin network (placeholder address - you mentioned you need to find it)
+      { wallet_address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', currency: 'BTC', network: 'bitcoin', token_address: null }
+    ];
 
-      const { error: insertError } = await supabase
-        .from('client_wallet_addresses')
-        .insert(sampleWallets);
+    // Insert actual wallet addresses
+    const { error: insertError } = await supabase
+      .from('client_wallet_addresses')
+      .insert(actualWallets.map(w => ({
+        wallet_address: w.wallet_address,
+        currency: w.currency,
+        network: w.network,
+        is_active: true
+      })));
 
-      if (!insertError) {
-        console.log('Created sample wallet addresses');
-        // Refetch wallets
-        const { data: newWallets } = await supabase
-          .from('client_wallet_addresses')
-          .select('*')
-          .eq('is_active', true);
-        
-        if (newWallets) {
-          wallets.push(...newWallets);
-        }
-      }
+    if (insertError) {
+      console.error('Error inserting wallet addresses:', insertError);
+    } else {
+      console.log(`Inserted ${actualWallets.length} actual wallet addresses`);
     }
 
     // Fetch current crypto prices
@@ -243,32 +270,51 @@ serve(async (req) => {
 
     const balances: WalletBalance[] = [];
 
-    // Process each wallet
-    for (const wallet of wallets || []) {
+    // Process each wallet with enhanced logic
+    for (const wallet of actualWallets) {
       try {
         let balance = 0;
 
         console.log(`Fetching balance for ${wallet.currency} on ${wallet.network}`);
 
-        switch (wallet.network) {
-          case 'ethereum':
-            balance = await fetchMoralisBalance(wallet.wallet_address, 'eth');
-            break;
-          case 'polygon':
-            balance = await fetchMoralisBalance(wallet.wallet_address, 'polygon');
-            break;
-          case 'binance-smart-chain':
-            balance = await fetchMoralisBalance(wallet.wallet_address, 'bsc');
-            break;
-          case 'solana':
-            balance = await fetchSolanaBalance(wallet.wallet_address);
-            break;
-          case 'bitcoin':
-            balance = await fetchBitcoinBalance(wallet.wallet_address);
-            break;
-          default:
-            console.warn(`Unsupported network: ${wallet.network}`);
-            continue;
+        // Fetch balances based on network and token type
+        if (wallet.token_address) {
+          // ERC-20 token balance
+          const decimals = wallet.currency === 'USDT' ? 6 : 18; // USDT typically uses 6 decimals
+          
+          switch (wallet.network) {
+            case 'ethereum':
+              balance = await fetchMoralisTokenBalance(wallet.wallet_address, 'eth', wallet.token_address, decimals);
+              break;
+            case 'polygon':
+              balance = await fetchMoralisTokenBalance(wallet.wallet_address, 'polygon', wallet.token_address, decimals);
+              break;
+            case 'binance-smart-chain':
+              balance = await fetchMoralisTokenBalance(wallet.wallet_address, 'bsc', wallet.token_address, decimals);
+              break;
+          }
+        } else {
+          // Native token balance
+          switch (wallet.network) {
+            case 'ethereum':
+              balance = await fetchMoralisNativeBalance(wallet.wallet_address, 'eth');
+              break;
+            case 'polygon':
+              balance = await fetchMoralisNativeBalance(wallet.wallet_address, 'polygon');
+              break;
+            case 'binance-smart-chain':
+              balance = await fetchMoralisNativeBalance(wallet.wallet_address, 'bsc');
+              break;
+            case 'solana':
+              balance = await fetchSolanaBalance(wallet.wallet_address);
+              break;
+            case 'bitcoin':
+              balance = await fetchBitcoinBalance(wallet.wallet_address);
+              break;
+            default:
+              console.warn(`Unsupported network: ${wallet.network}`);
+              continue;
+          }
         }
 
         const price = prices[wallet.currency] || 0;
@@ -284,7 +330,7 @@ serve(async (req) => {
 
         balances.push(walletBalance);
 
-        console.log(`${wallet.currency}: ${balance.toFixed(6)} ($${balanceUsd.toFixed(2)})`);
+        console.log(`${wallet.currency} (${wallet.network}): ${balance.toFixed(6)} ($${balanceUsd.toFixed(2)})`);
 
         // Upsert balance to database
         const { error: upsertError } = await supabase
@@ -304,7 +350,7 @@ serve(async (req) => {
 
     const totalUsd = balances.reduce((sum, b) => sum + b.balance_usd, 0);
     
-    console.log(`=== Portfolio Summary ===`);
+    console.log(`=== Enhanced Portfolio Summary ===`);
     console.log(`Total wallets processed: ${balances.length}`);
     console.log(`Total USD value: $${totalUsd.toFixed(2)}`);
 
