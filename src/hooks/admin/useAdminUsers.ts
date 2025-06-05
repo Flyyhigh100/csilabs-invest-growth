@@ -12,6 +12,7 @@ export interface User {
   last_name: string | null;
   email: string | null;
   wallet_address: string | null;
+  solana_wallet_address: string | null;
   created_at: string;
   updated_at: string;
   kyc_status?: string;
