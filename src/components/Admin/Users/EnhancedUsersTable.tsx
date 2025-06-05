@@ -5,6 +5,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CopyButton } from '@/components/ui/copy-button';
 import { AlertCircle, Eye, Wallet, RefreshCw, Shield } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -370,7 +371,7 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
     }
   };
 
-  // New function to render wallet addresses with network badges
+  // Updated function to render wallet addresses with network badges and copy buttons
   const renderWalletAddresses = (polygonAddress: string | null, solanaAddress: string | null) => {
     const hasPolygonAddress = polygonAddress && polygonAddress.trim() !== '';
     const hasSolanaAddress = solanaAddress && solanaAddress.trim() !== '';
@@ -389,6 +390,12 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
             <div className="font-mono text-xs truncate max-w-[150px] bg-gray-100 px-2 py-1 rounded">
               {polygonAddress}
             </div>
+            <CopyButton 
+              value={polygonAddress} 
+              variant="ghost" 
+              size="sm"
+              className="h-6 w-6 p-0"
+            />
           </div>
         )}
         {hasSolanaAddress && (
@@ -399,6 +406,12 @@ const EnhancedUsersTable: React.FC<EnhancedUsersTableProps> = ({
             <div className="font-mono text-xs truncate max-w-[150px] bg-gray-100 px-2 py-1 rounded">
               {solanaAddress}
             </div>
+            <CopyButton 
+              value={solanaAddress} 
+              variant="ghost" 
+              size="sm"
+              className="h-6 w-6 p-0"
+            />
           </div>
         )}
       </div>
