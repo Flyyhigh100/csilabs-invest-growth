@@ -6,8 +6,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Loader2 } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 interface User {
   id: string;
@@ -26,19 +25,9 @@ interface UsersTableProps {
   users: User[];
   onCheckKyc: (userId: string) => void;
   searchQuery: string;
-  isLoading?: boolean;
-  error?: Error | null;
-  onRefresh?: () => void;
 }
 
-const UsersTable: React.FC<UsersTableProps> = ({ 
-  users, 
-  onCheckKyc, 
-  searchQuery, 
-  isLoading = false,
-  error = null,
-  onRefresh
-}) => {
+const UsersTable: React.FC<UsersTableProps> = ({ users, onCheckKyc, searchQuery }) => {
   const renderKycStatusBadge = (status?: string, hasKycRecord?: boolean, kycComplete?: boolean) => {
     if (hasKycRecord === false) {
       return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100 flex items-center gap-1">
@@ -65,40 +54,6 @@ const UsersTable: React.FC<UsersTableProps> = ({
         return <Badge variant="outline">{status}</Badge>;
     }
   };
-
-  // Show error state
-  if (error && !isLoading) {
-    return (
-      <div className="space-y-4">
-        <Alert className="border-red-200 bg-red-50">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
-            <strong>Failed to load users:</strong> {error.message}
-            {onRefresh && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onRefresh}
-                className="ml-4"
-              >
-                Try Again
-              </Button>
-            )}
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400 mr-2" />
-        <span className="text-gray-600">Loading users...</span>
-      </div>
-    );
-  }
 
   const filteredUsers = users.filter(user => {
     if (!searchQuery) return true;
@@ -157,13 +112,19 @@ const UsersTable: React.FC<UsersTableProps> = ({
             ) : (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                  {searchQuery ? 'No users match your search criteria' : 'No users found'}
+                  No users found
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
+      
+      {filteredUsers.length === 0 && searchQuery && (
+        <div className="text-center py-8">
+          <p className="text-gray-500">No users match your search criteria</p>
+        </div>
+      )}
     </>
   );
 };

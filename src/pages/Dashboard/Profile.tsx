@@ -4,19 +4,15 @@ import DashboardLayout from '@/components/Dashboard/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useProfileData } from '@/hooks/useProfileData';
 import KycStatusCard from '@/components/Dashboard/Profile/KycStatusCard';
+import ProfileForm from '@/components/Dashboard/Profile/ProfileForm';
 import TokenBalanceCard from '@/components/Dashboard/Profile/TokenBalanceCard';
 import WalletInfoCard from '@/components/Dashboard/Profile/WalletInfoCard';
-import EnhancedProfileForm from '@/components/Dashboard/Profile/EnhancedProfileForm';
-import ProfileCompletionBanner from '@/components/Dashboard/Profile/ProfileCompletionBanner';
 
 const Profile = () => {
   const { profileData, isLoading } = useProfileData();
 
   return (
     <DashboardLayout title="Profile">
-      {/* Profile Completion Banner */}
-      <ProfileCompletionBanner profileData={profileData} />
-
       {/* KYC Status Banner */}
       <KycStatusCard />
 
@@ -26,16 +22,16 @@ const Profile = () => {
       {/* Wallet Information */}
       <WalletInfoCard />
 
-      {/* Enhanced Profile Form */}
+      {/* Profile Form */}
       <Card>
         <CardHeader>
           <CardTitle>Profile Information</CardTitle>
           <CardDescription>
-            Update your personal information, contact details, and wallet addresses here.
+            Update your personal information here.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <EnhancedProfileForm profileData={profileData} isLoading={isLoading} />
+          <ProfileForm profileData={profileData} isLoading={isLoading} />
         </CardContent>
       </Card>
     </DashboardLayout>
