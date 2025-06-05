@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -36,6 +35,7 @@ import KYCVerificationPage from './pages/Dashboard/KYCVerification/KYCVerificati
 import Profile from './pages/Dashboard/Profile';
 import Documents from './pages/Dashboard/Documents';
 import DashboardHome from './pages/Dashboard/DashboardHome';
+import Resources from './pages/Dashboard/Resources';
 
 // Import Legal pages
 import TermsOfService from './pages/Legal/TermsAndConditions';
@@ -105,6 +105,7 @@ function App() {
                           <Route path="home" element={<DashboardHome />} />
                           <Route path="payments" element={<Payments />} />
                           <Route path="transactions" element={<Transactions />} />
+                          <Route path="resources" element={<Resources />} />
                           <Route path="kyc" element={<KYCVerificationPage />} />
                           <Route path="profile" element={<Profile />} />
                           <Route path="documents" element={<Documents />} />

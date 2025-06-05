@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Home, Wallet, FileText, User, ShieldCheck } from 'lucide-react';
+import { Home, Wallet, FileText, User, ShieldCheck, BookOpen } from 'lucide-react';
 
 export interface NavItem {
   title: string;
@@ -28,6 +28,12 @@ export const getDashboardNavItems = (): NavItem[] => {
       path: '/dashboard/transactions',
       icon: <FileText className="h-5 w-5" />,
       description: 'View your transaction history'
+    },
+    {
+      title: 'Resources',
+      path: '/dashboard/resources',
+      icon: <BookOpen className="h-5 w-5" />,
+      description: 'Crypto guides, wallet setup, and help resources'
     },
     {
       title: 'Profile',
