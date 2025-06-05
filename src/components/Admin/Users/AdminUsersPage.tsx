@@ -3,7 +3,7 @@ import React from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAdminUsers } from '@/hooks/admin/useAdminUsers';
-import UsersTable from './UsersTable';
+import EnhancedUsersTable from './EnhancedUsersTable';
 import UsersToolbar from './UsersToolbar';
 import UserStats from './Dashboard/UserStats';
 
@@ -36,7 +36,7 @@ const AdminUsersPage = () => {
           <CardHeader>
             <CardTitle>All Users</CardTitle>
             <CardDescription>
-              Manage and view all registered users in the system
+              Manage and view all registered users with detailed authentication information and transaction history
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -48,13 +48,10 @@ const AdminUsersPage = () => {
                 isLoading={isLoading}
               />
               
-              <UsersTable
+              <EnhancedUsersTable
                 users={users}
                 onCheckKyc={checkUserKyc}
                 searchQuery={searchQuery}
-                isLoading={isLoading}
-                error={error}
-                onRefresh={handleRefresh}
               />
             </div>
           </CardContent>
