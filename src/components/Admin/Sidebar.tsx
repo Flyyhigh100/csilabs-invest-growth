@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -11,7 +10,8 @@ import {
   WrenchIcon,
   KeyIcon,
   FileText,
-  Wallet
+  Wallet,
+  BarChart3
 } from 'lucide-react';
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
@@ -22,6 +22,12 @@ const Sidebar = ({ className, ...props }: SidebarProps) => {
       title: 'Dashboard',
       href: '/admin',
       icon: <HomeIcon className="w-4 h-4 mr-3" />,
+    },
+    {
+      title: 'Reports',
+      href: '/admin/reports',
+      icon: <BarChart3 className="w-4 h-4 mr-3" />,
+      highlight: true,
     },
     {
       title: 'KYC Verification',

@@ -1,4 +1,3 @@
-
 import { lazy } from 'react';
 import { 
   AdminDashboardIcon, 
@@ -17,6 +16,7 @@ import {
 
 // Lazy load admin pages for better performance
 const AdminDashboard = lazy(() => import('@/pages/Admin/Dashboard'));
+const AdminReports = lazy(() => import('@/pages/Admin/Reports'));
 const AdminTransactions = lazy(() => import('@/pages/Admin/Transactions'));
 const AdminTransactionAnalytics = lazy(() => import('@/pages/Admin/TransactionAnalytics'));
 const AdminTransactionStatusManager = lazy(() => import('@/pages/Admin/TransactionStatusManager'));
@@ -34,6 +34,15 @@ export const adminRoutes = [
     element: <AdminDashboard />,
     meta: {
       title: 'Admin Dashboard',
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+  },
+  {
+    path: '/admin/reports',
+    element: <AdminReports />,
+    meta: {
+      title: 'Reports',
       requiresAuth: true,
       requiresAdmin: true,
     },
@@ -135,6 +144,11 @@ export const adminSidebarLinks = [
     title: 'Dashboard',
     path: '/admin',
     icon: <AdminDashboardIcon className="h-5 w-5" />,
+  },
+  {
+    title: 'Reports',
+    path: '/admin/reports',
+    icon: <BarChart2 className="h-5 w-5" />,
   },
   {
     title: 'Users',
