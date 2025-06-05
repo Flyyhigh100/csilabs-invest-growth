@@ -3,6 +3,7 @@ import { userOperations } from './user-operations.ts';
 import { userAuthOperations } from './user-auth-operations.ts';
 import { kycOperations } from './kyc-operations.ts';
 import { transactionOperations } from './transaction-operations.ts';
+import { markTokensSent } from './transactions/token-operations.ts';
 
 export const handlers = {
   // User operations
@@ -24,6 +25,9 @@ export const handlers = {
   manualSync: transactionOperations.manualSync,
   syncAllTransactions: transactionOperations.syncAllTransactions,
   cleanupPendingTransactions: transactionOperations.cleanupPendingTransactions,
+  
+  // Token operations
+  markTokensSent: markTokensSent,
   
   // Test data operations
   markDataAsTest: async (data, adminClient) => {
