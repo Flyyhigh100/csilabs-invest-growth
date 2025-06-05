@@ -3,9 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { CreditCard, ExternalLink, Shield, DollarSign, Clock, ArrowRight } from 'lucide-react';
+import { CreditCard, DollarSign, Clock, ArrowRight, Shield } from 'lucide-react';
+
 const CryptoPurchaseGuide: React.FC = () => {
-  return <div className="space-y-6">
+  return (
+    <div className="space-y-6">
       {/* Stripe Onramp Section */}
       <Card className="border-blue-200 bg-blue-50">
         <CardHeader>
@@ -87,17 +89,11 @@ const CryptoPurchaseGuide: React.FC = () => {
           
           <Separator className="bg-blue-200" />
           
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button className="bg-blue-600 hover:bg-blue-700 flex-1" asChild>
-              <a href="/dashboard/payments">
+          <div className="flex justify-center">
+            <Button className="bg-blue-600 hover:bg-blue-700 px-8" asChild>
+              <a href="/dashboard/payments#fund-wallet">
                 Start Buying Crypto
                 <ArrowRight className="h-4 w-4 ml-2" />
-              </a>
-            </Button>
-            <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100" asChild>
-              <a href="https://stripe.com/crypto" target="_blank" rel="noopener noreferrer">
-                Learn About Stripe Crypto
-                <ExternalLink className="h-4 w-4 ml-2" />
               </a>
             </Button>
           </div>
@@ -250,6 +246,8 @@ const CryptoPurchaseGuide: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-    </div>;
+    </div>
+  );
 };
+
 export default CryptoPurchaseGuide;
