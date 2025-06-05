@@ -1,14 +1,11 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { CreditCard, ExternalLink, Shield, DollarSign, Clock, ArrowRight } from 'lucide-react';
-
 const CryptoPurchaseGuide: React.FC = () => {
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Stripe Onramp Section */}
       <Card className="border-blue-200 bg-blue-50">
         <CardHeader>
@@ -45,7 +42,7 @@ const CryptoPurchaseGuide: React.FC = () => {
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="font-medium">3.</span>
-                  <span>Choose your cryptocurrency (USDC recommended)</span>
+                  <span>Choose your cryptocurrency (USDC or USDT are recommended) on Polygon or Solana, however we do accept ETH, Bitcoin, BNB, POL, and Solana for CSL Token purchase.</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="font-medium">4.</span>
@@ -253,8 +250,6 @@ const CryptoPurchaseGuide: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 export default CryptoPurchaseGuide;
