@@ -10,7 +10,9 @@ import {
   RefreshCw, 
   CheckCircle, 
   AlertTriangle,
-  Activity
+  Activity,
+  Globe,
+  Database
 } from 'lucide-react';
 import { useEnhancedCryptoPrices } from '@/hooks/admin/useEnhancedCryptoPrices';
 import { formatDistanceToNow } from 'date-fns';
@@ -46,13 +48,13 @@ const EnhancedMarketPricesCard: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-orange-700">
             <AlertTriangle className="h-5 w-5" />
-            Market Prices - Connection Issue
+            Market Prices - CoinGecko Connection Issue
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-4">
             <p className="text-orange-600 text-sm mb-4">
-              Unable to fetch live prices. Using fallback data.
+              Unable to fetch live prices from CoinGecko. Using fallback data.
             </p>
             <Button 
               onClick={() => refetch()} 
@@ -61,7 +63,7 @@ const EnhancedMarketPricesCard: React.FC = () => {
               disabled={isFetching}
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
-              Retry
+              Retry CoinGecko
             </Button>
           </div>
         </CardContent>
@@ -71,19 +73,22 @@ const EnhancedMarketPricesCard: React.FC = () => {
 
   if (!prices) return null;
 
-  // Separate valid and fallback prices
-  const validPrices = Object.values(prices).filter(p => p.isValid);
-  const fallbackPrices = Object.values(prices).filter(p => !p.isValid);
+  // Separate live and fallback prices
+  const livePrices = Object.values(prices).filter(p => p.source === 'coingecko');
+  const fallbackPrices = Object.values(prices).filter(p => p.source === 'fallback');
 
   return (
     <Card className="border-2 border-green-100 shadow-lg bg-gradient-to-br from-white to-green-50">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600" />
+            <Globe className="h-5 w-5 text-green-600" />
             <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
               Live Market Prices
             </span>
+            <Badge variant="outline" className="text-xs bg-green-50 border-green-200 text-green-700">
+              CoinGecko API
+            </Badge>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -102,19 +107,22 @@ const EnhancedMarketPricesCard: React.FC = () => {
           </div>
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Real-time cryptocurrency prices • Auto-refreshes every 30 seconds
+          Real-time cryptocurrency prices from CoinGecko • Auto-refreshes every 30 seconds
         </p>
       </CardHeader>
       <CardContent>
-        {/* Valid Prices Section */}
-        {validPrices.length > 0 && (
+        {/* Live Prices Section */}
+        {livePrices.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <Globe className="h-4 w-4 text-green-600" />
               <span className="text-sm font-medium text-green-700">Live Prices</span>
+              <Badge variant="default" className="text-xs bg-green-100 text-green-800">
+                {livePrices.length} live
+              </Badge>
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {validPrices.map((price) => (
+              {livePrices.map((price) => (
                 <div 
                   key={price.symbol} 
                   className="group relative overflow-hidden p-4 bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-md transition-all duration-200"
@@ -128,7 +136,10 @@ const EnhancedMarketPricesCard: React.FC = () => {
                       </div>
                       <div className="text-right">
                         <div className="font-semibold text-lg">
-                          ${price.price.toFixed(price.price > 1 ? 2 : 6)}
+                          ${price.price.toLocaleString(undefined, { 
+                            minimumFractionDigits: price.price > 1 ? 2 : 6,
+                            maximumFractionDigits: price.price > 1 ? 2 : 6 
+                          })}
                         </div>
                         <div className="flex items-center justify-end gap-1">
                           {price.change24h >= 0 ? (
@@ -145,6 +156,12 @@ const EnhancedMarketPricesCard: React.FC = () => {
                         </div>
                       </div>
                     </div>
+                    <div className="flex items-center justify-end">
+                      <Badge variant="outline" className="text-xs bg-green-50 border-green-200 text-green-600">
+                        <Globe className="h-2 w-2 mr-1" />
+                        Live
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -156,8 +173,11 @@ const EnhancedMarketPricesCard: React.FC = () => {
         {fallbackPrices.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <span className="text-sm font-medium text-amber-700">Fallback Prices</span>
+              <Database className="h-4 w-4 text-amber-600" />
+              <span className="text-sm font-medium text-amber-700">Estimated Prices</span>
+              <Badge variant="outline" className="text-xs bg-amber-50 border-amber-200 text-amber-600">
+                {fallbackPrices.length} estimated
+              </Badge>
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {fallbackPrices.map((price) => (
@@ -172,9 +192,15 @@ const EnhancedMarketPricesCard: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <div className="font-semibold">
-                        ${price.price.toFixed(price.price > 1 ? 2 : 6)}
+                        ${price.price.toLocaleString(undefined, { 
+                          minimumFractionDigits: price.price > 1 ? 2 : 6,
+                          maximumFractionDigits: price.price > 1 ? 2 : 6 
+                        })}
                       </div>
-                      <div className="text-xs text-amber-600">Estimated</div>
+                      <Badge variant="outline" className="text-xs bg-amber-100 border-amber-300 text-amber-700">
+                        <Database className="h-2 w-2 mr-1" />
+                        Estimated
+                      </Badge>
                     </div>
                   </div>
                 </div>
@@ -188,9 +214,9 @@ const EnhancedMarketPricesCard: React.FC = () => {
           <div className="flex items-center justify-between text-xs text-gray-600">
             <div className="flex items-center gap-2">
               <Activity className="h-3 w-3" />
-              <span>{validPrices.length} live • {fallbackPrices.length} fallback</span>
+              <span>{livePrices.length} live from CoinGecko • {fallbackPrices.length} estimated</span>
             </div>
-            <div>Next update in ~30 seconds</div>
+            <div>Auto-refresh: 30s</div>
           </div>
         </div>
       </CardContent>

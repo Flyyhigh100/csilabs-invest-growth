@@ -8,6 +8,7 @@ export interface CryptoPriceData {
   change24h: number;
   isValid: boolean;
   lastUpdated: Date;
+  source: 'coingecko' | 'fallback';
 }
 
 export interface CryptoPricesResponse {
@@ -16,10 +17,10 @@ export interface CryptoPricesResponse {
 
 // Price validation ranges based on current market conditions
 const PRICE_VALIDATION_RANGES: Record<string, { min: number; max: number; name: string }> = {
-  'BTC': { min: 80000, max: 200000, name: 'Bitcoin' },
-  'ETH': { min: 2000, max: 10000, name: 'Ethereum' },
-  'BNB': { min: 400, max: 1500, name: 'BNB' },
-  'SOL': { min: 150, max: 500, name: 'Solana' },
+  'BTC': { min: 90000, max: 200000, name: 'Bitcoin' },
+  'ETH': { min: 2500, max: 10000, name: 'Ethereum' },
+  'BNB': { min: 500, max: 1500, name: 'BNB' },
+  'SOL': { min: 180, max: 500, name: 'Solana' },
   'POL': { min: 0.3, max: 2.0, name: 'Polygon' },
   'MATIC': { min: 0.3, max: 2.0, name: 'Polygon (Legacy)' },
   'USDT': { min: 0.98, max: 1.02, name: 'Tether' },
@@ -36,12 +37,12 @@ const validatePrice = (symbol: string, price: number): boolean => {
 
 const getCurrentFallbackPrices = (): CryptoPricesResponse => {
   const fallbackPrices: Record<string, number> = {
-    'BTC': 100000,
-    'ETH': 3500,
-    'BNB': 650,
-    'SOL': 240,
-    'POL': 0.48,
-    'MATIC': 0.48,
+    'BTC': 104000,
+    'ETH': 3800,
+    'BNB': 720,
+    'SOL': 250,
+    'POL': 0.52,
+    'MATIC': 0.52,
     'USDT': 1.0,
     'USDC': 1.0,
     'BUSD': 1.0,
@@ -57,7 +58,8 @@ const getCurrentFallbackPrices = (): CryptoPricesResponse => {
       name: range?.name || symbol,
       price,
       change24h: 0,
-      isValid: false, // Mark as fallback
+      isValid: false,
+      source: 'fallback',
       lastUpdated: new Date()
     };
   });
@@ -67,53 +69,78 @@ const getCurrentFallbackPrices = (): CryptoPricesResponse => {
 
 const fetchEnhancedCryptoPrices = async (): Promise<CryptoPricesResponse> => {
   try {
-    // Try CoinCap API first
-    const response = await fetch('https://api.coincap.io/v2/assets?limit=10');
+    // CoinGecko coin IDs mapping
+    const coinGeckoIds = [
+      'bitcoin',
+      'ethereum', 
+      'binancecoin',
+      'solana',
+      'matic-network',
+      'tether',
+      'usd-coin',
+      'binance-usd',
+      'dai'
+    ].join(',');
+
+    console.log('Fetching prices from CoinGecko...');
+    
+    // Use CoinGecko's free API
+    const response = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${coinGeckoIds}&vs_currencies=usd&include_24hr_change=true`,
+      {
+        headers: {
+          'Accept': 'application/json',
+        }
+      }
+    );
     
     if (!response.ok) {
-      throw new Error(`CoinCap API error: ${response.status}`);
+      throw new Error(`CoinGecko API error: ${response.status}`);
     }
     
     const data = await response.json();
     const prices: CryptoPricesResponse = {};
     
-    // Map CoinCap symbols to our symbols
+    // Map CoinGecko data to our format
     const symbolMap: Record<string, string> = {
       'bitcoin': 'BTC',
       'ethereum': 'ETH',
-      'binance-coin': 'BNB',
+      'binancecoin': 'BNB',
       'solana': 'SOL',
-      'polygon': 'POL',
+      'matic-network': 'POL',
       'tether': 'USDT',
       'usd-coin': 'USDC',
       'binance-usd': 'BUSD',
-      'multi-collateral-dai': 'DAI'
+      'dai': 'DAI'
     };
     
-    // Process each asset from CoinCap
-    data.data?.forEach((asset: any) => {
-      const symbol = symbolMap[asset.id];
-      if (symbol) {
-        const price = parseFloat(asset.priceUsd) || 0;
-        const change24h = parseFloat(asset.changePercent24Hr) || 0;
+    // Process each cryptocurrency
+    Object.entries(data).forEach(([coinId, coinData]: [string, any]) => {
+      const symbol = symbolMap[coinId];
+      if (symbol && coinData.usd) {
+        const price = coinData.usd;
+        const change24h = coinData.usd_24h_change || 0;
         const isValid = validatePrice(symbol, price);
         
         if (isValid) {
+          const range = PRICE_VALIDATION_RANGES[symbol];
           prices[symbol] = {
             symbol,
-            name: asset.name,
+            name: range?.name || symbol,
             price,
             change24h,
             isValid: true,
+            source: 'coingecko',
             lastUpdated: new Date()
           };
+          console.log(`✅ CoinGecko price for ${symbol}: $${price.toFixed(2)} (${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}%)`);
         } else {
-          console.warn(`Invalid price for ${symbol}: $${price}, using fallback`);
+          console.warn(`❌ Invalid price for ${symbol}: $${price}, using fallback`);
         }
       }
     });
     
-    // Add MATIC as alias for POL
+    // Add MATIC as alias for POL for backward compatibility
     if (prices['POL']) {
       prices['MATIC'] = {
         ...prices['POL'],
@@ -127,25 +154,31 @@ const fetchEnhancedCryptoPrices = async (): Promise<CryptoPricesResponse> => {
     Object.keys(PRICE_VALIDATION_RANGES).forEach(symbol => {
       if (!prices[symbol]) {
         prices[symbol] = fallbackData[symbol];
+        console.warn(`⚠️ Using fallback price for ${symbol}: $${fallbackData[symbol].price}`);
       }
     });
     
-    console.log('Enhanced crypto prices fetched successfully:', prices);
+    const validCount = Object.values(prices).filter(p => p.isValid).length;
+    const totalCount = Object.keys(prices).length;
+    
+    console.log(`✅ CoinGecko pricing: ${validCount}/${totalCount} live prices fetched successfully`);
     return prices;
     
   } catch (error) {
-    console.error('Error fetching enhanced crypto prices:', error);
+    console.error('❌ Error fetching from CoinGecko:', error);
+    console.log('🔄 Falling back to static prices');
     return getCurrentFallbackPrices();
   }
 };
 
 export const useEnhancedCryptoPrices = () => {
   return useQuery({
-    queryKey: ['enhanced-crypto-prices'],
+    queryKey: ['enhanced-crypto-prices-coingecko'],
     queryFn: fetchEnhancedCryptoPrices,
     staleTime: 30 * 1000, // 30 seconds
     refetchInterval: 30 * 1000, // Auto-refresh every 30 seconds
     refetchOnWindowFocus: true,
-    retry: 2,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 };

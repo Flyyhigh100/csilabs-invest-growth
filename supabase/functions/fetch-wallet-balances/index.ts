@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -206,13 +205,13 @@ async function fetchCryptoPrices(): Promise<Record<string, number>> {
   }
 }
 
-// Price validation function
+// Price validation function with updated ranges
 function isValidPrice(symbol: string, price: number): boolean {
   const priceRanges: Record<string, { min: number; max: number }> = {
-    'BTC': { min: 80000, max: 200000 },   // Bitcoin range
-    'ETH': { min: 2000, max: 10000 },     // Ethereum range
-    'BNB': { min: 400, max: 1500 },       // BNB range
-    'SOL': { min: 150, max: 500 },        // Solana range
+    'BTC': { min: 90000, max: 200000 },   // Updated Bitcoin range
+    'ETH': { min: 2500, max: 10000 },     // Updated Ethereum range
+    'BNB': { min: 500, max: 1500 },       // Updated BNB range
+    'SOL': { min: 180, max: 500 },        // Updated Solana range
     'POL': { min: 0.3, max: 2.0 },        // Polygon range
   };
 
@@ -222,16 +221,16 @@ function isValidPrice(symbol: string, price: number): boolean {
   return price >= range.min && price <= range.max;
 }
 
-// Current fallback prices (updated with realistic market values)
+// Current fallback prices (updated to match frontend)
 function getCurrentFallbackPrices(): Record<string, number> {
   console.log('Using current market fallback prices');
   return {
-    'BTC': 100000,   // Updated Bitcoin price
-    'ETH': 3500,     // Updated Ethereum price
-    'BNB': 650,      // Updated BNB price
-    'SOL': 240,      // Updated Solana price
-    'POL': 0.48,     // Updated Polygon price
-    'MATIC': 0.48,   // Legacy support
+    'BTC': 104000,   // Updated Bitcoin price
+    'ETH': 3800,     // Updated Ethereum price
+    'BNB': 720,      // Updated BNB price
+    'SOL': 250,      // Updated Solana price
+    'POL': 0.52,     // Updated Polygon price
+    'MATIC': 0.52,   // Legacy support
     'USDT': 1.0, 
     'USDC': 1.0, 
     'BUSD': 1.0, 
