@@ -52,6 +52,8 @@ const AdminUsersPage = () => {
                 users={users}
                 onCheckKyc={checkUserKyc}
                 searchQuery={searchQuery}
+                isLoading={isLoading}
+                error={error}
               />
             </div>
           </CardContent>
