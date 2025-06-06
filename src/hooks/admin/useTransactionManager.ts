@@ -41,12 +41,12 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
       
       console.log('Fetching transactions with filters:', { status, paymentMethod, startDate, endDate, searchQuery, includeTestData });
       
-      // Enhanced query to include user profile data
+      // Enhanced query to include user profile data - Fixed the join syntax
       let query = supabase
         .from('transactions')
         .select(`
           *,
-          profiles:user_id (
+          profiles!transactions_user_id_fkey (
             first_name,
             last_name,
             email
@@ -74,7 +74,8 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
       
       // Enhanced search query for multiple fields including user data
       if (searchQuery && searchQuery.trim() !== '') {
-        // Search in transaction fields and user email
+        // For searching in related profiles, we'll need to fetch all and filter in memory
+        // This is a limitation of PostgREST - we can't easily search across joins
         query = query.or(
           `transaction_id.ilike.%${searchQuery}%,external_transaction_id.ilike.%${searchQuery}%,wallet_address.ilike.%${searchQuery}%,payment_address.ilike.%${searchQuery}%`
         );
@@ -98,7 +99,27 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
       }
       
       console.log(`Fetched ${data?.length || 0} transactions with user data`);
-      return data || [];
+      
+      // Filter by user data if search query exists and we have profile data
+      let filteredData = data || [];
+      if (searchQuery && searchQuery.trim() !== '') {
+        const searchLower = searchQuery.toLowerCase();
+        filteredData = filteredData.filter(transaction => {
+          // Check if search matches user profile data
+          if (transaction.profiles) {
+            const { first_name, last_name, email } = transaction.profiles;
+            const fullName = `${first_name || ''} ${last_name || ''}`.toLowerCase();
+            const userEmail = (email || '').toLowerCase();
+            
+            if (fullName.includes(searchLower) || userEmail.includes(searchLower)) {
+              return true;
+            }
+          }
+          return false;
+        });
+      }
+      
+      return filteredData;
     } catch (err) {
       console.error('Exception in fetchTransactions:', err);
       setError(err instanceof Error ? err : new Error('Unknown error'));
