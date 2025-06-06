@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { Resend } from "npm:resend@2.0.0";
@@ -24,7 +23,7 @@ const getEmailTemplate = (
   rejectionReason?: string, 
   clarificationMessage?: string
 ) => {
-  const baseUrl = "https://csi-token-platform.lovableproject.com";
+  const baseUrl = "https://1millionstrongfightclub.com";
   
   switch (status) {
     case 'approved':
