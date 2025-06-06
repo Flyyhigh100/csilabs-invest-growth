@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { Resend } from "npm:resend@2.0.0";
@@ -226,9 +227,9 @@ const handler = async (req: Request): Promise<Response> => {
     // Generate email content based on status
     const emailTemplate = getEmailTemplate(userName, status, rejectionReason, clarificationMessage);
 
-    // Send email using Resend
+    // Send email using Resend with the verified domain
     const emailResponse = await resend.emails.send({
-      from: "CSi Labs <noreply@csilabs.com>",
+      from: "CSi Labs <team@mail.1millionstrongfightclub.com>",
       to: [userEmail],
       subject: emailTemplate.subject,
       html: emailTemplate.html,
