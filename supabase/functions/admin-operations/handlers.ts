@@ -1,4 +1,5 @@
 
+
 import { userOperations } from './user-operations.ts';
 import { userAuthOperations } from './user-auth-operations.ts';
 import { kycOperations } from './kyc-operations.ts';
@@ -17,9 +18,10 @@ export const handlers = {
   rejectKyc: kycOperations.rejectKyc,
   requestKycClarification: kycOperations.requestKycClarification,
   getKycVerification: kycOperations.getKycVerification,
-  
-  // CRITICAL FIX: Add missing processKyc operation that frontend is calling
   processKyc: kycOperations.processKyc,
+  
+  // NEW: Add KYC notification resend operation
+  resendKycNotification: kycOperations.resendKycNotification,
   
   // Transaction operations
   getAllTransactions: transactionOperations.getAllTransactions,

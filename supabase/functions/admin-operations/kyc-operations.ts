@@ -1,3 +1,4 @@
+
 import { getKycVerification as getKycVerificationFn } from './kyc/getKycVerification.ts';
 import { getKycVerifications as getKycVerificationsFn } from './kyc/getKycVerifications.ts';
 import { approveKyc as approveKycFn } from './kyc/approveKyc.ts';
@@ -182,11 +183,58 @@ export const processKyc = async (data, adminClient) => {
   }
 };
 
+/**
+ * Resend KYC notification email
+ */
+const resendKycNotification = async (data, adminClient) => {
+  try {
+    const { kycId } = data;
+    
+    console.log(`🔄 Attempting to resend KYC notification for KYC ID: ${kycId}`);
+    
+    if (!kycId) {
+      throw new Error('KYC ID is required');
+    }
+    
+    // Get the current user/admin ID
+    const adminId = adminClient.auth.auth?.currentSession?.user?.id;
+    if (!adminId) {
+      throw new Error('Admin ID could not be determined');
+    }
+    
+    // Call the manual notification edge function
+    const result = await adminClient.functions.invoke('send-kyc-manual-notification', {
+      body: {
+        kycId,
+        adminId
+      }
+    });
+    
+    if (result.error) {
+      console.error(`❌ Error resending KYC notification: ${result.error.message}`);
+      throw new Error(`Failed to resend notification: ${result.error.message}`);
+    }
+    
+    console.log(`✅ Successfully resent KYC notification email for KYC ${kycId}`);
+    
+    return {
+      success: true,
+      message: 'KYC notification email resent successfully',
+      data: result.data
+    };
+    
+  } catch (error) {
+    console.error('Error in resendKycNotification:', error);
+    throw error;
+  }
+};
+
 export const kycOperations = {
   getKycVerifications,
   approveKyc,
   rejectKyc,
   requestKycClarification,
   getKycVerification,
-  processKyc // Add the new unified handler
+  processKyc, // Add the new unified handler
+  resendKycNotification // Add the new resend notification handler
 };

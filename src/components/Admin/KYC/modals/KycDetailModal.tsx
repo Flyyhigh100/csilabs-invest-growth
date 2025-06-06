@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, DialogContent, DialogDescription, 
@@ -20,6 +19,7 @@ interface KycDetailModalProps {
   onApprove: () => void;
   onReject: () => void;
   onRequestClarification: () => void;
+  onResendEmail?: () => void;
   isPending: boolean;
   debugInfo?: {
     lastActionType: string | null;
@@ -31,6 +31,11 @@ interface KycDetailModalProps {
     currentRetry?: number | null;
     adminPermissionStatus?: 'verified' | 'failed' | 'checking' | null;
   };
+  lastEmailSentStatus?: {
+    success: boolean;
+    timestamp: string | null;
+    error?: string;
+  } | null;
 }
 
 const KycDetailModal: React.FC<KycDetailModalProps> = ({
@@ -44,8 +49,10 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
   onApprove,
   onReject,
   onRequestClarification,
+  onResendEmail,
   isPending,
-  debugInfo
+  debugInfo,
+  lastEmailSentStatus
 }) => {
   const [activeTab, setActiveTab] = useState<string>('info');
   const [activeAction, setActiveAction] = useState<string | null>(null);
@@ -59,7 +66,7 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
       setActiveTab('info');
       
       // Reset any processing toasts when the modal opens
-      ['reject-processing-toast', 'approve-processing-toast', 'clarify-processing-toast'].forEach(id => {
+      ['reject-processing-toast', 'approve-processing-toast', 'clarify-processing-toast', 'resend-email-toast'].forEach(id => {
         try { 
           import('sonner').then(({ toast }) => toast.dismiss(id));
         } catch (e) {}
@@ -76,7 +83,7 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
         setClarificationMessage('');
       } else if (debugInfo?.error) {
         // Keep the form open but clear loading state if there was an error
-        ['reject-processing-toast', 'approve-processing-toast', 'clarify-processing-toast'].forEach(id => {
+        ['reject-processing-toast', 'approve-processing-toast', 'clarify-processing-toast', 'resend-email-toast'].forEach(id => {
           try { 
             import('sonner').then(({ toast }) => toast.dismiss(id));
           } catch (e) {}
@@ -88,7 +95,7 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
   // If modal is closed while processing, clean up toasts
   useEffect(() => {
     if (!open) {
-      ['reject-processing-toast', 'approve-processing-toast', 'clarify-processing-toast'].forEach(id => {
+      ['reject-processing-toast', 'approve-processing-toast', 'clarify-processing-toast', 'resend-email-toast'].forEach(id => {
         try { 
           import('sonner').then(({ toast }) => toast.dismiss(id));
         } catch (e) {}
@@ -113,7 +120,7 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
       setActiveTab('info');
       
       // Clean up any lingering toasts
-      ['reject-processing-toast', 'approve-processing-toast', 'clarify-processing-toast'].forEach(id => {
+      ['reject-processing-toast', 'approve-processing-toast', 'clarify-processing-toast', 'resend-email-toast'].forEach(id => {
         try { 
           import('sonner').then(({ toast }) => toast.dismiss(id));
         } catch (e) {}
@@ -150,8 +157,10 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
             onApprove={onApprove}
             onReject={onReject}
             onRequestClarification={onRequestClarification}
+            onResendEmail={onResendEmail}
             isPending={isPending}
             debugInfo={debugInfo}
+            lastEmailSentStatus={lastEmailSentStatus}
           />
           
           {/* Add Debug Information for development */}

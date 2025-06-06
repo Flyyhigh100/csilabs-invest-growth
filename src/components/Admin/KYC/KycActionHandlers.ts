@@ -1,9 +1,9 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { KycVerificationWithProfile } from './types';
 import { processKycVerification, requestKycClarification } from '@/utils/admin/kyc/verification';
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useKycActionHandlers = (
   onSuccess: () => void
@@ -28,6 +28,13 @@ export const useKycActionHandlers = (
     currentRetry: null,
     adminPermissionStatus: null
   });
+  
+  // New state for tracking email sending status
+  const [lastEmailSentStatus, setLastEmailSentStatus] = useState<{
+    success: boolean;
+    timestamp: string | null;
+    error?: string;
+  } | null>(null);
   
   // Process KYC verification (approve or reject)
   const processMutation = useMutation({
@@ -313,6 +320,116 @@ export const useKycActionHandlers = (
     }
   });
 
+  // New mutation for resending KYC notification emails
+  const resendEmailMutation = useMutation({
+    mutationFn: async ({ kycId }: { kycId: string }) => {
+      console.log('📧 Attempting to resend KYC notification email for:', kycId);
+      
+      // Update debug info and reset email sent status
+      setDebugInfo(prev => ({
+        ...prev,
+        lastActionType: 'resend_email',
+        lastActionTimestamp: new Date().toISOString(),
+        supabaseTriggered: true,
+        supabaseResponse: null,
+        error: null
+      }));
+      
+      setLastEmailSentStatus(null);
+      
+      try {
+        // Call the admin operation to resend the email
+        const { data, error } = await supabase.functions.invoke('admin-operations', {
+          body: { 
+            operation: 'resendKycNotification', 
+            data: { kycId }
+          }
+        });
+        
+        if (error) {
+          console.error('❌ Error resending email:', error);
+          
+          // Update debug info and email status
+          setDebugInfo(prev => ({
+            ...prev,
+            error: error.message,
+            supabaseResponse: { success: false }
+          }));
+          
+          setLastEmailSentStatus({
+            success: false,
+            timestamp: new Date().toISOString(),
+            error: error.message
+          });
+          
+          throw new Error(`Failed to resend email: ${error.message}`);
+        }
+        
+        if (data.error) {
+          console.error('❌ Operation error resending email:', data.error);
+          
+          // Update debug info and email status
+          setDebugInfo(prev => ({
+            ...prev,
+            error: data.error.message,
+            supabaseResponse: { success: false, error: data.error }
+          }));
+          
+          setLastEmailSentStatus({
+            success: false,
+            timestamp: new Date().toISOString(),
+            error: data.error.message
+          });
+          
+          throw new Error(`Failed to resend email: ${data.error.message}`);
+        }
+        
+        console.log('✅ Email resent successfully:', data);
+        
+        // Update debug info and email status
+        setDebugInfo(prev => ({
+          ...prev,
+          supabaseResponse: { success: true, data }
+        }));
+        
+        setLastEmailSentStatus({
+          success: true,
+          timestamp: new Date().toISOString()
+        });
+        
+        return data;
+      } catch (error) {
+        console.error('Exception resending email:', error);
+        
+        // Update email status for any unhandled errors
+        if (!lastEmailSentStatus || !lastEmailSentStatus.error) {
+          setLastEmailSentStatus({
+            success: false,
+            timestamp: new Date().toISOString(),
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+        
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      toast.success('KYC notification email resent successfully', { 
+        id: 'resend-email-toast',
+        duration: 3000
+      });
+      
+      // Don't close the modal after sending email, keep the status visible
+    },
+    onError: (error) => {
+      console.error('❌ Error resending email:', error);
+      toast.error(`Failed to resend email: ${(error as Error).message}`, {
+        id: 'resend-email-toast',
+        duration: 5000
+      });
+    }
+  });
+
   // Handler functions
   const handleApprove = (selectedKyc: KycVerificationWithProfile | null) => {
     if (!selectedKyc) {
@@ -373,11 +490,30 @@ export const useKycActionHandlers = (
     });
   };
 
+  // New handler for resending emails
+  const handleResendEmail = (selectedKyc: KycVerificationWithProfile | null) => {
+    if (!selectedKyc) {
+      toast.error('No KYC record selected');
+      return;
+    }
+    
+    console.log('📧 Resending email notification for KYC:', selectedKyc.id);
+    
+    toast.loading('Resending email notification...', { 
+      id: 'resend-email-toast',
+      duration: 10000 // Will be dismissed by the mutation
+    });
+    
+    resendEmailMutation.mutate({ kycId: selectedKyc.id });
+  };
+
   return {
     handleApprove,
     handleReject,
     handleRequestClarification,
-    isPending: processMutation.isPending || clarificationMutation.isPending,
-    debugInfo
+    handleResendEmail,
+    isPending: processMutation.isPending || clarificationMutation.isPending || resendEmailMutation.isPending,
+    debugInfo,
+    lastEmailSentStatus
   };
 };

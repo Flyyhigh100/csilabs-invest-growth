@@ -6,6 +6,7 @@ import KycActionButtons from './components/KycActionButtons';
 import KycRejectForm from './components/KycRejectForm';
 import KycClarifyForm from './components/KycClarifyForm';
 import KycApproveForm from './components/KycApproveForm';
+import KycResendEmailForm from './components/KycResendEmailForm';
 import KycDebugInfo from './components/KycDebugInfo';
 
 interface KycActionPanelProps {
@@ -19,6 +20,7 @@ interface KycActionPanelProps {
   onApprove: () => void;
   onReject: () => void;
   onRequestClarification: () => void;
+  onResendEmail?: () => void;
   isPending: boolean;
   debugInfo?: {
     lastActionType: string | null;
@@ -27,6 +29,11 @@ interface KycActionPanelProps {
     supabaseResponse: any | null;
     error: string | null;
   };
+  lastEmailSentStatus?: {
+    success: boolean;
+    timestamp: string | null;
+    error?: string;
+  } | null;
 }
 
 const KycActionPanel: React.FC<KycActionPanelProps> = ({
@@ -40,23 +47,30 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
   onApprove,
   onReject,
   onRequestClarification,
+  onResendEmail,
   isPending,
-  debugInfo
+  debugInfo,
+  lastEmailSentStatus
 }) => {
-  // Only show action panel for pending KYCs
-  if (selectedKyc.status !== 'pending') {
-    return null;
-  }
+  // Show action buttons for all KYCs (not just pending ones)
+  // But only show processing buttons for pending KYCs
+  const showProcessingButtons = selectedKyc.status === 'pending';
+  
+  // Show resend email button for all KYCs that have been processed
+  const showResendEmailButton = selectedKyc.status !== 'not_started' && selectedKyc.status !== 'pending';
 
   return (
     <div className="mt-6">
-      <h3 className="text-lg font-semibold mb-3">Process Verification</h3>
+      <h3 className="text-lg font-semibold mb-3">
+        {showProcessingButtons ? 'Process Verification' : 'KYC Actions'}
+      </h3>
       
       {/* Action buttons for selecting operation type */}
       <KycActionButtons 
         activeAction={activeAction}
         setActiveAction={setActiveAction}
         isPending={isPending}
+        showResendEmail={showResendEmailButton}
       />
       
       {/* Debug information panel */}
@@ -68,7 +82,7 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
       />
       
       {/* Conditional rendering of action forms based on activeAction */}
-      {activeAction === 'reject' && (
+      {showProcessingButtons && activeAction === 'reject' && (
         <KycRejectForm
           rejectionReason={rejectionReason}
           setRejectionReason={setRejectionReason}
@@ -77,7 +91,7 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
         />
       )}
       
-      {activeAction === 'clarify' && (
+      {showProcessingButtons && activeAction === 'clarify' && (
         <KycClarifyForm
           clarificationMessage={clarificationMessage}
           setClarificationMessage={setClarificationMessage}
@@ -86,10 +100,19 @@ const KycActionPanel: React.FC<KycActionPanelProps> = ({
         />
       )}
       
-      {activeAction === 'approve' && (
+      {showProcessingButtons && activeAction === 'approve' && (
         <KycApproveForm
           onApprove={onApprove}
           isPending={isPending}
+        />
+      )}
+      
+      {/* Resend email form - available for processed KYCs */}
+      {activeAction === 'resend' && onResendEmail && (
+        <KycResendEmailForm
+          onResendEmail={onResendEmail}
+          isPending={isPending}
+          lastSentStatus={lastEmailSentStatus}
         />
       )}
       

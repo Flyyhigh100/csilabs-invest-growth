@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { useKycContext } from '../KycContext';
-import { useKycActionHandlers } from '../hooks/useKycActionHandlers';
+import { useKycActionHandlers } from '../KycActionHandlers';
 import { toast } from 'sonner';
 import KycDetailModal from '../modals/KycDetailModal';
 import KycDashboardHeader from './KycDashboardHeader';
@@ -29,8 +29,10 @@ const KycVerificationsDashboard: React.FC = () => {
   const { 
     handleApprove, 
     handleReject, 
-    handleRequestClarification, 
-    isPending
+    handleRequestClarification,
+    handleResendEmail,
+    isPending,
+    lastEmailSentStatus
   } = useKycActionHandlers(() => setIsViewModalOpen(false));
   
   // Custom hook for fetching KYC data
@@ -110,7 +112,9 @@ const KycVerificationsDashboard: React.FC = () => {
         onApprove={() => handleApprove(selectedKyc)}
         onReject={() => handleReject(selectedKyc, rejectionReason)}
         onRequestClarification={() => handleRequestClarification(selectedKyc, clarificationMessage)}
+        onResendEmail={() => handleResendEmail(selectedKyc)}
         isPending={isPending}
+        lastEmailSentStatus={lastEmailSentStatus}
       />
     </div>
   );
