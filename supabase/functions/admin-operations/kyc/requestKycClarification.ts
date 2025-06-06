@@ -53,6 +53,29 @@ export async function requestKycClarification(kycId: string, message: string, ad
       console.warn('Failed to create notification:', notificationError);
     }
     
+    // Send email notification (non-blocking)
+    try {
+      console.log(`📧 Sending clarification email notification for KYC ${kycId} to user ${data.user_id}`);
+      
+      const emailResult = await adminClient.functions.invoke('send-kyc-notification-email', {
+        body: {
+          userId: data.user_id,
+          kycId: kycId,
+          status: 'needs_clarification',
+          clarificationMessage: message.trim()
+        }
+      });
+      
+      if (emailResult.error) {
+        console.warn('Failed to send clarification email notification:', emailResult.error);
+      } else {
+        console.log('✅ Clarification email notification sent successfully:', emailResult.data);
+      }
+    } catch (emailError) {
+      // Email failure should not break the KYC clarification process
+      console.warn('Failed to send clarification email notification (non-critical):', emailError);
+    }
+    
     console.log(`✅ Successfully requested clarification for KYC verification: ${kycId}`);
     return {
       success: true,

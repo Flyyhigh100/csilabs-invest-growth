@@ -50,6 +50,28 @@ export async function approveKyc(kycId: string, adminClient: any) {
       console.warn('Failed to create notification:', notificationError);
     }
     
+    // Send email notification (non-blocking)
+    try {
+      console.log(`📧 Sending approval email notification for KYC ${kycId} to user ${data.user_id}`);
+      
+      const emailResult = await adminClient.functions.invoke('send-kyc-notification-email', {
+        body: {
+          userId: data.user_id,
+          kycId: kycId,
+          status: 'approved'
+        }
+      });
+      
+      if (emailResult.error) {
+        console.warn('Failed to send approval email notification:', emailResult.error);
+      } else {
+        console.log('✅ Approval email notification sent successfully:', emailResult.data);
+      }
+    } catch (emailError) {
+      // Email failure should not break the KYC approval process
+      console.warn('Failed to send approval email notification (non-critical):', emailError);
+    }
+    
     console.log(`✅ Successfully approved KYC verification: ${kycId}`);
     return {
       success: true,

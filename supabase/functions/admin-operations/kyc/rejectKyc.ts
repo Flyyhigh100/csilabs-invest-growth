@@ -53,6 +53,29 @@ export async function rejectKyc(kycId: string, rejectionReason: string, adminCli
       console.warn('Failed to create notification:', notificationError);
     }
     
+    // Send email notification (non-blocking)
+    try {
+      console.log(`📧 Sending rejection email notification for KYC ${kycId} to user ${data.user_id}`);
+      
+      const emailResult = await adminClient.functions.invoke('send-kyc-notification-email', {
+        body: {
+          userId: data.user_id,
+          kycId: kycId,
+          status: 'rejected',
+          rejectionReason: rejectionReason.trim()
+        }
+      });
+      
+      if (emailResult.error) {
+        console.warn('Failed to send rejection email notification:', emailResult.error);
+      } else {
+        console.log('✅ Rejection email notification sent successfully:', emailResult.data);
+      }
+    } catch (emailError) {
+      // Email failure should not break the KYC rejection process
+      console.warn('Failed to send rejection email notification (non-critical):', emailError);
+    }
+    
     console.log(`✅ Successfully rejected KYC verification: ${kycId}`);
     return {
       success: true,
