@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,17 +40,10 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
       
       console.log('Fetching transactions with filters:', { status, paymentMethod, startDate, endDate, searchQuery, includeTestData });
       
-      // Enhanced query to include user profile data - Fixed the join syntax
+      // First, fetch transactions without join to avoid relationship errors
       let query = supabase
         .from('transactions')
-        .select(`
-          *,
-          profiles!transactions_user_id_fkey (
-            first_name,
-            last_name,
-            email
-          )
-        `);
+        .select('*');
       
       // Apply filters only if they have actual values (not undefined/null)
       if (status && status.trim() !== '') {
@@ -72,10 +64,8 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
         query = query.lt('created_at', nextDay.toISOString());
       }
       
-      // Enhanced search query for multiple fields including user data
+      // Search in transaction fields only for now
       if (searchQuery && searchQuery.trim() !== '') {
-        // For searching in related profiles, we'll need to fetch all and filter in memory
-        // This is a limitation of PostgREST - we can't easily search across joins
         query = query.or(
           `transaction_id.ilike.%${searchQuery}%,external_transaction_id.ilike.%${searchQuery}%,wallet_address.ilike.%${searchQuery}%,payment_address.ilike.%${searchQuery}%`
         );
@@ -91,20 +81,45 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
         .order('created_at', { ascending: false })
         .limit(500);
       
-      const { data, error } = await query;
+      const { data: transactions, error: transactionError } = await query;
       
-      if (error) {
-        console.error('Error fetching transactions:', error);
-        throw new Error(`Database error: ${error.message}`);
+      if (transactionError) {
+        console.error('Error fetching transactions:', transactionError);
+        throw new Error(`Database error: ${transactionError.message}`);
       }
       
-      console.log(`Fetched ${data?.length || 0} transactions with user data`);
+      console.log(`Fetched ${transactions?.length || 0} transactions`);
+      
+      // If we have transactions, fetch user profiles separately
+      let transactionsWithUsers: TransactionWithUser[] = transactions || [];
+      
+      if (transactions && transactions.length > 0) {
+        const userIds = [...new Set(transactions.map(tx => tx.user_id))];
+        
+        const { data: profiles, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, email')
+          .in('id', userIds);
+        
+        if (profileError) {
+          console.error('Error fetching profiles:', profileError);
+          // Continue without user data instead of failing
+        } else {
+          // Create a map of user profiles for quick lookup
+          const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+          
+          // Merge transaction data with user profiles
+          transactionsWithUsers = transactions.map(transaction => ({
+            ...transaction,
+            profiles: profileMap.get(transaction.user_id) || undefined
+          }));
+        }
+      }
       
       // Filter by user data if search query exists and we have profile data
-      let filteredData = data || [];
       if (searchQuery && searchQuery.trim() !== '') {
         const searchLower = searchQuery.toLowerCase();
-        filteredData = filteredData.filter(transaction => {
+        const userFilteredTransactions = transactionsWithUsers.filter(transaction => {
           // Check if search matches user profile data
           if (transaction.profiles) {
             const { first_name, last_name, email } = transaction.profiles;
@@ -117,9 +132,14 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
           }
           return false;
         });
+        
+        // If we found user matches, use those; otherwise keep the original transaction matches
+        if (userFilteredTransactions.length > 0) {
+          return userFilteredTransactions;
+        }
       }
       
-      return filteredData;
+      return transactionsWithUsers;
     } catch (err) {
       console.error('Exception in fetchTransactions:', err);
       setError(err instanceof Error ? err : new Error('Unknown error'));
