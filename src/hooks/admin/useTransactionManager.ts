@@ -15,6 +15,15 @@ interface UseTransactionManagerProps {
   olderThanDays?: number;
 }
 
+// Enhanced transaction type with user profile data
+export interface TransactionWithUser extends Transaction {
+  profiles?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+  };
+}
+
 export const useTransactionManager = (props: UseTransactionManagerProps = {}) => {
   const [error, setError] = useState<Error | null>(null);
   const [isCleaningUp, setIsCleaningUp] = useState(false);
@@ -32,10 +41,17 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
       
       console.log('Fetching transactions with filters:', { status, paymentMethod, startDate, endDate, searchQuery, includeTestData });
       
-      // Start building the query
+      // Enhanced query to include user profile data
       let query = supabase
         .from('transactions')
-        .select('*');
+        .select(`
+          *,
+          profiles:user_id (
+            first_name,
+            last_name,
+            email
+          )
+        `);
       
       // Apply filters only if they have actual values (not undefined/null)
       if (status && status.trim() !== '') {
@@ -56,10 +72,11 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
         query = query.lt('created_at', nextDay.toISOString());
       }
       
-      // Handle search query for multiple fields
+      // Enhanced search query for multiple fields including user data
       if (searchQuery && searchQuery.trim() !== '') {
+        // Search in transaction fields and user email
         query = query.or(
-          `transaction_id.ilike.%${searchQuery}%,external_transaction_id.ilike.%${searchQuery}%,wallet_address.ilike.%${searchQuery}%`
+          `transaction_id.ilike.%${searchQuery}%,external_transaction_id.ilike.%${searchQuery}%,wallet_address.ilike.%${searchQuery}%,payment_address.ilike.%${searchQuery}%`
         );
       }
       
@@ -71,7 +88,7 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
       // Apply sorting and limits
       query = query
         .order('created_at', { ascending: false })
-        .limit(500); // Increased limit to show more transactions
+        .limit(500);
       
       const { data, error } = await query;
       
@@ -80,7 +97,7 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
         throw new Error(`Database error: ${error.message}`);
       }
       
-      console.log(`Fetched ${data?.length || 0} transactions`);
+      console.log(`Fetched ${data?.length || 0} transactions with user data`);
       return data || [];
     } catch (err) {
       console.error('Exception in fetchTransactions:', err);

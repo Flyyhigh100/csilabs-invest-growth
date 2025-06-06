@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { 
@@ -20,16 +21,18 @@ import {
   History,
   Loader2,
   RefreshCw,
-  X
+  X,
+  User,
+  Wallet
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Transaction } from '@/types/transactions';
+import { TransactionWithUser } from '@/hooks/admin/useTransactionManager';
 import UpdateStatusDialog from './UpdateStatusDialog';
 import { mapStatusToBadgeVariant } from '@/utils/admin/transactions/statusMapping';
 import { formatCurrency } from '@/utils/format';
 
 interface TransactionStatusTableProps {
-  transactions: Transaction[];
+  transactions: TransactionWithUser[];
   isLoading: boolean;
   onUpdateStatus: (transactionId: string, newStatus: string) => Promise<boolean>;
   onRefresh: () => void;
@@ -41,7 +44,7 @@ const TransactionStatusTable: React.FC<TransactionStatusTableProps> = ({
   onUpdateStatus,
   onRefresh
 }) => {
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionWithUser | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   
@@ -69,9 +72,41 @@ const TransactionStatusTable: React.FC<TransactionStatusTableProps> = ({
     });
   };
 
-  const openUpdateDialog = (transaction: Transaction) => {
+  const openUpdateDialog = (transaction: TransactionWithUser) => {
     setSelectedTransaction(transaction);
     setIsUpdateDialogOpen(true);
+  };
+
+  // Helper function to get user display name
+  const getUserDisplayName = (tx: TransactionWithUser) => {
+    if (!tx.profiles) return 'Unknown User';
+    const { first_name, last_name } = tx.profiles;
+    if (first_name && last_name) return `${first_name} ${last_name}`;
+    if (first_name) return first_name;
+    if (last_name) return last_name;
+    return 'Unknown User';
+  };
+
+  // Helper function to get crypto network badge color
+  const getNetworkBadgeColor = (network?: string) => {
+    if (!network) return 'bg-gray-100 text-gray-800';
+    
+    switch (network.toLowerCase()) {
+      case 'ethereum':
+      case 'eth':
+        return 'bg-blue-100 text-blue-800';
+      case 'polygon':
+      case 'matic':
+        return 'bg-purple-100 text-purple-800';
+      case 'bsc':
+      case 'binance':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'solana':
+      case 'sol':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   if (isLoading) {
@@ -112,12 +147,13 @@ const TransactionStatusTable: React.FC<TransactionStatusTableProps> = ({
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
+                <TableHead>User</TableHead>
                 <TableHead>Transaction ID</TableHead>
-                <TableHead>External ID</TableHead>
+                <TableHead>Crypto Details</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Payment</TableHead>
-                <TableHead>Wallet Address</TableHead>
+                <TableHead>Payment Address</TableHead>
+                <TableHead>User Wallet</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -130,6 +166,19 @@ const TransactionStatusTable: React.FC<TransactionStatusTableProps> = ({
                       {format(new Date(tx.created_at), 'h:mm a')}
                     </div>
                   </TableCell>
+                  
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <div className="font-medium">{getUserDisplayName(tx)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {tx.profiles?.email || 'No email'}
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <span className="text-xs font-mono truncate max-w-[120px]" title={tx.transaction_id}>
@@ -142,12 +191,10 @@ const TransactionStatusTable: React.FC<TransactionStatusTableProps> = ({
                         <ClipboardCopy className="h-3 w-3" />
                       </button>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    {tx.external_transaction_id ? (
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs font-mono truncate max-w-[120px]" title={tx.external_transaction_id}>
-                          {tx.external_transaction_id}
+                    {tx.external_transaction_id && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-xs font-mono truncate max-w-[120px] text-muted-foreground" title={tx.external_transaction_id}>
+                          Ext: {tx.external_transaction_id}
                         </span>
                         <button 
                           onClick={() => copyToClipboard(tx.external_transaction_id!, 'external ID')} 
@@ -156,10 +203,29 @@ const TransactionStatusTable: React.FC<TransactionStatusTableProps> = ({
                           <ClipboardCopy className="h-3 w-3" />
                         </button>
                       </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
                     )}
                   </TableCell>
+                  
+                  <TableCell>
+                    <div className="space-y-1">
+                      {tx.crypto_currency_symbol && (
+                        <Badge variant="outline" className="text-xs">
+                          {tx.crypto_currency_symbol.toUpperCase()}
+                        </Badge>
+                      )}
+                      {tx.crypto_network && (
+                        <Badge className={`text-xs ${getNetworkBadgeColor(tx.crypto_network)}`}>
+                          {tx.crypto_network}
+                        </Badge>
+                      )}
+                      {tx.expected_crypto_amount && (
+                        <div className="text-xs text-muted-foreground">
+                          Expected: {tx.expected_crypto_amount} {tx.crypto_currency_symbol?.toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  
                   <TableCell className="text-right">
                     <div className={`font-mono ${tx.is_test ? 'text-amber-600' : ''}`}>
                       {formatCurrency(tx.amount, tx.currency || 'USD')}
@@ -170,6 +236,7 @@ const TransactionStatusTable: React.FC<TransactionStatusTableProps> = ({
                       </div>
                     )}
                   </TableCell>
+                  
                   <TableCell>
                     <Badge variant={mapStatusToBadgeVariant(tx.status)}>
                       {tx.status}
@@ -179,25 +246,45 @@ const TransactionStatusTable: React.FC<TransactionStatusTableProps> = ({
                         Test
                       </Badge>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
+                    <div className="text-xs text-muted-foreground mt-1">
                       {tx.payment_method}
-                    </Badge>
+                    </div>
                   </TableCell>
+                  
+                  <TableCell>
+                    {tx.payment_address ? (
+                      <div className="flex items-center gap-1">
+                        <Wallet className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs font-mono truncate max-w-[120px]" title={tx.payment_address}>
+                          {tx.payment_address}
+                        </span>
+                        <button 
+                          onClick={() => copyToClipboard(tx.payment_address!, 'payment address')} 
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <ClipboardCopy className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">N/A</span>
+                    )}
+                  </TableCell>
+                  
                   <TableCell>
                     <div className="flex items-center gap-1">
+                      <Wallet className="h-3 w-3 text-blue-600" />
                       <span className="text-xs font-mono truncate max-w-[120px]" title={tx.wallet_address}>
                         {tx.wallet_address}
                       </span>
                       <button 
-                        onClick={() => copyToClipboard(tx.wallet_address, 'wallet address')} 
+                        onClick={() => copyToClipboard(tx.wallet_address, 'user wallet')} 
                         className="text-gray-400 hover:text-gray-600"
                       >
                         <ClipboardCopy className="h-3 w-3" />
                       </button>
                     </div>
                   </TableCell>
+                  
                   <TableCell className="text-right">
                     <div className="flex gap-2 justify-end">
                       {tx.payment_method === 'coinpayments' && (

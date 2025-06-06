@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, FilterX, Search, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Calendar as CalendarIcon, FilterX, Search, RefreshCw, AlertTriangle, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -74,9 +74,12 @@ const TransactionStatusDashboard = () => {
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
-              <CardTitle>Transaction Status Manager</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Enhanced Transaction Status Manager
+              </CardTitle>
               <CardDescription>
-                Review and update transaction status for all payment methods
+                Review transactions with user details and crypto payment information for efficient manual verification
               </CardDescription>
             </div>
             <div className="flex items-center space-x-2">
@@ -183,7 +186,7 @@ const TransactionStatusDashboard = () => {
               <Input
                 className="pl-8"
                 type="search"
-                placeholder="Search by transaction ID, wallet address..."
+                placeholder="Search by user name, email, transaction ID, wallet address..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -251,7 +254,7 @@ const TransactionStatusDashboard = () => {
             )}
           </div>
           
-          {/* Transactions table */}
+          {/* Enhanced transactions table */}
           <TransactionStatusTable
             transactions={transactions || []}
             isLoading={isLoading}
