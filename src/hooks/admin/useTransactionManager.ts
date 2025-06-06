@@ -29,6 +29,9 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
   
   const fetchTransactions = async () => {
     try {
+      // Clear any previous errors at the start of the fetch
+      setError(null);
+      
       const { 
         status, 
         paymentMethod, 
@@ -85,7 +88,9 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
       
       if (transactionError) {
         console.error('Error fetching transactions:', transactionError);
-        throw new Error(`Database error: ${transactionError.message}`);
+        const errorMessage = `Failed to fetch transactions: ${transactionError.message}`;
+        setError(new Error(errorMessage));
+        throw new Error(errorMessage);
       }
       
       console.log(`Fetched ${transactions?.length || 0} transactions`);
@@ -103,7 +108,8 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
         
         if (profileError) {
           console.error('Error fetching profiles:', profileError);
-          // Continue without user data instead of failing
+          // Continue without user data instead of failing - this is not a critical error
+          console.log('Continuing without user profile data');
         } else {
           // Create a map of user profiles for quick lookup
           const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
@@ -139,11 +145,14 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
         }
       }
       
+      // Clear error state since we successfully loaded data
+      setError(null);
       return transactionsWithUsers;
     } catch (err) {
       console.error('Exception in fetchTransactions:', err);
-      setError(err instanceof Error ? err : new Error('Unknown error'));
-      throw err;
+      const finalError = err instanceof Error ? err : new Error('Failed to load transactions');
+      setError(finalError);
+      throw finalError;
     }
   };
 
@@ -152,6 +161,7 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
     data: transactions, 
     isLoading, 
     refetch,
+    error: queryError,
   } = useQuery({
     queryKey: [
       'admin-transactions-manager', 
@@ -164,6 +174,9 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
     ],
     queryFn: fetchTransactions,
   });
+
+  // Use the query error if our local error state is not set
+  const displayError = error || (queryError instanceof Error ? queryError : null);
 
   // Check and update old pending transactions
   const cleanupOldPendingTransactions = async () => {
@@ -293,7 +306,7 @@ export const useTransactionManager = (props: UseTransactionManagerProps = {}) =>
   return {
     transactions,
     isLoading,
-    error,
+    error: displayError,
     refetch,
     cleanupOldPendingTransactions,
     isCleaningUp,
