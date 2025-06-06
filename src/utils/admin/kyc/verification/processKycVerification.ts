@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { verifyAdminPermissions } from './adminVerifier';
@@ -74,18 +75,18 @@ export const processKycVerification = async (
       return false;
     }
     
-    // Show a new loading toast with a reasonable timeout
-    showLoadingToast(`Processing KYC verification (${status})...`, loadingToastId, 15000);
+    // Show a new loading toast with increased timeout
+    showLoadingToast(`Processing KYC verification (${status})...`, loadingToastId, 30000);
     
     // Set up listeners
     setupVerificationListeners();
     
-    // Verify admin permissions first
+    // Verify admin permissions first with increased timeout
     try {
       notifyAdminPermissionStatus('checking');
       
       const adminCheckPromise = verifyAdminPermissions();
-      const isAdmin = await withTimeout(adminCheckPromise, 5000, 'Admin permission check timed out');
+      const isAdmin = await withTimeout(adminCheckPromise, 10000, 'Admin permission check timed out');
       
       if (!isAdmin) {
         dismissToast(loadingToastId);
@@ -112,17 +113,12 @@ export const processKycVerification = async (
       return false;
     }
 
-    // Process KYC verification
+    // Process KYC verification with increased timeout and better error handling
     return await executeWithRetry(
       async () => {
-        // CRITICAL FIX: Match the exact payload structure expected by the edge function
-        // Directly compare with the structure expected in src/edge-functions/admin-operations/kyc-operations.ts
-        // NOTE: The edge function expects an "operation" field that determines the handler.
-        // We previously used "action", which caused the function to fall through the
-        // switch statement and return an "Unknown operation" error.
-        // Switching to the correct "operation" key fixes the problem.
+        // Use the correct operation name that matches the edge function handler
         const payload = {
-          operation: 'processKyc',  // Must match switch case in admin-operations edge function
+          operation: 'processKyc',  // This now matches the handler we just added
           data: {
             kycId,
             status,
@@ -134,8 +130,8 @@ export const processKycVerification = async (
 
         const response = await withTimeout(
           supabase.functions.invoke('admin-operations', { body: payload }),
-          8000,
-          'Request timed out'
+          15000, // Increased timeout from 8000 to 15000ms
+          'Request timed out - please try again'
         ) as EdgeFunctionResponse;
 
         console.log(`📥 [${operationId}] Response from admin-operations:`, JSON.stringify(response));
@@ -145,30 +141,30 @@ export const processKycVerification = async (
           throw new Error(response.error.message || 'Error from admin-operations function');
         }
 
-        if (!response.data?.kyc) {
+        if (!response.data?.kyc && !response.data?.success) {
           console.error(`❌ [${operationId}] Invalid response format:`, response);
           throw new Error('Invalid response format from server');
         }
 
-        if (response.data.kyc.status !== status) {
-          console.error(`❌ [${operationId}] Status mismatch: got ${response.data.kyc.status}, expected ${status}`);
-          throw new Error(`Status update failed: got ${response.data.kyc.status}, expected ${status}`);
+        // Check if the operation was successful
+        if (response.data?.success || (response.data?.kyc && response.data.kyc.status === status)) {
+          // Success case - clear loading state first
+          dismissToast(loadingToastId);
+          
+          // Show success notification with the smart notification system
+          showSmartNotification(
+            'Success', 
+            `KYC verification ${status} successfully`,
+            { type: 'kyc_action', priority: 'high', id: `kyc-success-${kycId}` }
+          );
+          
+          return true;
+        } else {
+          throw new Error(`Status update failed: expected ${status} but operation did not complete successfully`);
         }
-
-        // Success case - clear loading state first
-        dismissToast(loadingToastId);
-        
-        // Show success notification with the smart notification system
-        showSmartNotification(
-          'Success', 
-          `KYC verification ${status} successfully`,
-          { type: 'kyc_action', priority: 'high', id: `kyc-success-${kycId}` }
-        );
-        
-        return true;
       },
-      2,  // maxRetries - increased from 1 to 2
-      2000  // retryDelay
+      3,  // Increased maxRetries from 2 to 3
+      3000  // Increased retryDelay from 2000 to 3000ms
     ).catch(error => {
       // Handle errors from the retry process
       dismissToast(loadingToastId);

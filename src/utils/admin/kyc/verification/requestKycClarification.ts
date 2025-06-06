@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { verifyAdminPermissions } from './adminVerifier';
 import { isKycLocked, setKycLock, releaseKycLock } from './utils/lockManager';
@@ -46,12 +47,12 @@ export const requestKycClarification = async (
       return false;
     }
     
-    // Show loading notification
+    // Show loading notification with increased timeout
     const loadingToastId = `clarification-${kycId}-${Date.now()}`;
     showSmartNotification(
       'Processing', 
       'Requesting clarification...',
-      { type: 'kyc_action', priority: 'medium', id: loadingToastId, duration: 15000 }
+      { type: 'kyc_action', priority: 'medium', id: loadingToastId, duration: 30000 }
     );
     
     // Verify admin permissions
@@ -77,21 +78,29 @@ export const requestKycClarification = async (
       return false;
     }
     
-    // CRITICAL FIX: Match the exact payload structure expected by the edge function
+    // Use the unified processKyc operation instead of the separate requestKycClarification
     const payload = {
-      operation: 'requestKycClarification',  // Must match switch case in admin-operations edge function
+      operation: 'processKyc',  // Use the unified handler
       data: {
         kycId,
-        message
+        status: 'needs_clarification',
+        rejectionReason: message
       }
     };
 
     console.log(`📤 [${operationId}] Sending payload to admin-operations function:`, JSON.stringify(payload));
 
     try {
-      const { data, error } = await supabase.functions.invoke('admin-operations', {
+      // Increased timeout for better reliability
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timed out - please try again')), 15000);
+      });
+      
+      const requestPromise = supabase.functions.invoke('admin-operations', {
         body: payload
       });
+      
+      const { data, error } = await Promise.race([requestPromise, timeoutPromise]) as any;
       
       console.log(`📥 [${operationId}] Response from admin-operations:`, JSON.stringify({ data, error }));
       
@@ -106,7 +115,7 @@ export const requestKycClarification = async (
         return false;
       }
       
-      if (!data?.kyc) {
+      if (!data?.success && !data?.kyc) {
         console.error(`❌ [${operationId}] Invalid response format:`, data);
         showSmartNotification(
           'Error', 

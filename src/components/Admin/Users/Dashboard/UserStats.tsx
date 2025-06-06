@@ -115,12 +115,12 @@ const UserStats: React.FC<UserStatsProps> = ({ users }) => {
         </Card>
       </div>
       
-      {/* Charts */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* Charts - Improved mobile responsiveness */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         {/* KYC Status Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>KYC Status Distribution</CardTitle>
+            <CardTitle className="text-lg">KYC Status Distribution</CardTitle>
           </CardHeader>
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
@@ -150,7 +150,7 @@ const UserStats: React.FC<UserStatsProps> = ({ users }) => {
         {/* User Growth Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>User Growth</CardTitle>
+            <CardTitle className="text-lg">User Growth</CardTitle>
           </CardHeader>
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
@@ -179,10 +179,10 @@ const UserStats: React.FC<UserStatsProps> = ({ users }) => {
           </CardContent>
         </Card>
         
-        {/* Transaction Distribution Chart */}
-        <Card className="lg:col-span-2">
+        {/* Transaction Distribution Chart - Full width on mobile */}
+        <Card className="xl:col-span-2">
           <CardHeader>
-            <CardTitle>Transaction Distribution</CardTitle>
+            <CardTitle className="text-lg">Transaction Distribution</CardTitle>
           </CardHeader>
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">

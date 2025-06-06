@@ -18,6 +18,9 @@ export const handlers = {
   requestKycClarification: kycOperations.requestKycClarification,
   getKycVerification: kycOperations.getKycVerification,
   
+  // CRITICAL FIX: Add missing processKyc operation that frontend is calling
+  processKyc: kycOperations.processKyc,
+  
   // Transaction operations
   getAllTransactions: transactionOperations.getAllTransactions,
   updateTransactionStatus: transactionOperations.updateTransactionStatus,
@@ -44,6 +47,7 @@ export const handleAdminOperations = async (operation, data, user, adminClient) 
   try {
     // Check if the operation exists in our handlers
     if (!handlers[operation]) {
+      console.error(`❌ Unknown operation: ${operation}. Available operations: ${Object.keys(handlers).join(', ')}`);
       throw new Error(`Unknown operation: ${operation}`);
     }
     
@@ -58,7 +62,8 @@ export const handleAdminOperations = async (operation, data, user, adminClient) 
     return {
       error: {
         message: error.message || 'Operation failed',
-        operation: operation
+        operation: operation,
+        details: error.details || null
       }
     };
   }

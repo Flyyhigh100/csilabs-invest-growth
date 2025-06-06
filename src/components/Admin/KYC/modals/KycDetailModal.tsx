@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, DialogContent, DialogDescription, 
@@ -123,46 +124,48 @@ const KycDetailModal: React.FC<KycDetailModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>KYC Verification Details</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="w-full max-w-4xl max-h-[95vh] mx-2 sm:mx-auto overflow-y-auto">
+        <DialogHeader className="pb-4">
+          <DialogTitle className="text-lg sm:text-xl">KYC Verification Details</DialogTitle>
+          <DialogDescription className="text-sm text-gray-600">
             Review user information and documents
           </DialogDescription>
         </DialogHeader>
         
-        <KycModalTabs
-          selectedKyc={selectedKyc}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-        />
-        
-        <KycActionPanel
-          selectedKyc={selectedKyc}
-          activeAction={activeAction}
-          setActiveAction={setActiveAction}
-          rejectionReason={rejectionReason}
-          setRejectionReason={setRejectionReason}
-          clarificationMessage={clarificationMessage}
-          setClarificationMessage={setClarificationMessage}
-          onApprove={onApprove}
-          onReject={onReject}
-          onRequestClarification={onRequestClarification}
-          isPending={isPending}
-          debugInfo={debugInfo}
-        />
-        
-        {/* Add Debug Information for development */}
-        {debugInfo && (
-          <div className="mt-4 border-t pt-4 text-xs text-gray-500">
-            <KycDebugInfo 
-              selectedKyc={selectedKyc}
-              activeAction={activeAction}
-              isPending={isPending}
-              debugInfo={debugInfo}
-            />
-          </div>
-        )}
+        <div className="space-y-4">
+          <KycModalTabs
+            selectedKyc={selectedKyc}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
+          
+          <KycActionPanel
+            selectedKyc={selectedKyc}
+            activeAction={activeAction}
+            setActiveAction={setActiveAction}
+            rejectionReason={rejectionReason}
+            setRejectionReason={setRejectionReason}
+            clarificationMessage={clarificationMessage}
+            setClarificationMessage={setClarificationMessage}
+            onApprove={onApprove}
+            onReject={onReject}
+            onRequestClarification={onRequestClarification}
+            isPending={isPending}
+            debugInfo={debugInfo}
+          />
+          
+          {/* Add Debug Information for development */}
+          {debugInfo && (
+            <div className="mt-4 border-t pt-4 text-xs text-gray-500">
+              <KycDebugInfo 
+                selectedKyc={selectedKyc}
+                activeAction={activeAction}
+                isPending={isPending}
+                debugInfo={debugInfo}
+              />
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
