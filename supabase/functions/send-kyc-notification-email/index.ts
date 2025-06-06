@@ -47,7 +47,7 @@ const getEmailTemplate = (
               <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #1e40af;">
                 <h3 style="color: #1e40af; margin-top: 0;">What's Next?</h3>
                 <ul style="color: #374151; margin: 10px 0;">
-                  <li>You can now purchase CSi tokens using cryptocurrency or credit card</li>
+                  <li>You can now purchase CSi tokens using cryptocurrency</li>
                   <li>Access to high-value transactions (over $10,000) is now enabled</li>
                   <li>View your complete transaction history</li>
                   <li>Participate in our cancer research token ecosystem</li>
