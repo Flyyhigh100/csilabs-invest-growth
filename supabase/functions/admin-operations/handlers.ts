@@ -1,5 +1,4 @@
 
-
 import { userOperations } from './user-operations.ts';
 import { userAuthOperations } from './user-auth-operations.ts';
 import { kycOperations } from './kyc-operations.ts';
@@ -53,7 +52,14 @@ export const handleAdminOperations = async (operation, data, user, adminClient) 
       throw new Error(`Unknown operation: ${operation}`);
     }
     
-    // Call the appropriate handler
+    // Special handling for resendKycNotification to pass user object
+    if (operation === 'resendKycNotification') {
+      const result = await handlers[operation](data, adminClient, user);
+      console.log(`✅ Operation ${operation} completed successfully`);
+      return result;
+    }
+    
+    // Call the appropriate handler for all other operations
     const result = await handlers[operation](data, adminClient);
     
     console.log(`✅ Operation ${operation} completed successfully`);

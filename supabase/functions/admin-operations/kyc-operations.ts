@@ -186,7 +186,7 @@ export const processKyc = async (data, adminClient) => {
 /**
  * Resend KYC notification email
  */
-const resendKycNotification = async (data, adminClient) => {
+const resendKycNotification = async (data, adminClient, user) => {
   try {
     const { kycId } = data;
     
@@ -196,11 +196,13 @@ const resendKycNotification = async (data, adminClient) => {
       throw new Error('KYC ID is required');
     }
     
-    // Get the current user/admin ID
-    const adminId = adminClient.auth.auth?.currentSession?.user?.id;
+    // Get the admin ID from the authenticated user object passed from the handler
+    const adminId = user?.id;
     if (!adminId) {
-      throw new Error('Admin ID could not be determined');
+      throw new Error('Admin user ID is required for this operation');
     }
+    
+    console.log(`👤 Using admin ID: ${adminId} for KYC notification resend`);
     
     // Call the manual notification edge function
     const result = await adminClient.functions.invoke('send-kyc-manual-notification', {
