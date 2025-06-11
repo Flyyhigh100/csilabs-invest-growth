@@ -28,10 +28,10 @@ export const calculateRealProcessingTimes = async (includeTestData: boolean = fa
 
     const { data: kycData } = await kycQuery;
 
-    // Get transaction processing times
+    // Get transaction processing times - include user_id in the select
     const transactionsQuery = supabase
       .from('transactions')
-      .select('created_at, completed_at, status, payment_method');
+      .select('user_id, created_at, completed_at, status, payment_method');
 
     if (!includeTestData) {
       transactionsQuery.eq('is_test', false);

@@ -107,7 +107,7 @@ export const calculateRealTimeData = async (includeTestData: boolean = false): P
     // Simulate online users (would need real presence tracking)
     const onlineUsers = Math.floor(activeUsers * 0.3); // Rough estimate
 
-    // Recent activity (last 10 activities)
+    // Recent activity (last 10 activities) - fix the amount property issue
     const allActivities = [
       ...transactions.map(tx => ({
         time: new Date(tx.created_at),
@@ -119,12 +119,14 @@ export const calculateRealTimeData = async (includeTestData: boolean = false): P
       ...profiles.map(profile => ({
         time: new Date(profile.created_at),
         type: 'registration',
+        amount: undefined, // No amount for registrations
         userId: profile.id,
         data: profile
       })),
       ...kycData.map(kyc => ({
         time: new Date(kyc.created_at),
         type: 'kyc',
+        amount: undefined, // No amount for KYC submissions
         userId: kyc.user_id,
         data: kyc
       }))
@@ -137,7 +139,7 @@ export const calculateRealTimeData = async (includeTestData: boolean = false): P
     const recentActivity = sortedActivities.map(activity => ({
       time: activity.time.toLocaleTimeString(),
       type: activity.type,
-      amount: activity.amount,
+      amount: activity.amount, // This will be undefined for non-transaction activities
       user: activity.userId.slice(0, 8) + '...' // Truncated user ID for privacy
     }));
 
