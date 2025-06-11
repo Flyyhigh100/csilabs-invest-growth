@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, TrendingUp, Users, Activity, Target, AlertCircle, Clock, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import ConversionFunnelChart from './Charts/ConversionFunnelChart';
@@ -23,13 +23,20 @@ import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
 const AdvancedAnalytics: React.FC = () => {
   const [timeRange, setTimeRange] = useState('90');
   const { includeTestData } = useTestDataToggle();
+  const queryClient = useQueryClient();
+
+  // Force a unique query key to clear cache
+  const cacheKey = `advanced-analytics-no-kyc-${Date.now()}`;
 
   const { data: analyticsData, isLoading, refetch, error } = useQuery({
-    queryKey: ['advanced-analytics-complete', timeRange, includeTestData],
+    queryKey: [cacheKey, timeRange, includeTestData],
     queryFn: async () => {
-      console.log('Fetching complete real analytics data...');
+      console.log('Fetching complete real analytics data without KYC stages...');
       
       try {
+        // Clear any existing cache for analytics queries
+        await queryClient.invalidateQueries({ queryKey: ['advanced-analytics'] });
+        
         // Fetch all real data analytics
         const [
           funnelDataRaw,
@@ -49,6 +56,8 @@ const AdvancedAnalytics: React.FC = () => {
           calculateRealTimeData(includeTestData)
         ]);
 
+        console.log('Raw funnel data returned:', funnelDataRaw);
+
         // Transform ConversionStageData to ConversionFunnelData by adding descriptions
         const funnelData = funnelDataRaw.map(stage => ({
           stage: stage.stage,
@@ -56,7 +65,8 @@ const AdvancedAnalytics: React.FC = () => {
           description: getStageDescription(stage.stage)
         }));
 
-        console.log('All real analytics data fetched successfully');
+        console.log('Transformed funnel data:', funnelData);
+        console.log('All real analytics data fetched successfully (KYC stages removed)');
 
         return {
           funnelData,
@@ -76,9 +86,11 @@ const AdvancedAnalytics: React.FC = () => {
     },
     refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
     retry: 2,
+    staleTime: 0, // Force fresh data
+    cacheTime: 0, // Don't cache
   });
 
-  // Helper function to get meaningful descriptions for each stage
+  // Helper function to get meaningful descriptions for each stage (KYC stages removed)
   const getStageDescription = (stage: string): string => {
     switch (stage) {
       case 'Registration':
@@ -92,6 +104,15 @@ const AdvancedAnalytics: React.FC = () => {
       default:
         return 'User conversion stage in the platform journey';
     }
+  };
+
+  // Force refresh function with cache clearing
+  const handleForceRefresh = async () => {
+    console.log('Force refreshing analytics data and clearing cache...');
+    await queryClient.invalidateQueries({ queryKey: ['advanced-analytics'] });
+    await queryClient.removeQueries({ queryKey: ['advanced-analytics'] });
+    refetch();
+    toast.success('Analytics data refreshed successfully');
   };
 
   if (error) {
@@ -110,12 +131,12 @@ const AdvancedAnalytics: React.FC = () => {
           </CardHeader>
           <CardContent>
             <Button 
-              onClick={() => refetch()} 
+              onClick={() => handleForceRefresh()} 
               variant="outline" 
               className="border-red-300 text-red-700 hover:bg-red-100"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
+              Force Refresh
             </Button>
           </CardContent>
         </Card>
@@ -150,9 +171,9 @@ const AdvancedAnalytics: React.FC = () => {
               <SelectItem value="365">Last year</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={() => refetch()} size="sm">
+          <Button variant="outline" onClick={handleForceRefresh} size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh Analytics
+            Force Refresh Analytics
           </Button>
         </div>
         <div className="text-sm text-muted-foreground">
@@ -251,15 +272,15 @@ const AdvancedAnalytics: React.FC = () => {
         </Card>
       </div>
 
-      {/* Real Data Notice */}
+      {/* Real Data Notice - Updated */}
       <Card className="border-green-200 bg-green-50">
         <CardContent className="pt-6">
           <div className="flex items-center gap-2 text-green-800">
             <Target className="h-5 w-5" />
-            <span className="font-medium">100% Real Data Analytics</span>
+            <span className="font-medium">100% Real Data Analytics (KYC Stages Removed)</span>
           </div>
           <p className="text-sm text-green-700 mt-1">
-            All analytics now use actual data from your database - no mock or simulated data. This provides genuine business intelligence for data-driven decisions.
+            All analytics now use actual data from your database with KYC stages removed from the conversion funnel. Shows only: Registration → Wallet Address Saved → First Purchase → Token Received.
           </p>
         </CardContent>
       </Card>
