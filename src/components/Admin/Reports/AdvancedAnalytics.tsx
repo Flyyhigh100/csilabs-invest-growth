@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -86,10 +85,6 @@ const AdvancedAnalytics: React.FC = () => {
         return 'Users who have created an account on the platform';
       case 'Wallet Address Saved':
         return 'Users who have provided and saved their wallet address';
-      case 'KYC Submitted':
-        return 'Users who have submitted their identity verification documents';
-      case 'KYC Approved':
-        return 'Users whose identity verification has been approved';
       case 'First Purchase':
         return 'Users who have completed their first token purchase';
       case 'Token Received':

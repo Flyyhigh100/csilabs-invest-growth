@@ -15,17 +15,6 @@ export const calculateRealConversionFunnel = async (includeTestData: boolean = f
     const profilesQuery = supabase.from('profiles').select('id, created_at, wallet_address');
     const { data: profiles } = await profilesQuery;
 
-    // Fetch KYC data
-    const kycQuery = supabase
-      .from('kyc_verifications')
-      .select('user_id, status, submitted_at, approved_at, created_at');
-    
-    if (!includeTestData) {
-      kycQuery.eq('is_test', false);
-    }
-    
-    const { data: kycData } = await kycQuery;
-
     // Fetch transaction data
     const transactionsQuery = supabase
       .from('transactions')
@@ -37,7 +26,7 @@ export const calculateRealConversionFunnel = async (includeTestData: boolean = f
     
     const { data: transactions } = await transactionsQuery;
 
-    if (!profiles || !kycData || !transactions) {
+    if (!profiles || !transactions) {
       throw new Error('Failed to fetch required data');
     }
 
@@ -47,16 +36,6 @@ export const calculateRealConversionFunnel = async (includeTestData: boolean = f
     // Users who have saved their wallet address
     const walletAddressSavedUsers = new Set(
       profiles.filter(p => p.wallet_address && p.wallet_address.trim() !== '').map(p => p.id)
-    );
-    
-    // Users who submitted KYC
-    const kycSubmittedUsers = new Set(
-      kycData.filter(k => k.status !== 'not_started').map(k => k.user_id)
-    );
-    
-    // Users with approved KYC
-    const kycApprovedUsers = new Set(
-      kycData.filter(k => k.status === 'approved').map(k => k.user_id)
     );
     
     // Users who made their first purchase
@@ -77,8 +56,8 @@ export const calculateRealConversionFunnel = async (includeTestData: boolean = f
           const fromRecord = fromData.find(d => d.user_id === userId || d.id === userId);
           const toRecord = toData.find(d => d.user_id === userId || d.id === userId);
           if (fromRecord && toRecord) {
-            const fromTime = new Date(fromRecord.created_at || fromRecord.submitted_at);
-            const toTime = new Date(toRecord.created_at || toRecord.submitted_at || toRecord.approved_at);
+            const fromTime = new Date(fromRecord.created_at);
+            const toTime = new Date(toRecord.created_at);
             const diffDays = (toTime.getTime() - fromTime.getTime()) / (1000 * 60 * 60 * 24);
             if (diffDays >= 0) times.push(diffDays);
           }
@@ -107,40 +86,16 @@ export const calculateRealConversionFunnel = async (includeTestData: boolean = f
         dropoffRate: totalRegistrations > 0 ? ((totalRegistrations - walletAddressSavedUsers.size) / totalRegistrations) * 100 : 0,
         averageTimeToNext: calculateAverageTime(
           walletAddressSavedUsers,
-          kycSubmittedUsers,
-          profiles.filter(p => p.wallet_address),
-          kycData.filter(k => k.submitted_at)
-        )
-      },
-      {
-        stage: 'KYC Submitted',
-        users: kycSubmittedUsers.size,
-        conversionRate: walletAddressSavedUsers.size > 0 ? (kycSubmittedUsers.size / walletAddressSavedUsers.size) * 100 : 0,
-        dropoffRate: walletAddressSavedUsers.size > 0 ? ((walletAddressSavedUsers.size - kycSubmittedUsers.size) / walletAddressSavedUsers.size) * 100 : 0,
-        averageTimeToNext: calculateAverageTime(
-          kycSubmittedUsers,
-          kycApprovedUsers,
-          kycData.filter(k => k.submitted_at),
-          kycData.filter(k => k.approved_at)
-        )
-      },
-      {
-        stage: 'KYC Approved',
-        users: kycApprovedUsers.size,
-        conversionRate: kycSubmittedUsers.size > 0 ? (kycApprovedUsers.size / kycSubmittedUsers.size) * 100 : 0,
-        dropoffRate: kycSubmittedUsers.size > 0 ? ((kycSubmittedUsers.size - kycApprovedUsers.size) / kycSubmittedUsers.size) * 100 : 0,
-        averageTimeToNext: calculateAverageTime(
-          kycApprovedUsers,
           firstPurchaseUsers,
-          kycData.filter(k => k.approved_at),
+          profiles.filter(p => p.wallet_address),
           transactions.filter(t => t.status === 'completed')
         )
       },
       {
         stage: 'First Purchase',
         users: firstPurchaseUsers.size,
-        conversionRate: kycApprovedUsers.size > 0 ? (firstPurchaseUsers.size / kycApprovedUsers.size) * 100 : 0,
-        dropoffRate: kycApprovedUsers.size > 0 ? ((kycApprovedUsers.size - firstPurchaseUsers.size) / kycApprovedUsers.size) * 100 : 0,
+        conversionRate: walletAddressSavedUsers.size > 0 ? (firstPurchaseUsers.size / walletAddressSavedUsers.size) * 100 : 0,
+        dropoffRate: walletAddressSavedUsers.size > 0 ? ((walletAddressSavedUsers.size - firstPurchaseUsers.size) / walletAddressSavedUsers.size) * 100 : 0,
         averageTimeToNext: calculateAverageTime(
           firstPurchaseUsers,
           tokenReceivedUsers,
