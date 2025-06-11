@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart3, Users, Coins, DollarSign, TrendingUp, Activity } from 'lucide-react';
+import { BarChart3, Users, Coins, DollarSign, TrendingUp } from 'lucide-react';
 import ExecutiveSummary from './ExecutiveSummary';
 import FinancialReports from './FinancialReports';
 import UserEngagementReports from './UserEngagementReports';
@@ -18,7 +18,7 @@ const ReportsDashboard: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold">Advanced Reports Dashboard</h1>
           <p className="text-muted-foreground mt-1">
-            Comprehensive analytics and business intelligence for data-driven decisions
+            Comprehensive analytics and business intelligence with interactive data exploration
           </p>
         </div>
       </div>
@@ -68,35 +68,35 @@ const ReportsDashboard: React.FC = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Quick Insights Card */}
+      {/* Enhanced Data Explorer Info Card */}
       <Card className="border-2 border-dashed border-primary/20 bg-primary/5">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary" />
-            AI-Powered Insights
+            <TrendingUp className="h-5 w-5 text-primary" />
+            Interactive Data Explorer
           </CardTitle>
           <CardDescription>
-            Automated insights and recommendations based on your data patterns
+            Click on any chart, metric, or data point to explore detailed insights
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="font-medium text-blue-800 mb-2">🚀 Growth Opportunity</h4>
+              <h4 className="font-medium text-blue-800 mb-2">🔍 Live Activity Feed</h4>
               <p className="text-sm text-blue-700">
-                KYC approval rate improved by 12% this month. Consider promoting verification benefits.
+                Click on any activity in the real-time feed to see detailed transaction or user information.
               </p>
             </div>
             <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <h4 className="font-medium text-green-800 mb-2">💰 Revenue Insight</h4>
+              <h4 className="font-medium text-green-800 mb-2">📊 Interactive Charts</h4>
               <p className="text-sm text-green-700">
-                Credit card payments show 34% higher success rates than crypto payments.
+                Click on chart segments, bars, or regions to drill down into specific data points.
               </p>
             </div>
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h4 className="font-medium text-yellow-800 mb-2">⏰ Peak Hours</h4>
-              <p className="text-sm text-yellow-700">
-                Peak activity occurs between 2-4 PM EST. Schedule maintenance accordingly.
+            <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+              <h4 className="font-medium text-purple-800 mb-2">📈 Metric Details</h4>
+              <p className="text-sm text-purple-700">
+                Click on metric cards to see detailed breakdowns and historical trends.
               </p>
             </div>
           </div>
