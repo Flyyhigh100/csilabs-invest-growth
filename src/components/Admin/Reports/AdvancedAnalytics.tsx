@@ -4,15 +4,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCw, TrendingUp, Users, Activity, Target, AlertCircle } from 'lucide-react';
+import { RefreshCw, TrendingUp, Users, Activity, Target, AlertCircle, Clock, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import ConversionFunnelChart from './Charts/ConversionFunnelChart';
 import CohortAnalysisChart from './Charts/CohortAnalysisChart';
 import PredictiveAnalyticsChart from './Charts/PredictiveAnalyticsChart';
 import TransactionVelocityChart from './Charts/TransactionVelocityChart';
+import GeographicAnalyticsChart from './Charts/GeographicAnalyticsChart';
+import RealTimeDashboardChart from './Charts/RealTimeDashboardChart';
 import { calculateRealConversionFunnel } from '@/utils/admin/analytics/conversionFunnelUtils';
 import { calculateRealTransactionVelocity } from '@/utils/admin/analytics/transactionVelocityUtils';
 import { calculateRealRevenueForecasting } from '@/utils/admin/analytics/revenueForecastUtils';
+import { calculateRealCohortAnalysis } from '@/utils/admin/analytics/cohortAnalysisUtils';
+import { calculateRealProcessingTimes } from '@/utils/admin/analytics/processingTimeUtils';
+import { calculateRealGeographicAnalytics } from '@/utils/admin/analytics/geographicAnalyticsUtils';
+import { calculateRealTimeData } from '@/utils/admin/analytics/realTimeUtils';
 import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
 
 const AdvancedAnalytics: React.FC = () => {
@@ -20,77 +26,49 @@ const AdvancedAnalytics: React.FC = () => {
   const { includeTestData } = useTestDataToggle();
 
   const { data: analyticsData, isLoading, refetch, error } = useQuery({
-    queryKey: ['advanced-analytics-real', timeRange, includeTestData],
+    queryKey: ['advanced-analytics-complete', timeRange, includeTestData],
     queryFn: async () => {
-      console.log('Fetching real analytics data...');
+      console.log('Fetching complete real analytics data...');
       
       try {
-        // Fetch real conversion funnel data
-        const funnelData = await calculateRealConversionFunnel(includeTestData);
-        console.log('Real funnel data:', funnelData);
+        // Fetch all real data analytics
+        const [
+          funnelData,
+          velocityData,
+          { historicalData, predictedData },
+          cohortData,
+          processingTimes,
+          geographicData,
+          realTimeData
+        ] = await Promise.all([
+          calculateRealConversionFunnel(includeTestData),
+          calculateRealTransactionVelocity(parseInt(timeRange), includeTestData),
+          calculateRealRevenueForecasting(includeTestData),
+          calculateRealCohortAnalysis(includeTestData),
+          calculateRealProcessingTimes(includeTestData),
+          calculateRealGeographicAnalytics(includeTestData),
+          calculateRealTimeData(includeTestData)
+        ]);
 
-        // Fetch real transaction velocity data
-        const velocityData = await calculateRealTransactionVelocity(parseInt(timeRange), includeTestData);
-        console.log('Real velocity data:', velocityData);
-
-        // Fetch real revenue forecasting data
-        const { historicalData, predictedData } = await calculateRealRevenueForecasting(includeTestData);
-        console.log('Real forecasting data:', { historicalData, predictedData });
-
-        // Generate mock cohort data (would need more complex user activity tracking for real data)
-        const cohortData = [
-          {
-            cohort: 'Week 1',
-            week0: 100,
-            week1: 85,
-            week2: 72,
-            week3: 68,
-            week4: 65,
-            totalUsers: Math.floor(funnelData[0]?.users * 0.25) || 25
-          },
-          {
-            cohort: 'Week 2',
-            week0: 120,
-            week1: 95,
-            week2: 82,
-            week3: 78,
-            week4: 74,
-            totalUsers: Math.floor(funnelData[0]?.users * 0.3) || 30
-          },
-          {
-            cohort: 'Week 3',
-            week0: 90,
-            week1: 78,
-            week2: 69,
-            week3: 65,
-            week4: 62,
-            totalUsers: Math.floor(funnelData[0]?.users * 0.2) || 20
-          },
-          {
-            cohort: 'Week 4',
-            week0: 110,
-            week1: 92,
-            week2: 85,
-            week3: 81,
-            week4: 77,
-            totalUsers: Math.floor(funnelData[0]?.users * 0.25) || 25
-          }
-        ];
+        console.log('All real analytics data fetched successfully');
 
         return {
           funnelData,
           cohortData,
           historicalData,
           predictedData,
-          velocityData
+          velocityData,
+          processingTimes,
+          geographicData,
+          realTimeData
         };
       } catch (error) {
-        console.error('Error fetching analytics data:', error);
+        console.error('Error fetching complete analytics data:', error);
         toast.error('Failed to fetch analytics data');
         throw error;
       }
     },
-    refetchInterval: 10 * 60 * 1000, // Refresh every 10 minutes
+    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
     retry: 2,
   });
 
@@ -161,7 +139,7 @@ const AdvancedAnalytics: React.FC = () => {
       </div>
 
       {/* Enhanced Analytics Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -176,10 +154,7 @@ const AdvancedAnalytics: React.FC = () => {
                 : '0'
               }%
             </div>
-            <p className="text-xs text-muted-foreground">
-              Registration to token received
-            </p>
-            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-full -mr-8 -mt-8" />
+            <p className="text-xs text-muted-foreground">End-to-end conversion</p>
           </CardContent>
         </Card>
 
@@ -187,17 +162,16 @@ const AdvancedAnalytics: React.FC = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Users className="h-4 w-4 text-green-600" />
-              Total Users
+              Active Users
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {analyticsData?.funnelData?.[0]?.users?.toLocaleString() || '0'}
+              {analyticsData?.realTimeData?.currentMetrics.activeUsers || '0'}
             </div>
             <p className="text-xs text-muted-foreground">
-              In selected time period
+              {analyticsData?.realTimeData?.currentMetrics.onlineUsers || '0'} online now
             </p>
-            <div className="absolute top-0 right-0 w-16 h-16 bg-green-500/10 rounded-full -mr-8 -mt-8" />
           </CardContent>
         </Card>
 
@@ -215,33 +189,42 @@ const AdvancedAnalytics: React.FC = () => {
                 : '0'
               }
             </div>
-            <p className="text-xs text-muted-foreground">
-              Next 3 months predicted
-            </p>
-            <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-full -mr-8 -mt-8" />
+            <p className="text-xs text-muted-foreground">Next 3 months</p>
           </CardContent>
         </Card>
 
         <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Activity className="h-4 w-4 text-orange-600" />
-              Peak Activity
+              <Clock className="h-4 w-4 text-orange-600" />
+              Avg Processing
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              {analyticsData?.velocityData?.peakHours 
-                ? `${analyticsData.velocityData.peakHours.reduce((max, curr) => 
-                    curr.transactionCount > max.transactionCount ? curr : max
-                  ).hour}:00`
+              {analyticsData?.processingTimes?.transactionProcessingTime 
+                ? `${analyticsData.processingTimes.transactionProcessingTime.toFixed(0)}m`
                 : 'N/A'
               }
             </div>
+            <p className="text-xs text-muted-foreground">Transaction time</p>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Globe className="h-4 w-4 text-indigo-600" />
+              Top Region
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-indigo-600">
+              {analyticsData?.geographicData?.usersByRegion?.[0]?.region || 'N/A'}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Peak transaction hour
+              {analyticsData?.geographicData?.usersByRegion?.[0]?.users || '0'} users
             </p>
-            <div className="absolute top-0 right-0 w-16 h-16 bg-orange-500/10 rounded-full -mr-8 -mt-8" />
           </CardContent>
         </Card>
       </div>
@@ -251,20 +234,25 @@ const AdvancedAnalytics: React.FC = () => {
         <CardContent className="pt-6">
           <div className="flex items-center gap-2 text-green-800">
             <Target className="h-5 w-5" />
-            <span className="font-medium">Enhanced with Real Data</span>
+            <span className="font-medium">100% Real Data Analytics</span>
           </div>
           <p className="text-sm text-green-700 mt-1">
-            This dashboard now uses actual transaction data, user registrations, and KYC records to provide accurate analytics and forecasting.
+            All analytics now use actual data from your database - no mock or simulated data. This provides genuine business intelligence for data-driven decisions.
           </p>
         </CardContent>
       </Card>
+
+      {/* Real-Time Dashboard */}
+      {analyticsData?.realTimeData && (
+        <RealTimeDashboardChart realTimeData={analyticsData.realTimeData} />
+      )}
 
       {/* Conversion Funnel with Real Data */}
       {analyticsData?.funnelData && (
         <ConversionFunnelChart funnelData={analyticsData.funnelData} />
       )}
 
-      {/* Cohort Analysis (still using mock data - would need user activity tracking) */}
+      {/* Real Cohort Analysis */}
       {analyticsData?.cohortData && (
         <CohortAnalysisChart cohortData={analyticsData.cohortData} />
       )}
@@ -280,6 +268,61 @@ const AdvancedAnalytics: React.FC = () => {
       {/* Transaction Velocity with Real Data */}
       {analyticsData?.velocityData && (
         <TransactionVelocityChart velocityData={analyticsData.velocityData} />
+      )}
+
+      {/* Geographic Analytics with Real Data */}
+      {analyticsData?.geographicData && (
+        <GeographicAnalyticsChart geographicData={analyticsData.geographicData} />
+      )}
+
+      {/* Processing Times Analysis */}
+      {analyticsData?.processingTimes && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Real Processing Time Analytics
+            </CardTitle>
+            <CardDescription>Actual processing times from your system data</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 border rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {analyticsData.processingTimes.kycProcessingTime.toFixed(1)}h
+                </div>
+                <div className="text-sm text-muted-foreground">Avg KYC Processing</div>
+              </div>
+              <div className="text-center p-4 border rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {analyticsData.processingTimes.transactionProcessingTime.toFixed(0)}m
+                </div>
+                <div className="text-sm text-muted-foreground">Avg Transaction Processing</div>
+              </div>
+              <div className="text-center p-4 border rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">
+                  {analyticsData.processingTimes.paymentMethodTimes.length}
+                </div>
+                <div className="text-sm text-muted-foreground">Payment Methods Tracked</div>
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              <h4 className="font-medium mb-2">Payment Method Processing Times</h4>
+              <div className="space-y-2">
+                {analyticsData.processingTimes.paymentMethodTimes.map((method, index) => (
+                  <div key={index} className="flex justify-between items-center p-2 border rounded">
+                    <span className="font-medium">{method.method}</span>
+                    <div className="text-right">
+                      <div className="font-bold">{method.avgTime.toFixed(1)} min</div>
+                      <div className="text-xs text-muted-foreground">{method.count} transactions</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
