@@ -13,7 +13,7 @@ const ReportsDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('executive');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Advanced Reports Dashboard</h1>
@@ -68,40 +68,55 @@ const ReportsDashboard: React.FC = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Enhanced Data Explorer Info Card */}
-      <Card className="border-2 border-dashed border-primary/20 bg-primary/5">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            Interactive Data Explorer
-          </CardTitle>
-          <CardDescription>
-            Click on any chart, metric, or data point to explore detailed insights
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="font-medium text-blue-800 mb-2">🔍 Live Activity Feed</h4>
-              <p className="text-sm text-blue-700">
-                Click on any activity in the real-time feed to see detailed transaction or user information.
+      {/* Enhanced Data Explorer Info Card - Fixed positioning and visibility */}
+      <div className="mt-8 pt-4 border-t border-border">
+        <Card className="border-2 border-dashed border-primary/30 bg-primary/5 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Interactive Data Explorer
+            </CardTitle>
+            <CardDescription className="text-base">
+              Click on any chart, metric, or data point to explore detailed insights
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                <h4 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
+                  🔍 Live Activity Feed
+                </h4>
+                <p className="text-sm text-blue-700">
+                  Click on any activity in the real-time feed to see detailed transaction or user information.
+                </p>
+              </div>
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors">
+                <h4 className="font-medium text-green-800 mb-2 flex items-center gap-2">
+                  📊 Interactive Charts
+                </h4>
+                <p className="text-sm text-green-700">
+                  Click on chart segments, bars, or regions to drill down into specific data points.
+                </p>
+              </div>
+              <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors">
+                <h4 className="font-medium text-purple-800 mb-2 flex items-center gap-2">
+                  📈 Metric Details
+                </h4>
+                <p className="text-sm text-purple-700">
+                  Click on metric cards to see detailed breakdowns and historical trends.
+                </p>
+              </div>
+            </div>
+            
+            {/* Additional visibility indicator */}
+            <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+              <p className="text-sm text-primary font-medium text-center">
+                ✨ Interactive features are available across all report sections above
               </p>
             </div>
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <h4 className="font-medium text-green-800 mb-2">📊 Interactive Charts</h4>
-              <p className="text-sm text-green-700">
-                Click on chart segments, bars, or regions to drill down into specific data points.
-              </p>
-            </div>
-            <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-              <h4 className="font-medium text-purple-800 mb-2">📈 Metric Details</h4>
-              <p className="text-sm text-purple-700">
-                Click on metric cards to see detailed breakdowns and historical trends.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
