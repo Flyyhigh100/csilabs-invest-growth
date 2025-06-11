@@ -87,7 +87,7 @@ const AdvancedAnalytics: React.FC = () => {
     refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
     retry: 2,
     staleTime: 0, // Force fresh data
-    cacheTime: 0, // Don't cache
+    gcTime: 0, // Don't cache (replaced cacheTime)
   });
 
   // Helper function to get meaningful descriptions for each stage (KYC stages removed)
