@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import AdminHeader from './Layouts/AdminHeader';
@@ -7,26 +8,28 @@ import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
 interface AdminLayoutProps {
   children: React.ReactNode;
   title: string;
 }
+
 const AdminLayout: React.FC<AdminLayoutProps> = ({
   children,
   title
 }) => {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Get navigation items
   const navItems = getAdminNavItems();
   console.log("AdminLayout rendering with title:", title);
-  return <div className="min-h-screen bg-gray-50 flex flex-col">
+  
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <AdminHeader title="Admin Portal" />
 
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0">
         {/* Desktop Sidebar */}
         <div className="hidden md:block">
           <AdminSidebar navItems={navItems} />
@@ -48,16 +51,21 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
           </Sheet>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 p-4 md:p-6 overflow-auto mt-14 md:mt-0">
-          <div className="mb-4 md:mb-6">
-            
-          </div>
-          <div className="bg-white rounded-lg shadow p-4 md:p-6">
-            {children}
+        {/* Content - Fixed scrolling and height constraints */}
+        <div className="flex-1 flex flex-col mt-14 md:mt-0 min-h-0">
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4 md:p-6">
+              <div className="bg-white rounded-lg shadow min-h-full">
+                <div className="p-4 md:p-6">
+                  {children}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default AdminLayout;
