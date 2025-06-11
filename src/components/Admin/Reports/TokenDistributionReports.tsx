@@ -1,121 +1,112 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Download, Coins, TrendingUp, AlertCircle } from 'lucide-react';
+import { Download, Coins, Send, Clock, Network, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import TokenDistributionCharts from './Charts/TokenDistributionCharts';
 
 const TokenDistributionReports: React.FC = () => {
   const [timeRange, setTimeRange] = useState('30');
 
-  const { data: distributionData, isLoading } = useQuery({
+  const { data: tokenData, isLoading, refetch } = useQuery({
     queryKey: ['token-distribution-reports', timeRange],
     queryFn: async () => {
       const daysAgo = new Date();
       daysAgo.setDate(daysAgo.getDate() - parseInt(timeRange));
 
+      // Fetch transactions
       const { data: transactions, error } = await supabase
         .from('transactions')
         .select('*')
         .eq('is_test', false)
-        .eq('status', 'completed')
         .gte('created_at', daysAgo.toISOString())
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Get user profiles for wallet address information
-      const userIds = [...new Set(transactions.map(t => t.user_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, email, wallet_address, solana_wallet_address, preferred_network')
-        .in('id', userIds);
+      // Calculate token distribution metrics
+      const completedTransactions = transactions.filter(t => t.status === 'completed');
+      const pendingDistribution = transactions.filter(t => 
+        t.status === 'completed' && !t.token_sent
+      ).length;
 
-      // Create profile map for quick lookup
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+      const totalTokensDistributed = completedTransactions
+        .filter(t => t.token_sent)
+        .reduce((sum, t) => sum + Number(t.token_amount || 0), 0);
 
-      // Add profile data to transactions
-      const enrichedTransactions = transactions.map(t => ({
-        ...t,
-        profile: profileMap.get(t.user_id)
+      // Distribution by network
+      const networkDistribution = transactions.reduce((acc, t) => {
+        const network = t.crypto_network || 'Unknown';
+        if (!acc[network]) acc[network] = { amount: 0, count: 0 };
+        if (t.token_sent) {
+          acc[network].amount += Number(t.token_amount || 0);
+        }
+        acc[network].count++;
+        return acc;
+      }, {} as Record<string, { amount: number; count: number }>);
+
+      const distributionByNetwork = Object.entries(networkDistribution).map(([network, data]) => ({
+        network,
+        ...data
       }));
 
-      // Calculate distribution metrics
-      const distributedTransactions = enrichedTransactions.filter(t => t.token_sent);
-      const pendingDistributions = enrichedTransactions.filter(t => !t.token_sent);
-
-      const totalTokensDistributed = distributedTransactions.reduce((sum, t) => 
-        sum + (Number(t.token_amount) || 0), 0
-      );
-
-      const pendingTokensValue = pendingDistributions.reduce((sum, t) => 
-        sum + Number(t.amount), 0
-      );
-
-      // Network breakdown
-      const networkStats = enrichedTransactions.reduce((acc, t) => {
-        const network = t.crypto_network || 
-          (t.profile?.wallet_address?.startsWith('0x') ? 'polygon' : 
-           t.profile?.solana_wallet_address ? 'solana' : 'unknown');
-        
-        if (!acc[network]) acc[network] = { 
-          total: 0, 
-          distributed: 0, 
-          pending: 0,
-          totalValue: 0,
-          distributedValue: 0,
-          pendingValue: 0
-        };
-        
-        acc[network].total++;
-        acc[network].totalValue += Number(t.amount);
-        
+      // Monthly distribution trend
+      const monthlyDistribution = completedTransactions.reduce((acc, t) => {
+        const month = new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        if (!acc[month]) acc[month] = { tokens: 0, value: 0 };
         if (t.token_sent) {
-          acc[network].distributed++;
-          acc[network].distributedValue += Number(t.amount);
-        } else {
-          acc[network].pending++;
-          acc[network].pendingValue += Number(t.amount);
+          acc[month].tokens += Number(t.token_amount || 0);
+          acc[month].value += Number(t.amount);
         }
-        
         return acc;
-      }, {} as Record<string, any>);
+      }, {} as Record<string, { tokens: number; value: number }>);
 
-      // Token price impact analysis
-      const priceImpactTransactions = enrichedTransactions.filter(t => t.token_price && t.token_amount);
-      const averageTokenPrice = priceImpactTransactions.length > 0 ? 
-        priceImpactTransactions.reduce((sum, t) => sum + Number(t.token_price), 0) / priceImpactTransactions.length : 0;
+      // Distribution status
+      const distributionStatus = [
+        { status: 'Distributed', count: transactions.filter(t => t.token_sent).length, percentage: 0 },
+        { status: 'Pending', count: pendingDistribution, percentage: 0 },
+        { status: 'Processing', count: transactions.filter(t => t.status === 'processing').length, percentage: 0 },
+        { status: 'Failed', count: transactions.filter(t => t.status === 'failed').length, percentage: 0 }
+      ];
+
+      const totalDistributions = distributionStatus.reduce((sum, status) => sum + status.count, 0);
+      distributionStatus.forEach(status => {
+        status.percentage = totalDistributions > 0 ? (status.count / totalDistributions) * 100 : 0;
+      });
+
+      const averageTokensPerUser = completedTransactions.length > 0 
+        ? totalTokensDistributed / completedTransactions.length 
+        : 0;
 
       return {
-        totalTransactions: enrichedTransactions.length,
-        distributedCount: distributedTransactions.length,
-        pendingCount: pendingDistributions.length,
         totalTokensDistributed,
-        pendingTokensValue,
-        averageTokenPrice,
-        networkStats: Object.entries(networkStats).map(([network, stats]) => ({
-          network,
-          ...stats
+        pendingDistribution,
+        distributionByNetwork,
+        monthlyDistribution: Object.entries(monthlyDistribution).map(([month, data]) => ({
+          month,
+          ...data
         })),
-        transactions: enrichedTransactions.slice(0, 50) // Recent 50 for the table
+        distributionStatus: distributionStatus.filter(status => status.count > 0),
+        averageTokensPerUser
       };
-    }
+    },
+    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
   });
 
-  const exportDistributionReport = async () => {
+  const exportTokenReport = async () => {
     try {
       const daysAgo = new Date();
       daysAgo.setDate(daysAgo.getDate() - parseInt(timeRange));
 
-      // Fetch transactions
+      // Fetch transactions with user details
       const { data: transactions } = await supabase
         .from('transactions')
         .select('*')
         .eq('is_test', false)
-        .eq('status', 'completed')
         .gte('created_at', daysAgo.toISOString())
         .order('created_at', { ascending: false });
 
@@ -128,41 +119,40 @@ const TokenDistributionReports: React.FC = () => {
       const userIds = [...new Set(transactions.map(t => t.user_id))];
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, email, wallet_address, solana_wallet_address')
+        .select('id, first_name, last_name, email, wallet_address')
         .in('id', userIds);
 
-      // Create profile map
       const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
       // Create CSV content
       const headers = [
         'Date',
+        'Transaction ID',
         'User Name',
         'User Email',
-        'Purchase Amount (USD)',
-        'Token Amount',
-        'Token Price',
-        'Network',
         'Wallet Address',
+        'Token Amount',
+        'USD Value',
+        'Network',
         'Token Sent',
         'Blockchain TX ID',
-        'Distribution Status'
+        'Status'
       ];
 
       const csvRows = transactions.map(tx => {
         const profile = profileMap.get(tx.user_id);
         return [
           new Date(tx.created_at).toLocaleDateString(),
+          tx.transaction_id,
           profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'N/A',
           profile?.email || 'N/A',
+          profile?.wallet_address || tx.wallet_address || 'N/A',
+          Number(tx.token_amount || 0).toFixed(2),
           Number(tx.amount).toFixed(2),
-          tx.token_amount ? Number(tx.token_amount).toFixed(6) : 'TBD',
-          tx.token_price ? Number(tx.token_price).toFixed(6) : 'N/A',
-          tx.crypto_network || 'Auto-detected',
-          profile?.wallet_address || profile?.solana_wallet_address || 'N/A',
+          tx.crypto_network || 'N/A',
           tx.token_sent ? 'Yes' : 'No',
-          tx.blockchain_tx_id || 'Pending',
-          tx.token_sent ? 'Completed' : 'Pending Distribution'
+          tx.blockchain_tx_id || 'N/A',
+          tx.status
         ];
       });
 
@@ -183,8 +173,8 @@ const TokenDistributionReports: React.FC = () => {
 
       toast.success('Token distribution report exported successfully');
     } catch (error) {
-      console.error('Error exporting distribution report:', error);
-      toast.error('Failed to export distribution report');
+      console.error('Error exporting token report:', error);
+      toast.error('Failed to export token report');
     }
   };
 
@@ -215,137 +205,115 @@ const TokenDistributionReports: React.FC = () => {
               <SelectItem value="365">Last year</SelectItem>
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={() => refetch()} size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
         </div>
-        <Button onClick={exportDistributionReport} className="flex items-center gap-2">
+        <Button onClick={exportTokenReport} className="flex items-center gap-2">
           <Download className="h-4 w-4" />
-          Export Distribution Report
+          Export Report
         </Button>
       </div>
 
-      {/* Distribution Summary Cards */}
+      {/* Token Distribution Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Coins className="h-4 w-4 text-green-600" />
-              Tokens Distributed
+              <Coins className="h-4 w-4 text-blue-600" />
+              Total Distributed
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {distributionData?.totalTokensDistributed?.toLocaleString() || '0'}
+            <div className="text-2xl font-bold text-blue-600">
+              {tokenData?.totalTokensDistributed?.toLocaleString() || '0'}
             </div>
             <p className="text-xs text-muted-foreground">
-              {distributionData?.distributedCount || 0} distributions completed
+              Tokens sent to users
             </p>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-full -mr-8 -mt-8" />
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-yellow-600" />
-              Pending Distributions
+              <Clock className="h-4 w-4 text-yellow-600" />
+              Pending Distribution
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">
-              {distributionData?.pendingCount || 0}
+              {tokenData?.pendingDistribution || '0'}
             </div>
             <p className="text-xs text-muted-foreground">
-              ${distributionData?.pendingTokensValue?.toLocaleString() || '0'} value
+              Awaiting token distribution
             </p>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-yellow-500/10 rounded-full -mr-8 -mt-8" />
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Average Token Price</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Send className="h-4 w-4 text-green-600" />
+              Average per User
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              ${distributionData?.averageTokenPrice?.toFixed(6) || '0.000000'}
+            <div className="text-2xl font-bold text-green-600">
+              {tokenData?.averageTokensPerUser?.toFixed(2) || '0'}
             </div>
             <p className="text-xs text-muted-foreground">
-              Per token distributed
+              Tokens per user
             </p>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-green-500/10 rounded-full -mr-8 -mt-8" />
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Distribution Rate</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Network className="h-4 w-4 text-purple-600" />
+              Networks Active
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {distributionData?.totalTransactions ? 
-                ((distributionData.distributedCount / distributionData.totalTransactions) * 100).toFixed(1) : 0}%
+            <div className="text-2xl font-bold text-purple-600">
+              {tokenData?.distributionByNetwork?.length || '0'}
             </div>
             <p className="text-xs text-muted-foreground">
-              Completion rate
+              Different networks used
             </p>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-full -mr-8 -mt-8" />
           </CardContent>
         </Card>
       </div>
 
-      {/* Network Breakdown */}
+      {/* Interactive Charts */}
+      {tokenData && <TokenDistributionCharts tokenData={tokenData} />}
+
+      {/* Network Distribution Details */}
       <Card>
         <CardHeader>
-          <CardTitle>Distribution by Network</CardTitle>
+          <CardTitle>Network Distribution Details</CardTitle>
           <CardDescription>Token distribution breakdown by blockchain network</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {distributionData?.networkStats?.map((network, index) => (
-              <div key={index} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={network.network === 'solana' ? 'default' : 'secondary'}>
-                      {network.network === 'solana' ? 'Solana' : 
-                       network.network === 'polygon' ? 'Polygon' : 
-                       network.network.charAt(0).toUpperCase() + network.network.slice(1)}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {network.total} total transactions
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium">
-                      ${network.totalValue?.toLocaleString()} total value
-                    </div>
-                  </div>
+          <div className="space-y-3">
+            {tokenData?.distributionByNetwork?.map((network, index) => (
+              <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                <div>
+                  <span className="font-medium">{network.network}</span>
+                  <span className="text-sm text-muted-foreground ml-2">
+                    {network.count} transactions
+                  </span>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Distributed:</span>
-                      <span className="font-medium text-green-600">
-                        {network.distributed} (${network.distributedValue?.toLocaleString()})
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Pending:</span>
-                      <span className="font-medium text-yellow-600">
-                        {network.pending} (${network.pendingValue?.toLocaleString()})
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-2">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-green-600 h-2 rounded-full" 
-                      style={{ 
-                        width: `${(network.distributed / network.total) * 100}%` 
-                      }}
-                    />
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {((network.distributed / network.total) * 100).toFixed(1)}% completion rate
+                <div className="text-right">
+                  <div className="font-bold">{network.amount.toLocaleString()} tokens</div>
+                  <div className="text-sm text-muted-foreground">
+                    {network.count > 0 ? (network.amount / network.count).toFixed(2) : '0'} avg/tx
                   </div>
                 </div>
               </div>

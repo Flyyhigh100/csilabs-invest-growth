@@ -1,17 +1,19 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Download, Calendar } from 'lucide-react';
+import { Download, Calendar, TrendingUp, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils';
+import FinancialCharts from './Charts/FinancialCharts';
 
 const FinancialReports: React.FC = () => {
   const [timeRange, setTimeRange] = useState('30');
 
-  const { data: financialData, isLoading } = useQuery({
+  const { data: financialData, isLoading, refetch } = useQuery({
     queryKey: ['financial-reports', timeRange],
     queryFn: async () => {
       const daysAgo = new Date();
@@ -67,7 +69,8 @@ const FinancialReports: React.FC = () => {
         })),
         averageTransactionValue: completedTransactions.length > 0 ? totalRevenue / completedTransactions.length : 0
       };
-    }
+    },
+    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
   });
 
   const exportFinancialReport = async () => {
@@ -175,6 +178,10 @@ const FinancialReports: React.FC = () => {
               <SelectItem value="365">Last year</SelectItem>
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={() => refetch()} size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
         </div>
         <Button onClick={exportFinancialReport} className="flex items-center gap-2">
           <Download className="h-4 w-4" />
@@ -182,11 +189,14 @@ const FinancialReports: React.FC = () => {
         </Button>
       </div>
 
-      {/* Financial Summary Cards */}
+      {/* Enhanced Financial Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-green-600" />
+              Total Revenue
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
@@ -195,12 +205,16 @@ const FinancialReports: React.FC = () => {
             <p className="text-xs text-muted-foreground">
               {financialData?.completedCount || 0} completed transactions
             </p>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-green-500/10 rounded-full -mr-8 -mt-8" />
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pending Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-yellow-600" />
+              Pending Revenue
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">
@@ -209,10 +223,11 @@ const FinancialReports: React.FC = () => {
             <p className="text-xs text-muted-foreground">
               {financialData?.pendingCount || 0} pending transactions
             </p>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-yellow-500/10 rounded-full -mr-8 -mt-8" />
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Average Transaction</CardTitle>
           </CardHeader>
@@ -223,10 +238,11 @@ const FinancialReports: React.FC = () => {
             <p className="text-xs text-muted-foreground">
               Per completed transaction
             </p>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-full -mr-8 -mt-8" />
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Failed Transactions</CardTitle>
           </CardHeader>
@@ -237,9 +253,13 @@ const FinancialReports: React.FC = () => {
             <p className="text-xs text-muted-foreground">
               Requires follow-up
             </p>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-red-500/10 rounded-full -mr-8 -mt-8" />
           </CardContent>
         </Card>
       </div>
+
+      {/* Interactive Charts */}
+      {financialData && <FinancialCharts financialData={financialData} />}
 
       {/* Payment Methods Breakdown */}
       <Card>
@@ -250,7 +270,7 @@ const FinancialReports: React.FC = () => {
         <CardContent>
           <div className="space-y-3">
             {financialData?.paymentMethods?.map((method, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+              <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                 <div>
                   <span className="font-medium">{method.method}</span>
                   <span className="text-sm text-muted-foreground ml-2">

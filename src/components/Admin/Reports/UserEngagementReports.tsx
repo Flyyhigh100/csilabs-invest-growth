@@ -2,158 +2,159 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Download, AlertTriangle, CheckCircle, Clock, Wallet } from 'lucide-react';
+import { Download, Users, UserCheck, UserX, Clock, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import UserEngagementCharts from './Charts/UserEngagementCharts';
 
 const UserEngagementReports: React.FC = () => {
-  const { data: engagementData, isLoading } = useQuery({
-    queryKey: ['user-engagement-reports'],
+  const [timeRange, setTimeRange] = useState('30');
+
+  const { data: userData, isLoading, refetch } = useQuery({
+    queryKey: ['user-engagement-reports', timeRange],
     queryFn: async () => {
-      const [usersResult, kycResult, transactionsResult] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('*'),
-        supabase
-          .from('kyc_verifications')
-          .select('*')
-          .eq('is_test', false),
-        supabase
-          .from('transactions')
-          .select('user_id, status, created_at')
-          .eq('is_test', false)
-      ]);
+      const daysAgo = new Date();
+      daysAgo.setDate(daysAgo.getDate() - parseInt(timeRange));
 
-      const users = usersResult.data || [];
-      const kycVerifications = kycResult.data || [];
-      const transactions = transactionsResult.data || [];
+      // Fetch user profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .gte('created_at', daysAgo.toISOString())
+        .order('created_at', { ascending: false });
 
-      // Users without wallet addresses (need follow-up)
-      const usersWithoutWallets = users.filter(u => 
-        !u.wallet_address && !u.solana_wallet_address
-      );
+      if (profilesError) throw profilesError;
 
-      // Users with failed KYC (need support)
-      const failedKycUsers = kycVerifications
-        .filter(k => k.status === 'rejected')
-        .map(k => {
-          const user = users.find(u => u.id === k.user_id);
-          return { ...k, user };
-        })
-        .filter(k => k.user);
+      // Fetch KYC verifications
+      const { data: kycVerifications, error: kycError } = await supabase
+        .from('kyc_verifications')
+        .select('*')
+        .eq('is_test', false);
 
-      // Users with pending KYC (need follow-up)
-      const pendingKycUsers = kycVerifications
-        .filter(k => k.status === 'pending')
-        .map(k => {
-          const user = users.find(u => u.id === k.user_id);
-          return { ...k, user };
-        })
-        .filter(k => k.user);
+      if (kycError) throw kycError;
 
-      // Users with transactions but no recent activity (re-engagement)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const inactiveUsers = users.filter(u => {
-        const hasTransactions = transactions.some(t => t.user_id === u.id);
-        const hasRecentActivity = transactions.some(t => 
-          t.user_id === u.id && new Date(t.created_at) > thirtyDaysAgo
-        );
-        return hasTransactions && !hasRecentActivity;
-      });
+      // Calculate metrics
+      const totalUsers = profiles.length;
+      const newUsersThisMonth = profiles.filter(p => {
+        const createdDate = new Date(p.created_at);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        return createdDate >= thirtyDaysAgo;
+      }).length;
 
-      // Authentication method breakdown
-      const authMethods = users.reduce((acc, u) => {
-        // This is a simplified approach - in real implementation you'd check auth.users
-        const hasPassword = true; // Placeholder
-        const method = hasPassword ? 'Email/Password' : 'Magic Link';
-        if (!acc[method]) acc[method] = 0;
-        acc[method]++;
+      // Active users (those with transactions in the period)
+      const { data: recentTransactions } = await supabase
+        .from('transactions')
+        .select('user_id')
+        .gte('created_at', daysAgo.toISOString());
+
+      const activeUserIds = new Set(recentTransactions?.map(t => t.user_id) || []);
+      const activeUsers = activeUserIds.size;
+
+      // KYC status breakdown
+      const kycStatusCounts = kycVerifications.reduce((acc, kyc) => {
+        acc[kyc.status] = (acc[kyc.status] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
 
-      // KYC completion rates
-      const kycStats = {
-        total: users.length,
-        notStarted: users.length - kycVerifications.length,
-        pending: kycVerifications.filter(k => k.status === 'pending').length,
-        approved: kycVerifications.filter(k => k.status === 'approved').length,
-        rejected: kycVerifications.filter(k => k.status === 'rejected').length
-      };
+      const kycStatusBreakdown = Object.entries(kycStatusCounts).map(([status, count]) => ({
+        status: status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        count
+      }));
+
+      const totalKycSubmissions = kycVerifications.length;
+      const approvedKyc = kycVerifications.filter(kyc => kyc.status === 'approved').length;
+      const kycCompletionRate = totalKycSubmissions > 0 ? Math.round((approvedKyc / totalKycSubmissions) * 100) : 0;
+
+      // Daily registrations
+      const dailyRegistrations = profiles.reduce((acc, profile) => {
+        const date = new Date(profile.created_at).toDateString();
+        if (!acc[date]) acc[date] = 0;
+        acc[date]++;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // User activity trend (mock data for now)
+      const userActivityTrend = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        return {
+          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          active: Math.floor(Math.random() * 50) + 10,
+          new: Math.floor(Math.random() * 10) + 1
+        };
+      }).reverse();
 
       return {
-        usersWithoutWallets,
-        failedKycUsers,
-        pendingKycUsers,
-        inactiveUsers,
-        authMethods: Object.entries(authMethods).map(([method, count]) => ({ method, count })),
-        kycStats,
-        totalUsers: users.length
+        totalUsers,
+        newUsersThisMonth,
+        activeUsers,
+        kycCompletionRate,
+        dailyRegistrations: Object.entries(dailyRegistrations).map(([date, count]) => ({
+          date,
+          count
+        })),
+        kycStatusBreakdown,
+        userActivityTrend
       };
-    }
+    },
+    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
   });
 
-  const exportUserFollowUpList = async (type: string) => {
+  const exportUserReport = async () => {
     try {
-      let users: any[] = [];
-      let filename = '';
+      const daysAgo = new Date();
+      daysAgo.setDate(daysAgo.getDate() - parseInt(timeRange));
 
-      switch (type) {
-        case 'no-wallet':
-          users = engagementData?.usersWithoutWallets || [];
-          filename = 'users-need-wallet-setup';
-          break;
-        case 'failed-kyc':
-          users = engagementData?.failedKycUsers?.map(k => k.user) || [];
-          filename = 'users-failed-kyc';
-          break;
-        case 'pending-kyc':
-          users = engagementData?.pendingKycUsers?.map(k => k.user) || [];
-          filename = 'users-pending-kyc';
-          break;
-        case 'inactive':
-          users = engagementData?.inactiveUsers || [];
-          filename = 'inactive-users-reengagement';
-          break;
-        default:
-          return;
-      }
+      // Fetch detailed user data
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .gte('created_at', daysAgo.toISOString())
+        .order('created_at', { ascending: false });
 
-      if (users.length === 0) {
-        toast.error('No users found for this category');
+      const { data: kycVerifications } = await supabase
+        .from('kyc_verifications')
+        .select('*')
+        .eq('is_test', false);
+
+      if (!profiles) {
+        toast.error('No data to export');
         return;
       }
 
+      // Create KYC lookup map
+      const kycMap = new Map(kycVerifications?.map(kyc => [kyc.user_id, kyc]) || []);
+
       // Create CSV content
       const headers = [
-        'First Name',
-        'Last Name',
+        'User ID',
+        'Name',
         'Email',
         'Registration Date',
+        'KYC Status',
+        'Phone Number',
         'Wallet Address',
-        'Solana Wallet',
-        'Preferred Network',
-        'Follow-up Reason'
+        'City',
+        'State/Province'
       ];
 
-      const reason = type === 'no-wallet' ? 'Missing wallet address' :
-                   type === 'failed-kyc' ? 'KYC verification failed' :
-                   type === 'pending-kyc' ? 'KYC verification pending' :
-                   'Inactive user - re-engagement needed';
-
-      const csvRows = users.map(user => [
-        user.first_name || '',
-        user.last_name || '',
-        user.email || '',
-        new Date(user.created_at).toLocaleDateString(),
-        user.wallet_address || 'Not set',
-        user.solana_wallet_address || 'Not set',
-        user.preferred_network || 'Not set',
-        reason
-      ]);
+      const csvRows = profiles.map(profile => {
+        const kyc = kycMap.get(profile.id);
+        return [
+          profile.id,
+          `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+          profile.email || 'N/A',
+          new Date(profile.created_at).toLocaleDateString(),
+          kyc?.status || 'Not Started',
+          profile.phone_number || 'N/A',
+          profile.wallet_address || 'N/A',
+          profile.city || 'N/A',
+          profile.state_province || 'N/A'
+        ];
+      });
 
       const csvContent = [headers, ...csvRows]
         .map(row => row.map(cell => `"${cell}"`).join(','))
@@ -164,26 +165,26 @@ const UserEngagementReports: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
+      link.download = `user-engagement-report-${timeRange}days-${new Date().toISOString().split('T')[0]}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast.success(`${users.length} users exported for follow-up`);
+      toast.success('User engagement report exported successfully');
     } catch (error) {
-      console.error('Error exporting user list:', error);
-      toast.error('Failed to export user list');
+      console.error('Error exporting user report:', error);
+      toast.error('Failed to export user report');
     }
   };
 
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 bg-muted animate-pulse rounded-lg" />
-          ))}
+        <div className="h-32 bg-muted animate-pulse rounded-lg" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="h-64 bg-muted animate-pulse rounded-lg" />
+          <div className="h-64 bg-muted animate-pulse rounded-lg" />
         </div>
       </div>
     );
@@ -191,162 +192,173 @@ const UserEngagementReports: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Users Without Wallets */}
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-yellow-600" />
-              Need Wallet Setup
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {engagementData?.usersWithoutWallets?.length || 0}
-            </div>
-            <p className="text-xs text-muted-foreground mb-2">
-              Users without wallet addresses
-            </p>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => exportUserFollowUpList('no-wallet')}
-              className="w-full"
-            >
-              <Download className="h-3 w-3 mr-1" />
-              Export List
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Select value={timeRange} onValueChange={setTimeRange}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">Last 7 days</SelectItem>
+              <SelectItem value="30">Last 30 days</SelectItem>
+              <SelectItem value="90">Last 90 days</SelectItem>
+              <SelectItem value="365">Last year</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" onClick={() => refetch()} size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
+        <Button onClick={exportUserReport} className="flex items-center gap-2">
+          <Download className="h-4 w-4" />
+          Export Report
+        </Button>
+      </div>
 
-        {/* Pending KYC */}
-        <Card className="border-blue-200 bg-blue-50">
+      {/* User Engagement Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-600" />
-              Pending KYC
+              <Users className="h-4 w-4 text-blue-600" />
+              Total Users
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {engagementData?.pendingKycUsers?.length || 0}
+              {userData?.totalUsers?.toLocaleString() || '0'}
             </div>
-            <p className="text-xs text-muted-foreground mb-2">
-              Users awaiting KYC review
+            <p className="text-xs text-muted-foreground">
+              Registered users
             </p>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => exportUserFollowUpList('pending-kyc')}
-              className="w-full"
-            >
-              <Download className="h-3 w-3 mr-1" />
-              Export List
-            </Button>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-full -mr-8 -mt-8" />
           </CardContent>
         </Card>
 
-        {/* Failed KYC */}
-        <Card className="border-red-200 bg-red-50">
+        <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              Failed KYC
+              <UserCheck className="h-4 w-4 text-green-600" />
+              New Users
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {engagementData?.failedKycUsers?.length || 0}
+            <div className="text-2xl font-bold text-green-600">
+              {userData?.newUsersThisMonth || '0'}
             </div>
-            <p className="text-xs text-muted-foreground mb-2">
-              Users need KYC assistance
+            <p className="text-xs text-muted-foreground">
+              This month
             </p>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => exportUserFollowUpList('failed-kyc')}
-              className="w-full"
-            >
-              <Download className="h-3 w-3 mr-1" />
-              Export List
-            </Button>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-green-500/10 rounded-full -mr-8 -mt-8" />
           </CardContent>
         </Card>
 
-        {/* Inactive Users */}
-        <Card className="border-gray-200 bg-gray-50">
+        <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-gray-600" />
-              Inactive Users
+              <Clock className="h-4 w-4 text-purple-600" />
+              Active Users
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-600">
-              {engagementData?.inactiveUsers?.length || 0}
+            <div className="text-2xl font-bold text-purple-600">
+              {userData?.activeUsers || '0'}
             </div>
-            <p className="text-xs text-muted-foreground mb-2">
-              Need re-engagement
+            <p className="text-xs text-muted-foreground">
+              With recent activity
             </p>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => exportUserFollowUpList('inactive')}
-              className="w-full"
-            >
-              <Download className="h-3 w-3 mr-1" />
-              Export List
-            </Button>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-full -mr-8 -mt-8" />
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <UserX className="h-4 w-4 text-orange-600" />
+              KYC Completion
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {userData?.kycCompletionRate || '0'}%
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Verification rate
+            </p>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-orange-500/10 rounded-full -mr-8 -mt-8" />
           </CardContent>
         </Card>
       </div>
 
-      {/* KYC Completion Statistics */}
-      <Card>
-        <CardHeader>
-          <CardTitle>KYC Completion Progress</CardTitle>
-          <CardDescription>Track user verification status and completion rates</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold">{engagementData?.kycStats?.total || 0}</div>
-              <div className="text-sm text-muted-foreground">Total Users</div>
+      {/* Interactive Charts */}
+      {userData && <UserEngagementCharts userData={userData} />}
+
+      {/* User Engagement Details */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>KYC Status Breakdown</CardTitle>
+            <CardDescription>User verification status distribution</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {userData?.kycStatusBreakdown?.map((status, index) => (
+                <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <span className="font-medium">{status.status}</span>
+                  <div className="text-right">
+                    <div className="font-bold">{status.count}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {userData.totalUsers > 0 ? 
+                        `${((status.count / userData.totalUsers) * 100).toFixed(1)}%` : 
+                        '0%'
+                      }
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-600">{engagementData?.kycStats?.notStarted || 0}</div>
-              <div className="text-sm text-muted-foreground">Not Started</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>User Growth Insights</CardTitle>
+            <CardDescription>Key metrics and trends</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                <span className="text-sm font-medium">Average daily registrations</span>
+                <span className="font-bold">
+                  {userData?.dailyRegistrations ? 
+                    (userData.dailyRegistrations.reduce((sum, day) => sum + day.count, 0) / userData.dailyRegistrations.length).toFixed(1) :
+                    '0'
+                  }
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                <span className="text-sm font-medium">User activation rate</span>
+                <span className="font-bold">
+                  {userData?.totalUsers && userData?.activeUsers ? 
+                    `${((userData.activeUsers / userData.totalUsers) * 100).toFixed(1)}%` :
+                    '0%'
+                  }
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                <span className="text-sm font-medium">Growth rate (monthly)</span>
+                <span className="font-bold text-green-600">
+                  {userData?.newUsersThisMonth && userData?.totalUsers ?
+                    `+${((userData.newUsersThisMonth / userData.totalUsers) * 100).toFixed(1)}%` :
+                    '0%'
+                  }
+                </span>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{engagementData?.kycStats?.pending || 0}</div>
-              <div className="text-sm text-muted-foreground">Pending</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{engagementData?.kycStats?.approved || 0}</div>
-              <div className="text-sm text-muted-foreground">Approved</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">{engagementData?.kycStats?.rejected || 0}</div>
-              <div className="text-sm text-muted-foreground">Rejected</div>
-            </div>
-          </div>
-          
-          <div className="mt-4">
-            <div className="text-sm text-muted-foreground mb-2">Completion Rate</div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-green-600 h-2 rounded-full" 
-                style={{ 
-                  width: `${((engagementData?.kycStats?.approved || 0) / (engagementData?.kycStats?.total || 1)) * 100}%` 
-                }}
-              />
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {(((engagementData?.kycStats?.approved || 0) / (engagementData?.kycStats?.total || 1)) * 100).toFixed(1)}% approved
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
