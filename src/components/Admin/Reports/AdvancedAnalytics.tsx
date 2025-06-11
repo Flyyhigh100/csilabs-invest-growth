@@ -33,7 +33,7 @@ const AdvancedAnalytics: React.FC = () => {
       try {
         // Fetch all real data analytics
         const [
-          funnelData,
+          funnelDataRaw,
           velocityData,
           { historicalData, predictedData },
           cohortData,
@@ -49,6 +49,13 @@ const AdvancedAnalytics: React.FC = () => {
           calculateRealGeographicAnalytics(includeTestData),
           calculateRealTimeData(includeTestData)
         ]);
+
+        // Transform ConversionStageData to ConversionFunnelData by adding descriptions
+        const funnelData = funnelDataRaw.map(stage => ({
+          stage: stage.stage,
+          users: stage.users,
+          description: getStageDescription(stage.stage)
+        }));
 
         console.log('All real analytics data fetched successfully');
 
@@ -71,6 +78,24 @@ const AdvancedAnalytics: React.FC = () => {
     refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
     retry: 2,
   });
+
+  // Helper function to get meaningful descriptions for each stage
+  const getStageDescription = (stage: string): string => {
+    switch (stage) {
+      case 'Registration':
+        return 'Users who have created an account on the platform';
+      case 'KYC Submitted':
+        return 'Users who have submitted their identity verification documents';
+      case 'KYC Approved':
+        return 'Users whose identity verification has been approved';
+      case 'First Purchase':
+        return 'Users who have completed their first token purchase';
+      case 'Token Received':
+        return 'Users who have successfully received their purchased tokens';
+      default:
+        return 'User conversion stage in the platform journey';
+    }
+  };
 
   if (error) {
     console.error('Analytics query error:', error);
