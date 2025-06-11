@@ -80,14 +80,37 @@ export const validateEdgeFunctionInput = (input: any, maxSize: number = 1024 * 1
   return input;
 };
 
+/**
+ * Creates audit log entry for admin operations
+ * Now only logs sensitive write operations to reduce noise
+ */
 export const createAuditLog = async (
   supabaseClient: any,
   data: AuditLogData
 ): Promise<void> => {
   try {
+    // Only audit sensitive write operations, not read operations
+    const sensitiveOperations = [
+      'approveKyc',
+      'rejectKyc',
+      'requestKycClarification',
+      'processKyc',
+      'updateTransactionStatus',
+      'markTokensSent',
+      'cleanupPendingTransactions',
+      'resendKycNotification',
+      'markDataAsTest'
+    ];
+    
+    // Skip audit logging for read operations to reduce noise
+    if (!sensitiveOperations.some(op => data.operation.includes(op))) {
+      console.log(`Skipping audit log for read operation: ${data.operation}`);
+      return;
+    }
+    
     const auditEntry = {
       user_id: data.userId,
-      type: 'admin_audit',
+      type: 'audit_log', // Changed from 'admin_audit' to 'audit_log'
       title: `Admin Operation: ${data.operation}`,
       message: `Operation: ${data.operation} | User: ${data.userEmail || data.userId} | IP: ${data.ipAddress || 'unknown'}`,
       read: false,
@@ -100,6 +123,8 @@ export const createAuditLog = async (
 
     if (error) {
       console.error('Failed to create audit log:', error);
+    } else {
+      console.log(`Audit log created for sensitive operation: ${data.operation}`);
     }
   } catch (error) {
     console.error('Exception creating audit log:', error);

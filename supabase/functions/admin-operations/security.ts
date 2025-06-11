@@ -57,6 +57,7 @@ export class AdminOperationsSecurity {
     data: any,
     clientInfo: any
   ): Promise<void> {
+    // Only log sensitive operations to reduce notification noise
     await createAuditLog(supabaseClient, {
       operation,
       userId: user.id,

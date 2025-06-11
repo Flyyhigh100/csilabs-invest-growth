@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +9,7 @@ export type Notification = {
   message: string;
   read: boolean;
   created_at: string;
-  type: 'wallet' | 'payment' | 'kyc' | 'tokens' | 'other';
+  type: 'wallet' | 'payment' | 'kyc' | 'tokens' | 'other' | 'admin_audit' | 'audit_log';
   is_test?: boolean;
 };
 
@@ -21,7 +20,7 @@ export const useNotifications = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
 
-  // Fetch notifications from the database
+  // Fetch notifications from the database (excluding admin audit notifications)
   const fetchNotifications = async () => {
     if (!user) {
       setNotifications([]);
@@ -34,10 +33,12 @@ export const useNotifications = () => {
       setIsLoading(true);
       console.log(`Fetching notifications for user: ${user.id}`);
       
+      // Filter out admin_audit and audit_log types to reduce noise
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
+        .not('type', 'in', '("admin_audit","audit_log")')
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -47,7 +48,7 @@ export const useNotifications = () => {
       }
 
       const notificationsData = data as unknown as Notification[];
-      console.log(`Fetched ${notificationsData.length} notifications`);
+      console.log(`Fetched ${notificationsData.length} user notifications (filtered out audit)`);
       setNotifications(notificationsData);
       
       // Check if there are any unread notifications
@@ -139,7 +140,7 @@ export const useNotifications = () => {
     }
   };
 
-  // Set up real-time subscription for new notifications
+  // Set up real-time subscription for new notifications (excluding audit)
   useEffect(() => {
     if (!user) return;
 
@@ -148,7 +149,7 @@ export const useNotifications = () => {
     // Initial fetch
     fetchNotifications();
 
-    // Subscribe to new notifications and updates
+    // Subscribe to new notifications and updates (excluding audit types)
     const channel = supabase
       .channel('notifications-channel')
       .on(
@@ -160,8 +161,15 @@ export const useNotifications = () => {
           filter: `user_id=eq.${user.id}`
         },
         payload => {
-          console.log('New notification received via realtime:', payload);
           const newNotification = payload.new as unknown as Notification;
+          
+          // Filter out admin audit notifications in real-time
+          if (newNotification.type === 'admin_audit' || newNotification.type === 'audit_log') {
+            console.log('Filtered out audit notification from real-time feed:', newNotification.type);
+            return;
+          }
+          
+          console.log('New notification received via realtime:', payload);
           setNotifications(current => [newNotification, ...current]);
           setHasUnread(true);
         }
@@ -175,8 +183,14 @@ export const useNotifications = () => {
           filter: `user_id=eq.${user.id}`
         },
         payload => {
-          console.log('Notification updated via realtime:', payload);
           const updatedNotification = payload.new as unknown as Notification;
+          
+          // Filter out admin audit notifications in real-time
+          if (updatedNotification.type === 'admin_audit' || updatedNotification.type === 'audit_log') {
+            return;
+          }
+          
+          console.log('Notification updated via realtime:', payload);
           setNotifications(current => 
             current.map(notif => 
               notif.id === updatedNotification.id ? updatedNotification : notif
