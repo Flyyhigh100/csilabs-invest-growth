@@ -3,20 +3,24 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { TrendingUp, AlertTriangle } from 'lucide-react';
+import { TrendingUp, AlertTriangle, Target, BarChart3 } from 'lucide-react';
+
+interface HistoricalData {
+  period: string;
+  actualRevenue: number;
+  actualUsers: number;
+}
+
+interface PredictedData {
+  period: string;
+  predictedRevenue: number;
+  predictedUsers: number;
+  confidence: number;
+}
 
 interface PredictiveAnalyticsChartProps {
-  historicalData: Array<{
-    period: string;
-    actualRevenue: number;
-    actualUsers: number;
-  }>;
-  predictedData: Array<{
-    period: string;
-    predictedRevenue: number;
-    predictedUsers: number;
-    confidence: number;
-  }>;
+  historicalData: HistoricalData[];
+  predictedData: PredictedData[];
 }
 
 const PredictiveAnalyticsChart: React.FC<PredictiveAnalyticsChartProps> = ({ 
@@ -47,6 +51,10 @@ const PredictiveAnalyticsChart: React.FC<PredictiveAnalyticsChartProps> = ({
 
   const totalPredictedRevenue = predictedData.reduce((sum, d) => sum + d.predictedRevenue, 0);
   const avgConfidence = predictedData.reduce((sum, d) => sum + d.confidence, 0) / predictedData.length;
+  
+  // Calculate growth trend
+  const lastHistoricalRevenue = historicalData.slice(-3).reduce((sum, d) => sum + d.actualRevenue, 0);
+  const growthTrend = lastHistoricalRevenue > 0 ? ((totalPredictedRevenue / lastHistoricalRevenue) * 100 - 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -55,14 +63,14 @@ const PredictiveAnalyticsChart: React.FC<PredictiveAnalyticsChartProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Revenue Forecasting
+            Revenue Forecasting (Real Data Analysis)
           </CardTitle>
           <CardDescription>
-            Predicted revenue based on historical trends and seasonal patterns
+            Predicted revenue based on historical transaction trends and linear regression analysis
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="p-4 border rounded-lg">
               <div className="text-sm text-muted-foreground">Predicted Revenue (Next 3 Months)</div>
               <div className="text-2xl font-bold text-green-600">
@@ -77,8 +85,14 @@ const PredictiveAnalyticsChart: React.FC<PredictiveAnalyticsChartProps> = ({
             </div>
             <div className="p-4 border rounded-lg">
               <div className="text-sm text-muted-foreground">Growth Trend</div>
+              <div className={`text-2xl font-bold ${growthTrend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {growthTrend >= 0 ? '+' : ''}{growthTrend.toFixed(1)}%
+              </div>
+            </div>
+            <div className="p-4 border rounded-lg">
+              <div className="text-sm text-muted-foreground">Data Points</div>
               <div className="text-2xl font-bold text-blue-600">
-                +{((totalPredictedRevenue / historicalData.slice(-3).reduce((sum, d) => sum + d.actualRevenue, 0)) * 100 - 100).toFixed(1)}%
+                {historicalData.length}
               </div>
             </div>
           </div>
@@ -89,7 +103,13 @@ const PredictiveAnalyticsChart: React.FC<PredictiveAnalyticsChartProps> = ({
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="period" />
                 <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartTooltip 
+                  content={<ChartTooltipContent />}
+                  formatter={(value, name) => [
+                    typeof value === 'number' ? `$${value.toLocaleString()}` : 'N/A',
+                    name === 'actualRevenue' ? 'Actual Revenue' : 'Predicted Revenue'
+                  ]}
+                />
                 <Line 
                   type="monotone" 
                   dataKey="actualRevenue" 
@@ -107,7 +127,11 @@ const PredictiveAnalyticsChart: React.FC<PredictiveAnalyticsChartProps> = ({
                   name="Predicted Revenue"
                   connectNulls={false}
                 />
-                <ReferenceLine x={historicalData[historicalData.length - 1]?.period} stroke="#666" strokeDasharray="2 2" />
+                <ReferenceLine 
+                  x={historicalData[historicalData.length - 1]?.period} 
+                  stroke="#666" 
+                  strokeDasharray="2 2" 
+                />
               </LineChart>
             </ResponsiveContainer>
           </ChartContainer>
@@ -118,7 +142,7 @@ const PredictiveAnalyticsChart: React.FC<PredictiveAnalyticsChartProps> = ({
       <Card>
         <CardHeader>
           <CardTitle>User Growth Predictions</CardTitle>
-          <CardDescription>Forecasted user acquisition and retention patterns</CardDescription>
+          <CardDescription>Forecasted user acquisition based on historical patterns</CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer config={{}} className="h-[300px]">
@@ -127,7 +151,13 @@ const PredictiveAnalyticsChart: React.FC<PredictiveAnalyticsChartProps> = ({
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="period" />
                 <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartTooltip 
+                  content={<ChartTooltipContent />}
+                  formatter={(value, name) => [
+                    typeof value === 'number' ? value.toLocaleString() : 'N/A',
+                    name === 'actualUsers' ? 'Actual Users' : 'Predicted Users'
+                  ]}
+                />
                 <Line 
                   type="monotone" 
                   dataKey="actualUsers" 
@@ -143,45 +173,63 @@ const PredictiveAnalyticsChart: React.FC<PredictiveAnalyticsChartProps> = ({
                   strokeDasharray="5 5"
                   name="Predicted Users"
                 />
-                <ReferenceLine x={historicalData[historicalData.length - 1]?.period} stroke="#666" strokeDasharray="2 2" />
+                <ReferenceLine 
+                  x={historicalData[historicalData.length - 1]?.period} 
+                  stroke="#666" 
+                  strokeDasharray="2 2" 
+                />
               </LineChart>
             </ResponsiveContainer>
           </ChartContainer>
         </CardContent>
       </Card>
 
-      {/* Risk Indicators */}
+      {/* Enhanced Risk Assessment & Insights */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-yellow-600" />
-            Risk Assessment & Insights
+            Data-Driven Insights & Risk Assessment
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
-              <h4 className="font-medium text-yellow-800 mb-2">Market Volatility Risk</h4>
-              <p className="text-sm text-yellow-700">
-                Cryptocurrency market volatility may impact token demand. Monitor correlation with major crypto indices.
-              </p>
-            </div>
             <div className="p-4 border border-blue-200 bg-blue-50 rounded-lg">
-              <h4 className="font-medium text-blue-800 mb-2">Seasonal Patterns</h4>
+              <h4 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Model Accuracy
+              </h4>
               <p className="text-sm text-blue-700">
-                Q4 typically shows increased activity. Consider marketing campaigns for optimal timing.
+                Confidence levels are calculated based on historical data variance. 
+                Higher confidence indicates more stable revenue patterns.
               </p>
             </div>
             <div className="p-4 border border-green-200 bg-green-50 rounded-lg">
-              <h4 className="font-medium text-green-800 mb-2">Growth Opportunity</h4>
+              <h4 className="font-medium text-green-800 mb-2 flex items-center gap-2">
+                <Target className="h-4 w-4" />
+                Growth Opportunities
+              </h4>
               <p className="text-sm text-green-700">
-                KYC completion rate improvements could increase conversion by 15-20%.
+                {growthTrend > 0 
+                  ? `Positive growth trend detected. Consider scaling marketing efforts.`
+                  : `Growth opportunities available. Review conversion funnel for improvements.`
+                }
+              </p>
+            </div>
+            <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
+              <h4 className="font-medium text-yellow-800 mb-2">Seasonal Patterns</h4>
+              <p className="text-sm text-yellow-700">
+                {historicalData.length >= 6 
+                  ? `Analyzing ${historicalData.length} months of data to identify seasonal trends.`
+                  : `More historical data needed for accurate seasonal pattern analysis.`
+                }
               </p>
             </div>
             <div className="p-4 border border-purple-200 bg-purple-50 rounded-lg">
-              <h4 className="font-medium text-purple-800 mb-2">User Acquisition</h4>
+              <h4 className="font-medium text-purple-800 mb-2">Prediction Quality</h4>
               <p className="text-sm text-purple-700">
-                Referral program implementation could boost organic growth by 25-30%.
+                Based on linear regression analysis of actual transaction data. 
+                Predictions become more accurate with more historical data points.
               </p>
             </div>
           </div>
