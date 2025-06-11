@@ -12,7 +12,7 @@ export interface ConversionStageData {
 export const calculateRealConversionFunnel = async (includeTestData: boolean = false): Promise<ConversionStageData[]> => {
   try {
     // Fetch all profiles
-    const profilesQuery = supabase.from('profiles').select('id, created_at');
+    const profilesQuery = supabase.from('profiles').select('id, created_at, wallet_address');
     const { data: profiles } = await profilesQuery;
 
     // Fetch KYC data
@@ -44,6 +44,11 @@ export const calculateRealConversionFunnel = async (includeTestData: boolean = f
     // Calculate funnel stages
     const totalRegistrations = profiles.length;
     
+    // Users who have saved their wallet address
+    const walletAddressSavedUsers = new Set(
+      profiles.filter(p => p.wallet_address && p.wallet_address.trim() !== '').map(p => p.id)
+    );
+    
     // Users who submitted KYC
     const kycSubmittedUsers = new Set(
       kycData.filter(k => k.status !== 'not_started').map(k => k.user_id)
@@ -69,11 +74,11 @@ export const calculateRealConversionFunnel = async (includeTestData: boolean = f
       const times: number[] = [];
       for (const userId of toSet) {
         if (fromSet.has(userId)) {
-          const fromRecord = fromData.find(d => d.user_id === userId);
-          const toRecord = toData.find(d => d.user_id === userId);
+          const fromRecord = fromData.find(d => d.user_id === userId || d.id === userId);
+          const toRecord = toData.find(d => d.user_id === userId || d.id === userId);
           if (fromRecord && toRecord) {
             const fromTime = new Date(fromRecord.created_at || fromRecord.submitted_at);
-            const toTime = new Date(toRecord.created_at || toRecord.approved_at);
+            const toTime = new Date(toRecord.created_at || toRecord.submitted_at || toRecord.approved_at);
             const diffDays = (toTime.getTime() - fromTime.getTime()) / (1000 * 60 * 60 * 24);
             if (diffDays >= 0) times.push(diffDays);
           }
@@ -90,16 +95,28 @@ export const calculateRealConversionFunnel = async (includeTestData: boolean = f
         dropoffRate: 0,
         averageTimeToNext: calculateAverageTime(
           new Set(profiles.map(p => p.id)),
-          kycSubmittedUsers,
+          walletAddressSavedUsers,
           profiles,
+          profiles.filter(p => p.wallet_address)
+        )
+      },
+      {
+        stage: 'Wallet Address Saved',
+        users: walletAddressSavedUsers.size,
+        conversionRate: totalRegistrations > 0 ? (walletAddressSavedUsers.size / totalRegistrations) * 100 : 0,
+        dropoffRate: totalRegistrations > 0 ? ((totalRegistrations - walletAddressSavedUsers.size) / totalRegistrations) * 100 : 0,
+        averageTimeToNext: calculateAverageTime(
+          walletAddressSavedUsers,
+          kycSubmittedUsers,
+          profiles.filter(p => p.wallet_address),
           kycData.filter(k => k.submitted_at)
         )
       },
       {
         stage: 'KYC Submitted',
         users: kycSubmittedUsers.size,
-        conversionRate: totalRegistrations > 0 ? (kycSubmittedUsers.size / totalRegistrations) * 100 : 0,
-        dropoffRate: totalRegistrations > 0 ? ((totalRegistrations - kycSubmittedUsers.size) / totalRegistrations) * 100 : 0,
+        conversionRate: walletAddressSavedUsers.size > 0 ? (kycSubmittedUsers.size / walletAddressSavedUsers.size) * 100 : 0,
+        dropoffRate: walletAddressSavedUsers.size > 0 ? ((walletAddressSavedUsers.size - kycSubmittedUsers.size) / walletAddressSavedUsers.size) * 100 : 0,
         averageTimeToNext: calculateAverageTime(
           kycSubmittedUsers,
           kycApprovedUsers,

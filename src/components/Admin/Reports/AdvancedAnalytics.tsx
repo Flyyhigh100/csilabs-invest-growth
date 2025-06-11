@@ -84,6 +84,8 @@ const AdvancedAnalytics: React.FC = () => {
     switch (stage) {
       case 'Registration':
         return 'Users who have created an account on the platform';
+      case 'Wallet Address Saved':
+        return 'Users who have provided and saved their wallet address';
       case 'KYC Submitted':
         return 'Users who have submitted their identity verification documents';
       case 'KYC Approved':
