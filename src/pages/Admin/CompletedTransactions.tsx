@@ -25,37 +25,51 @@ const CompletedTransactions: React.FC = () => {
       const daysAgo = new Date();
       daysAgo.setDate(daysAgo.getDate() - parseInt(dateFilter));
       
-      let query = supabase
+      // First, get the transactions
+      let transactionQuery = supabase
         .from('transactions')
-        .select(`
-          id,
-          created_at,
-          completed_at,
-          amount,
-          currency,
-          payment_method,
-          wallet_address,
-          token_amount,
-          token_price,
-          blockchain_tx_id,
-          external_transaction_id,
-          user_id,
-          profiles!transactions_user_id_fkey(first_name, last_name, email)
-        `)
+        .select('*')
         .eq('status', 'completed')
         .gte('created_at', daysAgo.toISOString())
         .order('completed_at', { ascending: false });
 
       if (paymentMethodFilter !== 'all') {
-        query = query.eq('payment_method', paymentMethodFilter);
+        transactionQuery = transactionQuery.eq('payment_method', paymentMethodFilter);
       }
 
-      const { data, error } = await query;
+      const { data: transactionData, error: transactionError } = await transactionQuery;
       
-      if (error) throw error;
+      if (transactionError) throw transactionError;
+
+      // Then, get the profiles for the user_ids
+      const userIds = transactionData?.map(tx => tx.user_id).filter(Boolean) || [];
+      
+      if (userIds.length === 0) {
+        console.log('✅ No transactions found');
+        return [];
+      }
+
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email')
+        .in('id', userIds);
+      
+      if (profileError) throw profileError;
+
+      // Create a map of user profiles
+      const profileMap = new Map();
+      profileData?.forEach(profile => {
+        profileMap.set(profile.id, profile);
+      });
+
+      // Combine transaction data with profile data
+      const combinedData = transactionData?.map(tx => ({
+        ...tx,
+        profiles: profileMap.get(tx.user_id) || null
+      })) || [];
 
       // Filter by search term if provided
-      let filteredData = data || [];
+      let filteredData = combinedData;
       if (searchTerm) {
         filteredData = filteredData.filter(tx => 
           tx.external_transaction_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
