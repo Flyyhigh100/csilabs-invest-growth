@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,27 +10,36 @@ import { supabase } from '@/integrations/supabase/client';
 import { CheckCircle, Download, RefreshCw, Search, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
+import TestDataToggle from '@/components/Admin/TestDataToggle';
 
 const CompletedTransactions: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('30');
+  const { includeTestData, setIncludeTestData } = useTestDataToggle();
 
   const { data: transactions, isLoading, refetch } = useQuery({
-    queryKey: ['completed-transactions', searchTerm, paymentMethodFilter, dateFilter],
+    queryKey: ['completed-transactions', searchTerm, paymentMethodFilter, dateFilter, includeTestData],
     queryFn: async () => {
       console.log('🔄 Fetching completed transactions...');
+      console.log('Filters:', { searchTerm, paymentMethodFilter, dateFilter, includeTestData });
       
       const daysAgo = new Date();
       daysAgo.setDate(daysAgo.getDate() - parseInt(dateFilter));
       
-      // First, get the transactions
+      // First, get the transactions with consistent filtering
       let transactionQuery = supabase
         .from('transactions')
         .select('*')
         .eq('status', 'completed')
         .gte('created_at', daysAgo.toISOString())
         .order('completed_at', { ascending: false });
+
+      // Apply test data filter consistently
+      if (!includeTestData) {
+        transactionQuery = transactionQuery.eq('is_test', false);
+      }
 
       if (paymentMethodFilter !== 'all') {
         transactionQuery = transactionQuery.eq('payment_method', paymentMethodFilter);
@@ -79,7 +87,7 @@ const CompletedTransactions: React.FC = () => {
         );
       }
 
-      console.log('✅ Completed transactions fetched:', filteredData.length);
+      console.log(`✅ Completed transactions fetched: ${filteredData.length} (${transactionData?.length} before search filter)`);
       return filteredData;
     },
     refetchInterval: 30000,
@@ -130,6 +138,10 @@ const CompletedTransactions: React.FC = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <TestDataToggle 
+              checked={includeTestData} 
+              onCheckedChange={setIncludeTestData} 
+            />
             <Button variant="outline" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
@@ -146,6 +158,15 @@ const CompletedTransactions: React.FC = () => {
           <Link to="/admin" className="hover:text-primary">Dashboard</Link>
           <span className="mx-2">›</span>
           <span>Completed Transactions</span>
+        </div>
+
+        {/* Data consistency notice */}
+        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+          <p className="text-green-700 text-sm">
+            <strong>✅ Consistent Data:</strong> This page uses the same filtering logic as the dashboard. 
+            Test data: {includeTestData ? 'INCLUDED' : 'EXCLUDED'} • 
+            Date range: Last {dateFilter} days
+          </p>
         </div>
 
         {/* Summary Cards */}

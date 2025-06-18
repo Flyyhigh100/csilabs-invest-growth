@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,70 +17,38 @@ import { useTransactionAnalytics } from '@/hooks/admin/useTransactionAnalytics';
 const AdminDashboard: React.FC = () => {
   const { includeTestData, setIncludeTestData } = useTestDataToggle();
   
-  // Use March 2025 as the project start date - ensure we show real data only
-  const projectStartDate = new Date(2025, 2, 1); // March 1, 2025
+  // Use 30-day default to match detail pages
+  const defaultTimeRange = '30';
   
-  // Use the shared transaction analytics hook with default date range
+  // Use the shared transaction analytics hook with consistent 30-day range
   const { data: analyticsData, isLoading: analyticsLoading } = useTransactionAnalytics({
-    startDate: projectStartDate
+    timeRange: defaultTimeRange
   });
   
-  // Current month and past months since project start for accurate chart data
-  const monthLabels = React.useMemo(() => {
-    const result = [];
-    const currentDate = new Date();
-    let currentMonth = new Date(projectStartDate);
-    
-    // Generate month labels from project start to current date
-    while (currentMonth <= currentDate) {
-      result.push(format(currentMonth, 'MMM'));
-      currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
-    }
-    
-    return result;
-  }, []);
-  
-  // Fetch summary data
+  // Fetch summary data with consistent filtering
   const { data: summaryData, isLoading } = useQuery({
-    queryKey: ['admin-dashboard-summary', includeTestData],
+    queryKey: ['admin-dashboard-summary', includeTestData, defaultTimeRange],
     queryFn: async () => {
       try {
-        console.log('Fetching admin dashboard summary with includeTestData:', includeTestData);
+        console.log('Fetching admin dashboard summary with includeTestData:', includeTestData, 'timeRange:', defaultTimeRange);
         
-        // Fetch user count with test data toggle
-        let userQuery = supabase.from('profiles').select('*', { count: 'exact', head: true });
-        
-        const { count: userCount, error: userError } = await userQuery;
+        // Get user count
+        const { count: userCount, error: userError } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
         
         if (userError) throw userError;
         
-        // Fetch KYC stats
+        // Get KYC stats with test data filtering
         let kycQuery = supabase.from('kyc_verifications').select('status');
         if (!includeTestData) {
           kycQuery = kycQuery.eq('is_test', false);
         }
         
         const { data: kycData, error: kycError } = await kycQuery;
-        
         if (kycError) throw kycError;
         
-        // Fetch transaction stats - use the same filters as analytics hook
-        let txQuery = supabase.from('transactions')
-          .select('status, amount, created_at')
-          .eq('status', 'completed')
-          .gte('created_at', projectStartDate.toISOString());
-          
-        if (!includeTestData) {
-          txQuery = txQuery.eq('is_test', false);
-        }
-        
-        const { data: txData, error: txError } = await txQuery;
-        
-        if (txError) throw txError;
-        
-        console.log(`Dashboard: Fetched ${txData?.length || 0} completed transactions since ${format(projectStartDate, 'MMM yyyy')}`);
-
-        // Fetch pending token transfers
+        // Get pending token transfers with test data filtering
         let pendingTokensQuery = supabase
           .from('transactions')
           .select('*', { count: 'exact', head: true })
@@ -91,17 +60,20 @@ const AdminDashboard: React.FC = () => {
         }
         
         const { count: pendingTokensCount, error: pendingTokensError } = await pendingTokensQuery;
-        
         if (pendingTokensError) throw pendingTokensError;
         
         // Calculate stats
         const pendingKyc = kycData?.filter(k => k.status === 'pending').length || 0;
-        const completedTx = txData?.length || 0;
-        const totalTxValue = txData?.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0) || 0;
         
-        // Process real data for charts
-        const userGrowthData = prepareUserGrowthData(userCount || 0, monthLabels);
-        const txVolumeData = prepareTxVolumeData(txData || [], monthLabels);
+        // Use analytics data for consistent transaction counts and volume
+        const completedTx = analyticsData?.totalTransactions || 0;
+        const totalTxValue = analyticsData?.totalVolume || 0;
+        
+        console.log(`Dashboard summary: ${userCount} users, ${completedTx} transactions, $${totalTxValue} volume`);
+        
+        // Create simplified chart data based on analytics
+        const userGrowthData = prepareUserGrowthData(userCount || 0);
+        const txVolumeData = analyticsData?.volumeOverTime || [];
         
         return {
           userCount: userCount || 0,
@@ -117,73 +89,16 @@ const AdminDashboard: React.FC = () => {
         throw error;
       }
     },
-    staleTime: 60000 // Consider data fresh for 1 minute
+    staleTime: 60000,
+    enabled: !!analyticsData // Wait for analytics data first
   });
   
-  // Function to prepare real user growth data based on month labels
-  const prepareUserGrowthData = (totalUsers: number, monthLabels: string[]) => {
-    // Use real data from analytics or create distributed user growth
-    if (analyticsData && analyticsData.volumeOverTime.length > 0) {
-      // Group by month for consistent format
-      const monthlyData = monthLabels.map((month) => ({
-        name: month,
-        users: 0 // Default value
-      }));
-      
-      // Realistic growth curve - distribute users across months
-      let cumulativeUsers = 0;
-      const growthFactor = totalUsers / monthLabels.length;
-      
-      // Each month adds some proportion of users
-      return monthlyData.map((item, index) => {
-        // More users join in later months - simple growth model
-        const monthlyNew = Math.round(growthFactor * (index + 1) / 2);
-        cumulativeUsers += monthlyNew;
-        // Cap at total users
-        return {
-          name: item.name,
-          users: Math.min(cumulativeUsers, totalUsers)
-        };
-      });
-    }
-    
-    // Fallback if no analytics data
+  // Function to prepare user growth data
+  const prepareUserGrowthData = (totalUsers: number) => {
+    const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
     return monthLabels.map((month, index) => ({
       name: month,
       users: Math.round((totalUsers) * (index + 1) / monthLabels.length)
-    }));
-  };
-  
-  // Function to prepare real transaction volume data based on month labels and actual transactions
-  const prepareTxVolumeData = (transactions: any[], monthLabels: string[]) => {
-    // If we have analytics data, use that
-    if (analyticsData && analyticsData.volumeOverTime.length > 0) {
-      // Create a map of month abbreviations to volume
-      const volumeByMonth: Record<string, number> = {};
-      
-      // Group actual transaction data by month
-      transactions.forEach(tx => {
-        const month = format(new Date(tx.created_at), 'MMM');
-        if (!volumeByMonth[month]) {
-          volumeByMonth[month] = 0;
-        }
-        volumeByMonth[month] += Number(tx.amount) || 0;
-      });
-      
-      // Create data points for each month label
-      return monthLabels.map(month => ({
-        name: month,
-        volume: volumeByMonth[month] || 0
-      }));
-    }
-    
-    // Calculate total volume
-    const totalVolume = transactions.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
-    
-    // Fallback if no analytics data
-    return monthLabels.map((month, index) => ({
-      name: month,
-      volume: Math.round(totalVolume * (index + 1) / monthLabels.length)
     }));
   };
   
@@ -256,7 +171,7 @@ const AdminDashboard: React.FC = () => {
         <Link to="/admin/transactions/completed" className="block">
           <Card className="transition-all hover:shadow-md hover:border-green-200">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Completed Transactions</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Completed Transactions (30d)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
@@ -270,7 +185,7 @@ const AdminDashboard: React.FC = () => {
         <Link to="/admin/transactions/volume-details" className="block">
           <Card className="transition-all hover:shadow-md hover:border-green-200">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Transaction Volume</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Transaction Volume (30d)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
@@ -338,10 +253,10 @@ const AdminDashboard: React.FC = () => {
         </div>
       </div>
       
-      {/* Project Status Banner */}
+      {/* Status Notice */}
       <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-md">
         <p className="text-blue-700 text-sm">
-          <strong>Note:</strong> Charts display actual data since project launch in March 2025.
+          <strong>Note:</strong> Dashboard shows transactions from the last 30 days to match detail pages. Test data toggle: {includeTestData ? 'ON' : 'OFF'}
         </p>
       </div>
       
@@ -350,7 +265,7 @@ const AdminDashboard: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>User Growth</CardTitle>
-            <CardDescription>Monthly user registrations since March</CardDescription>
+            <CardDescription>Monthly user registrations</CardDescription>
           </CardHeader>
           <CardContent className="pt-2 h-80">
             <ChartContainer config={chartConfig}>
@@ -375,14 +290,14 @@ const AdminDashboard: React.FC = () => {
         
         <Card>
           <CardHeader>
-            <CardTitle>Transaction Volume</CardTitle>
-            <CardDescription>Monthly transaction volume since March</CardDescription>
+            <CardTitle>Transaction Volume (30 days)</CardTitle>
+            <CardDescription>Daily transaction volume</CardDescription>
           </CardHeader>
           <CardContent className="pt-2 h-80">
             <ChartContainer config={chartConfig}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={summaryData?.txVolumeData || []}>
-                  <XAxis dataKey="name" />
+                  <XAxis dataKey="date" />
                   <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Legend />

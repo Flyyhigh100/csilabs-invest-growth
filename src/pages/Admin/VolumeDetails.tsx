@@ -4,109 +4,78 @@ import AdminLayout from '@/components/Admin/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { BarChart3, TrendingUp, RefreshCw, Calendar, DollarSign } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { useTransactionAnalytics } from '@/hooks/admin/useTransactionAnalytics';
+import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
+import TestDataToggle from '@/components/Admin/TestDataToggle';
 
 const VolumeDetails: React.FC = () => {
   const [timeRange, setTimeRange] = useState('30');
   const [groupBy, setGroupBy] = useState('day');
+  const { includeTestData, setIncludeTestData } = useTestDataToggle();
 
-  const { data: volumeData, isLoading, refetch } = useQuery({
-    queryKey: ['volume-details', timeRange, groupBy],
-    queryFn: async () => {
-      console.log('🔄 Fetching volume details...');
-      
-      const daysAgo = new Date();
-      daysAgo.setDate(daysAgo.getDate() - parseInt(timeRange));
-      
-      const { data: transactions, error } = await supabase
-        .from('transactions')
-        .select('amount, currency, payment_method, created_at, completed_at, status')
-        .eq('status', 'completed')
-        .gte('created_at', daysAgo.toISOString())
-        .order('completed_at', { ascending: true });
-      
-      if (error) throw error;
-
-      // Group data by time period
-      const groupedData = transactions?.reduce((acc, tx) => {
-        const date = new Date(tx.completed_at || tx.created_at);
-        let key: string;
-        
-        switch (groupBy) {
-          case 'week':
-            key = format(startOfWeek(date), 'MMM dd');
-            break;
-          case 'month':
-            key = format(startOfMonth(date), 'MMM yyyy');
-            break;
-          default: // day
-            key = format(date, 'MMM dd');
-        }
-        
-        if (!acc[key]) {
-          acc[key] = {
-            period: key,
-            totalVolume: 0,
-            transactionCount: 0,
-            byPaymentMethod: {},
-            byCurrency: {}
-          };
-        }
-        
-        const amount = Number(tx.amount);
-        acc[key].totalVolume += amount;
-        acc[key].transactionCount += 1;
-        
-        // Group by payment method
-        if (!acc[key].byPaymentMethod[tx.payment_method]) {
-          acc[key].byPaymentMethod[tx.payment_method] = 0;
-        }
-        acc[key].byPaymentMethod[tx.payment_method] += amount;
-        
-        // Group by currency
-        const currency = tx.currency || 'USD';
-        if (!acc[key].byCurrency[currency]) {
-          acc[key].byCurrency[currency] = 0;
-        }
-        acc[key].byCurrency[currency] += amount;
-        
-        return acc;
-      }, {} as Record<string, any>) || {};
-
-      // Convert to array and sort
-      const chartData = Object.values(groupedData).sort((a: any, b: any) => 
-        new Date(a.period).getTime() - new Date(b.period).getTime()
-      );
-
-      // Calculate totals and payment method breakdown
-      const totalVolume = transactions?.reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
-      const totalTransactions = transactions?.length || 0;
-      
-      const paymentMethodBreakdown = transactions?.reduce((acc, tx) => {
-        if (!acc[tx.payment_method]) {
-          acc[tx.payment_method] = { volume: 0, count: 0 };
-        }
-        acc[tx.payment_method].volume += Number(tx.amount);
-        acc[tx.payment_method].count += 1;
-        return acc;
-      }, {} as Record<string, { volume: number; count: number }>) || {};
-
-      console.log('✅ Volume details fetched:', chartData.length, 'periods');
-      return {
-        chartData,
-        totalVolume,
-        totalTransactions,
-        paymentMethodBreakdown,
-        averageTransactionSize: totalTransactions > 0 ? totalVolume / totalTransactions : 0
-      };
-    },
-    refetchInterval: 30000,
+  // Use the shared analytics hook with consistent filtering
+  const { data: analyticsData, isLoading, refetch } = useTransactionAnalytics({
+    timeRange: timeRange
   });
+
+  // Process the data for charting based on groupBy selection
+  const processedData = React.useMemo(() => {
+    if (!analyticsData?.transactions) return [];
+
+    const groupedData = analyticsData.transactions.reduce((acc, tx) => {
+      const date = new Date(tx.completed_at || tx.created_at);
+      let key: string;
+      
+      switch (groupBy) {
+        case 'week':
+          key = format(startOfWeek(date), 'MMM dd');
+          break;
+        case 'month':
+          key = format(startOfMonth(date), 'MMM yyyy');
+          break;
+        default: // day
+          key = format(date, 'MMM dd');
+      }
+      
+      if (!acc[key]) {
+        acc[key] = {
+          period: key,
+          totalVolume: 0,
+          transactionCount: 0,
+          byPaymentMethod: {},
+          byCurrency: {}
+        };
+      }
+      
+      const amount = Number(tx.amount);
+      acc[key].totalVolume += amount;
+      acc[key].transactionCount += 1;
+      
+      // Group by payment method
+      if (!acc[key].byPaymentMethod[tx.payment_method]) {
+        acc[key].byPaymentMethod[tx.payment_method] = 0;
+      }
+      acc[key].byPaymentMethod[tx.payment_method] += amount;
+      
+      // Group by currency
+      const currency = tx.currency || 'USD';
+      if (!acc[key].byCurrency[currency]) {
+        acc[key].byCurrency[currency] = 0;
+      }
+      acc[key].byCurrency[currency] += amount;
+      
+      return acc;
+    }, {} as Record<string, any>);
+
+    // Convert to array and sort
+    return Object.values(groupedData).sort((a: any, b: any) => 
+      new Date(a.period).getTime() - new Date(b.period).getTime()
+    );
+  }, [analyticsData?.transactions, groupBy]);
 
   return (
     <AdminLayout title="Transaction Volume Details">
@@ -122,10 +91,16 @@ const VolumeDetails: React.FC = () => {
               Detailed breakdown of transaction volume trends and patterns
             </p>
           </div>
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <TestDataToggle 
+              checked={includeTestData} 
+              onCheckedChange={setIncludeTestData} 
+            />
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {/* Breadcrumb */}
@@ -133,6 +108,15 @@ const VolumeDetails: React.FC = () => {
           <Link to="/admin" className="hover:text-primary">Dashboard</Link>
           <span className="mx-2">›</span>
           <span>Volume Details</span>
+        </div>
+
+        {/* Data consistency notice */}
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-blue-700 text-sm">
+            <strong>✅ Consistent Data:</strong> This page uses the same filtering logic as the dashboard. 
+            Test data: {includeTestData ? 'INCLUDED' : 'EXCLUDED'} • 
+            Date range: Last {timeRange} days
+          </p>
         </div>
 
         {/* Controls */}
@@ -179,7 +163,7 @@ const VolumeDetails: React.FC = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="text-2xl font-bold text-green-600">
-                ${volumeData?.totalVolume.toLocaleString() || 0}
+                ${analyticsData?.totalVolume.toLocaleString() || 0}
               </div>
               <p className="text-sm text-muted-foreground">Total Volume</p>
             </CardContent>
@@ -187,7 +171,7 @@ const VolumeDetails: React.FC = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="text-2xl font-bold text-blue-600">
-                {volumeData?.totalTransactions || 0}
+                {analyticsData?.totalTransactions || 0}
               </div>
               <p className="text-sm text-muted-foreground">Total Transactions</p>
             </CardContent>
@@ -195,7 +179,7 @@ const VolumeDetails: React.FC = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="text-2xl font-bold text-purple-600">
-                ${volumeData?.averageTransactionSize.toLocaleString() || 0}
+                ${analyticsData?.averageTransactionSize.toLocaleString() || 0}
               </div>
               <p className="text-sm text-muted-foreground">Average Size</p>
             </CardContent>
@@ -203,7 +187,7 @@ const VolumeDetails: React.FC = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="text-2xl font-bold text-orange-600">
-                {volumeData?.chartData?.length || 0}
+                {processedData?.length || 0}
               </div>
               <p className="text-sm text-muted-foreground">Active Periods</p>
             </CardContent>
@@ -219,9 +203,9 @@ const VolumeDetails: React.FC = () => {
           <CardContent>
             {isLoading ? (
               <div className="h-80 animate-pulse bg-gray-200 rounded"></div>
-            ) : volumeData?.chartData && volumeData.chartData.length > 0 ? (
+            ) : processedData && processedData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={volumeData.chartData}>
+                <BarChart data={processedData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="period" />
                   <YAxis tickFormatter={(value) => `$${value.toLocaleString()}`} />
@@ -250,9 +234,9 @@ const VolumeDetails: React.FC = () => {
           <CardContent>
             {isLoading ? (
               <div className="h-80 animate-pulse bg-gray-200 rounded"></div>
-            ) : volumeData?.chartData && volumeData.chartData.length > 0 ? (
+            ) : processedData && processedData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={volumeData.chartData}>
+                <LineChart data={processedData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="period" />
                   <YAxis />
@@ -291,9 +275,9 @@ const VolumeDetails: React.FC = () => {
                   <div key={i} className="animate-pulse bg-gray-200 h-16 rounded"></div>
                 ))}
               </div>
-            ) : volumeData?.paymentMethodBreakdown ? (
+            ) : analyticsData?.paymentMethodBreakdown ? (
               <div className="space-y-4">
-                {Object.entries(volumeData.paymentMethodBreakdown).map(([method, data]: [string, any]) => (
+                {Object.entries(analyticsData.paymentMethodBreakdown).map(([method, data]: [string, any]) => (
                   <div key={method} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center gap-4">
                       <DollarSign className="h-5 w-5 text-muted-foreground" />
@@ -309,7 +293,7 @@ const VolumeDetails: React.FC = () => {
                         ${data.volume.toLocaleString()}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {((data.volume / volumeData.totalVolume) * 100).toFixed(1)}% of total
+                        {((data.volume / analyticsData.totalVolume) * 100).toFixed(1)}% of total
                       </div>
                     </div>
                   </div>
