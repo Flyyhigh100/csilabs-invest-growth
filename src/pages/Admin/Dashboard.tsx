@@ -253,7 +253,7 @@ const AdminDashboard: React.FC = () => {
           </Card>
         </Link>
         
-        <Link to="/admin/transaction-analytics?source=completed" className="block">
+        <Link to="/admin/transactions/completed" className="block">
           <Card className="transition-all hover:shadow-md hover:border-green-200">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Completed Transactions</CardTitle>
@@ -267,7 +267,7 @@ const AdminDashboard: React.FC = () => {
           </Card>
         </Link>
         
-        <Link to="/admin/transaction-analytics?source=volume" className="block">
+        <Link to="/admin/transactions/volume-details" className="block">
           <Card className="transition-all hover:shadow-md hover:border-green-200">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Transaction Volume</CardTitle>

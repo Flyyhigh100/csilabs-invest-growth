@@ -12,6 +12,8 @@ import RouteTest from './components/RouteTest';
 import TokenPricingPage from './pages/Admin/TokenPricing';
 import TransactionAnalyticsPage from './pages/Admin/TransactionAnalytics';
 import ReportsPage from './pages/Admin/Reports';
+import CompletedTransactionsPage from './pages/Admin/CompletedTransactions';
+import VolumeDetailsPage from './pages/Admin/VolumeDetails';
 
 // Import components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -117,6 +119,8 @@ function App() {
                           <Route path="dashboard" element={<AdminDashboard />} />
                           <Route path="reports" element={<ReportsPage />} />
                           <Route path="transactions" element={<AdminTransactionsPage />} />
+                          <Route path="transactions/completed" element={<CompletedTransactionsPage />} />
+                          <Route path="transactions/volume-details" element={<VolumeDetailsPage />} />
                           <Route path="users" element={<AdminUsersPage />} />
                           <Route path="kyc" element={<AdminKycPage />} />
                           <Route path="settings" element={<AdminSettingsPage />} />
