@@ -40,7 +40,7 @@ const CompletedTransactions: React.FC = () => {
           blockchain_tx_id,
           external_transaction_id,
           user_id,
-          profiles:user_id (first_name, last_name, email)
+          profiles!inner(first_name, last_name, email)
         `)
         .eq('status', 'completed')
         .gte('created_at', daysAgo.toISOString())
