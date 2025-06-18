@@ -75,28 +75,42 @@ const AdvancedAnalytics: React.FC = () => {
     },
   });
 
-  // Recent activity feed
+  // Recent activity feed - Fixed query
   const { data: activityFeed, isLoading: activityLoading, refetch: refetchActivity } = useQuery({
     queryKey: ['activity-feed'],
     queryFn: async () => {
       console.log('🔄 Fetching recent activity...');
       
+      // First get recent transactions
       const { data: transactions } = await supabase
         .from('transactions')
-        .select(`
-          id,
-          created_at,
-          status,
-          amount,
-          currency,
-          payment_method,
-          profiles:user_id (first_name, last_name, email)
-        `)
+        .select('id, created_at, status, amount, currency, payment_method, user_id')
         .order('created_at', { ascending: false })
         .limit(10);
 
-      console.log('✅ Activity feed fetched:', transactions?.length || 0, 'items');
-      return transactions || [];
+      if (!transactions || transactions.length === 0) {
+        console.log('No transactions found');
+        return [];
+      }
+
+      // Get user profiles for the transactions
+      const userIds = [...new Set(transactions.map(t => t.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email')
+        .in('id', userIds);
+
+      // Create a map of user profiles
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+      // Combine the data
+      const activityWithProfiles = transactions.map(transaction => ({
+        ...transaction,
+        profiles: profileMap.get(transaction.user_id) || null
+      }));
+
+      console.log('✅ Activity feed fetched:', activityWithProfiles.length, 'items');
+      return activityWithProfiles;
     },
     refetchInterval: 30000,
   });
