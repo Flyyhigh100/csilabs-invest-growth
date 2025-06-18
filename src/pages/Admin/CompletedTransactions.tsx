@@ -16,7 +16,7 @@ import TestDataToggle from '@/components/Admin/TestDataToggle';
 const CompletedTransactions: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('30');
+  const [dateFilter, setDateFilter] = useState('all-time');
   const { includeTestData, setIncludeTestData } = useTestDataToggle();
 
   const { data: transactions, isLoading, refetch } = useQuery({
@@ -25,16 +25,23 @@ const CompletedTransactions: React.FC = () => {
       console.log('🔄 Fetching completed transactions...');
       console.log('Filters:', { searchTerm, paymentMethodFilter, dateFilter, includeTestData });
       
-      const daysAgo = new Date();
-      daysAgo.setDate(daysAgo.getDate() - parseInt(dateFilter));
-      
-      // First, get the transactions with consistent filtering
+      // Build date filter
       let transactionQuery = supabase
         .from('transactions')
         .select('*')
         .eq('status', 'completed')
-        .gte('created_at', daysAgo.toISOString())
         .order('completed_at', { ascending: false });
+
+      // Apply date filter
+      if (dateFilter !== 'all-time') {
+        const daysAgo = new Date();
+        daysAgo.setDate(daysAgo.getDate() - parseInt(dateFilter));
+        transactionQuery = transactionQuery.gte('created_at', daysAgo.toISOString());
+      } else {
+        // For all-time, filter from platform launch date
+        const launchDate = new Date(2025, 2, 1); // March 1, 2025
+        transactionQuery = transactionQuery.gte('created_at', launchDate.toISOString());
+      }
 
       // Apply test data filter consistently
       if (!includeTestData) {
@@ -95,6 +102,23 @@ const CompletedTransactions: React.FC = () => {
 
   const totalValue = transactions?.reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
   const totalTokens = transactions?.reduce((sum, tx) => sum + Number(tx.token_amount || 0), 0) || 0;
+
+  const getDateFilterLabel = () => {
+    switch (dateFilter) {
+      case 'all-time':
+        return 'since platform launch (March 2025)';
+      case '7':
+        return 'last 7 days';
+      case '30':
+        return 'last 30 days';
+      case '90':
+        return 'last 90 days';
+      case '365':
+        return 'last year';
+      default:
+        return dateFilter;
+    }
+  };
 
   const exportToCSV = () => {
     if (!transactions || transactions.length === 0) return;
@@ -160,12 +184,12 @@ const CompletedTransactions: React.FC = () => {
           <span>Completed Transactions</span>
         </div>
 
-        {/* Data consistency notice */}
+        {/* Data info notice */}
         <div className="p-3 bg-green-50 border border-green-200 rounded-md">
           <p className="text-green-700 text-sm">
-            <strong>✅ Consistent Data:</strong> This page uses the same filtering logic as the dashboard. 
+            <strong>📊 Data Range:</strong> Showing completed transactions {getDateFilterLabel()}. 
             Test data: {includeTestData ? 'INCLUDED' : 'EXCLUDED'} • 
-            Date range: Last {dateFilter} days
+            Found: {transactions?.length || 0} transactions
           </p>
         </div>
 
@@ -240,6 +264,7 @@ const CompletedTransactions: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all-time">All Time (Since Launch)</SelectItem>
                     <SelectItem value="7">Last 7 days</SelectItem>
                     <SelectItem value="30">Last 30 days</SelectItem>
                     <SelectItem value="90">Last 90 days</SelectItem>

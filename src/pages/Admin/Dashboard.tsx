@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { UserCheck, Receipt, Circle, AlertCircle, Users, Activity } from 'lucide-react';
+import { UserCheck, Receipt, Circle, AlertCircle, Users, Activity, TrendingUp } from 'lucide-react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
@@ -17,20 +17,20 @@ import { useTransactionAnalytics } from '@/hooks/admin/useTransactionAnalytics';
 const AdminDashboard: React.FC = () => {
   const { includeTestData, setIncludeTestData } = useTestDataToggle();
   
-  // Use 30-day default to match detail pages
-  const defaultTimeRange = '30';
+  // Get all-time analytics (since platform launch)
+  const { data: allTimeAnalytics, isLoading: allTimeLoading } = useTransactionAnalytics({});
   
-  // Use the shared transaction analytics hook with consistent 30-day range
-  const { data: analyticsData, isLoading: analyticsLoading } = useTransactionAnalytics({
-    timeRange: defaultTimeRange
+  // Get recent analytics (last 30 days)
+  const { data: recentAnalytics, isLoading: recentLoading } = useTransactionAnalytics({
+    timeRange: '30'
   });
   
   // Fetch summary data with consistent filtering
   const { data: summaryData, isLoading } = useQuery({
-    queryKey: ['admin-dashboard-summary', includeTestData, defaultTimeRange],
+    queryKey: ['admin-dashboard-summary', includeTestData],
     queryFn: async () => {
       try {
-        console.log('Fetching admin dashboard summary with includeTestData:', includeTestData, 'timeRange:', defaultTimeRange);
+        console.log('Fetching admin dashboard summary with includeTestData:', includeTestData);
         
         // Get user count
         const { count: userCount, error: userError } = await supabase
@@ -65,32 +65,23 @@ const AdminDashboard: React.FC = () => {
         // Calculate stats
         const pendingKyc = kycData?.filter(k => k.status === 'pending').length || 0;
         
-        // Use analytics data for consistent transaction counts and volume
-        const completedTx = analyticsData?.totalTransactions || 0;
-        const totalTxValue = analyticsData?.totalVolume || 0;
-        
-        console.log(`Dashboard summary: ${userCount} users, ${completedTx} transactions, $${totalTxValue} volume`);
+        console.log(`Dashboard summary: ${userCount} users, pending KYC: ${pendingKyc}`);
         
         // Create simplified chart data based on analytics
         const userGrowthData = prepareUserGrowthData(userCount || 0);
-        const txVolumeData = analyticsData?.volumeOverTime || [];
         
         return {
           userCount: userCount || 0,
           pendingKyc,
-          completedTx,
           pendingTokensCount: pendingTokensCount || 0,
-          totalTxValue,
-          userGrowthData,
-          txVolumeData
+          userGrowthData
         };
       } catch (error) {
         console.error('Error fetching dashboard data', error);
         throw error;
       }
     },
-    staleTime: 60000,
-    enabled: !!analyticsData // Wait for analytics data first
+    staleTime: 60000
   });
   
   // Function to prepare user growth data
@@ -138,65 +129,148 @@ const AdminDashboard: React.FC = () => {
         />
       </div>
       
-      {/* Quick stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-        <Link to="/admin/users" className="block">
-          <Card className="transition-all hover:shadow-md hover:border-blue-200">
+      {/* All-Time Metrics Section */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <TrendingUp className="h-5 w-5 text-blue-600" />
+          <h2 className="text-lg font-semibold">All-Time Platform Metrics</h2>
+          <span className="text-sm text-muted-foreground">(Since March 2025)</span>
+        </div>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Link to="/admin/transactions/completed" className="block">
+            <Card className="transition-all hover:shadow-md hover:border-green-200 bg-gradient-to-br from-green-50 to-green-100">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-green-700">Total Transactions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <Receipt className="h-5 w-5 text-green-600 mr-2" />
+                  <span className="text-2xl font-bold text-green-800">
+                    {allTimeLoading ? '—' : allTimeAnalytics?.totalTransactions || 0}
+                  </span>
+                </div>
+                <p className="text-xs text-green-600 mt-1">All completed transactions</p>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Link to="/admin/transactions/volume-details" className="block">
+            <Card className="transition-all hover:shadow-md hover:border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-blue-700">Total Volume</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <Activity className="h-5 w-5 text-blue-600 mr-2" />
+                  <span className="text-2xl font-bold text-blue-800">
+                    {allTimeLoading ? '—' : formatCurrency(allTimeAnalytics?.totalVolume || 0)}
+                  </span>
+                </div>
+                <p className="text-xs text-blue-600 mt-1">Total platform revenue</p>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Users</CardTitle>
+              <CardTitle className="text-sm font-medium text-purple-700">Average Transaction</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
-                <Users className="h-5 w-5 text-blue-500 mr-2" />
-                <span className="text-2xl font-bold">{isLoading ? '—' : summaryData?.userCount}</span>
+                <TrendingUp className="h-5 w-5 text-purple-600 mr-2" />
+                <span className="text-2xl font-bold text-purple-800">
+                  {allTimeLoading ? '—' : formatCurrency(allTimeAnalytics?.averageTransactionSize || 0)}
+                </span>
               </div>
+              <p className="text-xs text-purple-600 mt-1">Per transaction average</p>
             </CardContent>
           </Card>
-        </Link>
-        
-        <Link to="/admin/kyc" className="block">
-          <Card className="transition-all hover:shadow-md hover:border-yellow-200">
+          
+          <Card className="bg-gradient-to-br from-amber-50 to-amber-100">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Pending KYC</CardTitle>
+              <CardTitle className="text-sm font-medium text-amber-700">Best Day</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
-                <UserCheck className="h-5 w-5 text-yellow-500 mr-2" />
-                <span className="text-2xl font-bold">{isLoading ? '—' : summaryData?.pendingKyc}</span>
+                <Activity className="h-5 w-5 text-amber-600 mr-2" />
+                <span className="text-2xl font-bold text-amber-800">
+                  {allTimeLoading ? '—' : allTimeAnalytics?.bestDay || 'N/A'}
+                </span>
               </div>
+              <p className="text-xs text-amber-600 mt-1">
+                {allTimeLoading ? '—' : formatCurrency(allTimeAnalytics?.bestDayVolume || 0)}
+              </p>
             </CardContent>
           </Card>
-        </Link>
+        </div>
+      </div>
+
+      {/* Recent Metrics Section */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Activity className="h-5 w-5 text-green-600" />
+          <h2 className="text-lg font-semibold">Recent Activity</h2>
+          <span className="text-sm text-muted-foreground">(Last 30 days)</span>
+        </div>
         
-        <Link to="/admin/transactions/completed" className="block">
-          <Card className="transition-all hover:shadow-md hover:border-green-200">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Link to="/admin/users" className="block">
+            <Card className="transition-all hover:shadow-md hover:border-blue-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <Users className="h-5 w-5 text-blue-500 mr-2" />
+                  <span className="text-2xl font-bold">{isLoading ? '—' : summaryData?.userCount}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Link to="/admin/kyc" className="block">
+            <Card className="transition-all hover:shadow-md hover:border-yellow-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Pending KYC</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <UserCheck className="h-5 w-5 text-yellow-500 mr-2" />
+                  <span className="text-2xl font-bold">{isLoading ? '—' : summaryData?.pendingKyc}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Completed Transactions (30d)</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Recent Transactions</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
                 <Receipt className="h-5 w-5 text-green-500 mr-2" />
-                <span className="text-2xl font-bold">{isLoading ? '—' : summaryData?.completedTx}</span>
+                <span className="text-2xl font-bold">
+                  {recentLoading ? '—' : recentAnalytics?.totalTransactions || 0}
+                </span>
               </div>
             </CardContent>
           </Card>
-        </Link>
-        
-        <Link to="/admin/transactions/volume-details" className="block">
-          <Card className="transition-all hover:shadow-md hover:border-green-200">
+          
+          <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Transaction Volume (30d)</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Recent Volume</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
                 <Activity className="h-5 w-5 text-green-500 mr-2" />
                 <span className="text-2xl font-bold">
-                  {isLoading ? '—' : formatCurrency(summaryData?.totalTxValue || 0)}
+                  {recentLoading ? '—' : formatCurrency(recentAnalytics?.totalVolume || 0)}
                 </span>
               </div>
             </CardContent>
           </Card>
-        </Link>
+        </div>
       </div>
 
       {/* Pending Token Distribution Card */}
@@ -245,7 +319,7 @@ const AdminDashboard: React.FC = () => {
             </Link>
           </Button>
           <Button asChild variant="outline">
-            <Link to="/admin/transaction-analytics">
+            <Link to="/admin/analytics">
               <Activity className="mr-1.5 h-4 w-4" />
               Transaction Analytics
             </Link>
@@ -256,7 +330,8 @@ const AdminDashboard: React.FC = () => {
       {/* Status Notice */}
       <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-md">
         <p className="text-blue-700 text-sm">
-          <strong>Note:</strong> Dashboard shows transactions from the last 30 days to match detail pages. Test data toggle: {includeTestData ? 'ON' : 'OFF'}
+          <strong>📊 Analytics Note:</strong> All-time metrics show data since platform launch (March 2025). 
+          Recent metrics show last 30 days. Test data toggle: {includeTestData ? 'ON' : 'OFF'}
         </p>
       </div>
       
@@ -290,13 +365,13 @@ const AdminDashboard: React.FC = () => {
         
         <Card>
           <CardHeader>
-            <CardTitle>Transaction Volume (30 days)</CardTitle>
-            <CardDescription>Daily transaction volume</CardDescription>
+            <CardTitle>Transaction Volume (All Time)</CardTitle>
+            <CardDescription>Daily transaction volume since launch</CardDescription>
           </CardHeader>
           <CardContent className="pt-2 h-80">
             <ChartContainer config={chartConfig}>
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={summaryData?.txVolumeData || []}>
+                <AreaChart data={allTimeAnalytics?.volumeOverTime || []}>
                   <XAxis dataKey="date" />
                   <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />

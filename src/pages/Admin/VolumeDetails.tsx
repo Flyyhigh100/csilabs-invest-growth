@@ -13,14 +13,21 @@ import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
 import TestDataToggle from '@/components/Admin/TestDataToggle';
 
 const VolumeDetails: React.FC = () => {
-  const [timeRange, setTimeRange] = useState('30');
+  const [timeRange, setTimeRange] = useState('all-time');
   const [groupBy, setGroupBy] = useState('day');
   const { includeTestData, setIncludeTestData } = useTestDataToggle();
 
-  // Use the shared analytics hook with consistent filtering
-  const { data: analyticsData, isLoading, refetch } = useTransactionAnalytics({
-    timeRange: timeRange
-  });
+  // Use the shared analytics hook with flexible date filtering
+  const analyticsOptions = React.useMemo(() => {
+    if (timeRange === 'all-time') {
+      // Return empty options to use default (all-time since March 2025)
+      return {};
+    } else {
+      return { timeRange: timeRange };
+    }
+  }, [timeRange]);
+
+  const { data: analyticsData, isLoading, refetch } = useTransactionAnalytics(analyticsOptions);
 
   // Process the data for charting based on groupBy selection
   const processedData = React.useMemo(() => {
@@ -77,6 +84,23 @@ const VolumeDetails: React.FC = () => {
     );
   }, [analyticsData?.transactions, groupBy]);
 
+  const getTimeRangeLabel = () => {
+    switch (timeRange) {
+      case 'all-time':
+        return 'since platform launch (March 2025)';
+      case '7':
+        return 'last 7 days';
+      case '30':
+        return 'last 30 days';
+      case '90':
+        return 'last 90 days';
+      case '365':
+        return 'last year';
+      default:
+        return timeRange;
+    }
+  };
+
   return (
     <AdminLayout title="Transaction Volume Details">
       <div className="space-y-6">
@@ -88,7 +112,7 @@ const VolumeDetails: React.FC = () => {
               Transaction Volume Analysis
             </h1>
             <p className="text-muted-foreground">
-              Detailed breakdown of transaction volume trends and patterns
+              Comprehensive breakdown of transaction volume trends and patterns
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -110,12 +134,12 @@ const VolumeDetails: React.FC = () => {
           <span>Volume Details</span>
         </div>
 
-        {/* Data consistency notice */}
+        {/* Data info notice */}
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
           <p className="text-blue-700 text-sm">
-            <strong>✅ Consistent Data:</strong> This page uses the same filtering logic as the dashboard. 
+            <strong>📊 Data Range:</strong> Showing data {getTimeRangeLabel()}. 
             Test data: {includeTestData ? 'INCLUDED' : 'EXCLUDED'} • 
-            Date range: Last {timeRange} days
+            Total transactions: {analyticsData?.totalTransactions || 0}
           </p>
         </div>
 
@@ -133,6 +157,7 @@ const VolumeDetails: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all-time">All Time (Since Launch)</SelectItem>
                     <SelectItem value="7">Last 7 days</SelectItem>
                     <SelectItem value="30">Last 30 days</SelectItem>
                     <SelectItem value="90">Last 90 days</SelectItem>
@@ -198,7 +223,7 @@ const VolumeDetails: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Volume Over Time</CardTitle>
-            <CardDescription>Transaction volume grouped by {groupBy}</CardDescription>
+            <CardDescription>Transaction volume grouped by {groupBy} - {getTimeRangeLabel()}</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -229,7 +254,7 @@ const VolumeDetails: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Transaction Count Over Time</CardTitle>
-            <CardDescription>Number of transactions grouped by {groupBy}</CardDescription>
+            <CardDescription>Number of transactions grouped by {groupBy} - {getTimeRangeLabel()}</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -266,7 +291,7 @@ const VolumeDetails: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Volume by Payment Method</CardTitle>
-            <CardDescription>Breakdown of transaction volume by payment method</CardDescription>
+            <CardDescription>Breakdown of transaction volume by payment method - {getTimeRangeLabel()}</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
