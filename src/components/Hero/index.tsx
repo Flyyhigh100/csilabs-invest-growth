@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import HeroContent from './HeroContent';
 import TokenCard from './TokenCard';
 import PromotionalTextBox from './PromotionalTextBox';
+import VideoSection from './VideoSection';
 import { useTokenData } from '@/hooks/useTokenData';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TokenPriceProvider } from '@/context/TokenPriceContext';
@@ -76,6 +77,9 @@ const Hero: React.FC = () => {
             />
           </TokenPriceProvider>
         </div>
+
+        {/* Video Section - Added in the white space */}
+        <VideoSection isLoaded={isLoaded} />
 
         {/* Bottom Section: Hero Content with Image */}
         <div className={`grid md:grid-cols-2 gap-8 mb-12 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
