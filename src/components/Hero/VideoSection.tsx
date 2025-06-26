@@ -12,7 +12,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({ isLoaded }) => {
       {/* Site Walkthrough Video */}
       <div className="space-y-4">
         <YouTubeEmbed
-          videoId="_BPN2JBBt80"
+          videoId="Jmwmcouc1tA"
           title="Site Walkthrough - How to Navigate the Platform"
           className="bg-white rounded-2xl p-4 shadow-elevation"
         />
@@ -21,7 +21,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({ isLoaded }) => {
       {/* Token Purchase Guide Video */}
       <div className="space-y-4">
         <YouTubeEmbed
-          videoId="_3nzmNmQkgo"
+          videoId="w1DMWlgpb7k"
           title="Token Purchase Guide - How to Buy Tokens"
           className="bg-white rounded-2xl p-4 shadow-elevation"
         />
