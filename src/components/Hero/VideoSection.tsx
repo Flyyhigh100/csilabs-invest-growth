@@ -21,7 +21,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({ isLoaded }) => {
       {/* Token Purchase Guide Video */}
       <div className="space-y-4">
         <YouTubeEmbed
-          videoId="w1DMWlgpb7k"
+          videoId="HNVc7SGH30M"
           title="Token Purchase Guide - How to Buy Tokens"
           className="bg-white rounded-2xl p-4 shadow-elevation"
         />
