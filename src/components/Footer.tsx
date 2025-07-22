@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, Instagram, Facebook } from 'lucide-react';
@@ -100,7 +99,7 @@ const Footer: React.FC = () => {
             <h3 className="text-lg font-semibold mb-4">Follow Us</h3>
             <div className="flex flex-wrap gap-4">
               <a 
-                href="https://www.instagram.com/csilabs?igsh=NW9scm14NmdsdWN4&utm_source=qr" 
+                href="https://www.instagram.com/1millstrong/" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-blue-100 hover:text-white transition-colors hover:scale-110 transform duration-200"
