@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import AdminLayout from '@/components/Admin/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users as UsersIcon, BarChart2 } from 'lucide-react';
+import { Users as UsersIcon, BarChart2, Database } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,6 +11,8 @@ import { useQueryClient } from '@tanstack/react-query';
 
 // Import the enhanced components
 import EnhancedUsersTable from './EnhancedUsersTable';
+import EnhancedClientMasterTable from './EnhancedClientMasterTable';
+import EnhancedClientDetailView from './EnhancedClientDetailView';
 import UsersToolbar from './UsersToolbar';
 import UsersError from './UsersError';
 import UsersLoading from './UsersLoading';
@@ -22,9 +25,12 @@ import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
 
 // Import CSV export utility
 import { downloadUsersCsv } from '@/utils/admin/csvExport';
+import type { EnhancedClientData } from '@/hooks/admin/useEnhancedClientData';
 
 const AdminUsersPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>('table');
+  const [activeTab, setActiveTab] = useState<string>('enhanced');
+  const [selectedClient, setSelectedClient] = useState<EnhancedClientData | null>(null);
+  const [isClientDetailOpen, setIsClientDetailOpen] = useState(false);
   const { includeTestData, setIncludeTestData } = useTestDataToggle(false);
   const queryClient = useQueryClient();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -220,6 +226,12 @@ const AdminUsersPage: React.FC = () => {
       setIsDownloadingCsv(false);
     }
   };
+
+  // Handle viewing client details
+  const handleViewClientDetails = (client: EnhancedClientData) => {
+    setSelectedClient(client);
+    setIsClientDetailOpen(true);
+  };
   
   return (
     <AdminLayout title="Users">
@@ -244,12 +256,16 @@ const AdminUsersPage: React.FC = () => {
         </CardHeader>
         
         <CardContent className="p-3 md:p-6">
-          <Tabs defaultValue="table" value={activeTab} onValueChange={setActiveTab}>
+          <Tabs defaultValue="enhanced" value={activeTab} onValueChange={setActiveTab}>
             <div className="flex justify-between items-center mb-6">
               <TabsList>
+                <TabsTrigger value="enhanced">
+                  <Database className="h-4 w-4 mr-2" />
+                  Client Master List
+                </TabsTrigger>
                 <TabsTrigger value="table">
                   <UsersIcon className="h-4 w-4 mr-2" />
-                  Users Table
+                  Legacy Users Table
                 </TabsTrigger>
                 <TabsTrigger value="dashboard">
                   <BarChart2 className="h-4 w-4 mr-2" />
@@ -258,6 +274,24 @@ const AdminUsersPage: React.FC = () => {
               </TabsList>
             </div>
             
+            <TabsContent value="enhanced" className="m-0">
+              <UsersToolbar 
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onRefresh={handleForceRefresh}
+                onTestDbConnection={() => {}}
+                onDownloadCsv={handleDownloadCsv}
+                isDownloading={isDownloadingCsv}
+              />
+              
+              <div className="mt-4">
+                <EnhancedClientMasterTable
+                  onViewDetails={handleViewClientDetails}
+                  searchQuery={searchQuery}
+                />
+              </div>
+            </TabsContent>
+
             <TabsContent value="table" className="m-0">
               <UsersToolbar 
                 searchQuery={searchQuery}
@@ -298,6 +332,22 @@ const AdminUsersPage: React.FC = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Enhanced Client Detail Dialog */}
+      <Dialog open={isClientDetailOpen} onOpenChange={setIsClientDetailOpen}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Complete Client Data - CEO Report View</DialogTitle>
+          </DialogHeader>
+          {selectedClient && (
+            <EnhancedClientDetailView
+              client={selectedClient}
+              onClose={() => setIsClientDetailOpen(false)}
+              onCheckKyc={checkUserKyc}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 };
