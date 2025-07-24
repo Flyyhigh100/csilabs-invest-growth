@@ -13,6 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import EnhancedUsersTable from './EnhancedUsersTable';
 import EnhancedClientMasterTable from './EnhancedClientMasterTable';
 import EnhancedClientDetailView from './EnhancedClientDetailView';
+import CEOCallPreparation from './CEOCallView/CEOCallPreparation';
 import UsersToolbar from './UsersToolbar';
 import UsersError from './UsersError';
 import UsersLoading from './UsersLoading';
@@ -31,6 +32,7 @@ const AdminUsersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('enhanced');
   const [selectedClient, setSelectedClient] = useState<EnhancedClientData | null>(null);
   const [isClientDetailOpen, setIsClientDetailOpen] = useState(false);
+  const [isCEOCallViewOpen, setIsCEOCallViewOpen] = useState(false);
   const { includeTestData, setIncludeTestData } = useTestDataToggle(false);
   const queryClient = useQueryClient();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -232,6 +234,12 @@ const AdminUsersPage: React.FC = () => {
     setSelectedClient(client);
     setIsClientDetailOpen(true);
   };
+
+  // Handle CEO call preparation
+  const handleCEOCallPrep = (client: EnhancedClientData) => {
+    setSelectedClient(client);
+    setIsCEOCallViewOpen(true);
+  };
   
   return (
     <AdminLayout title="Users">
@@ -335,6 +343,21 @@ const AdminUsersPage: React.FC = () => {
               client={selectedClient}
               onClose={() => setIsClientDetailOpen(false)}
               onCheckKyc={checkUserKyc}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* CEO Call Preparation Dialog */}
+      <Dialog open={isCEOCallViewOpen} onOpenChange={setIsCEOCallViewOpen}>
+        <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>CEO Call Preparation</DialogTitle>
+          </DialogHeader>
+          {selectedClient && (
+            <CEOCallPreparation
+              client={selectedClient}
+              onClose={() => setIsCEOCallViewOpen(false)}
             />
           )}
         </DialogContent>
