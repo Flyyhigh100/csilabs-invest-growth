@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, TrendingUp, PieChart, BarChart } from 'lucide-react';
+import { DollarSign, TrendingUp, PieChart, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -32,9 +32,10 @@ const ShareholderReportGenerator: React.FC<ShareholderReportGeneratorProps> = ({
               <Button
                 onClick={() => onGenerate('revenue-analysis')}
                 disabled={isGenerating}
-                className="w-full"
+                className="w-full flex items-center gap-2"
               >
-                {isGenerating ? 'Generating...' : 'Generate Report'}
+                <Download className="h-4 w-4" />
+                {isGenerating ? 'Generating PDF...' : 'Generate PDF'}
               </Button>
             </CardContent>
           </Card>
@@ -51,9 +52,10 @@ const ShareholderReportGenerator: React.FC<ShareholderReportGeneratorProps> = ({
               <Button
                 onClick={() => onGenerate('token-distribution')}
                 disabled={isGenerating}
-                className="w-full"
+                className="w-full flex items-center gap-2"
               >
-                {isGenerating ? 'Generating...' : 'Generate Report'}
+                <Download className="h-4 w-4" />
+                {isGenerating ? 'Generating PDF...' : 'Generate PDF'}
               </Button>
             </CardContent>
           </Card>

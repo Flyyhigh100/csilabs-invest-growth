@@ -141,7 +141,7 @@ const ExecutiveReportGenerator: React.FC<ExecutiveReportGeneratorProps> = ({ onG
                     className="flex items-center gap-1"
                   >
                     <Download className="h-3 w-3" />
-                    Generate PDF
+                    {isGenerating ? 'Generating...' : 'Generate PDF'}
                   </Button>
                 </div>
               </CardContent>
@@ -173,7 +173,7 @@ const ExecutiveReportGenerator: React.FC<ExecutiveReportGeneratorProps> = ({ onG
                     className="flex items-center gap-1"
                   >
                     <Download className="h-3 w-3" />
-                    Generate PDF
+                    {isGenerating ? 'Generating...' : 'Generate PDF'}
                   </Button>
                 </div>
               </CardContent>

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import AdminLayout from '@/components/Admin/Layout';
-import ReportsDashboard from '@/components/Admin/Reports/ReportsDashboard';
+import AnalyticsHub from '@/components/Admin/Analytics';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -53,8 +53,8 @@ const ReportsPage: React.FC = () => {
 
   return (
     <TooltipProvider>
-      <AdminLayout title="Reports">
-        <ReportsDashboard />
+      <AdminLayout title="Analytics & Reports">
+        <AnalyticsHub />
       </AdminLayout>
     </TooltipProvider>
   );

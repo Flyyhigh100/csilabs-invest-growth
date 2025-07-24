@@ -67,10 +67,44 @@ const ReportsHub: React.FC = () => {
   const handleGenerateReport = async (templateId: string) => {
     setIsGenerating(true);
     try {
-      // Simulate report generation
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success(`${reportTemplates.find(t => t.id === templateId)?.title} generated successfully`);
+      // Import the PDF generation utilities
+      const { generateAndDownloadReport, prepareReportData } = await import('@/utils/pdfGenerator');
+      
+      // Mock data for demonstration - in real implementation, this would come from actual data hooks
+      const mockData = {
+        summary: {
+          totalClients: 150,
+          activeClients: 142,
+          totalRevenue: 875000,
+          averageClientValue: 6162,
+          vipClients: 45,
+          totalTokensDistributed: 1750000,
+          kycApprovalRate: 85.5,
+          monthlyGrowth: 15.2,
+          clientRetentionRate: 87.3
+        },
+        topClients: [
+          { id: '1', first_name: 'John', last_name: 'Doe', completed_value: 25000, total_transactions: 8 },
+          { id: '2', first_name: 'Jane', last_name: 'Smith', completed_value: 18500, total_transactions: 5 },
+          { id: '3', first_name: 'Robert', last_name: 'Johnson', completed_value: 15000, total_transactions: 6 },
+          { id: '4', first_name: 'Emily', last_name: 'Davis', completed_value: 12800, total_transactions: 4 },
+          { id: '5', first_name: 'Michael', last_name: 'Wilson', completed_value: 11500, total_transactions: 7 }
+        ],
+        keyMetrics: {
+          pendingTokens: 25000,
+          pendingTransactions: 8,
+          averageTransactionSize: 5833,
+          testDataPercentage: 15.2
+        }
+      };
+
+      const reportData = prepareReportData(templateId, mockData);
+      await generateAndDownloadReport(templateId, reportData);
+      
+      const reportTitle = reportTemplates.find(t => t.id === templateId)?.title || 'Report';
+      toast.success(`${reportTitle} generated and downloaded successfully!`);
     } catch (error) {
+      console.error('Error generating report:', error);
       toast.error('Failed to generate report');
     } finally {
       setIsGenerating(false);
