@@ -343,6 +343,7 @@ const AdminUsersPage: React.FC = () => {
               client={selectedClient}
               onClose={() => setIsClientDetailOpen(false)}
               onCheckKyc={checkUserKyc}
+              onCEOCallPrep={() => handleCEOCallPrep(selectedClient)}
             />
           )}
         </DialogContent>

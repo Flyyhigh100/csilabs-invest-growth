@@ -24,12 +24,14 @@ interface EnhancedClientDetailViewProps {
   client: EnhancedClientData;
   onClose: () => void;
   onCheckKyc: (userId: string) => void;
+  onCEOCallPrep?: () => void;
 }
 
 const EnhancedClientDetailView: React.FC<EnhancedClientDetailViewProps> = ({
   client,
   onClose,
-  onCheckKyc
+  onCheckKyc,
+  onCEOCallPrep
 }) => {
   // Generate individual client report
   const generateClientReport = () => {
@@ -181,6 +183,12 @@ const EnhancedClientDetailView: React.FC<EnhancedClientDetailViewProps> = ({
           </p>
         </div>
         <div className="flex gap-2">
+          {onCEOCallPrep && (
+            <Button onClick={onCEOCallPrep} className="flex items-center gap-2 bg-primary hover:bg-primary/90">
+              <Phone className="h-4 w-4" />
+              CEO Call Prep
+            </Button>
+          )}
           <Button onClick={generateClientReport} variant="outline" className="flex items-center gap-2">
             <Download className="h-4 w-4" />
             Export Report
