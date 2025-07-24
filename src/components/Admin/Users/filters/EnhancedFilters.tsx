@@ -31,22 +31,22 @@ interface EnhancedFiltersProps {
 
 const INVESTMENT_RANGES = [
   { value: 'all', label: 'All Investment Ranges' },
-  { value: '0-1000', label: '$0 - $1,000' },
-  { value: '1000-5000', label: '$1,000 - $5,000' },
-  { value: '5000-10000', label: '$5,000 - $10,000' },
-  { value: '10000-25000', label: '$10,000 - $25,000' },
-  { value: '25000-50000', label: '$25,000 - $50,000' },
-  { value: '50000+', label: '$50,000+' },
+  { value: '0-100', label: '$0 - $100' },
+  { value: '100-200', label: '$100 - $200' },
+  { value: '200-500', label: '$200 - $500' },
+  { value: '500-1000', label: '$500 - $1,000' },
+  { value: '1000+', label: '$1,000+' },
+  { value: 'high_value_200', label: 'High-Value (>$200)' },
 ];
 
 const TOKEN_RANGES = [
   { value: 'all', label: 'All Token Ranges' },
-  { value: '0-1000', label: '0 - 1,000 tokens' },
-  { value: '1000-5000', label: '1,000 - 5,000 tokens' },
-  { value: '5000-10000', label: '5,000 - 10,000 tokens' },
-  { value: '10000-25000', label: '10,000 - 25,000 tokens' },
-  { value: '25000-50000', label: '25,000 - 50,000 tokens' },
-  { value: '50000+', label: '50,000+ tokens' },
+  { value: '0-100', label: '0 - 100 tokens' },
+  { value: '100-500', label: '100 - 500 tokens' },
+  { value: '500-1000', label: '500 - 1,000 tokens' },
+  { value: '1000-2000', label: '1,000 - 2,000 tokens' },
+  { value: '2000+', label: '2,000+ tokens' },
+  { value: '1000+', label: 'Large Holders (>1K)' },
 ];
 
 const KYC_STATUSES = [
@@ -63,6 +63,7 @@ const ACCOUNT_STATUSES = [
   { value: 'active', label: 'Active' },
   { value: 'test_data', label: 'Test Data' },
   { value: 'inactive', label: 'Inactive' },
+  { value: 'incomplete_profile', label: 'Incomplete Profiles' },
 ];
 
 const NETWORKS = [
@@ -78,15 +79,16 @@ const TRANSACTION_ACTIVITY = [
   { value: 'has_transactions', label: 'Has Transactions' },
   { value: 'no_transactions', label: 'No Transactions' },
   { value: 'recent_activity', label: 'Recent Activity (30 days)' },
+  { value: 'vip_clients', label: 'VIP Clients (3+ txns or >$500)' },
 ];
 
 const QUICK_FILTERS = [
-  { key: 'high_value', label: 'High-Value Clients', icon: DollarSign, description: '>$10K invested' },
-  { key: 'vip', label: 'VIP Clients', icon: TrendingUp, description: '>$25K invested' },
+  { key: 'high_value', label: 'High-Value Clients', icon: DollarSign, description: '>$200 invested (top 10%)' },
+  { key: 'vip', label: 'VIP Clients', icon: TrendingUp, description: '3+ transactions or >$500 invested' },
   { key: 'pending_kyc', label: 'Pending KYC', icon: Shield, description: 'Needs approval' },
-  { key: 'large_holders', label: 'Large Token Holders', icon: Users, description: '>10K tokens' },
+  { key: 'large_holders', label: 'Large Token Holders', icon: Users, description: '>1K tokens' },
   { key: 'recent_tx', label: 'Recent Transactions', icon: Calendar, description: 'Last 30 days' },
-  { key: 'incomplete', label: 'Incomplete Profiles', icon: Users, description: 'Missing info' },
+  { key: 'incomplete', label: 'Incomplete Profiles', icon: Users, description: 'Missing key info' },
 ];
 
 const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
@@ -119,27 +121,46 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
   };
 
   const handleQuickFilter = (filterKey: string) => {
-    setActiveQuickFilter(activeQuickFilter === filterKey ? null : filterKey);
+    if (activeQuickFilter === filterKey) {
+      // Reset filters if clicking the same filter
+      setActiveQuickFilter(null);
+      resetFilters();
+      return;
+    }
     
-    // Apply the quick filter logic
+    setActiveQuickFilter(filterKey);
+    
+    // Reset all filters first, then apply the specific quick filter
+    const baseFilters = {
+      searchQuery: '',
+      dateRange: undefined,
+      kycStatus: 'all',
+      accountStatus: 'all',
+      investmentRange: 'all',
+      tokenRange: 'all',
+      network: 'all',
+      transactionActivity: 'all',
+    };
+    
+    // Apply the quick filter logic with realistic thresholds
     switch (filterKey) {
       case 'high_value':
-        updateFilter('investmentRange', '10000+');
+        onFiltersChange({ ...baseFilters, investmentRange: 'high_value_200' });
         break;
       case 'vip':
-        updateFilter('investmentRange', '25000+');
+        onFiltersChange({ ...baseFilters, transactionActivity: 'vip_clients' });
         break;
       case 'pending_kyc':
-        updateFilter('kycStatus', 'pending');
+        onFiltersChange({ ...baseFilters, kycStatus: 'pending' });
         break;
       case 'large_holders':
-        updateFilter('tokenRange', '10000+');
+        onFiltersChange({ ...baseFilters, tokenRange: '1000+' });
         break;
       case 'recent_tx':
-        updateFilter('transactionActivity', 'recent_activity');
+        onFiltersChange({ ...baseFilters, transactionActivity: 'recent_activity' });
         break;
       case 'incomplete':
-        updateFilter('accountStatus', 'incomplete');
+        onFiltersChange({ ...baseFilters, accountStatus: 'incomplete_profile' });
         break;
     }
   };

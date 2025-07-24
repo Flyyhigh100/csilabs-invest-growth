@@ -11,44 +11,36 @@ export const useEnhancedClientFiltering = (
     let filtered = [...clients];
 
     // Search filter
-    if (filters.searchQuery.trim()) {
-      const query = filters.searchQuery.toLowerCase().trim();
+    if (filters.searchQuery) {
+      const query = filters.searchQuery.toLowerCase();
       filtered = filtered.filter(client => {
-        const fullName = `${client.first_name || ''} ${client.last_name || ''}`.trim().toLowerCase();
-        const address = `${client.street_address || ''} ${client.city || ''} ${client.state_province || ''} ${client.postal_code || ''}`.trim().toLowerCase();
+        const fullName = `${client.first_name || ''} ${client.last_name || ''}`.toLowerCase();
+        const email = (client.email || '').toLowerCase();
+        const phone = (client.phone_number || '').toLowerCase();
+        const walletAddress = (client.wallet_address || '').toLowerCase();
+        const solanaWallet = (client.solana_wallet_address || '').toLowerCase();
+        const address = (client.street_address || '').toLowerCase();
         
-        return (
-          fullName.includes(query) ||
-          (client.email?.toLowerCase().includes(query)) ||
-          (client.phone_number?.toLowerCase().includes(query)) ||
-          (client.wallet_address?.toLowerCase().includes(query)) ||
-          (client.solana_wallet_address?.toLowerCase().includes(query)) ||
-          address.includes(query)
-        );
+        return fullName.includes(query) ||
+               email.includes(query) ||
+               phone.includes(query) ||
+               walletAddress.includes(query) ||
+               solanaWallet.includes(query) ||
+               address.includes(query);
       });
     }
 
-    // Date range filter
-    if (filters.dateRange?.from || filters.dateRange?.to) {
+    // Date Range filter
+    if (filters.dateRange && filters.dateRange.from) {
       filtered = filtered.filter(client => {
         const clientDate = new Date(client.created_at);
+        const fromDate = filters.dateRange!.from!;
+        const toDate = filters.dateRange!.to || new Date();
         
-        if (filters.dateRange?.from && filters.dateRange?.to) {
-          return isWithinInterval(clientDate, {
-            start: filters.dateRange.from,
-            end: filters.dateRange.to
-          });
-        }
-        
-        if (filters.dateRange?.from) {
-          return clientDate >= filters.dateRange.from;
-        }
-        
-        if (filters.dateRange?.to) {
-          return clientDate <= filters.dateRange.to;
-        }
-        
-        return true;
+        return isWithinInterval(clientDate, {
+          start: fromDate,
+          end: toDate
+        });
       });
     }
 
@@ -66,12 +58,21 @@ export const useEnhancedClientFiltering = (
     if (filters.accountStatus !== 'all') {
       filtered = filtered.filter(client => {
         switch (filters.accountStatus) {
+          case 'active':
+            return !client.has_test_data;
           case 'test_data':
             return client.has_test_data;
-          case 'active':
-            return !client.has_test_data && client.total_transactions > 0;
           case 'inactive':
-            return !client.has_test_data && client.total_transactions === 0;
+            // Define inactive criteria (e.g., no recent activity)
+            return false; // Placeholder logic
+          case 'incomplete_profile':
+            // Check for missing key information
+            return !client.first_name || 
+                   !client.last_name || 
+                   !client.email || 
+                   !client.phone_number || 
+                   !client.street_address ||
+                   (!client.wallet_address && !client.solana_wallet_address);
           default:
             return true;
         }
@@ -81,25 +82,21 @@ export const useEnhancedClientFiltering = (
     // Investment Range filter
     if (filters.investmentRange !== 'all') {
       filtered = filtered.filter(client => {
-        const invested = client.completed_value;
+        const investment = client.completed_value || 0;
         
         switch (filters.investmentRange) {
-          case '0-1000':
-            return invested >= 0 && invested <= 1000;
-          case '1000-5000':
-            return invested > 1000 && invested <= 5000;
-          case '5000-10000':
-            return invested > 5000 && invested <= 10000;
-          case '10000-25000':
-            return invested > 10000 && invested <= 25000;
-          case '25000-50000':
-            return invested > 25000 && invested <= 50000;
-          case '50000+':
-            return invested > 50000;
-          case '10000+': // For quick filter
-            return invested > 10000;
-          case '25000+': // For VIP quick filter
-            return invested > 25000;
+          case '0-100':
+            return investment >= 0 && investment <= 100;
+          case '100-200':
+            return investment > 100 && investment <= 200;
+          case '200-500':
+            return investment > 200 && investment <= 500;
+          case '500-1000':
+            return investment > 500 && investment <= 1000;
+          case '1000+':
+            return investment > 1000;
+          case 'high_value_200':
+            return investment > 200; // High-value clients (top 10%)
           default:
             return true;
         }
@@ -109,23 +106,21 @@ export const useEnhancedClientFiltering = (
     // Token Range filter
     if (filters.tokenRange !== 'all') {
       filtered = filtered.filter(client => {
-        const tokens = client.total_tokens_sent;
+        const tokens = client.total_tokens_sent || 0;
         
         switch (filters.tokenRange) {
-          case '0-1000':
-            return tokens >= 0 && tokens <= 1000;
-          case '1000-5000':
-            return tokens > 1000 && tokens <= 5000;
-          case '5000-10000':
-            return tokens > 5000 && tokens <= 10000;
-          case '10000-25000':
-            return tokens > 10000 && tokens <= 25000;
-          case '25000-50000':
-            return tokens > 25000 && tokens <= 50000;
-          case '50000+':
-            return tokens > 50000;
-          case '10000+': // For quick filter
-            return tokens > 10000;
+          case '0-100':
+            return tokens >= 0 && tokens <= 100;
+          case '100-500':
+            return tokens > 100 && tokens <= 500;
+          case '500-1000':
+            return tokens > 500 && tokens <= 1000;
+          case '1000-2000':
+            return tokens > 1000 && tokens <= 2000;
+          case '2000+':
+            return tokens > 2000;
+          case '1000+':
+            return tokens > 1000; // Large token holders
           default:
             return true;
         }
@@ -162,6 +157,8 @@ export const useEnhancedClientFiltering = (
             start: subDays(new Date(), 30),
             end: new Date()
           });
+        const investment = client.completed_value || 0;
+        const transactionCount = client.total_transactions || 0;
         
         switch (filters.transactionActivity) {
           case 'has_transactions':
@@ -170,6 +167,11 @@ export const useEnhancedClientFiltering = (
             return !hasTransactions;
           case 'recent_activity':
             return hasRecentActivity;
+          case 'vip_clients':
+            // VIP: 3+ transactions OR >$500 invested OR (2+ transactions AND >$200 invested)
+            return transactionCount >= 3 || 
+                   investment > 500 || 
+                   (transactionCount >= 2 && investment > 200);
           default:
             return true;
         }
