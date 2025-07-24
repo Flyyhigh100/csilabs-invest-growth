@@ -108,8 +108,11 @@ const RealTimeDashboard: React.FC = () => {
             color: 'text-green-600'
           },
           {
-            label: 'Tokens Distributed',
-            value: formatTokenAmount(transactions.reduce((sum, t) => sum + (Number(t.token_amount) || 0), 0)),
+            label: 'Tokens Distributed (Completed Only)',
+            value: formatTokenAmount(transactions
+              .filter(t => t.status === 'completed' && t.token_sent === true && t.token_amount != null)
+              .reduce((sum, t) => sum + (Number(t.token_amount) || 0), 0)
+            ),
             change: 18.9,
             trend: 'up',
             icon: TrendingUp,
