@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   TrendingUp, 
   Users, 
@@ -12,10 +13,12 @@ import {
   AlertCircle,
   XCircle
 } from 'lucide-react';
-import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency, formatTokenAmount } from '@/utils/format';
 import { compareMetrics, getCurrentMetrics, type MetricComparison } from '@/utils/admin/analytics/historicalUtils';
+import { formatDistanceToNow } from 'date-fns';
+import { formatDateWithTime } from '@/utils/date';
 
 interface LiveMetric {
   label: string;
@@ -268,7 +271,7 @@ const RealTimeDashboard: React.FC = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
-                    <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
+                    <RechartsTooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
                     <Area 
                       type="monotone" 
                       dataKey="revenue" 
@@ -286,7 +289,7 @@ const RealTimeDashboard: React.FC = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
-                    <Tooltip />
+                    <RechartsTooltip />
                     <Bar dataKey="transactions" fill="hsl(var(--primary))" />
                   </BarChart>
                 </ResponsiveContainer>
@@ -298,7 +301,7 @@ const RealTimeDashboard: React.FC = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
-                    <Tooltip />
+                    <RechartsTooltip />
                     <Line 
                       type="monotone" 
                       dataKey="users" 
@@ -322,29 +325,38 @@ const RealTimeDashboard: React.FC = () => {
             <CardDescription>Real-time updates from your platform</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 max-h-80 overflow-y-auto">
-              {realtimeActivities.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex-shrink-0 mt-0.5">
-                    {getStatusIcon(activity.status)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{activity.description}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(activity.timestamp).toLocaleTimeString()}
-                      </span>
-                      {getStatusBadge(activity.status)}
+            <TooltipProvider>
+              <div className="space-y-3 max-h-80 overflow-y-auto">
+                {realtimeActivities.map((activity) => (
+                  <div key={activity.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="flex-shrink-0 mt-0.5">
+                      {getStatusIcon(activity.status)}
                     </div>
-                  </div>
-                  {activity.value && (
-                    <div className="text-sm font-medium text-right">
-                      {formatCurrency(activity.value)}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{activity.description}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-xs text-muted-foreground cursor-help">
+                              {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{formatDateWithTime(activity.timestamp)}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        {getStatusBadge(activity.status)}
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                    {activity.value && (
+                      <div className="text-sm font-medium text-right">
+                        {formatCurrency(activity.value)}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </TooltipProvider>
           </CardContent>
         </Card>
       </div>
