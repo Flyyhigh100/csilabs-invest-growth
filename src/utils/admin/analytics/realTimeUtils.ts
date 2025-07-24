@@ -48,16 +48,16 @@ export const calculateRealTimeData = async (includeTestData: boolean = false): P
   try {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    // Get transactions with user profiles from last 24 hours
+    // Get transactions with user profiles from last 7 days
     const transactionsQuery = supabase
       .from('transactions')
       .select(`
         *,
         profiles!inner(id, email, first_name, last_name)
       `)
-      .gte('created_at', last24Hours.toISOString())
+      .gte('created_at', last7Days.toISOString())
       .order('created_at', { ascending: false });
 
     if (!includeTestData) {
@@ -66,23 +66,23 @@ export const calculateRealTimeData = async (includeTestData: boolean = false): P
 
     const { data: transactions } = await transactionsQuery;
 
-    // Get new registrations from last 24 hours
+    // Get new registrations from last 7 days
     const profilesQuery = supabase
       .from('profiles')
       .select('*')
-      .gte('created_at', last24Hours.toISOString())
+      .gte('created_at', last7Days.toISOString())
       .order('created_at', { ascending: false });
 
     const { data: profiles } = await profilesQuery;
 
-    // Get KYC updates from last 24 hours with user profiles
+    // Get KYC updates from last 7 days with user profiles
     const kycQuery = supabase
       .from('kyc_verifications')
       .select(`
         *,
         profiles!inner(id, email, first_name, last_name)
       `)
-      .gte('updated_at', last24Hours.toISOString())
+      .gte('updated_at', last7Days.toISOString())
       .order('updated_at', { ascending: false });
 
     if (!includeTestData) {
@@ -95,7 +95,8 @@ export const calculateRealTimeData = async (includeTestData: boolean = false): P
       throw new Error('Failed to fetch real-time data');
     }
 
-    // Calculate hourly activity
+    // Calculate hourly activity for last 24 hours
+    const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const hourlyActivity = Array.from({ length: 24 }, (_, i) => {
       const hour = new Date(last24Hours.getTime() + i * 60 * 60 * 1000);
       const hourStr = hour.getHours().toString().padStart(2, '0') + ':00';
