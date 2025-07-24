@@ -48,52 +48,77 @@ export const calculateRealTimeData = async (includeTestData: boolean = false): P
   try {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    // Get transactions with user profiles from last 7 days
+    console.info('Fetching real-time data with 30-day range:', {
+      now: now.toISOString(),
+      last30Days: last30Days.toISOString(),
+      includeTestData
+    });
+
+    // Get transactions with user profiles from last 30 days
     const transactionsQuery = supabase
       .from('transactions')
       .select(`
         *,
         profiles!inner(id, email, first_name, last_name)
       `)
-      .gte('created_at', last7Days.toISOString())
+      .gte('created_at', last30Days.toISOString())
       .order('created_at', { ascending: false });
 
     if (!includeTestData) {
       transactionsQuery.eq('is_test', false);
     }
 
-    const { data: transactions } = await transactionsQuery;
+    const { data: transactions, error: txError } = await transactionsQuery;
 
-    // Get new registrations from last 7 days
+    // Get new registrations from last 30 days
     const profilesQuery = supabase
       .from('profiles')
       .select('*')
-      .gte('created_at', last7Days.toISOString())
+      .gte('created_at', last30Days.toISOString())
       .order('created_at', { ascending: false });
 
-    const { data: profiles } = await profilesQuery;
+    const { data: profiles, error: profilesError } = await profilesQuery;
 
-    // Get KYC updates from last 7 days with user profiles
+    // Get KYC updates from last 30 days with user profiles
     const kycQuery = supabase
       .from('kyc_verifications')
       .select(`
         *,
         profiles!inner(id, email, first_name, last_name)
       `)
-      .gte('updated_at', last7Days.toISOString())
+      .gte('updated_at', last30Days.toISOString())
       .order('updated_at', { ascending: false });
 
     if (!includeTestData) {
       kycQuery.eq('is_test', false);
     }
 
-    const { data: kycData } = await kycQuery;
+    const { data: kycData, error: kycError } = await kycQuery;
 
-    if (!transactions || !profiles || !kycData) {
-      throw new Error('Failed to fetch real-time data');
+    // Log detailed results
+    console.info('Query results:', {
+      transactions: { count: transactions?.length || 0, error: txError },
+      profiles: { count: profiles?.length || 0, error: profilesError },
+      kycData: { count: kycData?.length || 0, error: kycError }
+    });
+
+    // Handle individual query errors
+    if (txError) {
+      console.error('Transactions query error:', txError);
     }
+    if (profilesError) {
+      console.error('Profiles query error:', profilesError);
+    }
+    if (kycError) {
+      console.error('KYC query error:', kycError);
+    }
+
+    // Use empty arrays as fallback instead of throwing error
+    const safeTransactions = transactions || [];
+    const safeProfiles = profiles || [];
+    const safeKycData = kycData || [];
 
     // Calculate hourly activity for last 24 hours
     const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -101,12 +126,12 @@ export const calculateRealTimeData = async (includeTestData: boolean = false): P
       const hour = new Date(last24Hours.getTime() + i * 60 * 60 * 1000);
       const hourStr = hour.getHours().toString().padStart(2, '0') + ':00';
       
-      const hourTransactions = transactions.filter(tx => {
+      const hourTransactions = safeTransactions.filter(tx => {
         const txHour = new Date(tx.created_at).getHours();
         return txHour === hour.getHours();
       });
 
-      const hourRegistrations = profiles.filter(profile => {
+      const hourRegistrations = safeProfiles.filter(profile => {
         const regHour = new Date(profile.created_at).getHours();
         return regHour === hour.getHours();
       });
@@ -124,7 +149,7 @@ export const calculateRealTimeData = async (includeTestData: boolean = false): P
     });
 
     // Calculate current metrics
-    const todayTransactions = transactions.filter(tx => 
+    const todayTransactions = safeTransactions.filter(tx => 
       new Date(tx.created_at) >= today
     );
 
@@ -132,17 +157,26 @@ export const calculateRealTimeData = async (includeTestData: boolean = false): P
       .filter(tx => tx.status === 'completed')
       .reduce((sum, tx) => sum + Number(tx.amount), 0);
 
-    // Count unique users who had transactions in last 24h as "active"
-    const activeUserIds = new Set(transactions.map(tx => tx.user_id));
+    // Count unique users who had transactions in last 30 days as "active"
+    const activeUserIds = new Set(safeTransactions.map(tx => tx.user_id));
     const activeUsers = activeUserIds.size;
 
     // Simulate online users (would need real presence tracking)
     const onlineUsers = Math.floor(activeUsers * 0.3); // Rough estimate
 
+    console.info('Processed data summary:', {
+      totalTransactions: safeTransactions.length,
+      totalProfiles: safeProfiles.length,
+      totalKyc: safeKycData.length,
+      activeUsers,
+      todayTransactions: todayTransactions.length,
+      todayRevenue
+    });
+
     // Create enhanced recent activity with rich user information
     const allActivities = [
       // Transaction activities
-      ...transactions.slice(0, 15).map(tx => {
+      ...safeTransactions.slice(0, 15).map(tx => {
         const profile = (tx as any).profiles;
         const userName = getFullName(profile?.first_name, profile?.last_name);
         const userInitials = getInitials(profile?.first_name, profile?.last_name);
@@ -192,7 +226,7 @@ export const calculateRealTimeData = async (includeTestData: boolean = false): P
       }),
       
       // New user registrations
-      ...profiles.slice(0, 10).map(profile => {
+      ...safeProfiles.slice(0, 10).map(profile => {
         const userName = getFullName(profile.first_name, profile.last_name);
         const userInitials = getInitials(profile.first_name, profile.last_name);
         
@@ -217,7 +251,7 @@ export const calculateRealTimeData = async (includeTestData: boolean = false): P
       }),
       
       // KYC status updates
-      ...kycData.slice(0, 10).map(kyc => {
+      ...safeKycData.slice(0, 10).map(kyc => {
         const profile = (kyc as any).profiles;
         const userName = getFullName(profile?.first_name, profile?.last_name);
         const userInitials = getInitials(profile?.first_name, profile?.last_name);
