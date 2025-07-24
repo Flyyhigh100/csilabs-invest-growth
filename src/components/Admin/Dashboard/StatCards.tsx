@@ -67,6 +67,7 @@ const StatCards: React.FC = () => {
         <TokenDistributionCard 
           pendingTokensCount={pendingTokens}
           totalTransactionValue={totalVolume}
+          totalDistributedTokens={data?.totalDistributedTokens || 0}
           isLoading={isLoading}
         />
         <KycSummaryCard 

@@ -8,12 +8,14 @@ import { CreditCard, DollarSign } from 'lucide-react';
 interface TokenDistributionCardProps {
   pendingTokensCount: number;
   totalTransactionValue: number;
+  totalDistributedTokens: number;
   isLoading: boolean;
 }
 
 const TokenDistributionCard: React.FC<TokenDistributionCardProps> = ({ 
   pendingTokensCount, 
   totalTransactionValue, 
+  totalDistributedTokens,
   isLoading 
 }) => {
   const navigate = useNavigate();
@@ -22,9 +24,23 @@ const TokenDistributionCard: React.FC<TokenDistributionCardProps> = ({
     <Card>
       <CardHeader>
         <CardTitle>Token Distribution</CardTitle>
+        <p className="text-sm text-muted-foreground">Production data only (excludes test transactions)</p>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
+          <div className="p-4 bg-green-50 text-green-800 rounded-lg">
+            <h3 className="font-medium flex items-center">
+              <CreditCard className="h-5 w-5 mr-2" />
+              Tokens Distributed (Completed Only)
+            </h3>
+            <p className="mt-2 text-lg font-bold">
+              {isLoading ? '...' : totalDistributedTokens.toLocaleString(undefined, { maximumFractionDigits: 3 })} CSI
+            </p>
+            <p className="text-sm opacity-75">
+              Real distributed tokens from completed transactions
+            </p>
+          </div>
+
           <div className="p-4 bg-blue-50 text-blue-800 rounded-lg">
             <h3 className="font-medium flex items-center">
               <CreditCard className="h-5 w-5 mr-2" />
@@ -46,6 +62,9 @@ const TokenDistributionCard: React.FC<TokenDistributionCardProps> = ({
                 <span className="text-gray-500">Networks:</span>
                 <p className="font-medium">Polygon, Solana</p>
               </div>
+            </div>
+            <div className="mt-2 text-xs text-gray-500">
+              Last updated: {new Date().toLocaleTimeString()}
             </div>
           </div>
           

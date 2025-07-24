@@ -15,6 +15,7 @@ interface DashboardStats {
   };
   pendingTokensCount: number;
   totalTransactionValue: number;
+  totalDistributedTokens: number;
 }
 
 const fetchDashboardStats = async (includeTestData: boolean = false): Promise<DashboardStats> => {
@@ -64,7 +65,31 @@ const fetchDashboardStats = async (includeTestData: boolean = false): Promise<Da
       console.log('Processed KYC counts:', kycCounts);
     }
     
-    // Fetch counts for pending token transfers
+    // Fetch distributed tokens (completed transactions with tokens sent)
+    const distributedTokensQuery = supabase
+      .from('transactions')
+      .select('token_amount')
+      .eq('status', 'completed')
+      .eq('token_sent', true);
+      
+    // Filter out test data if not included
+    if (!includeTestData) {
+      distributedTokensQuery.eq('is_test', false);
+    }
+    
+    const { data: distributedTokensData, error: distributedError } = await distributedTokensQuery;
+    
+    if (distributedError) {
+      console.error('Error fetching distributed tokens:', distributedError);
+      throw distributedError;
+    }
+    
+    // Calculate total distributed tokens
+    const totalDistributedTokens = distributedTokensData
+      ? distributedTokensData.reduce((sum, tx) => sum + Number(tx.token_amount || 0), 0)
+      : 0;
+    
+    // Fetch pending token transfers count
     const pendingTokensQuery = supabase
       .from('transactions')
       .select('*', { count: 'exact', head: true })
@@ -77,11 +102,6 @@ const fetchDashboardStats = async (includeTestData: boolean = false): Promise<Da
     }
     
     const { count: pendingTokensCount, error: pendingError } = await pendingTokensQuery;
-    
-    if (pendingError) {
-      console.error('Error fetching pending tokens count:', pendingError);
-      throw pendingError;
-    }
     
     // Fetch total transaction value
     const transactionsQuery = supabase
@@ -110,6 +130,7 @@ const fetchDashboardStats = async (includeTestData: boolean = false): Promise<Da
       kycCounts,
       pendingTokensCount: pendingTokensCount || 0,
       totalTransactionValue: totalValue,
+      totalDistributedTokens,
     };
   } catch (error) {
     console.error('Exception in fetchDashboardStats:', error);

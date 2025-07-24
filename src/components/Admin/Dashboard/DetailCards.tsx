@@ -13,6 +13,7 @@ interface DetailCardsProps {
   };
   pendingTokensCount: number;
   totalTransactionValue: number;
+  totalDistributedTokens: number;
   isLoading: boolean;
   refetch: () => void; // Make refetch required
 }
@@ -21,6 +22,7 @@ const DetailCards: React.FC<DetailCardsProps> = ({
   kycCounts,
   pendingTokensCount,
   totalTransactionValue,
+  totalDistributedTokens,
   isLoading,
   refetch
 }) => {
@@ -30,6 +32,7 @@ const DetailCards: React.FC<DetailCardsProps> = ({
       <TokenDistributionCard 
         pendingTokensCount={pendingTokensCount}
         totalTransactionValue={totalTransactionValue}
+        totalDistributedTokens={totalDistributedTokens}
         isLoading={isLoading}
       />
     </div>

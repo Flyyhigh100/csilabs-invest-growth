@@ -19,6 +19,8 @@ export interface RealTimeData {
     type: string;
     amount?: number;
     user: string;
+    description: string;
+    isLive: boolean;
   }>;
 }
 
@@ -136,12 +138,45 @@ export const calculateRealTimeData = async (includeTestData: boolean = false): P
       .sort((a, b) => b.time.getTime() - a.time.getTime())
       .slice(0, 10);
 
-    const recentActivity = sortedActivities.map(activity => ({
-      time: activity.time.toLocaleTimeString(),
-      type: activity.type,
-      amount: activity.amount, // This will be undefined for non-transaction activities
-      user: activity.userId.slice(0, 8) + '...' // Truncated user ID for privacy
-    }));
+    const recentActivity = sortedActivities.map(activity => {
+      const now = new Date();
+      const timeDiff = now.getTime() - activity.time.getTime();
+      const minutesAgo = Math.floor(timeDiff / (1000 * 60));
+      const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
+      
+      let timeAgo: string;
+      if (minutesAgo < 1) {
+        timeAgo = 'Just now';
+      } else if (minutesAgo < 60) {
+        timeAgo = `${minutesAgo}m ago`;
+      } else if (hoursAgo < 24) {
+        timeAgo = `${hoursAgo}h ago`;
+      } else {
+        timeAgo = activity.time.toLocaleDateString();
+      }
+      
+      let description: string;
+      if (activity.type === 'transaction') {
+        const tx = activity.data as any;
+        description = `${tx.status === 'completed' ? 'Completed' : 'Pending'} transaction: $${activity.amount?.toFixed(2)}`;
+      } else if (activity.type === 'registration') {
+        description = 'New user registration';
+      } else if (activity.type === 'kyc') {
+        const kyc = activity.data as any;
+        description = `KYC ${kyc.status === 'pending' ? 'submitted' : kyc.status}`;
+      } else {
+        description = activity.type;
+      }
+      
+      return {
+        time: timeAgo,
+        type: activity.type,
+        amount: activity.amount,
+        user: activity.userId.slice(0, 8) + '...',
+        description,
+        isLive: minutesAgo < 30 // Consider "live" if within last 30 minutes
+      };
+    });
 
     return {
       hourlyActivity,
