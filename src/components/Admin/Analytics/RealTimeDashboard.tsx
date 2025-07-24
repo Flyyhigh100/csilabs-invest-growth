@@ -7,13 +7,10 @@ import {
   Users, 
   DollarSign, 
   Activity, 
-  ArrowUpRight, 
-  ArrowDownRight,
   Clock,
   CheckCircle,
   AlertCircle,
-  XCircle,
-  Info
+  XCircle
 } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,12 +20,8 @@ import { compareMetrics, getCurrentMetrics, type MetricComparison } from '@/util
 interface LiveMetric {
   label: string;
   value: string | number;
-  change: number;
-  trend: 'up' | 'down' | 'stable';
   icon: React.ComponentType<any>;
   color: string;
-  baseline: string;
-  hasData: boolean;
 }
 
 interface RealtimeActivity {
@@ -54,83 +47,42 @@ const RealTimeDashboard: React.FC = () => {
         // Fetch current metrics and historical comparisons
         const currentMetrics = await getCurrentMetrics(false);
         
-        // Calculate all metric comparisons in parallel
-        const [
-          revenueComparison,
-          usersComparison,
-          completedTxComparison,
-          pendingTxComparison,
-          kycComparison,
-          tokensComparison
-        ] = await Promise.all([
-          compareMetrics('totalRevenue', 'week', false),
-          compareMetrics('activeUsers', 'week', false),
-          compareMetrics('completedTransactions', 'week', false),
-          compareMetrics('pendingTransactions', 'week', false),
-          compareMetrics('approvedKyc', 'week', false),
-          compareMetrics('tokensDistributed', 'week', false)
-        ]);
-
         const metrics: LiveMetric[] = [
           {
             label: 'Total Revenue',
             value: formatCurrency(currentMetrics.totalRevenue),
-            change: revenueComparison.percentageChange,
-            trend: revenueComparison.trend,
             icon: DollarSign,
-            color: 'text-green-600',
-            baseline: revenueComparison.baseline,
-            hasData: revenueComparison.hasData
+            color: 'text-green-600'
           },
           {
             label: 'Active Users',
             value: currentMetrics.activeUsers,
-            change: usersComparison.percentageChange,
-            trend: usersComparison.trend,
             icon: Users,
-            color: 'text-blue-600',
-            baseline: usersComparison.baseline,
-            hasData: usersComparison.hasData
+            color: 'text-blue-600'
           },
           {
             label: 'Completed Transactions',
             value: currentMetrics.completedTransactions,
-            change: completedTxComparison.percentageChange,
-            trend: completedTxComparison.trend,
             icon: CheckCircle,
-            color: 'text-green-600',
-            baseline: completedTxComparison.baseline,
-            hasData: completedTxComparison.hasData
+            color: 'text-green-600'
           },
           {
             label: 'Pending Transactions',
             value: currentMetrics.pendingTransactions,
-            change: pendingTxComparison.percentageChange,
-            trend: pendingTxComparison.trend,
             icon: Clock,
-            color: 'text-orange-600',
-            baseline: pendingTxComparison.baseline,
-            hasData: pendingTxComparison.hasData
+            color: 'text-orange-600'
           },
           {
             label: 'KYC Approved',
             value: currentMetrics.approvedKyc,
-            change: kycComparison.percentageChange,
-            trend: kycComparison.trend,
             icon: CheckCircle,
-            color: 'text-green-600',
-            baseline: kycComparison.baseline,
-            hasData: kycComparison.hasData
+            color: 'text-green-600'
           },
           {
             label: 'Tokens Distributed',
             value: formatTokenAmount(currentMetrics.tokensDistributed),
-            change: tokensComparison.percentageChange,
-            trend: tokensComparison.trend,
             icon: TrendingUp,
-            color: 'text-purple-600',
-            baseline: tokensComparison.baseline,
-            hasData: tokensComparison.hasData
+            color: 'text-purple-600'
           }
         ];
 
@@ -283,23 +235,6 @@ const RealTimeDashboard: React.FC = () => {
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">{metric.label}</p>
                     <p className="text-2xl font-bold">{metric.value}</p>
-                    <div className="flex items-center gap-1 mt-1">
-                      {!metric.hasData ? (
-                        <Info className="h-3 w-3 text-muted-foreground" />
-                      ) : metric.trend === 'up' ? (
-                        <ArrowUpRight className="h-3 w-3 text-green-600" />
-                      ) : metric.trend === 'down' ? (
-                        <ArrowDownRight className="h-3 w-3 text-red-600" />
-                      ) : null}
-                      <span className={`text-xs ${
-                        !metric.hasData ? 'text-muted-foreground' :
-                        metric.trend === 'up' ? 'text-green-600' : 
-                        metric.trend === 'down' ? 'text-red-600' : 'text-muted-foreground'
-                      }`}>
-                        {!metric.hasData ? 'Insufficient data' : 
-                         `${metric.change > 0 ? '+' : ''}${metric.change.toFixed(1)}% ${metric.baseline}`}
-                      </span>
-                    </div>
                   </div>
                   <div className={`p-3 rounded-lg bg-muted`}>
                     <Icon className={`h-6 w-6 ${metric.color}`} />
