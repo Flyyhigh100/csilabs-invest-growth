@@ -11,12 +11,17 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  XCircle
+  XCircle,
+  UserPlus,
+  FileCheck,
+  Coins,
+  CreditCard
 } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency, formatTokenAmount } from '@/utils/format';
 import { compareMetrics, getCurrentMetrics, type MetricComparison } from '@/utils/admin/analytics/historicalUtils';
+import { calculateRealTimeData, type RealTimeData } from '@/utils/admin/analytics/realTimeUtils';
 import { formatDistanceToNow } from 'date-fns';
 import { formatDateWithTime } from '@/utils/date';
 
@@ -38,7 +43,7 @@ interface RealtimeActivity {
 
 const RealTimeDashboard: React.FC = () => {
   const [liveMetrics, setLiveMetrics] = useState<LiveMetric[]>([]);
-  const [realtimeActivities, setRealtimeActivities] = useState<RealtimeActivity[]>([]);
+  const [realTimeData, setRealTimeData] = useState<RealTimeData | null>(null);
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -47,8 +52,9 @@ const RealTimeDashboard: React.FC = () => {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        // Fetch current metrics and historical comparisons
+        // Fetch current metrics and enhanced real-time data
         const currentMetrics = await getCurrentMetrics(false);
+        const realTimeInfo = await calculateRealTimeData(false);
         
         const metrics: LiveMetric[] = [
           {
@@ -90,52 +96,17 @@ const RealTimeDashboard: React.FC = () => {
         ];
 
         setLiveMetrics(metrics);
+        setRealTimeData(realTimeInfo);
         setLastUpdated(new Date());
 
-        // Fetch actual transaction data for charts
-        const transactionsRes = await supabase
-          .from('transactions')
-          .select('*')
-          .eq('is_test', false)
-          .order('created_at', { ascending: false });
+        // Use the hourly activity data for charts
+        setChartData(realTimeInfo.hourlyActivity.map(item => ({
+          date: item.hour,
+          revenue: item.revenue,
+          transactions: item.transactions,
+          users: item.registrations
+        })));
 
-        const transactions = transactionsRes.data || [];
-
-        // Generate chart data from recent transactions
-        const last7Days = [...Array(7)].map((_, i) => {
-          const date = new Date();
-          date.setDate(date.getDate() - (6 - i));
-          const dayTransactions = transactions.filter(t => {
-            const tDate = new Date(t.created_at);
-            return tDate.toDateString() === date.toDateString();
-          });
-          
-          return {
-            date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            revenue: dayTransactions
-              .filter(t => t.status === 'completed')
-              .reduce((sum, t) => sum + (Number(t.amount) || 0), 0),
-            transactions: dayTransactions.length,
-            users: Math.floor(Math.random() * 20) + 10 // Simulated for now
-          };
-        });
-
-        setChartData(last7Days);
-
-        // Generate recent activities
-        const activities: RealtimeActivity[] = transactions
-          .slice(0, 10)
-          .map((transaction, index) => ({
-            id: transaction.id,
-            type: 'transaction',
-            description: `${transaction.payment_method} payment of ${formatCurrency(Number(transaction.amount))}`,
-            timestamp: transaction.created_at,
-            value: Number(transaction.amount),
-            status: transaction.status === 'completed' ? 'success' : 
-                   transaction.status === 'pending' ? 'pending' : 'failed'
-          }));
-
-        setRealtimeActivities(activities);
         setLoading(false);
       } catch (error) {
         console.error('Error loading dashboard data:', error);
@@ -169,11 +140,23 @@ const RealTimeDashboard: React.FC = () => {
     };
   }, []);
 
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'transaction': return <CreditCard className="h-4 w-4 text-blue-600" />;
+      case 'token_delivery': return <Coins className="h-4 w-4 text-green-600" />;
+      case 'registration': return <UserPlus className="h-4 w-4 text-purple-600" />;
+      case 'kyc_update': return <FileCheck className="h-4 w-4 text-orange-600" />;
+      default: return <Activity className="h-4 w-4 text-gray-600" />;
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'success': return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'success': 
+      case 'approved': return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'pending': return <Clock className="h-4 w-4 text-orange-600" />;
-      case 'failed': return <XCircle className="h-4 w-4 text-red-600" />;
+      case 'failed': 
+      case 'rejected': return <XCircle className="h-4 w-4 text-red-600" />;
       default: return <AlertCircle className="h-4 w-4 text-gray-600" />;
     }
   };
@@ -181,10 +164,16 @@ const RealTimeDashboard: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'success': return <Badge className="bg-green-100 text-green-800">Success</Badge>;
+      case 'approved': return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
       case 'pending': return <Badge className="bg-orange-100 text-orange-800">Pending</Badge>;
       case 'failed': return <Badge className="bg-red-100 text-red-800">Failed</Badge>;
+      case 'rejected': return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
       default: return <Badge variant="outline">Unknown</Badge>;
     }
+  };
+
+  const getUserInitials = (initials?: string): string => {
+    return initials || '??';
   };
 
   if (loading) {
@@ -326,35 +315,90 @@ const RealTimeDashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <TooltipProvider>
-              <div className="space-y-3 max-h-80 overflow-y-auto">
-                {realtimeActivities.map((activity) => (
-                  <div key={activity.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className="flex-shrink-0 mt-0.5">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {realTimeData?.recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-start gap-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                    {/* User Avatar/Initials */}
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                        <span className="text-xs font-medium text-primary">
+                          {getUserInitials(activity.userInitials)}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Activity Type Icon */}
+                    <div className="flex-shrink-0 mt-1">
+                      {getActivityIcon(activity.type)}
+                    </div>
+                    
+                    {/* Activity Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{activity.description}</p>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <p className="text-xs text-muted-foreground line-clamp-2 cursor-help">
+                                {activity.detailedDescription}
+                              </p>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-sm space-y-1">
+                                <p className="font-medium">{activity.userName}</p>
+                                <p className="text-xs">{activity.userEmail}</p>
+                                <p className="text-xs">{activity.detailedDescription}</p>
+                                {activity.transactionId && (
+                                  <p className="text-xs font-mono">ID: {activity.transactionId}</p>
+                                )}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        
+                        {/* Amount Display */}
+                        {activity.amount && (
+                          <div className="text-sm font-medium text-right ml-2">
+                            {formatCurrency(activity.amount)}
+                            {activity.tokenAmount && activity.tokenAmount > 0 && (
+                              <div className="text-xs text-muted-foreground">
+                                {formatTokenAmount(activity.tokenAmount)} tokens
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Status and Time */}
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xs text-muted-foreground">
+                          {activity.time}
+                        </span>
+                        {getStatusBadge(activity.status)}
+                        {activity.isLive && (
+                          <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
+                            Live
+                          </Badge>
+                        )}
+                        {activity.paymentMethod && (
+                          <Badge variant="outline" className="text-xs">
+                            {activity.paymentMethod}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Status Icon */}
+                    <div className="flex-shrink-0 mt-1">
                       {getStatusIcon(activity.status)}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{activity.description}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-xs text-muted-foreground cursor-help">
-                              {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{formatDateWithTime(activity.timestamp)}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                        {getStatusBadge(activity.status)}
-                      </div>
-                    </div>
-                    {activity.value && (
-                      <div className="text-sm font-medium text-right">
-                        {formatCurrency(activity.value)}
-                      </div>
-                    )}
                   </div>
-                ))}
+                )) || (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No recent activity</p>
+                  </div>
+                )}
               </div>
             </TooltipProvider>
           </CardContent>
