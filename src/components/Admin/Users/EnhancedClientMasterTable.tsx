@@ -21,6 +21,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import EnhancedFilters, { EnhancedFilters as FilterType } from './filters/EnhancedFilters';
+import { useEnhancedClientFiltering } from '@/hooks/admin/useEnhancedClientFiltering';
 
 interface EnhancedClientMasterTableProps {
   onViewDetails: (client: EnhancedClientData) => void;
@@ -36,6 +38,23 @@ const EnhancedClientMasterTable: React.FC<EnhancedClientMasterTableProps> = ({
 }) => {
   const { data: clients = [], isLoading, error, refetch } = useEnhancedClientData();
   
+  // Enhanced filters state
+  const [filters, setFilters] = useState<FilterType>({
+    searchQuery: searchQuery || '',
+    dateRange: undefined, // Default to "All Time"
+    kycStatus: 'all',
+    accountStatus: 'all',
+    investmentRange: 'all',
+    tokenRange: 'all',
+    network: 'all',
+    transactionActivity: 'all',
+  });
+
+  // Update search query from props
+  React.useEffect(() => {
+    setFilters(prev => ({ ...prev, searchQuery: searchQuery || '' }));
+  }, [searchQuery]);
+  
   // Sorting state
   const [sortKey, setSortKey] = useState<SortKey>('total_tokens_sent');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -50,29 +69,12 @@ const EnhancedClientMasterTable: React.FC<EnhancedClientMasterTableProps> = ({
     }
   };
 
-  // Filter and sort clients
+  // Apply enhanced filtering
+  const filteredClients = useEnhancedClientFiltering(clients, filters);
+
+  // Apply sorting to filtered clients
   const processedClients = useMemo(() => {
-    let filtered = clients;
-
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = clients.filter(client => {
-        const fullName = `${client.first_name || ''} ${client.last_name || ''}`.trim().toLowerCase();
-        return (
-          fullName.includes(query) ||
-          (client.email?.toLowerCase().includes(query)) ||
-          (client.phone_number?.toLowerCase().includes(query)) ||
-          (client.wallet_address?.toLowerCase().includes(query)) ||
-          (client.solana_wallet_address?.toLowerCase().includes(query)) ||
-          (client.city?.toLowerCase().includes(query)) ||
-          (client.state_province?.toLowerCase().includes(query))
-        );
-      });
-    }
-
-    // Apply sorting
-    return filtered.sort((a, b) => {
+    return filteredClients.sort((a, b) => {
       let aValue = a[sortKey];
       let bValue = b[sortKey];
 
@@ -95,7 +97,7 @@ const EnhancedClientMasterTable: React.FC<EnhancedClientMasterTableProps> = ({
         return aStr > bStr ? -1 : aStr < bStr ? 1 : 0;
       }
     });
-  }, [clients, searchQuery, sortKey, sortDirection]);
+  }, [filteredClients, sortKey, sortDirection]);
 
   // Render sort header
   const SortHeader: React.FC<{ sortKey: SortKey; children: React.ReactNode; className?: string }> = ({ 
@@ -164,7 +166,7 @@ const EnhancedClientMasterTable: React.FC<EnhancedClientMasterTableProps> = ({
     );
   };
 
-  // Export to CSV function
+  // Export to CSV function with current filters
   const exportToCSV = () => {
     const headers = [
       'Name', 'Email', 'Phone', 'Address', 'KYC Status', 'Total Tokens Sent', 
@@ -197,7 +199,8 @@ const EnhancedClientMasterTable: React.FC<EnhancedClientMasterTableProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `client-master-list-${new Date().toISOString().split('T')[0]}.csv`;
+    const filterSuffix = Object.values(filters).some(v => v !== '' && v !== 'all' && v !== undefined) ? '-filtered' : '';
+    link.download = `client-master-list${filterSuffix}-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -229,6 +232,15 @@ const EnhancedClientMasterTable: React.FC<EnhancedClientMasterTableProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Enhanced Filters */}
+      <EnhancedFilters
+        filters={filters}
+        onFiltersChange={setFilters}
+        onExport={exportToCSV}
+        totalResults={clients.length}
+        filteredResults={processedClients.length}
+      />
+
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -284,18 +296,6 @@ const EnhancedClientMasterTable: React.FC<EnhancedClientMasterTableProps> = ({
             </div>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Action Bar */}
-      <div className="flex justify-between items-center">
-        <div className="text-sm text-gray-600">
-          Showing {processedClients.length} of {clients.length} clients
-          {searchQuery && ` (filtered by "${searchQuery}")`}
-        </div>
-        <Button onClick={exportToCSV} variant="outline" size="sm" className="flex items-center gap-2">
-          <Download className="h-4 w-4" />
-          Export CSV
-        </Button>
       </div>
 
       {/* Enhanced Client Table */}

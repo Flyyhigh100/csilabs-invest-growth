@@ -275,15 +275,6 @@ const AdminUsersPage: React.FC = () => {
             </div>
             
             <TabsContent value="enhanced" className="m-0">
-              <UsersToolbar 
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                onRefresh={handleForceRefresh}
-                onTestDbConnection={() => {}}
-                onDownloadCsv={handleDownloadCsv}
-                isDownloading={isDownloadingCsv}
-              />
-              
               <div className="mt-4">
                 <EnhancedClientMasterTable
                   onViewDetails={handleViewClientDetails}
