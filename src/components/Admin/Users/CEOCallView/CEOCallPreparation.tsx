@@ -9,6 +9,7 @@ import { formatCurrency, formatTokenAmount } from '@/utils/format';
 import type { EnhancedClientData } from '@/hooks/admin/useEnhancedClientData';
 import ClientNotesSection from './ClientNotesSection';
 import InteractionHistory from './InteractionHistory';
+import FollowUpManager from './FollowUpManager';
 import CallQuickActions from './CallQuickActions';
 
 interface CEOCallPreparationProps {
@@ -194,9 +195,12 @@ const CEOCallPreparation: React.FC<CEOCallPreparationProps> = ({ client, onClose
         </TabsContent>
 
         <TabsContent value="notes">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ClientNotesSection clientId={client.id} />
-            <InteractionHistory clientId={client.id} />
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ClientNotesSection clientId={client.id} />
+              <InteractionHistory clientId={client.id} />
+            </div>
+            <FollowUpManager clientId={client.id} />
           </div>
         </TabsContent>
 
