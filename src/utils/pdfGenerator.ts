@@ -2,6 +2,7 @@ import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import ExecutivePDFTemplate from '@/components/Admin/Reports/PDFTemplates/ExecutivePDFTemplate';
 import ShareholderPDFTemplate from '@/components/Admin/Reports/PDFTemplates/ShareholderPDFTemplate';
+import CompliancePDFTemplate from '@/components/Admin/Reports/PDFTemplates/CompliancePDFTemplate';
 
 export interface PDFGenerationOptions {
   templateId: string;
@@ -31,9 +32,13 @@ export const generatePDF = async (options: PDFGenerationOptions): Promise<void> 
       
     case 'client-analytics':
     case 'transaction-report':
-      // For now, use Executive template as base for operational reports
       PDFComponent = ExecutivePDFTemplate;
       defaultFilename = `operational-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      break;
+      
+    case 'kyc-compliance':
+      PDFComponent = CompliancePDFTemplate;
+      defaultFilename = `compliance-report-${new Date().toISOString().split('T')[0]}.pdf`;
       break;
       
     default:
@@ -48,7 +53,11 @@ export const generatePDF = async (options: PDFGenerationOptions): Promise<void> 
     saveAs(blob, filename || defaultFilename);
   } catch (error) {
     console.error('Error generating PDF:', error);
-    throw new Error('Failed to generate PDF report');
+    // Provide more specific error information
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate PDF report: ${error.message}`);
+    }
+    throw new Error('Failed to generate PDF report due to unknown error');
   }
 };
 
@@ -80,8 +89,8 @@ export const prepareReportData = (templateId: string, rawData: any) => {
           quarterlyRevenue: rawData.summary?.totalRevenue * 0.3 || 0,
           yearlyRevenue: rawData.summary?.totalRevenue || 0,
           totalTokensDistributed: rawData.summary?.totalTokensDistributed || 0,
-          averageTokenPrice: 0.50, // This would come from token price API
-          marketCap: (rawData.summary?.totalTokensDistributed || 0) * 0.50,
+          averageTokenPrice: rawData.summary?.averageTokenPrice || 0.50,
+          marketCap: (rawData.summary?.totalTokensDistributed || 0) * (rawData.summary?.averageTokenPrice || 0.50),
         },
         revenueBreakdown: {
           cryptoPayments: (rawData.summary?.totalRevenue || 0) * 0.6,
@@ -93,6 +102,23 @@ export const prepareReportData = (templateId: string, rawData: any) => {
           totalSupply: 1000000000, // 1B total supply
           distributionPercentage: ((rawData.summary?.totalTokensDistributed || 0) / 1000000000) * 100,
         },
+      };
+      
+    case 'kyc-compliance':
+      return {
+        ...baseData,
+        summary: {
+          totalUsers: rawData.summary?.totalClients || 0,
+          kycApprovalRate: rawData.summary?.kycApprovalRate || 0,
+          pendingKyc: rawData.keyMetrics?.pendingKyc || 0,
+          complianceScore: 85, // This would be calculated based on compliance metrics
+        },
+        kycData: rawData.topClients?.map((client: any) => ({
+          name: `${client.first_name} ${client.last_name}`,
+          status: client.kyc_status || 'pending',
+          submittedAt: client.kyc_submitted_at,
+          reviewedAt: client.kyc_reviewed_at,
+        })) || [],
       };
       
     default:

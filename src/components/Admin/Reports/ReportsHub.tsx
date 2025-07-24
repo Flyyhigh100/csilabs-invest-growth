@@ -12,12 +12,14 @@ import { format } from 'date-fns';
 import ExecutiveReportGenerator from './ExecutiveReportGenerator';
 import ShareholderReportGenerator from './ShareholderReportGenerator';
 import OperationalReportGenerator from './OperationalReportGenerator';
+import { useEnhancedClientData } from '@/hooks/admin/useEnhancedClientData';
 
 const ReportsHub: React.FC = () => {
   const [activeTab, setActiveTab] = useState('executive');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [isGenerating, setIsGenerating] = useState(false);
+  const { data: clients = [] } = useEnhancedClientData();
 
   const reportTemplates = [
     {
@@ -70,36 +72,41 @@ const ReportsHub: React.FC = () => {
       // Import the PDF generation utilities
       const { generateAndDownloadReport, prepareReportData } = await import('@/utils/pdfGenerator');
       
-      // Mock data for demonstration - in real implementation, this would come from actual data hooks
-      const mockData = {
+      // Use real client data instead of mock data
+      const totalRevenue = clients.reduce((sum, c) => sum + c.completed_value, 0);
+      const totalClients = clients.length;
+      const activeClients = clients.filter(c => c.total_transactions > 0).length;
+      const totalTokensDistributed = clients.reduce((sum, c) => sum + c.total_tokens_sent, 0);
+      const kycApprovalRate = totalClients > 0 ? (clients.filter(c => c.kyc_status === 'approved').length / totalClients) * 100 : 0;
+      const averageTokenPrice = totalTokensDistributed > 0 ? totalRevenue / totalTokensDistributed : 0.50;
+      
+      const reportData = {
         summary: {
-          totalClients: 150,
-          activeClients: 142,
-          totalRevenue: 875000,
-          averageClientValue: 6162,
-          vipClients: 45,
-          totalTokensDistributed: 1750000,
-          kycApprovalRate: 85.5,
-          monthlyGrowth: 15.2,
-          clientRetentionRate: 87.3
+          totalClients,
+          activeClients,
+          totalRevenue,
+          averageClientValue: activeClients > 0 ? totalRevenue / activeClients : 0,
+          vipClients: clients.filter(c => c.completed_value > 500).length,
+          totalTokensDistributed,
+          kycApprovalRate,
+          monthlyGrowth: 15.2, // This would be calculated from historical data
+          clientRetentionRate: 87.3, // This would be calculated from historical data
+          averageTokenPrice,
         },
-        topClients: [
-          { id: '1', first_name: 'John', last_name: 'Doe', completed_value: 25000, total_transactions: 8 },
-          { id: '2', first_name: 'Jane', last_name: 'Smith', completed_value: 18500, total_transactions: 5 },
-          { id: '3', first_name: 'Robert', last_name: 'Johnson', completed_value: 15000, total_transactions: 6 },
-          { id: '4', first_name: 'Emily', last_name: 'Davis', completed_value: 12800, total_transactions: 4 },
-          { id: '5', first_name: 'Michael', last_name: 'Wilson', completed_value: 11500, total_transactions: 7 }
-        ],
+        topClients: clients
+          .sort((a, b) => b.completed_value - a.completed_value)
+          .slice(0, 5),
         keyMetrics: {
-          pendingTokens: 25000,
-          pendingTransactions: 8,
-          averageTransactionSize: 5833,
-          testDataPercentage: 15.2
+          pendingTokens: clients.reduce((sum, c) => sum + c.tokens_pending_delivery, 0),
+          pendingTransactions: clients.reduce((sum, c) => sum + c.pending_transactions, 0),
+          averageTransactionSize: activeClients > 0 ? totalRevenue / clients.reduce((sum, c) => sum + c.total_transactions, 0) : 0,
+          testDataPercentage: totalClients > 0 ? (clients.filter(c => c.has_test_data).length / totalClients) * 100 : 0,
+          pendingKyc: clients.filter(c => c.kyc_status === 'pending').length,
         }
       };
 
-      const reportData = prepareReportData(templateId, mockData);
-      await generateAndDownloadReport(templateId, reportData);
+      const processedData = prepareReportData(templateId, reportData);
+      await generateAndDownloadReport(templateId, processedData);
       
       const reportTitle = reportTemplates.find(t => t.id === templateId)?.title || 'Report';
       toast.success(`${reportTitle} generated and downloaded successfully!`);

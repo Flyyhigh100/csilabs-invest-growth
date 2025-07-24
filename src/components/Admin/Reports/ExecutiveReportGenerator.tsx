@@ -219,13 +219,16 @@ const ExecutiveReportGenerator: React.FC<ExecutiveReportGeneratorProps> = ({ onG
                 <h3 className="font-semibold mb-3">Top 5 Clients by Investment</h3>
                 <div className="space-y-2">
                   {previewData.topClients.map((client: any, index: number) => (
-                    <div key={client.id} className="flex items-center justify-between p-2 border rounded">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{index + 1}</Badge>
-                        <span className="font-medium">{client.first_name} {client.last_name}</span>
-                      </div>
-                      <span className="font-medium">{formatCurrency(client.completed_value)}</span>
-                    </div>
+                     <div key={client.id} className="flex items-center justify-between p-2 border rounded">
+                       <div className="flex items-center gap-2">
+                         <Badge variant="outline">{index + 1}</Badge>
+                         <span className="font-medium">{client.first_name} {client.last_name}</span>
+                         <span className="text-sm text-muted-foreground">
+                           {formatTokenAmount(client.total_tokens_sent)} tokens
+                         </span>
+                       </div>
+                       <span className="font-medium">{formatCurrency(client.completed_value)}</span>
+                     </div>
                   ))}
                 </div>
               </div>
