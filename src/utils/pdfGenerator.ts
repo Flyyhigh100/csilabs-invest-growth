@@ -46,15 +46,25 @@ export const generatePDF = async (options: PDFGenerationOptions): Promise<void> 
   }
 
   try {
+    console.log('Starting PDF generation for template:', templateId);
+    console.log('Data keys:', Object.keys(data || {}));
+    
     // Generate the PDF blob
     const blob = await pdf(PDFComponent({ data })).toBlob();
     
+    console.log('PDF generated successfully, size:', blob.size, 'bytes');
+    
     // Download the PDF
     saveAs(blob, filename || defaultFilename);
+    console.log('PDF download initiated:', filename || defaultFilename);
   } catch (error) {
     console.error('Error generating PDF:', error);
+    console.error('Template ID:', templateId);
+    console.error('Data:', data);
+    
     // Provide more specific error information
     if (error instanceof Error) {
+      console.error('Error stack:', error.stack);
       throw new Error(`Failed to generate PDF report: ${error.message}`);
     }
     throw new Error('Failed to generate PDF report due to unknown error');
