@@ -198,10 +198,23 @@ const RealTimeDashboard: React.FC = () => {
           <p className="text-muted-foreground">Live dashboard with real-time metrics and activity feed</p>
         </div>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <RealtimeStatusIndicator 
-            isConnected={transactionRealtimeStatus.isConnected && profileRealtimeStatus.isConnected}
-            lastUpdate={transactionRealtimeStatus.lastUpdate || profileRealtimeStatus.lastUpdate}
-            connectionAttempts={transactionRealtimeStatus.connectionAttempts + profileRealtimeStatus.connectionAttempts}
+          <div className="text-xs text-muted-foreground">Transactions:</div>
+          <RealtimeStatusIndicator
+            isConnected={transactionRealtimeStatus.isConnected}
+            lastUpdate={transactionRealtimeStatus.lastUpdate}
+            connectionAttempts={transactionRealtimeStatus.connectionAttempts}
+            lastError={transactionRealtimeStatus.lastError}
+            reconnectAttempts={transactionRealtimeStatus.reconnectAttempts}
+            onManualReconnect={transactionRealtimeStatus.manualReconnect}
+          />
+          <div className="text-xs text-muted-foreground">Profiles:</div>
+          <RealtimeStatusIndicator
+            isConnected={profileRealtimeStatus.isConnected}
+            lastUpdate={profileRealtimeStatus.lastUpdate}
+            connectionAttempts={profileRealtimeStatus.connectionAttempts}
+            lastError={profileRealtimeStatus.lastError}
+            reconnectAttempts={profileRealtimeStatus.reconnectAttempts}
+            onManualReconnect={profileRealtimeStatus.manualReconnect}
           />
           <div className="flex items-center gap-1">
             <Clock className="h-4 w-4" />
