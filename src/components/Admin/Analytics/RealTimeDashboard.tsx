@@ -115,23 +115,26 @@ const RealTimeDashboard: React.FC = () => {
       }
     };
 
-  // Use realtime hooks for live updates
-  const transactionRealtimeStatus = useTransactionRealtime(undefined, loadInitialData);
-  const profileRealtimeStatus = useProfileRealtime(loadInitialData);
+  // Use realtime hooks for live updates - only invalidate queries, don't reload dashboard data
+  const transactionRealtimeStatus = useTransactionRealtime();
+  const profileRealtimeStatus = useProfileRealtime();
 
-  // Real-time data with historical comparisons
+  // Load initial data and set up periodic refresh
   useEffect(() => {
     loadInitialData();
 
-    // Refresh data every 30 seconds as backup to realtime
+    // Refresh data every 60 seconds as backup to realtime (longer interval for stability)
     const interval = setInterval(() => {
-      loadInitialData();
-    }, 30 * 1000);
+      if (!transactionRealtimeStatus.isConnected || !profileRealtimeStatus.isConnected) {
+        console.log('Fallback refresh - realtime connection issues detected');
+        loadInitialData();
+      }
+    }, 60 * 1000);
 
     return () => {
       clearInterval(interval);
     };
-  }, []);
+  }, [transactionRealtimeStatus.isConnected, profileRealtimeStatus.isConnected]);
 
   const getActivityIcon = (type: string) => {
     switch (type) {

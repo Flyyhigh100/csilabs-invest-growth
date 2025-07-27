@@ -21,21 +21,29 @@ export const useProfileRealtime = (onUpdate?: () => void) => {
   const queryClient = useQueryClient();
   const channelRef = useRef<any>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isReconnectingRef = useRef(false);
+  const maxReconnectAttempts = 5;
 
   const invalidateProfileQueries = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['profiles'] });
     queryClient.invalidateQueries({ queryKey: ['analytics'] });
     queryClient.invalidateQueries({ queryKey: ['realtime-data'] });
-    onUpdate?.();
     
     setStatus(prev => ({ 
       ...prev, 
       lastUpdate: new Date() 
     }));
+    
+    // Only call onUpdate if we have actual data changes, not status changes
+    setTimeout(() => onUpdate?.(), 100);
   }, [queryClient, onUpdate]);
 
   const connectWithRetry = useCallback(async () => {
+    if (isReconnectingRef.current) return;
+    
     try {
+      isReconnectingRef.current = true;
+      
       // Clear any existing timeout
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
@@ -51,8 +59,9 @@ export const useProfileRealtime = (onUpdate?: () => void) => {
 
       console.log('Setting up profile realtime subscription...');
       
+      // Use stable channel name instead of timestamp
       const channel = supabase
-        .channel(`profile-updates-${Date.now()}`, {
+        .channel(`profile-updates-stable`, {
           config: {
             broadcast: { self: true },
             presence: { key: 'profile-presence' }
@@ -84,27 +93,34 @@ export const useProfileRealtime = (onUpdate?: () => void) => {
 
             if (status === 'SUBSCRIBED') {
               console.log('✅ Profile realtime subscription established');
-            } else if (status === 'CHANNEL_ERROR') {
+              isReconnectingRef.current = false;
+            } else if (status === 'CHANNEL_ERROR' && prev.reconnectAttempts < maxReconnectAttempts) {
               console.error('❌ Failed to subscribe to profile updates');
               newStatus.lastError = 'Channel error - will retry';
               
-              // Schedule retry with exponential backoff
-              const retryDelay = Math.min(1000 * Math.pow(2, prev.reconnectAttempts), 30000);
+              // Schedule retry with longer exponential backoff
+              const retryDelay = Math.min(5000 * Math.pow(2, prev.reconnectAttempts), 60000);
               console.log(`Scheduling profile retry in ${retryDelay}ms (attempt ${prev.reconnectAttempts + 1})`);
               
               reconnectTimeoutRef.current = setTimeout(() => {
                 setStatus(s => ({ ...s, reconnectAttempts: s.reconnectAttempts + 1 }));
+                isReconnectingRef.current = false;
                 connectWithRetry();
               }, retryDelay);
-            } else if (status === 'CLOSED') {
-              console.log('🔌 Profile channel closed - attempting reconnect...');
+            } else if (status === 'CLOSED' && prev.reconnectAttempts < maxReconnectAttempts) {
+              console.log('🔌 Profile channel closed - will reconnect...');
               newStatus.lastError = 'Connection closed - reconnecting';
               
-              // Immediate reconnect for CLOSED status
+              // Longer delay for CLOSED status to prevent rapid reconnects
               reconnectTimeoutRef.current = setTimeout(() => {
                 setStatus(s => ({ ...s, reconnectAttempts: s.reconnectAttempts + 1 }));
+                isReconnectingRef.current = false;
                 connectWithRetry();
-              }, 1000);
+              }, 10000);
+            } else if (prev.reconnectAttempts >= maxReconnectAttempts) {
+              console.log('❌ Max reconnection attempts reached for profiles');
+              newStatus.lastError = 'Max reconnection attempts reached';
+              isReconnectingRef.current = false;
             }
 
             return newStatus;
@@ -115,6 +131,7 @@ export const useProfileRealtime = (onUpdate?: () => void) => {
       
     } catch (error) {
       console.error('Error setting up profile realtime:', error);
+      isReconnectingRef.current = false;
       setStatus(prev => ({
         ...prev,
         lastError: error instanceof Error ? error.message : 'Unknown error',
@@ -139,6 +156,11 @@ export const useProfileRealtime = (onUpdate?: () => void) => {
 
   const manualReconnect = useCallback(() => {
     console.log('Manual reconnect requested for profiles');
+    isReconnectingRef.current = false;
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
     setStatus(prev => ({ ...prev, reconnectAttempts: 0, lastError: null }));
     connectWithRetry();
   }, [connectWithRetry]);

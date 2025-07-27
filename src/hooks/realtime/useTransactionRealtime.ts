@@ -22,21 +22,29 @@ export const useTransactionRealtime = (userId?: string, onUpdate?: () => void) =
   const queryClient = useQueryClient();
   const channelRef = useRef<any>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isReconnectingRef = useRef(false);
+  const maxReconnectAttempts = 5;
 
   const invalidateTransactionQueries = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
     queryClient.invalidateQueries({ queryKey: ['analytics'] });
     queryClient.invalidateQueries({ queryKey: ['realtime-data'] });
-    onUpdate?.();
     
     setStatus(prev => ({ 
       ...prev, 
       lastUpdate: new Date() 
     }));
+    
+    // Only call onUpdate if we have actual data changes, not status changes
+    setTimeout(() => onUpdate?.(), 100);
   }, [queryClient, onUpdate]);
 
   const connectWithRetry = useCallback(async () => {
+    if (isReconnectingRef.current) return;
+    
     try {
+      isReconnectingRef.current = true;
+      
       // Clear any existing timeout
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
@@ -52,8 +60,9 @@ export const useTransactionRealtime = (userId?: string, onUpdate?: () => void) =
 
       console.log('Setting up transaction realtime subscription...');
       
+      // Use stable channel name instead of timestamp
       const channel = supabase
-        .channel(`transaction-updates-${Date.now()}`, {
+        .channel(`transaction-updates-stable`, {
           config: {
             broadcast: { self: true },
             presence: { key: 'transaction-presence' }
@@ -96,27 +105,34 @@ export const useTransactionRealtime = (userId?: string, onUpdate?: () => void) =
 
             if (status === 'SUBSCRIBED') {
               console.log('✅ Transaction realtime subscription established');
-            } else if (status === 'CHANNEL_ERROR') {
+              isReconnectingRef.current = false;
+            } else if (status === 'CHANNEL_ERROR' && prev.reconnectAttempts < maxReconnectAttempts) {
               console.error('❌ Failed to subscribe to transaction updates');
               newStatus.lastError = 'Channel error - will retry';
               
-              // Schedule retry with exponential backoff
-              const retryDelay = Math.min(1000 * Math.pow(2, prev.reconnectAttempts), 30000);
+              // Schedule retry with longer exponential backoff
+              const retryDelay = Math.min(5000 * Math.pow(2, prev.reconnectAttempts), 60000);
               console.log(`Scheduling transaction retry in ${retryDelay}ms (attempt ${prev.reconnectAttempts + 1})`);
               
               reconnectTimeoutRef.current = setTimeout(() => {
                 setStatus(s => ({ ...s, reconnectAttempts: s.reconnectAttempts + 1 }));
+                isReconnectingRef.current = false;
                 connectWithRetry();
               }, retryDelay);
-            } else if (status === 'CLOSED') {
-              console.log('🔌 Transaction channel closed - attempting reconnect...');
+            } else if (status === 'CLOSED' && prev.reconnectAttempts < maxReconnectAttempts) {
+              console.log('🔌 Transaction channel closed - will reconnect...');
               newStatus.lastError = 'Connection closed - reconnecting';
               
-              // Immediate reconnect for CLOSED status
+              // Longer delay for CLOSED status to prevent rapid reconnects
               reconnectTimeoutRef.current = setTimeout(() => {
                 setStatus(s => ({ ...s, reconnectAttempts: s.reconnectAttempts + 1 }));
+                isReconnectingRef.current = false;
                 connectWithRetry();
-              }, 1000);
+              }, 10000);
+            } else if (prev.reconnectAttempts >= maxReconnectAttempts) {
+              console.log('❌ Max reconnection attempts reached for transactions');
+              newStatus.lastError = 'Max reconnection attempts reached';
+              isReconnectingRef.current = false;
             }
 
             return newStatus;
@@ -127,6 +143,7 @@ export const useTransactionRealtime = (userId?: string, onUpdate?: () => void) =
       
     } catch (error) {
       console.error('Error setting up transaction realtime:', error);
+      isReconnectingRef.current = false;
       setStatus(prev => ({
         ...prev,
         lastError: error instanceof Error ? error.message : 'Unknown error',
@@ -151,6 +168,11 @@ export const useTransactionRealtime = (userId?: string, onUpdate?: () => void) =
 
   const manualReconnect = useCallback(() => {
     console.log('Manual reconnect requested for transactions');
+    isReconnectingRef.current = false;
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
     setStatus(prev => ({ ...prev, reconnectAttempts: 0, lastError: null }));
     connectWithRetry();
   }, [connectWithRetry]);
