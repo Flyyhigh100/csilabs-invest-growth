@@ -115,26 +115,21 @@ const RealTimeDashboard: React.FC = () => {
       }
     };
 
-  // Use realtime hooks for live updates - only invalidate queries, don't reload dashboard data
-  const transactionRealtimeStatus = useTransactionRealtime();
-  const profileRealtimeStatus = useProfileRealtime();
+  // Use realtime hooks for live updates
+  const transactionRealtime = useTransactionRealtime();
+  const profileRealtime = useProfileRealtime();
 
-  // Load initial data and set up periodic refresh
+  // Load initial data and set up simple polling
   useEffect(() => {
     loadInitialData();
 
-    // Refresh data every 60 seconds as backup to realtime (longer interval for stability)
-    const interval = setInterval(() => {
-      if (!transactionRealtimeStatus.isConnected || !profileRealtimeStatus.isConnected) {
-        console.log('Fallback refresh - realtime connection issues detected');
-        loadInitialData();
-      }
-    }, 60 * 1000);
+    // Simple polling every 60 seconds
+    const interval = setInterval(loadInitialData, 60 * 1000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [transactionRealtimeStatus.isConnected, profileRealtimeStatus.isConnected]);
+  }, []);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -201,24 +196,10 @@ const RealTimeDashboard: React.FC = () => {
           <p className="text-muted-foreground">Live dashboard with real-time metrics and activity feed</p>
         </div>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <div className="text-xs text-muted-foreground">Transactions:</div>
-          <RealtimeStatusIndicator
-            isConnected={transactionRealtimeStatus.isConnected}
-            lastUpdate={transactionRealtimeStatus.lastUpdate}
-            connectionAttempts={transactionRealtimeStatus.connectionAttempts}
-            lastError={transactionRealtimeStatus.lastError}
-            reconnectAttempts={transactionRealtimeStatus.reconnectAttempts}
-            onManualReconnect={transactionRealtimeStatus.manualReconnect}
-          />
-          <div className="text-xs text-muted-foreground">Profiles:</div>
-          <RealtimeStatusIndicator
-            isConnected={profileRealtimeStatus.isConnected}
-            lastUpdate={profileRealtimeStatus.lastUpdate}
-            connectionAttempts={profileRealtimeStatus.connectionAttempts}
-            lastError={profileRealtimeStatus.lastError}
-            reconnectAttempts={profileRealtimeStatus.reconnectAttempts}
-            onManualReconnect={profileRealtimeStatus.manualReconnect}
-          />
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${transactionRealtime.isConnected ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+            <span className="text-xs">Real-time {transactionRealtime.isConnected ? 'Connected' : 'Offline'}</span>
+          </div>
           <div className="flex items-center gap-1">
             <Clock className="h-4 w-4" />
             Last updated: {lastUpdated.toLocaleTimeString()}
