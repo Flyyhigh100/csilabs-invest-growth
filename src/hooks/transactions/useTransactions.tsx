@@ -2,69 +2,15 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/transactions';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { useState } from 'react';
+import { useTransactionRealtime } from '@/hooks/realtime/useTransactionRealtime';
 
 export const useTransactions = (userId: string | undefined) => {
   const queryClient = useQueryClient();
   const [forceRefreshCounter, setForceRefreshCounter] = useState(0);
   
-  // Set up a more robust real-time subscription
-  useEffect(() => {
-    if (!userId) return;
-    
-    console.log(`Setting up real-time subscription for transactions of user: ${userId}`);
-    
-    const channel = supabase
-      .channel('transactions-changes')
-      .on(
-        'postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'transactions',
-          filter: `user_id=eq.${userId}`
-        },
-        (payload) => {
-          console.log('Transaction change detected:', payload.eventType);
-          
-          // Log detailed information about the change
-          if (payload.eventType === 'UPDATE') {
-            const oldData = payload.old as Record<string, any>;
-            const newData = payload.new as Record<string, any>;
-            
-            if (oldData && newData && oldData.status !== newData.status) {
-              console.log(`Transaction status changed from ${oldData.status} to ${newData.status}`);
-              
-              // Show toast notification for status changes
-              toast.info(`Transaction status updated: ${newData.status}`);
-              
-              // Force immediate invalidation and refetch
-              queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
-            }
-          }
-          
-          // For other events (INSERT, DELETE), also invalidate
-          if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
-            console.log(`Transaction ${payload.eventType.toLowerCase()} detected`);
-            queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log(`Real-time subscription status for transactions: ${status}`);
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to transaction changes');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('Error subscribing to transaction changes');
-        }
-      });
-      
-    return () => {
-      console.log('Cleaning up transactions real-time subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [userId, queryClient]);
+  // Use the unified realtime hook for transactions
+  useTransactionRealtime(userId);
 
   // Force refresh function that can be called from outside
   const forceRefresh = () => {

@@ -24,6 +24,9 @@ import { compareMetrics, getCurrentMetrics, type MetricComparison } from '@/util
 import { calculateRealTimeData, type RealTimeData } from '@/utils/admin/analytics/realTimeUtils';
 import { formatDistanceToNow } from 'date-fns';
 import { formatDateWithTime } from '@/utils/date';
+import { useTransactionRealtime } from '@/hooks/realtime/useTransactionRealtime';
+import { useProfileRealtime } from '@/hooks/realtime/useProfileRealtime';
+import { RealtimeStatusIndicator } from '@/components/ui/realtime-status-indicator';
 
 interface LiveMetric {
   label: string;
@@ -48,9 +51,7 @@ const RealTimeDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  // Real-time data with historical comparisons
-  useEffect(() => {
-    const loadInitialData = async () => {
+  const loadInitialData = async () => {
       try {
         // Fetch current metrics and enhanced real-time data
         const currentMetrics = await getCurrentMetrics(false);
@@ -114,28 +115,20 @@ const RealTimeDashboard: React.FC = () => {
       }
     };
 
+  // Use realtime hooks for live updates
+  const transactionRealtimeStatus = useTransactionRealtime(undefined, loadInitialData);
+  const profileRealtimeStatus = useProfileRealtime(loadInitialData);
+
+  // Real-time data with historical comparisons
+  useEffect(() => {
     loadInitialData();
 
-    // Set up real-time subscriptions
-    const transactionChannel = supabase
-      .channel('realtime-transactions')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'transactions' },
-        (payload) => {
-          console.log('Transaction update:', payload);
-          // Refresh data when new transactions come in
-          loadInitialData();
-        }
-      )
-      .subscribe();
-
-    // Refresh data every 5 minutes with real historical comparisons
+    // Refresh data every 30 seconds as backup to realtime
     const interval = setInterval(() => {
       loadInitialData();
-    }, 5 * 60 * 1000);
+    }, 30 * 1000);
 
     return () => {
-      supabase.removeChannel(transactionChannel);
       clearInterval(interval);
     };
   }, []);
@@ -205,10 +198,11 @@ const RealTimeDashboard: React.FC = () => {
           <p className="text-muted-foreground">Live dashboard with real-time metrics and activity feed</p>
         </div>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-green-600 animate-pulse" />
-            Live Updates Active
-          </div>
+          <RealtimeStatusIndicator 
+            isConnected={transactionRealtimeStatus.isConnected && profileRealtimeStatus.isConnected}
+            lastUpdate={transactionRealtimeStatus.lastUpdate || profileRealtimeStatus.lastUpdate}
+            connectionAttempts={transactionRealtimeStatus.connectionAttempts + profileRealtimeStatus.connectionAttempts}
+          />
           <div className="flex items-center gap-1">
             <Clock className="h-4 w-4" />
             Last updated: {lastUpdated.toLocaleTimeString()}
