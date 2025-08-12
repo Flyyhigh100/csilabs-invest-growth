@@ -11,7 +11,8 @@ import {
   FileText,
   AlertTriangle,
   Wallet,
-  Users
+  Users,
+  Shield
 } from 'lucide-react';
 
 interface NavItem {
@@ -36,6 +37,11 @@ export const getAdminNavItems = (): NavItem[] => {
       title: 'Users',
       path: '/admin/users',
       icon: <Users className="h-5 w-5" />,
+    },
+    {
+      title: 'Administrators',
+      path: '/admin/admins',
+      icon: <Shield className="h-5 w-5" />,
     },
     {
       title: 'KYC Verifications',

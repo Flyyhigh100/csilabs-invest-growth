@@ -58,6 +58,7 @@ import AdminWalletPortfolioPage from './pages/Admin/WalletPortfolio';
 import SystemFlowPage from './pages/Admin/SystemFlow';
 import CoinPaymentsSetupPage from './pages/Admin/CoinPaymentsSetup';
 import TransactionStatusManagerPage from './pages/Admin/TransactionStatusManager';
+import AdministratorsPage from './pages/Admin/Administrators';
 
 // Create a query client
 const queryClient = new QueryClient({
@@ -122,6 +123,7 @@ function App() {
                           <Route path="transactions/completed" element={<CompletedTransactionsPage />} />
                           <Route path="transactions/volume-details" element={<VolumeDetailsPage />} />
                           <Route path="users" element={<AdminUsersPage />} />
+                          <Route path="admins" element={<AdministratorsPage />} />
                           <Route path="kyc" element={<AdminKycPage />} />
                           <Route path="settings" element={<AdminSettingsPage />} />
                           <Route path="notifications" element={<AdminNotificationsPage />} />
