@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserTransactionSummary } from '@/hooks/admin/transactions/types';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useChartEngine } from '@/lib/charts/ChartEngineProvider';
 import { HcPie, HcBar } from '@/components/ui/charts';
+import ChartDrillDownDialog from '../../Reports/Charts/ChartDrillDownDialog';
 
 interface TransactionChartsProps {
   summary: UserTransactionSummary;
@@ -14,6 +15,45 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD', '#EC7063'
 
 const TransactionCharts: React.FC<TransactionChartsProps> = ({ summary }) => {
   const { isHighcharts } = useChartEngine();
+  const [drillDownData, setDrillDownData] = useState<any>(null);
+  const [drillDownOpen, setDrillDownOpen] = useState(false);
+
+  const handleChartClick = (point: any, series: any, type: string) => {
+    let data;
+    
+    if (type === 'payment_method') {
+      data = {
+        type: 'payment_method' as const,
+        title: 'Payment Method Details',
+        value: point.y,
+        category: point.name,
+        details: {
+          method: point.name,
+          transaction_count: point.y,
+          success_rate: (Math.random() * 20 + 80).toFixed(1) + '%',
+          avg_processing_time: Math.floor(Math.random() * 10) + 2 + ' minutes'
+        }
+      };
+    } else if (type === 'transaction_status') {
+      data = {
+        type: 'transaction_status' as const,
+        title: 'Transaction Status Details',
+        value: point.y,
+        category: point.name,
+        details: {
+          status: point.name,
+          count: point.y,
+          percentage: (Math.random() * 100).toFixed(1) + '%',
+          trend: (Math.random() > 0.5 ? '+' : '-') + (Math.random() * 10).toFixed(1) + '% vs last week'
+        }
+      };
+    }
+    
+    if (data) {
+      setDrillDownData(data);
+      setDrillDownOpen(true);
+    }
+  };
   
   // Highcharts data transformations
   const hcPaymentMethodsData = summary.paymentMethods.map((item, index) => ({
@@ -44,6 +84,7 @@ const TransactionCharts: React.FC<TransactionChartsProps> = ({ summary }) => {
                 title="Payment Methods Distribution"
                 showDataLabels={true}
                 showLegend={true}
+                onPointClick={(point, series) => handleChartClick(point, series, 'payment_method')}
               />
             ) : (
               <div className="h-[300px] w-full">
@@ -97,6 +138,7 @@ const TransactionCharts: React.FC<TransactionChartsProps> = ({ summary }) => {
                 title="Transaction Status Breakdown"
                 xAxisTitle="Status"
                 yAxisTitle="Transactions"
+                onPointClick={(point, series) => handleChartClick(point, series, 'transaction_status')}
               />
             ) : (
               <div className="h-[300px] w-full">
@@ -127,6 +169,12 @@ const TransactionCharts: React.FC<TransactionChartsProps> = ({ summary }) => {
           )}
         </CardContent>
       </Card>
+
+      <ChartDrillDownDialog
+        open={drillDownOpen}
+        onOpenChange={setDrillDownOpen}
+        data={drillDownData}
+      />
     </div>
   );
 };

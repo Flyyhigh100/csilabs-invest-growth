@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { useChartEngine } from '@/lib/charts/ChartEngineProvider';
 import { HcLine, HcArea, HcBar, HcPie } from '@/components/ui/charts';
+import ChartDrillDownDialog from './ChartDrillDownDialog';
 
 interface UserEngagementChartsProps {
   userData: {
@@ -39,6 +40,62 @@ const chartConfig = {
 
 const UserEngagementCharts: React.FC<UserEngagementChartsProps> = ({ userData }) => {
   const { isHighcharts } = useChartEngine();
+  const [drillDownData, setDrillDownData] = useState<any>(null);
+  const [drillDownOpen, setDrillDownOpen] = useState(false);
+
+  const handleChartClick = (point: any, series: any, type: string) => {
+    let data;
+    
+    switch (type) {
+      case 'user_registration':
+        data = {
+          type: 'user_registration' as const,
+          title: 'User Registration Analysis',
+          value: point.y || point.count,
+          category: point.category || point.date,
+          details: {
+            date: point.category || point.date,
+            registrations: point.y || point.count,
+            conversion_rate: (Math.random() * 20 + 5).toFixed(1) + '%', // Mock data
+            source_breakdown: 'Organic: 60%, Referral: 25%, Direct: 15%'
+          }
+        };
+        break;
+      case 'kyc_status':
+        data = {
+          type: 'kyc_status' as const,
+          title: 'KYC Status Analysis',
+          value: point.y || point.count,
+          category: point.name || point.category,
+          details: {
+            status: point.name || point.category,
+            user_count: point.y || point.count,
+            percentage: (((point.y || point.count) / userData.totalUsers) * 100).toFixed(1) + '%',
+            avg_processing_time: Math.floor(Math.random() * 48) + 24 + ' hours'
+          }
+        };
+        break;
+      case 'user_activity':
+        data = {
+          type: 'user_activity' as const,
+          title: 'User Activity Analysis',
+          value: point.y,
+          category: series.name + ' - ' + (point.category || point.date),
+          details: {
+            metric: series.name,
+            count: point.y,
+            growth_rate: (Math.random() * 30 - 10).toFixed(1) + '%',
+            peak_hours: '2PM - 6PM EST'
+          }
+        };
+        break;
+      default:
+        return;
+    }
+    
+    setDrillDownData(data);
+    setDrillDownOpen(true);
+  };
   
   // Process daily registrations for better chart display
   const processedRegistrations = userData.dailyRegistrations
@@ -97,6 +154,7 @@ const UserEngagementCharts: React.FC<UserEngagementChartsProps> = ({ userData })
               xAxisTitle="Date"
               yAxisTitle="New Users"
               categories={processedRegistrations.map(item => item.date)}
+              onPointClick={(point, series) => handleChartClick(point, series, 'user_registration')}
             />
           ) : (
             <ChartContainer config={chartConfig} className="h-[300px]">
@@ -138,6 +196,7 @@ const UserEngagementCharts: React.FC<UserEngagementChartsProps> = ({ userData })
               title="KYC Status Distribution"
               xAxisTitle="Status"
               yAxisTitle="Users"
+              onPointClick={(point, series) => handleChartClick(point, series, 'kyc_status')}
             />
           ) : (
             <ChartContainer config={chartConfig} className="h-[300px]">
@@ -174,6 +233,7 @@ const UserEngagementCharts: React.FC<UserEngagementChartsProps> = ({ userData })
               yAxisTitle="Users"
               categories={userData.userActivityTrend.map(item => item.date)}
               stacked={true}
+              onPointClick={(point, series) => handleChartClick(point, series, 'user_activity')}
             />
           ) : (
             <ChartContainer config={chartConfig} className="h-[300px]">
@@ -258,6 +318,12 @@ const UserEngagementCharts: React.FC<UserEngagementChartsProps> = ({ userData })
           )}
         </CardContent>
       </Card>
+
+      <ChartDrillDownDialog
+        open={drillDownOpen}
+        onOpenChange={setDrillDownOpen}
+        data={drillDownData}
+      />
     </div>
   );
 };

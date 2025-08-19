@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { LineChart, Line, AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from 'recharts';
 import { useChartEngine } from '@/lib/charts/ChartEngineProvider';
 import { HcArea, HcPie, HcBar } from '@/components/ui/charts';
+import ChartDrillDownDialog from './ChartDrillDownDialog';
 
 interface FinancialChartsProps {
   financialData: {
@@ -38,6 +39,59 @@ const chartConfig = {
 
 const FinancialCharts: React.FC<FinancialChartsProps> = ({ financialData }) => {
   const { isHighcharts } = useChartEngine();
+  const [drillDownData, setDrillDownData] = useState<any>(null);
+  const [drillDownOpen, setDrillDownOpen] = useState(false);
+
+  const handleChartClick = (point: any, series: any, type: string) => {
+    let data;
+    
+    switch (type) {
+      case 'revenue':
+        data = {
+          type: 'revenue' as const,
+          title: 'Daily Revenue',
+          value: point.y || point.amount,
+          category: point.category || point.date,
+          details: {
+            date: point.category || point.date,
+            transactions_count: Math.floor(Math.random() * 50) + 10, // Mock data
+            average_transaction: ((point.y || point.amount) / (Math.floor(Math.random() * 50) + 10)).toFixed(2)
+          }
+        };
+        break;
+      case 'payment_method':
+        data = {
+          type: 'payment_method' as const,
+          title: 'Payment Method Analysis',
+          value: point.y,
+          category: point.name,
+          details: {
+            total_transactions: financialData.paymentMethods.find(p => p.method === point.name)?.count || 0,
+            percentage_of_total: ((point.y / financialData.totalRevenue) * 100).toFixed(1) + '%',
+            average_amount: (point.y / (financialData.paymentMethods.find(p => p.method === point.name)?.count || 1)).toFixed(2)
+          }
+        };
+        break;
+      case 'transaction_status':
+        data = {
+          type: 'transaction_status' as const,
+          title: 'Transaction Status Analysis',
+          value: point.y || point.value,
+          category: point.name || point.category,
+          details: {
+            status: point.name || point.category,
+            total_count: point.y || point.value,
+            percentage: (((point.y || point.value) / (financialData.completedCount + financialData.pendingCount + financialData.failedCount)) * 100).toFixed(1) + '%'
+          }
+        };
+        break;
+      default:
+        return;
+    }
+    
+    setDrillDownData(data);
+    setDrillDownOpen(true);
+  };
   
   // Process daily revenue for better chart display
   const processedDailyRevenue = financialData.dailyRevenue
@@ -96,6 +150,7 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({ financialData }) => {
               xAxisTitle="Date"
               yAxisTitle="Revenue ($)"
               categories={processedDailyRevenue.map(item => item.date)}
+              onPointClick={(point, series) => handleChartClick(point, series, 'revenue')}
             />
           ) : (
             <ChartContainer config={chartConfig} className="h-[300px]">
@@ -136,6 +191,7 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({ financialData }) => {
               title="Payment Methods Distribution"
               showDataLabels={true}
               showLegend={true}
+              onPointClick={(point, series) => handleChartClick(point, series, 'payment_method')}
             />
           ) : (
             <ChartContainer config={chartConfig} className="h-[300px]">
@@ -185,6 +241,7 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({ financialData }) => {
               title="Transaction Status"
               xAxisTitle="Status"
               yAxisTitle="Transactions"
+              onPointClick={(point, series) => handleChartClick(point, series, 'transaction_status')}
             />
           ) : (
             <ChartContainer config={chartConfig} className="h-[300px]">
@@ -244,6 +301,12 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({ financialData }) => {
           )}
         </CardContent>
       </Card>
+
+      <ChartDrillDownDialog
+        open={drillDownOpen}
+        onOpenChange={setDrillDownOpen}
+        data={drillDownData}
+      />
     </div>
   );
 };

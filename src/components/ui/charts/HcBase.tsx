@@ -10,6 +10,7 @@ export interface HcBaseProps {
   errorMessage?: string;
   height?: number;
   className?: string;
+  onPointClick?: (point: any, series: any) => void;
 }
 
 const HcBase: React.FC<HcBaseProps> = ({
@@ -18,7 +19,8 @@ const HcBase: React.FC<HcBaseProps> = ({
   error = false,
   errorMessage = 'Error loading chart',
   height = 300,
-  className = ''
+  className = '',
+  onPointClick
 }) => {
   const chartRef = useRef<HighchartsReact.RefObject>(null);
 
@@ -54,18 +56,35 @@ const HcBase: React.FC<HcBaseProps> = ({
     );
   }
 
+  // Enhanced options with click handlers
+  const enhancedOptions = {
+    ...options,
+    chart: {
+      ...options.chart,
+      height: height
+    },
+    plotOptions: {
+      ...options.plotOptions,
+      series: {
+        ...options.plotOptions?.series,
+        cursor: onPointClick ? 'pointer' : 'default',
+        point: {
+          events: {
+            click: onPointClick ? function(this: any) {
+              onPointClick(this, this.series);
+            } : undefined
+          }
+        }
+      }
+    }
+  };
+
   return (
     <div className={className} style={{ height: `${height}px` }}>
       <HighchartsReact
         ref={chartRef}
         highcharts={Highcharts}
-        options={{
-          ...options,
-          chart: {
-            ...options.chart,
-            height: height
-          }
-        }}
+        options={enhancedOptions}
       />
     </div>
   );
