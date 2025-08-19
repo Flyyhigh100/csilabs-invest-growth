@@ -7,6 +7,7 @@ import { SecurityProvider } from './contexts/SecurityContext';
 import { Toaster } from 'sonner';
 import { NavbarContextProvider } from './contexts/NavbarContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { ChartEngineProvider } from '@/lib/charts/ChartEngineProvider';
 import ErrorBoundary from './components/ErrorBoundary';
 import RouteTest from './components/RouteTest';
 import TokenPricingPage from './pages/Admin/TokenPricing';
@@ -75,10 +76,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         <TooltipProvider>
-          <SecurityProvider>
-            <AuthProvider>
-              <NavbarContextProvider>
-                <Router>
+          <ChartEngineProvider>
+            <SecurityProvider>
+              <AuthProvider>
+                <NavbarContextProvider>
+                  <Router>
                   <ErrorBoundary>
                     <div className="min-h-screen bg-white">
                       <GlobalLoading />
@@ -149,6 +151,7 @@ function App() {
               </NavbarContextProvider>
             </AuthProvider>
           </SecurityProvider>
+        </ChartEngineProvider>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

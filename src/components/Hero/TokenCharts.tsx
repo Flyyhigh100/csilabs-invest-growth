@@ -2,6 +2,8 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { HcLine } from '@/components/ui/charts';
+import { useChartEngine } from '@/lib/charts/ChartEngineProvider';
 import { TokenPriceData, TokenVolumeData } from '@/types/token';
 
 // Chart configuration for styling
@@ -80,8 +82,30 @@ interface PriceChartProps {
 }
 
 export const PriceChart: React.FC<PriceChartProps> = ({ priceData, isLoading, hasError }) => {  
+  const { isHighcharts } = useChartEngine();
+  
   // Filter data points to prevent chart overcrowding
   const displayData = React.useMemo(() => filterDataPoints(priceData), [priceData]);
+  
+  if (isHighcharts) {
+    const chartData: Array<[string, number]> = displayData?.map(item => [item.date, item.price]) || [];
+    
+    return (
+      <div className="h-48 w-full">
+        <HcLine
+          data={[{
+            name: 'Price (USD)',
+            data: chartData,
+            color: 'hsl(var(--primary))'
+          }]}
+          yAxisTitle="Price (USD)"
+          loading={isLoading}
+          error={hasError}
+          height={192}
+        />
+      </div>
+    );
+  }
   
   // Calculate interval based on data length to prevent overcrowding
   const calculateTickInterval = () => {
@@ -173,8 +197,30 @@ interface VolumeChartProps {
 }
 
 export const VolumeChart: React.FC<VolumeChartProps> = ({ volumeData, isLoading, hasError }) => {
+  const { isHighcharts } = useChartEngine();
+  
   // Filter data points to prevent chart overcrowding
   const displayData = React.useMemo(() => filterDataPoints(volumeData), [volumeData]);
+  
+  if (isHighcharts) {
+    const chartData: Array<[string, number]> = displayData?.map(item => [item.date, item.volume]) || [];
+    
+    return (
+      <div className="h-48 w-full">
+        <HcLine
+          data={[{
+            name: 'Volume (USD)',
+            data: chartData,
+            color: 'hsl(var(--secondary))'
+          }]}
+          yAxisTitle="Volume (USD)"
+          loading={isLoading}
+          error={hasError}
+          height={192}
+        />
+      </div>
+    );
+  }
   
   // Calculate interval based on data length to prevent overcrowding
   const calculateTickInterval = () => {
