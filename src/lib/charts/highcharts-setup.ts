@@ -1,12 +1,7 @@
 import Highcharts from 'highcharts';
-import HighchartsMore from 'highcharts-more';
-import HighchartsFunnel from 'highcharts-funnel';
-import HighchartsExporting from 'highcharts-exporting';
 
-// Initialize Highcharts modules
-HighchartsMore(Highcharts);
-HighchartsFunnel(Highcharts);
-HighchartsExporting(Highcharts);
+// For now, let's use just the core Highcharts without additional modules
+// to avoid the module loading issues. We can add modules later if needed.
 
 // Professional theme configuration
 const professionalTheme: Highcharts.Options = {
@@ -149,17 +144,6 @@ const professionalTheme: Highcharts.Options = {
         }
       },
       showInLegend: true
-    }
-  },
-  exporting: {
-    enabled: true,
-    buttons: {
-      contextButton: {
-        theme: {
-          fill: 'hsl(var(--secondary))',
-          stroke: 'hsl(var(--border))'
-        }
-      }
     }
   },
   credits: {
