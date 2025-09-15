@@ -3,10 +3,11 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, TrendingUp, TrendingDown } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
 import { useTokenPrice } from '@/context/TokenPriceContext';
 import { usePriceHistory } from '@/hooks/token/usePriceHistory';
 import { formatCurrency } from '@/utils/format';
+import { UNISWAP_V3_POOL } from '@/services/api/config';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -113,14 +114,24 @@ const CustomTokenChart = () => {
               )}
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isPriceLoading || isHistoryLoading}
-          >
-            <RefreshCw className={`h-4 w-4 ${(isPriceLoading || isHistoryLoading) ? 'animate-spin' : ''}`} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(`https://dexscreener.com/polygon/${UNISWAP_V3_POOL}`, '_blank')}
+            >
+              <ExternalLink className="h-4 w-4" />
+              Verify
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isPriceLoading || isHistoryLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${(isPriceLoading || isHistoryLoading) ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </div>
         
         {/* Current Price Display */}

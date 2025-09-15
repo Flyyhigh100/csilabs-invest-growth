@@ -1,6 +1,7 @@
 
 import { TokenPriceData } from '@/types/token';
 import { isValidPrice } from './utils/priceValidation';
+import { UNISWAP_V3_POOL } from './config';
 
 interface DexScreenerPairData {
   pairs: Array<{
@@ -8,9 +9,6 @@ interface DexScreenerPairData {
     timestamp: number;
   }>;
 }
-
-const PAIR = import.meta.env.VITE_PAIR_ADDRESS?.toLowerCase() ||
-  '0x03f8fe849404dca3ae3e16ac4ff0b240dbc139f4';
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
@@ -34,10 +32,10 @@ async function fetchWithRetry(url: string, retries = MAX_RETRIES): Promise<Respo
 
 export const fetchDexScreenerHistorical = async (): Promise<TokenPriceData[]> => {
   try {
-    console.log('Fetching historical price data from DexScreener for pair:', PAIR);
+    console.log('Fetching historical price data from DexScreener for pair:', UNISWAP_V3_POOL);
     
     const res = await fetchWithRetry(
-      `https://api.dexscreener.com/latest/dex/pairs/polygon/${PAIR}/chart/history`
+      `https://api.dexscreener.com/latest/dex/pairs/polygon/${UNISWAP_V3_POOL}/chart/history`
     );
     
     const json: DexScreenerPairData = await res.json();
