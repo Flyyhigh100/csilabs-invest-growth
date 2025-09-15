@@ -3,11 +3,12 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, Copy } from "lucide-react";
 import { useTokenPrice } from '@/context/TokenPriceContext';
 import { usePriceHistory } from '@/hooks/token/usePriceHistory';
 import { formatCurrency } from '@/utils/format';
 import { UNISWAP_V3_POOL } from '@/services/api/config';
+import { toast } from "@/components/ui/use-toast";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -64,6 +65,15 @@ const CustomTokenChart = () => {
     await Promise.all([refreshPrice(), refetchHistory()]);
   };
 
+  const copyPoolAddress = () => {
+    navigator.clipboard.writeText(UNISWAP_V3_POOL).then(() => {
+      toast({
+        title: "Pool Address Copied",
+        description: "Search for this address on DexScreener or DexTools to verify data",
+      });
+    });
+  };
+
   const getSourceBadgeVariant = () => {
     switch (dataSource) {
       case 'on-chain-v3':
@@ -118,9 +128,10 @@ const CustomTokenChart = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(`https://dexscreener.com/polygon/${UNISWAP_V3_POOL}`, '_blank')}
+              onClick={copyPoolAddress}
+              title="Copy pool address to verify on DexScreener"
             >
-              <ExternalLink className="h-4 w-4" />
+              <Copy className="h-4 w-4" />
               Verify
             </Button>
             <Button
@@ -147,6 +158,14 @@ const CustomTokenChart = () => {
               {Math.abs(priceChange24h).toFixed(2)}%
             </div>
           )}
+        </div>
+        
+        {/* Pool Information */}
+        <div className="mt-3 p-2 bg-muted/30 rounded-lg">
+          <div className="text-xs text-muted-foreground mb-1">Uniswap V3 Pool (Polygon)</div>
+          <div className="text-xs font-mono bg-background px-2 py-1 rounded border inline-block">
+            {UNISWAP_V3_POOL}
+          </div>
         </div>
       </CardHeader>
       
