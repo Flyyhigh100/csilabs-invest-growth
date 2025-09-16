@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { usePriceHistory } from '@/hooks/token/usePriceHistory';
 import { formatCurrency } from '@/utils/format';
 import { UNISWAP_V3_POOL } from '@/services/api/config';
 import { toast } from "@/components/ui/use-toast";
+import DexToolsChartWidget from './DexToolsChartWidget';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -26,6 +27,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const CustomTokenChart = () => {
+  const [showFallback, setShowFallback] = useState(false);
+  
   const { 
     currentPrice, 
     isLoading: isPriceLoading, 
@@ -107,6 +110,16 @@ const CustomTokenChart = () => {
     }
   };
 
+  // Try DexTools widget first, fallback to custom chart
+  if (!showFallback) {
+    return (
+      <DexToolsChartWidget 
+        poolAddress="0xb85372c56884a906ab33c0e99fea572c7c6ad7eb"
+        onFallback={() => setShowFallback(true)}
+      />
+    );
+  }
+
   return (
     <Card className="h-full">
       <CardHeader className="pb-4">
@@ -133,6 +146,14 @@ const CustomTokenChart = () => {
             >
               <Copy className="h-4 w-4" />
               Verify
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFallback(false)}
+              title="Switch to DexTools chart"
+            >
+              DexTools
             </Button>
             <Button
               variant="outline"
