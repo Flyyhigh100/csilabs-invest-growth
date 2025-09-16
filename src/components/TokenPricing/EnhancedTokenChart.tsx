@@ -1,5 +1,5 @@
 import React from 'react';
-import RealTimePriceDisplay from './RealTimePriceDisplay';
+import LiveTokenChart from './LiveTokenChart';
 import DataIntegrityNotice from './DataIntegrityNotice';
 
 const EnhancedTokenChart = () => {
@@ -7,7 +7,7 @@ const EnhancedTokenChart = () => {
     <div className="space-y-6">
       <DataIntegrityNotice />
       
-      <RealTimePriceDisplay />
+      <LiveTokenChart />
     </div>
   );
 };
