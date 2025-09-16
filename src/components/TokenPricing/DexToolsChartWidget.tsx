@@ -18,7 +18,7 @@ const DexToolsChartWidget: React.FC<DexToolsChartWidgetProps> = ({
   const [copied, setCopied] = useState(false);
 
   const dexToolsUrl = `https://www.dextools.io/app/en/polygon/pair-explorer/${poolAddress}`;
-  const widgetUrl = `https://www.dextools.io/widget-chart/en/polygon/pe-light/${poolAddress}?theme=light&chartType=2&chartResolution=30&drawingToolbars=false`;
+  const widgetUrl = `https://www.dextools.io/widget-chart/en/polygon/pe-light/${poolAddress}?theme=light&chartType=2&chartResolution=30&drawingToolbars=false&tvPlatformColor=1a1b23&tvPaneColor=262633&headerColor=1a1b23`;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -118,8 +118,9 @@ const DexToolsChartWidget: React.FC<DexToolsChartWidgetProps> = ({
             style={{ border: 'none' }}
             onLoad={handleIframeLoad}
             onError={handleIframeError}
-            allow="clipboard-read; clipboard-write"
-            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+            allow="clipboard-read; clipboard-write; web-share"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"
+            referrerPolicy="strict-origin-when-cross-origin"
             className="w-full h-full"
           />
         </div>
