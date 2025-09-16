@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import RealTimePriceDisplay from './RealTimePriceDisplay';
-import MultiSourceChartWidget from './MultiSourceChartWidget';
+import LiveTokenChart from './LiveTokenChart';
 import DataIntegrityNotice from './DataIntegrityNotice';
 
 const EnhancedTokenChart = () => {
@@ -20,10 +20,7 @@ const EnhancedTokenChart = () => {
         </TabsContent>
 
         <TabsContent value="chart" className="space-y-4">
-          <MultiSourceChartWidget 
-            poolAddress="0xb85372c56884a906ab33c0e99fea572c7c6ad7eb"
-            symbol="POLYGON:CSLUSDC"
-          />
+          <LiveTokenChart />
         </TabsContent>
       </Tabs>
     </div>
