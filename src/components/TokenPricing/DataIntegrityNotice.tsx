@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { UNISWAP_V3_POOL } from '@/services/api/config';
 
 const DataIntegrityNotice = () => {
-  const handleViewOnDexScreener = () => {
-    window.open(`https://dexscreener.com/polygon/${UNISWAP_V3_POOL}`, '_blank');
+  const handleViewOnDexTools = () => {
+    window.open(`https://www.dextools.io/app/en/polygon/pair-explorer/${UNISWAP_V3_POOL}`, '_blank');
   };
 
   return (
@@ -15,18 +15,18 @@ const DataIntegrityNotice = () => {
       <AlertTitle className="text-primary">Data Integrity Guarantee</AlertTitle>
       <AlertDescription className="space-y-2">
         <p>
-          All price data displayed is sourced directly from real blockchain APIs (DexScreener, The Graph Protocol).
+          All price data displayed is sourced directly from real blockchain APIs and DEXTools.
           No simulated, mock, or artificially generated data is ever displayed.
         </p>
         <div className="flex items-center gap-2 mt-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={handleViewOnDexScreener}
+            onClick={handleViewOnDexTools}
             className="flex items-center gap-1"
           >
             <ExternalLink className="w-3 h-3" />
-            Verify on DexScreener
+            View on DEXTools
           </Button>
           <span className="text-xs text-muted-foreground">
             Cross-reference our data with external sources
