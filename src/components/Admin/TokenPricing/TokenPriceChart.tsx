@@ -1,6 +1,6 @@
 
 import React from 'react';
-import CustomTokenChart from '@/components/TokenPricing/CustomTokenChart';
+import TokenChart from '@/components/TokenPricing/TokenChart';
 import { TokenPriceData } from '@/types/token';
 
 interface TokenPriceChartProps {
@@ -16,7 +16,7 @@ const TokenPriceChart: React.FC<TokenPriceChartProps> = ({
 }) => {
   return (
     <div className="col-span-1 lg:col-span-2">
-      <CustomTokenChart />
+      <TokenChart />
     </div>
   );
 };

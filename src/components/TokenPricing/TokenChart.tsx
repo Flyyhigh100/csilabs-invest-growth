@@ -1,8 +1,8 @@
 import React from 'react';
 import EnhancedTokenChart from './EnhancedTokenChart';
 
-const CustomTokenChart = () => {
+const TokenChart = () => {
   return <EnhancedTokenChart />;
 };
 
-export default CustomTokenChart;
+export default TokenChart;
