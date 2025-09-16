@@ -77,10 +77,7 @@ const RealTimePriceDisplay = () => {
 
           {/* External Verification */}
           <div className="flex justify-center">
-            <Button variant="outline" size="sm" onClick={handleViewOnDexTools} className="flex items-center gap-2">
-              <ExternalLink className="w-3 h-3" />
-              Verify on DexTools
-            </Button>
+            
           </div>
         </CardContent>
       </Card>
