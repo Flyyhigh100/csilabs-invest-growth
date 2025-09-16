@@ -9,7 +9,7 @@ import { usePriceHistory } from '@/hooks/token/usePriceHistory';
 import { formatCurrency } from '@/utils/format';
 import { UNISWAP_V3_POOL } from '@/services/api/config';
 import { toast } from "@/components/ui/use-toast";
-import DexToolsChartWidget from './DexToolsChartWidget';
+import DexScreenerChartWidget from './DexScreenerChartWidget';
 import TradingViewWidget from './TradingViewWidget';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -112,13 +112,13 @@ const CustomTokenChart = () => {
     }
   };
 
-  // Progressive fallback: DexTools -> TradingView -> Custom Chart
+  // Progressive fallback: DexScreener -> TradingView -> Custom Chart
   if (!showFallback) {
     return (
-      <DexToolsChartWidget 
+      <DexScreenerChartWidget 
         poolAddress="0xb85372c56884a906ab33c0e99fea572c7c6ad7eb"
         onFallback={() => {
-          console.log('[CHART] DexTools failed, trying TradingView...');
+          console.log('[CHART] DexScreener failed, trying TradingView...');
           setShowTradingView(true);
           setShowFallback(true);
         }}
@@ -126,7 +126,7 @@ const CustomTokenChart = () => {
     );
   }
 
-  // If DexTools failed, try TradingView
+  // If DexScreener failed, try TradingView
   if (showTradingView && showFallback) {
     return (
       <TradingViewWidget 
@@ -173,9 +173,9 @@ const CustomTokenChart = () => {
                 setShowFallback(false);
                 setShowTradingView(false);
               }}
-              title="Switch to DexTools chart"
+              title="Switch to DexScreener chart"
             >
-              DexTools
+              DexScreener
             </Button>
             <Button
               variant="outline"
