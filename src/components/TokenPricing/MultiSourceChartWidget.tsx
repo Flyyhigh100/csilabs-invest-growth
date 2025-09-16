@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ExternalLink, AlertCircle } from 'lucide-react';
 import TradingViewWidget from './TradingViewWidget';
 import GeckoTerminalWidget from './GeckoTerminalWidget';
+import CoinBrainWidget from './CoinBrainWidget';
 
 interface MultiSourceChartWidgetProps {
   poolAddress?: string;
@@ -100,9 +101,10 @@ const MultiSourceChartWidget: React.FC<MultiSourceChartWidgetProps> = ({
   return (
     <div className="space-y-4">
       <Tabs defaultValue="professional" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="professional">Professional Chart</TabsTrigger>
           <TabsTrigger value="dex">DEX Chart</TabsTrigger>
+          <TabsTrigger value="coinbrain">Live Trades</TabsTrigger>
         </TabsList>
         
         <TabsContent value="professional" className="space-y-4">
@@ -124,6 +126,13 @@ const MultiSourceChartWidget: React.FC<MultiSourceChartWidgetProps> = ({
               onFallback={handleTradingViewFallback}
             />
           )}
+        </TabsContent>
+
+        <TabsContent value="coinbrain" className="space-y-4">
+          <CoinBrainWidget 
+            contractAddress={poolAddress}
+            onFallback={handleGeckoTerminalFallback}
+          />
         </TabsContent>
       </Tabs>
     </div>
