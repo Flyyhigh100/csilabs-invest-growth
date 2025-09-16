@@ -10,6 +10,7 @@ import { formatCurrency } from '@/utils/format';
 import { UNISWAP_V3_POOL } from '@/services/api/config';
 import { toast } from "@/components/ui/use-toast";
 import DexToolsChartWidget from './DexToolsChartWidget';
+import TradingViewWidget from './TradingViewWidget';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -28,6 +29,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 const CustomTokenChart = () => {
   const [showFallback, setShowFallback] = useState(false);
+  const [showTradingView, setShowTradingView] = useState(false);
   
   const { 
     currentPrice, 
@@ -110,12 +112,29 @@ const CustomTokenChart = () => {
     }
   };
 
-  // Try DexTools widget first, fallback to custom chart
+  // Progressive fallback: DexTools -> TradingView -> Custom Chart
   if (!showFallback) {
     return (
       <DexToolsChartWidget 
         poolAddress="0xb85372c56884a906ab33c0e99fea572c7c6ad7eb"
-        onFallback={() => setShowFallback(true)}
+        onFallback={() => {
+          console.log('[CHART] DexTools failed, trying TradingView...');
+          setShowTradingView(true);
+          setShowFallback(true);
+        }}
+      />
+    );
+  }
+
+  // If DexTools failed, try TradingView
+  if (showTradingView && showFallback) {
+    return (
+      <TradingViewWidget 
+        symbol="POLYGON:CSLUSDC"
+        onFallback={() => {
+          console.log('[CHART] TradingView failed, using custom chart...');
+          setShowTradingView(false);
+        }}
       />
     );
   }
@@ -150,10 +169,24 @@ const CustomTokenChart = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowFallback(false)}
+              onClick={() => {
+                setShowFallback(false);
+                setShowTradingView(false);
+              }}
               title="Switch to DexTools chart"
             >
               DexTools
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setShowFallback(true);
+                setShowTradingView(true);
+              }}
+              title="Switch to TradingView chart"
+            >
+              TradingView
             </Button>
             <Button
               variant="outline"
