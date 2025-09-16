@@ -18,17 +18,17 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
     }
     
     if (!priceData || priceData.length === 0) {
-      console.warn('All external data sources failed, using realistic mock data');
-      return generateMockPriceData();
+      console.error('CRITICAL: No real historical data available from any source');
+      throw new Error('No real historical data available - will not show simulated data');
     }
 
     // Validate the data
     if (!priceData.every(d => d.price > 0)) {
-      console.error('Invalid price data detected, using mock data');
-      return generateMockPriceData();
+      console.error('Invalid price data detected');
+      throw new Error('Invalid price data detected from external sources');
     }
 
-    console.log('Price data validation successful:', { 
+    console.log('Real price data validation successful:', { 
       dataPoints: priceData.length,
       firstDate: priceData[0].date,
       lastDate: priceData[priceData.length - 1].date,
@@ -38,6 +38,7 @@ export const fetchTokenPriceHistory = async (): Promise<TokenPriceData[]> => {
     return priceData;
   } catch (error) {
     console.error('Error fetching token price history:', error);
-    return generateMockPriceData();
+    // DO NOT return mock data - this is critical for data integrity
+    throw error;
   }
 };

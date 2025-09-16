@@ -10,6 +10,7 @@ import { usePriceHistory } from '@/hooks/token/usePriceHistory';
 import { formatCurrency } from '@/utils/format';
 import { UNISWAP_V3_POOL } from '@/services/api/config';
 import { toast } from "@/components/ui/use-toast";
+import DataIntegrityNotice from './DataIntegrityNotice';
 
 type ChartType = 'line' | 'area' | 'candlestick';
 type TimeFrame = '1h' | '4h' | '1d' | '1w';
@@ -99,7 +100,7 @@ const EnhancedTokenChart = () => {
     return historicalData.map(item => ({
       date: item.date,
       price: item.price,
-      volume: Math.floor(Math.random() * 100000) + 10000, // Mock volume data
+      // REMOVED: No fake volume data - only show price data from real sources
       formattedDate: formatXAxisTick(item.date)
     }));
   }, [historicalData]);
@@ -107,8 +108,21 @@ const EnhancedTokenChart = () => {
   const renderChart = () => {
     if (!chartData.length) {
       return (
-        <div className="flex items-center justify-center h-64 text-muted-foreground">
-          No historical data available
+        <div className="flex flex-col items-center justify-center h-64 text-muted-foreground space-y-2">
+          <p className="text-lg font-medium">No Real Historical Data Available</p>
+          <p className="text-sm text-center max-w-md">
+            DexScreener API does not provide sufficient historical data for this token pair. 
+            For complete historical data, please visit DexScreener directly.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleViewOnDexScreener}
+            className="flex items-center gap-1 mt-2"
+          >
+            <ExternalLink className="w-4 h-4" />
+            View Full Data on DexScreener
+          </Button>
         </div>
       );
     }
@@ -165,21 +179,8 @@ const EnhancedTokenChart = () => {
                 fontSize={12}
                 tickFormatter={(value) => `$${value.toFixed(4)}`}
               />
-              <YAxis 
-                yAxisId="volume"
-                orientation="right"
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickFormatter={(value) => `${(value/1000).toFixed(0)}K`}
-              />
               <Tooltip content={<CustomTooltip />} />
-              <Bar 
-                yAxisId="volume"
-                dataKey="volume" 
-                fill="hsl(var(--muted))" 
-                opacity={0.3}
-                name="Volume"
-              />
+              {/* REMOVED: Volume bars - no real volume data available */}
               <Line 
                 yAxisId="price"
                 type="monotone" 
@@ -230,8 +231,10 @@ const EnhancedTokenChart = () => {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+    <div className="w-full space-y-4">
+      <DataIntegrityNotice />
+      <Card className="w-full">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div className="space-y-1">
           <CardTitle className="text-2xl font-bold">
             CSL Token Price Chart
@@ -247,9 +250,14 @@ const EnhancedTokenChart = () => {
               </Badge>
             )}
           </div>
-          <p className="text-sm text-muted-foreground">
-            Source: {dataSource} • Last updated: {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'N/A'}
-          </p>
+          <div className="text-sm text-muted-foreground space-y-1">
+            <p>
+              <strong>Current Price Source:</strong> {dataSource} • Last updated: {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'N/A'}
+            </p>
+            <p className="text-xs">
+              <strong>Historical Data:</strong> Real data from DexScreener API when available. No simulated or mock data is displayed.
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -297,7 +305,7 @@ const EnhancedTokenChart = () => {
                   className="flex items-center gap-1"
                 >
                   <LineChart className="w-4 h-4" />
-                  Line + Volume
+                  Line
                 </Button>
               </div>
             </div>
@@ -334,6 +342,7 @@ const EnhancedTokenChart = () => {
         </div>
       </CardContent>
     </Card>
+    </div>
   );
 };
 

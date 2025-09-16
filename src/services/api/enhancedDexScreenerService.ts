@@ -89,9 +89,9 @@ export const fetchEnhancedDexScreenerData = async (timeframe: '1h' | '4h' | '1d'
       throw new Error(`Invalid current price: ${currentPrice}`);
     }
 
-    // Generate OHLCV data (since DexScreener doesn't provide detailed OHLCV via free API)
-    // We'll create simulated OHLCV based on current price and historical trends
-    const ohlcvData = generateOHLCVData(currentPrice, timeframe);
+    // CRITICAL: Do not generate fake OHLCV data - use real DexScreener data only
+    console.warn('DexScreener API does not provide detailed OHLCV data - returning empty array');
+    const ohlcvData: OHLCVData[] = [];
 
     return {
       currentPrice,
@@ -105,60 +105,10 @@ export const fetchEnhancedDexScreenerData = async (timeframe: '1h' | '4h' | '1d'
   }
 };
 
-// Generate realistic OHLCV data based on current price
-// This is a fallback since DexScreener free API doesn't provide detailed OHLCV
-function generateOHLCVData(currentPrice: number, timeframe: string): OHLCVData[] {
-  const now = Date.now();
-  const intervals = timeframe === '1h' ? 24 : timeframe === '4h' ? 48 : timeframe === '1d' ? 30 : 52;
-  const intervalMs = timeframe === '1h' ? 3600000 : timeframe === '4h' ? 14400000 : timeframe === '1d' ? 86400000 : 604800000;
-  
-  const data: OHLCVData[] = [];
-  
-  for (let i = intervals - 1; i >= 0; i--) {
-    const timestamp = now - (i * intervalMs);
-    
-    // Generate realistic price movements (±5% variation)
-    const variation = (Math.random() - 0.5) * 0.1; // ±5%
-    const basePrice = currentPrice * (1 + variation * (i / intervals));
-    
-    const volatility = 0.02; // 2% intraday volatility
-    const high = basePrice * (1 + Math.random() * volatility);
-    const low = basePrice * (1 - Math.random() * volatility);
-    const open = low + Math.random() * (high - low);
-    const close = low + Math.random() * (high - low);
-    
-    data.push({
-      timestamp: Math.floor(timestamp / 1000),
-      open: Number(open.toFixed(8)),
-      high: Number(high.toFixed(8)),
-      low: Number(low.toFixed(8)),
-      close: Number(close.toFixed(8)),
-      volume: Math.floor(Math.random() * 100000) + 10000 // Random volume
-    });
-  }
-  
-  // Ensure the last data point reflects current price
-  if (data.length > 0) {
-    data[data.length - 1].close = currentPrice;
-  }
-  
-  return data;
-}
+// REMOVED: generateOHLCVData function removed to prevent fake data generation
+// All OHLCV data must come from real DexScreener API calls only
 
 export const fetchEnhancedHistoricalData = async (): Promise<EnhancedPriceData[]> => {
-  try {
-    const { ohlcvData } = await fetchEnhancedDexScreenerData('1d');
-    
-    return ohlcvData.map(item => ({
-      date: new Date(item.timestamp * 1000).toISOString().split('T')[0],
-      price: item.close,
-      volume: item.volume,
-      high: item.high,
-      low: item.low,
-      open: item.open
-    }));
-  } catch (error) {
-    console.error('Error fetching enhanced historical data:', error);
-    throw error;
-  }
+  console.error('CRITICAL: Enhanced historical data requires real DexScreener API data');
+  throw new Error('Enhanced historical data not available - no real OHLCV data from DexScreener free API');
 };
