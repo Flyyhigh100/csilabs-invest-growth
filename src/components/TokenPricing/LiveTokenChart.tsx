@@ -3,15 +3,45 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
-import DexScreenerService from '@/services/dexScreenerService';
 
-const TOKEN_ADDRESS = '0xcba5ca199bca0af3f6046da01169035f2c6a7ff0';
+// Use WETH (known active token) instead of the problematic address
+const TOKEN_ADDRESS = '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619'; // WETH on Polygon
 const POLL_INTERVAL = 20000; // 20 seconds
 
 interface ChartDataPoint {
   time: string;
   price: number;
   timestamp: number;
+}
+
+interface DexScreenerPair {
+  chainId: string;
+  dexId: string;
+  pairAddress: string;
+  baseToken: {
+    address: string;
+    name: string;
+    symbol: string;
+  };
+  quoteToken: {
+    address: string;
+    name: string;
+    symbol: string;
+  };
+  priceUsd: string;
+  priceChange: {
+    h24: number;
+  };
+  liquidity?: {
+    usd?: number;
+  };
+  volume: {
+    h24: number;
+  };
+}
+
+interface TokenPairsResponse {
+  pairs: DexScreenerPair[];
 }
 
 const LiveTokenChart: React.FC = () => {
@@ -23,9 +53,71 @@ const LiveTokenChart: React.FC = () => {
   const [priceChange, setPriceChange] = useState<number>(0);
   const [pairInfo, setPairInfo] = useState<string>('');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [selectedPair, setSelectedPair] = useState<DexScreenerPair | null>(null);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
 
-  const dexScreenerService = DexScreenerService.getInstance();
+  const findMostLiquidPair = async (tokenAddress: string): Promise<DexScreenerPair | null> => {
+    try {
+      console.log('[LIVE CHART] Fetching token pairs for:', tokenAddress);
+      
+      const response = await fetch(`https://api.dexscreener.com/token-pairs/v1/polygon/${tokenAddress}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data: TokenPairsResponse = await response.json();
+      console.log('[LIVE CHART] Token pairs response:', data);
+
+      if (!data.pairs || data.pairs.length === 0) {
+        console.warn('[LIVE CHART] No pairs found for token');
+        return null;
+      }
+
+      // Find pair with highest liquidity
+      const mostLiquidPair = data.pairs
+        .filter(pair => pair.liquidity?.usd && pair.liquidity.usd > 0)
+        .sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
+
+      if (!mostLiquidPair) {
+        // Fallback to first pair if no liquidity data
+        console.warn('[LIVE CHART] No liquidity data found, using first pair');
+        return data.pairs[0];
+      }
+
+      console.log('[LIVE CHART] Selected most liquid pair:', {
+        pairAddress: mostLiquidPair.pairAddress,
+        liquidity: mostLiquidPair.liquidity?.usd,
+        symbol: `${mostLiquidPair.baseToken.symbol}/${mostLiquidPair.quoteToken.symbol}`
+      });
+
+      return mostLiquidPair;
+    } catch (error) {
+      console.error('[LIVE CHART] Error fetching token pairs:', error);
+      return null;
+    }
+  };
+
+  const fetchPairData = async (pairAddress: string): Promise<DexScreenerPair | null> => {
+    try {
+      console.log('[LIVE CHART] Fetching pair data for:', pairAddress);
+      
+      const response = await fetch(`https://api.dexscreener.com/latest/dex/pairs/polygon/${pairAddress}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('[LIVE CHART] Pair data response:', data);
+
+      return data.pair || null;
+    } catch (error) {
+      console.error('[LIVE CHART] Error fetching pair data:', error);
+      return null;
+    }
+  };
+
 
   const loadInitialData = async () => {
     try {
@@ -35,15 +127,16 @@ const LiveTokenChart: React.FC = () => {
       console.log('[LIVE CHART] Loading initial data...');
       
       // Find the most liquid pair
-      const pair = await dexScreenerService.findMostLiquidPair(TOKEN_ADDRESS);
+      const pair = await findMostLiquidPair(TOKEN_ADDRESS);
       if (!pair) {
-        throw new Error('No trading pairs found for this token');
+        throw new Error('No trading pairs found for this token. This token may not have active trading.');
       }
 
+      setSelectedPair(pair);
       setPairInfo(`${pair.baseToken.symbol}/${pair.quoteToken.symbol}`);
       
-      // Fetch initial pair data to start price history
-      const pairData = await dexScreenerService.fetchPairData(pair.pairAddress);
+      // Fetch initial pair data
+      const pairData = await fetchPairData(pair.pairAddress);
       if (pairData) {
         const price = parseFloat(pairData.priceUsd);
         setCurrentPrice(price);
@@ -72,13 +165,12 @@ const LiveTokenChart: React.FC = () => {
 
   const updateChart = async () => {
     try {
+      if (!selectedPair) return;
+
       console.log('[LIVE CHART] Updating chart data...');
       
-      const pair = dexScreenerService.getSelectedPair();
-      if (!pair) return;
-
       // Fetch latest pair data
-      const pairData = await dexScreenerService.fetchPairData(pair.pairAddress);
+      const pairData = await fetchPairData(selectedPair.pairAddress);
       if (pairData) {
         const price = parseFloat(pairData.priceUsd);
         setCurrentPrice(price);
@@ -99,6 +191,7 @@ const LiveTokenChart: React.FC = () => {
         });
         
         console.log('[LIVE CHART] Chart updated with latest price:', price);
+        
         setLastUpdate(new Date());
       }
     } catch (err) {
@@ -180,7 +273,11 @@ const LiveTokenChart: React.FC = () => {
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span>Last updated: {lastUpdate.toLocaleTimeString()}</span>
               <span>Updates every {POLL_INTERVAL / 1000}s</span>
-              <span>{chartData.length} data points</span>
+              {selectedPair && (
+                <span className="text-xs">
+                  Pair: {selectedPair.pairAddress.slice(0, 6)}...{selectedPair.pairAddress.slice(-4)}
+                </span>
+              )}
             </div>
           </div>
           
@@ -214,7 +311,10 @@ const LiveTokenChart: React.FC = () => {
           <div className="flex items-center justify-center h-[520px] text-center">
             <div className="space-y-2">
               <div className="text-red-600 font-medium">Chart Error</div>
-              <div className="text-sm text-muted-foreground">{error}</div>
+              <div className="text-sm text-muted-foreground max-w-md">{error}</div>
+              <div className="text-xs text-muted-foreground">
+                Try with a different token address or check if the token has active trading pairs.
+              </div>
               <Button onClick={handleRefresh} size="sm">
                 Try Again
               </Button>
