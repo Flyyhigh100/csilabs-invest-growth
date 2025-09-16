@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, RefreshCw, ExternalLink, Clock } from "lucide-react";
 import { useTokenPrice } from '@/context/TokenPriceContext';
-import { UNISWAP_V3_POOL } from '@/services/api/config';
 import { formatDistanceToNow } from 'date-fns';
 
 const RealTimePriceDisplay = () => {
@@ -18,8 +17,8 @@ const RealTimePriceDisplay = () => {
     refreshPrice 
   } = useTokenPrice();
 
-  const handleViewOnDexScreener = () => {
-    window.open(`https://dexscreener.com/polygon/${UNISWAP_V3_POOL}`, '_blank');
+  const handleViewOnDexTools = () => {
+    window.open('https://www.dextools.io/app/en/polygon/pair-explorer/0xb85372c56884a906ab33c0e99fea572c7c6ad7eb?t=1758021595477', '_blank');
   };
 
   const handleRefresh = () => {
@@ -100,11 +99,11 @@ const RealTimePriceDisplay = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleViewOnDexScreener}
+              onClick={handleViewOnDexTools}
               className="flex items-center gap-2"
             >
               <ExternalLink className="w-3 h-3" />
-              Verify on DexScreener
+              Verify on DexTools
             </Button>
           </div>
         </CardContent>
