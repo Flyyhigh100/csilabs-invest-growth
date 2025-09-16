@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ExternalLink, PieChart, TrendingUp, Shield, ArrowRight, DollarSign, ShieldCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import DexToolsChartWidget from '@/components/TokenPricing/DexToolsChartWidget';
+import MultiSourceChartWidget from '@/components/TokenPricing/MultiSourceChartWidget';
 
 const TokenInfo: React.FC = () => {
   useEffect(() => {
@@ -138,7 +138,10 @@ const TokenInfo: React.FC = () => {
           {/* Live Trading Chart Section */}
           <FadeInSection delay={150}>
             <div className="mb-16">
-              <DexToolsChartWidget poolAddress="0xb85372c56884a906ab33c0e99fea572c7c6ad7eb" />
+              <MultiSourceChartWidget 
+                poolAddress="0xb85372c56884a906ab33c0e99fea572c7c6ad7eb"
+                symbol="POLYGON:CSLUSDC"
+              />
             </div>
           </FadeInSection>
 
