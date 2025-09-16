@@ -1,5 +1,5 @@
 import React from 'react';
-import LiveTokenChart from './LiveTokenChart';
+import MultiSourceChartWidget from './MultiSourceChartWidget';
 import DataIntegrityNotice from './DataIntegrityNotice';
 
 const EnhancedTokenChart = () => {
@@ -7,7 +7,7 @@ const EnhancedTokenChart = () => {
     <div className="space-y-6">
       <DataIntegrityNotice />
       
-      <LiveTokenChart />
+      <MultiSourceChartWidget />
     </div>
   );
 };
