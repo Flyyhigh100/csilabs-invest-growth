@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { AlertCircle, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DEFAULT_TOKEN_ADDRESS } from '@/config/token';
 
 interface CoinBrainWidgetProps {
   contractAddress?: string;
@@ -9,7 +10,7 @@ interface CoinBrainWidgetProps {
 }
 
 const CoinBrainWidget: React.FC<CoinBrainWidgetProps> = ({ 
-  contractAddress = "0xcba5ca199bca0af3f6046da01169035f2c6a7ff0",
+  contractAddress = DEFAULT_TOKEN_ADDRESS,
   onFallback 
 }) => {
   const [isLoading, setIsLoading] = useState(true);

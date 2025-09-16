@@ -3,9 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
+import { DEFAULT_TOKEN_ADDRESS, WETH_TOKEN_ADDRESS, DEFAULT_TOKEN_SYMBOL } from '@/config/token';
 
-// Use WETH (known active token) instead of the problematic address
-const TOKEN_ADDRESS = '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619'; // WETH on Polygon
 const POLL_INTERVAL = 20000; // 20 seconds
 
 interface ChartDataPoint {
@@ -55,6 +54,7 @@ const LiveTokenChart: React.FC = () => {
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [selectedPair, setSelectedPair] = useState<DexScreenerPair | null>(null);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [currentTokenAddress, setCurrentTokenAddress] = useState(DEFAULT_TOKEN_ADDRESS);
 
   const findMostLiquidPair = async (tokenAddress: string): Promise<DexScreenerPair | null> => {
     try {
@@ -124,12 +124,23 @@ const LiveTokenChart: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      console.log('[LIVE CHART] Loading initial data...');
+      console.log('[LIVE CHART] Loading initial data for token:', currentTokenAddress);
       
-      // Find the most liquid pair
-      const pair = await findMostLiquidPair(TOKEN_ADDRESS);
+      // Try with the current token first
+      let pair = await findMostLiquidPair(currentTokenAddress);
+      
+      // If no pairs found and we're using CSL token, fallback to WETH for demonstration
+      if (!pair && currentTokenAddress === DEFAULT_TOKEN_ADDRESS) {
+        console.log('[LIVE CHART] No pairs found for CSL token, trying with WETH as fallback...');
+        pair = await findMostLiquidPair(WETH_TOKEN_ADDRESS);
+        if (pair) {
+          setCurrentTokenAddress(WETH_TOKEN_ADDRESS);
+          console.log('[LIVE CHART] Successfully switched to WETH for live data');
+        }
+      }
+      
       if (!pair) {
-        throw new Error('No trading pairs found for this token. This token may not have active trading.');
+        throw new Error(`No trading pairs found for this token (${currentTokenAddress}). This token may not have active trading on DEX exchanges.`);
       }
 
       setSelectedPair(pair);
@@ -269,6 +280,11 @@ const LiveTokenChart: React.FC = () => {
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <Activity className="h-5 w-5" />
               Live Token Chart {pairInfo && `(${pairInfo})`}
+              {currentTokenAddress !== DEFAULT_TOKEN_ADDRESS && (
+                <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                  Demo Mode (WETH)
+                </span>
+              )}
             </CardTitle>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span>Last updated: {lastUpdate.toLocaleTimeString()}</span>
