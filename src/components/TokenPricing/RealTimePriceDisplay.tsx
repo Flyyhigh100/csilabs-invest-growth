@@ -5,29 +5,24 @@ import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, RefreshCw, ExternalLink, Clock } from "lucide-react";
 import { useTokenPrice } from '@/context/TokenPriceContext';
 import { formatDistanceToNow } from 'date-fns';
-
 const RealTimePriceDisplay = () => {
-  const { 
-    currentPrice, 
-    isLoading, 
-    error, 
-    lastUpdated, 
-    timeUntilNextUpdate, 
-    dataSource, 
-    refreshPrice 
+  const {
+    currentPrice,
+    isLoading,
+    error,
+    lastUpdated,
+    timeUntilNextUpdate,
+    dataSource,
+    refreshPrice
   } = useTokenPrice();
-
   const handleViewOnDexTools = () => {
     window.open('https://www.dextools.io/app/en/polygon/pair-explorer/0xb85372c56884a906ab33c0e99fea572c7c6ad7eb?t=1758021595477', '_blank');
   };
-
   const handleRefresh = () => {
     refreshPrice();
   };
-
   if (error) {
-    return (
-      <Card className="border-destructive/20 bg-destructive/5">
+    return <Card className="border-destructive/20 bg-destructive/5">
         <CardContent className="pt-6">
           <div className="text-center space-y-4">
             <p className="text-destructive">Unable to load current price data</p>
@@ -37,12 +32,9 @@ const RealTimePriceDisplay = () => {
             </Button>
           </div>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
-
-  return (
-    <div className="space-y-4">
+  return <div className="space-y-4">
       <Card className="border-primary/20 bg-primary/5">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center justify-between">
@@ -51,12 +43,7 @@ const RealTimePriceDisplay = () => {
               <Badge variant="secondary" className="text-xs">
                 {dataSource || 'Live'}
               </Badge>
-              <Button 
-                onClick={handleRefresh} 
-                variant="ghost" 
-                size="sm"
-                disabled={isLoading}
-              >
+              <Button onClick={handleRefresh} variant="ghost" size="sm" disabled={isLoading}>
                 <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               </Button>
             </div>
@@ -66,11 +53,7 @@ const RealTimePriceDisplay = () => {
           {/* Main Price Display */}
           <div className="text-center space-y-2">
             <div className="text-4xl font-bold text-primary">
-              {isLoading ? (
-                <div className="animate-pulse bg-muted h-12 w-32 rounded mx-auto" />
-              ) : (
-                `$${currentPrice?.toFixed(6) || '0.000000'}`
-              )}
+              {isLoading ? <div className="animate-pulse bg-muted h-12 w-32 rounded mx-auto" /> : `$${currentPrice?.toFixed(6) || '0.000000'}`}
             </div>
             <p className="text-muted-foreground text-sm">
               Current token price in USD
@@ -79,29 +62,22 @@ const RealTimePriceDisplay = () => {
 
           {/* Data Source & Timestamp */}
           <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
-            {lastUpdated && (
-              <div className="flex items-center gap-1">
+            {lastUpdated && <div className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 <span>
-                  Updated {formatDistanceToNow(lastUpdated, { addSuffix: true })}
+                  Updated {formatDistanceToNow(lastUpdated, {
+                addSuffix: true
+              })}
                 </span>
-              </div>
-            )}
-            {timeUntilNextUpdate && (
-              <div className="text-xs">
+              </div>}
+            {timeUntilNextUpdate && <div className="text-xs">
                 Next update in {Math.ceil(timeUntilNextUpdate / 1000)}s
-              </div>
-            )}
+              </div>}
           </div>
 
           {/* External Verification */}
           <div className="flex justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleViewOnDexTools}
-              className="flex items-center gap-2"
-            >
+            <Button variant="outline" size="sm" onClick={handleViewOnDexTools} className="flex items-center gap-2">
               <ExternalLink className="w-3 h-3" />
               Verify on DexTools
             </Button>
@@ -112,22 +88,9 @@ const RealTimePriceDisplay = () => {
       {/* Data Integrity Notice */}
       <Card className="border-amber-200/50 bg-amber-50/50 dark:border-amber-700/50 dark:bg-amber-900/10">
         <CardContent className="pt-4">
-          <div className="flex items-start gap-3">
-            <TrendingUp className="w-4 h-4 text-amber-600 mt-0.5" />
-            <div className="space-y-2 text-sm">
-              <p className="font-medium text-amber-800 dark:text-amber-200">
-                Historical Data Collection in Progress
-              </p>
-              <p className="text-amber-700 dark:text-amber-300">
-                We're currently building our historical price database from real blockchain data. 
-                Historical charts will be available soon with verified on-chain swap data.
-              </p>
-            </div>
-          </div>
+          
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 export default RealTimePriceDisplay;
