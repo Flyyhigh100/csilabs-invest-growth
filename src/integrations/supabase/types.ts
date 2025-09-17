@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -644,6 +644,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_legacy_assets: {
+        Row: {
+          amount: number
+          asset_type: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          asset_type: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          asset_type?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       wallet_balances: {
         Row: {
           balance: number
@@ -704,11 +731,11 @@ export type Database = {
       }
       log_admin_action: {
         Args: {
-          p_operation: string
-          p_table_name?: string
-          p_record_id?: string
-          p_old_values?: Json
           p_new_values?: Json
+          p_old_values?: Json
+          p_operation: string
+          p_record_id?: string
+          p_table_name?: string
         }
         Returns: string
       }

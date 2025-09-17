@@ -8,6 +8,7 @@ import KycStatusCard from '@/components/Dashboard/Profile/KycStatusCard';
 import ProfileForm from '@/components/Dashboard/Profile/ProfileForm';
 import TokenBalanceCard from '@/components/Dashboard/Profile/TokenBalanceCard';
 import WalletInfoCard from '@/components/Dashboard/Profile/WalletInfoCard';
+import LegacyAssetsCard from '@/components/Dashboard/Profile/LegacyAssetsCard';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -20,6 +21,9 @@ const Profile = () => {
 
       {/* Token Balance Card */}
       <TokenBalanceCard />
+      
+      {/* Legacy Assets */}
+      <LegacyAssetsCard />
       
       {/* Wallet Information */}
       <WalletInfoCard />
