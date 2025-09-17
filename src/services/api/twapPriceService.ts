@@ -55,21 +55,13 @@ export async function fetchOnchainTwap(): Promise<number> {
         'latest'
       ], POLYGON_RPC_URL);
       
-      // Ensure the results are strings and handle potential format issues
-      const token0Address = typeof token0Result === 'string' ? token0Result.slice(-40) : '';
-      const token1Address = typeof token1Result === 'string' ? token1Result.slice(-40) : '';
-      
-      if (!token0Address || !token1Address) {
-        throw new Error('Failed to get valid token addresses from pool');
-      }
-      
-      // Parse token addresses with ethers
-      const parsedToken0 = ethers.utils.getAddress('0x' + token0Address).toLowerCase();
-      const parsedToken1 = ethers.utils.getAddress('0x' + token1Address).toLowerCase();
+      // Parse token addresses
+      const token0Address = ethers.utils.getAddress('0x' + token0Result.slice(-40)).toLowerCase();
+      const token1Address = ethers.utils.getAddress('0x' + token1Result.slice(-40)).toLowerCase();
       
       if (ENABLE_LOGGING || DEBUG_TWAP) {
-        console.log(`Pool token0: ${parsedToken0}, Our V3_TOKEN0: ${V3_TOKEN0.toLowerCase()}`);
-        console.log(`Pool token1: ${parsedToken1}, Our V3_TOKEN1: ${V3_TOKEN1.toLowerCase()}`);
+        console.log(`Pool token0: ${token0Address}, Our V3_TOKEN0: ${V3_TOKEN0.toLowerCase()}`);
+        console.log(`Pool token1: ${token1Address}, Our V3_TOKEN1: ${V3_TOKEN1.toLowerCase()}`);
       }
       
       // USDC and CSL token addresses (lowercase for case-insensitive comparison)
@@ -77,8 +69,8 @@ export async function fetchOnchainTwap(): Promise<number> {
       const usdcTokenAddress = V3_TOKEN0.toLowerCase(); // USDC token address
       
       // Determine token ordering in the pool (which is token0 and which is token1)
-      const cslIsToken0 = parsedToken0 === cslTokenAddress;
-      const cslIsToken1 = parsedToken1 === cslTokenAddress;
+      const cslIsToken0 = token0Address === cslTokenAddress;
+      const cslIsToken1 = token1Address === cslTokenAddress;
       
       // Validate that one of our tokens is found in the pool
       if (!cslIsToken0 && !cslIsToken1) {

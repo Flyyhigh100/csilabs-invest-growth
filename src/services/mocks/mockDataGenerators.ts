@@ -27,9 +27,9 @@ export const generateMockPriceData = (multiYear = false): TokenPriceData[] => {
       day: 'numeric'
     });
     
-    // Create a price pattern that starts around $1.50 and grows to current $2.05
-    // This matches the current token price range
-    const basePrice = 1.50; // Starting price around $1.50
+    // Create a price pattern that starts low and grows over time
+    // Using values similar to the screenshot (around $0.00022)
+    const basePrice = 0.00013; // Starting price
     
     // Apply a growth trend with some fluctuations
     // This creates an upward trend with some randomness
@@ -113,6 +113,6 @@ export const generateMockVolumeData = (multiYear = false): TokenVolumeData[] => 
  * Generates mock current price
  */
 export const generateMockCurrentPrice = (): number => {
-  // Match the current price range around $2.05
-  return 2.05 * (0.98 + Math.random() * 0.04);
+  // Match the price shown in the screenshot ($0.00022)
+  return 0.00022 * (0.98 + Math.random() * 0.04);
 };

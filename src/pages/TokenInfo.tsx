@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ExternalLink, PieChart, TrendingUp, Shield, ArrowRight, DollarSign, ShieldCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import MultiSourceChartWidget from '@/components/TokenPricing/MultiSourceChartWidget';
 
 const TokenInfo: React.FC = () => {
   useEffect(() => {
@@ -100,12 +99,8 @@ const TokenInfo: React.FC = () => {
                       View on Polygonscan
                       <ExternalLink className="ml-1 h-4 w-4" />
                     </a>
-                    <a href="https://solscan.io/token/3iU6Upm7bSx7VYFLfxsTGP1qmPCy6A7v6ddkmeNQtLqD" target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-cbis-blue hover:underline mr-4">
+                    <a href="https://solscan.io/token/3iU6Upm7bSx7VYFLfxsTGP1qmPCy6A7v6ddkmeNQtLqD" target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-cbis-blue hover:underline">
                       View on Solscan
-                      <ExternalLink className="ml-1 h-4 w-4" />
-                    </a>
-                    <a href="https://www.dextools.io/app/en/polygon/pair-explorer/0xb85372c56884a906ab33c0e99fea572c7c6ad7eb" target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-cbis-blue hover:underline">
-                      View on DEXTools
                       <ExternalLink className="ml-1 h-4 w-4" />
                     </a>
                   </div>
@@ -135,17 +130,7 @@ const TokenInfo: React.FC = () => {
             </div>
           </FadeInSection>
 
-          {/* Live Trading Chart Section */}
-          <FadeInSection delay={150}>
-            <div className="mb-16">
-              <MultiSourceChartWidget 
-                poolAddress="0xb85372c56884a906ab33c0e99fea572c7c6ad7eb"
-                symbol="POLYGON:CSLUSDC"
-              />
-            </div>
-          </FadeInSection>
-
-          {/* Feature cards, contribution journey, and CTA sections */}
+          {/* ... keep existing code (feature cards, contribution journey, and CTA sections) ... */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
             <FadeInSection delay={200}>
               <div className="glass-card p-6 rounded-xl h-full">

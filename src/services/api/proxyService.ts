@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 interface ProxyRequest {
-  source: 'rpc' | 'graph' | 'defined' | 'dexscreener' | 'dextools';
+  source: 'rpc' | 'graph' | 'defined' | 'dexscreener';
   method?: string;
   url?: string;
   body?: any;
@@ -99,21 +99,6 @@ export async function makeDexScreenerCall(pairAddress?: string): Promise<any> {
     
   return makeProxyRequest({
     source: 'dexscreener',
-    method: 'GET',
-    url
-  });
-}
-
-/**
- * Makes DexTools widget calls through the proxy to bypass iframe restrictions
- */
-export async function makeDexToolsCall(poolAddress?: string): Promise<any> {
-  const url = poolAddress 
-    ? `https://www.dextools.io/widget-chart/en/polygon/pe-light/${poolAddress}?theme=light&chartType=2&chartResolution=30&drawingToolbars=false`
-    : undefined;
-    
-  return makeProxyRequest({
-    source: 'dextools',
     method: 'GET',
     url
   });

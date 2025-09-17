@@ -1,6 +1,6 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { fetchTokenPriceHistory } from '@/services/api/priceService';
+import { fetchTokenPriceHistory } from '@/services/tokenDataService';
 import { toast } from "@/components/ui/use-toast";
 
 export const usePriceHistory = () => {

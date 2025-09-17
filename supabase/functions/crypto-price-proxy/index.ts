@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 interface PriceProxyRequest {
-  source: 'rpc' | 'graph' | 'defined' | 'dexscreener' | 'dextools';
+  source: 'rpc' | 'graph' | 'defined' | 'dexscreener';
   method?: string;
   url?: string;
   body?: any;
@@ -68,14 +68,6 @@ serve(async (req) => {
         targetUrl = url || 'https://api.dexscreener.com/latest/dex/pairs/polygon/0xb85372c56884a906ab33c0e99fea572c7c6ad7eb';
         break;
         
-      case 'dextools':
-        targetUrl = url || 'https://www.dextools.io/widget-chart/en/polygon/pe-light/0xb85372c56884a906ab33c0e99fea572c7c6ad7eb';
-        // Remove headers that cause iframe blocking
-        requestOptions.headers = {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        };
-        break;
-        
       default:
         throw new Error(`Unsupported source: ${source}`);
     }
@@ -87,24 +79,6 @@ serve(async (req) => {
     
     if (!response.ok) {
       throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-    }
-    
-    // Handle DexTools widget content differently (HTML content)
-    if (source === 'dextools') {
-      const html = await response.text();
-      // Strip X-Frame-Options and CSP headers that block embedding
-      const cleanHtml = html.replace(/X-Frame-Options:\s*[^\n\r]*/gi, '')
-                            .replace(/Content-Security-Policy:\s*[^\n\r]*/gi, '');
-      
-      console.log(`[PRICE PROXY] Success for ${source} (HTML content)`);
-      
-      return new Response(cleanHtml, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'text/html',
-          'X-Frame-Options': 'ALLOWALL'
-        }
-      });
     }
     
     const data = await response.json();

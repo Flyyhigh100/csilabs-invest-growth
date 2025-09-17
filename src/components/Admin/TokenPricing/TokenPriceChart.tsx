@@ -1,6 +1,7 @@
 
 import React from 'react';
-import TokenChart from '@/components/TokenPricing/TokenChart';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import DexToolsChart from '@/components/TokenPricing/DexToolsChart';
 import { TokenPriceData } from '@/types/token';
 
 interface TokenPriceChartProps {
@@ -15,9 +16,17 @@ const TokenPriceChart: React.FC<TokenPriceChartProps> = ({
   refreshAllData 
 }) => {
   return (
-    <div className="col-span-1 lg:col-span-2">
-      <TokenChart />
-    </div>
+    <Card className="col-span-1 lg:col-span-2">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span>Token Price Chart</span>
+        </CardTitle>
+        <CardDescription>Real-time price data powered by DexTools</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <DexToolsChart />
+      </CardContent>
+    </Card>
   );
 };
 
