@@ -280,6 +280,137 @@ export const AdminAssetTypeSection: React.FC<AdminAssetTypeSectionProps> = ({
         </div>
       </CardHeader>
 
+      {/* Add/Edit Transaction Form - Available for both empty and populated assets */}
+      {showAddForm[assetType] && currentFormData && (
+        <div className="px-6 pb-4">
+          <Card className={isAdminMode ? 'border-orange-200 bg-orange-50/20' : ''}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                {isAdminMode && <Shield className="h-4 w-4 text-orange-600" />}
+                {currentEditingTransaction ? 'Edit Transaction' : 'Add New Transaction'}
+                {isAdminMode && (
+                  <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800">
+                    Admin Action
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Type</Label>
+                    <Select
+                      value={currentFormData.transactionType}
+                      onValueChange={(value: AdminTransactionType) =>
+                        setFormData(prev => ({
+                          ...prev,
+                          [assetType]: { ...prev[assetType], transactionType: value }
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="purchase">Purchase</SelectItem>
+                        <SelectItem value="sale">Sale</SelectItem>
+                        <SelectItem value="transfer_in">Transfer In</SelectItem>
+                        <SelectItem value="transfer_out">Transfer Out</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-xs">Date</Label>
+                    <Input
+                      type="date"
+                      value={currentFormData.transactionDate}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        [assetType]: { ...prev[assetType], transactionDate: e.target.value }
+                      }))}
+                      className="h-8"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Shares</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      placeholder="Number of shares"
+                      value={currentFormData.sharesQuantity}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        [assetType]: { ...prev[assetType], sharesQuantity: e.target.value }
+                      }))}
+                      className="h-8"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-xs">Price/Share</Label>
+                    <Input
+                      type="number"
+                      step="0.0001"
+                      min="0.0001"
+                      placeholder="Price per share"
+                      value={currentFormData.pricePerShare}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        [assetType]: { ...prev[assetType], pricePerShare: e.target.value }
+                      }))}
+                      className="h-8"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs">Notes (Optional)</Label>
+                  <Textarea
+                    placeholder="Additional notes"
+                    value={currentFormData.notes}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      [assetType]: { ...prev[assetType], notes: e.target.value }
+                    }))}
+                    rows={2}
+                    className="text-xs"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={addTransaction.isPending || updateTransaction.isPending}
+                    className={`flex-1 h-8 text-xs ${isAdminMode ? 'bg-orange-600 hover:bg-orange-700' : ''}`}
+                  >
+                    {currentEditingTransaction ? 'Update' : 'Add'} Transaction
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => resetForm(assetType)}
+                    className="h-8 text-xs"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {hasValue && (
         <Collapsible open={isExpanded} onOpenChange={() => toggleAssetExpansion(assetType)}>
           <CollapsibleContent>
@@ -325,135 +456,6 @@ export const AdminAssetTypeSection: React.FC<AdminAssetTypeSectionProps> = ({
                   </Button>
                 </div>
               </div>
-
-              {/* Add/Edit Transaction Form */}
-              {showAddForm[assetType] && currentFormData && (
-                <Card className={isAdminMode ? 'border-orange-200 bg-orange-50/20' : ''}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      {isAdminMode && <Shield className="h-4 w-4 text-orange-600" />}
-                      {currentEditingTransaction ? 'Edit Transaction' : 'Add New Transaction'}
-                      {isAdminMode && (
-                        <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800">
-                          Admin Action
-                        </Badge>
-                      )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Type</Label>
-                          <Select
-                            value={currentFormData.transactionType}
-                            onValueChange={(value: AdminTransactionType) =>
-                              setFormData(prev => ({
-                                ...prev,
-                                [assetType]: { ...prev[assetType], transactionType: value }
-                              }))
-                            }
-                          >
-                            <SelectTrigger className="h-8">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="purchase">Purchase</SelectItem>
-                              <SelectItem value="sale">Sale</SelectItem>
-                              <SelectItem value="transfer_in">Transfer In</SelectItem>
-                              <SelectItem value="transfer_out">Transfer Out</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <Label className="text-xs">Date</Label>
-                          <Input
-                            type="date"
-                            value={currentFormData.transactionDate}
-                            onChange={(e) => setFormData(prev => ({
-                              ...prev,
-                              [assetType]: { ...prev[assetType], transactionDate: e.target.value }
-                            }))}
-                            className="h-8"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Shares</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            placeholder="Number of shares"
-                            value={currentFormData.sharesQuantity}
-                            onChange={(e) => setFormData(prev => ({
-                              ...prev,
-                              [assetType]: { ...prev[assetType], sharesQuantity: e.target.value }
-                            }))}
-                            className="h-8"
-                            required
-                          />
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <Label className="text-xs">Price/Share</Label>
-                          <Input
-                            type="number"
-                            step="0.0001"
-                            min="0.0001"
-                            placeholder="Price per share"
-                            value={currentFormData.pricePerShare}
-                            onChange={(e) => setFormData(prev => ({
-                              ...prev,
-                              [assetType]: { ...prev[assetType], pricePerShare: e.target.value }
-                            }))}
-                            className="h-8"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <Label className="text-xs">Notes (Optional)</Label>
-                        <Textarea
-                          placeholder="Additional notes"
-                          value={currentFormData.notes}
-                          onChange={(e) => setFormData(prev => ({
-                            ...prev,
-                            [assetType]: { ...prev[assetType], notes: e.target.value }
-                          }))}
-                          rows={2}
-                          className="text-xs"
-                        />
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          type="submit"
-                          size="sm"
-                          disabled={addTransaction.isPending || updateTransaction.isPending}
-                          className={`flex-1 h-8 text-xs ${isAdminMode ? 'bg-orange-600 hover:bg-orange-700' : ''}`}
-                        >
-                          {currentEditingTransaction ? 'Update' : 'Add'} Transaction
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => resetForm(assetType)}
-                          className="h-8 text-xs"
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </form>
-                  </CardContent>
-                </Card>
-              )}
 
               {/* Transaction History */}
               {transactions.length > 0 && (
