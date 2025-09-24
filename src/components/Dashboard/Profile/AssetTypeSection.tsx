@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronRight, Info, Receipt, Plus, Edit2, Trash2, AlertTriangle, Calculator } from 'lucide-react';
+import { ChevronDown, ChevronRight, Info, Receipt, Plus, Edit2, Trash2, AlertTriangle, Calculator, Check, X } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { LegacyAssetType } from '@/hooks/useLegacyAssets';
 import { useLegacyAssetTransactions, TransactionType, LegacyAssetTransaction } from '@/hooks/useLegacyAssetTransactions';
@@ -221,10 +221,7 @@ const AssetTypeSection: React.FC<AssetTypeSectionProps> = ({
                 </div>
                 <Button
                   size="sm"
-                  onClick={() => {
-                    console.log('Start button clicked for asset:', assetType);
-                    toggleAddForm(assetType);
-                  }}
+                  onClick={() => toggleAddForm(assetType)}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   <Plus className="h-3 w-3 mr-1" />
@@ -262,6 +259,129 @@ const AssetTypeSection: React.FC<AssetTypeSectionProps> = ({
           )}
         </div>
       </CardHeader>
+
+      {/* Add/Edit Transaction Form - Available for all assets when toggled */}
+      {showAddForm[assetType] && currentFormData && (
+        <CardContent className="pt-0">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">
+                {currentEditingTransaction ? 'Edit' : 'Add'} Transaction
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-0">
+              <form onSubmit={handleSubmit}>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="type" className="text-xs">Transaction Type</Label>
+                    <Select
+                      value={currentFormData.transactionType}
+                      onValueChange={(value: TransactionType) => 
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          [assetType]: { ...prev[assetType], transactionType: value }
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="purchase">Purchase</SelectItem>
+                        <SelectItem value="sale">Sale</SelectItem>
+                        <SelectItem value="transfer_in">Transfer In</SelectItem>
+                        <SelectItem value="transfer_out">Transfer Out</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label htmlFor="date" className="text-xs">Date</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={currentFormData.transactionDate}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        [assetType]: { ...prev[assetType], transactionDate: e.target.value }
+                      }))}
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="shares" className="text-xs">Shares</Label>
+                    <Input
+                      id="shares"
+                      type="number"
+                      step="0.000001"
+                      value={currentFormData.sharesQuantity}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        [assetType]: { ...prev[assetType], sharesQuantity: e.target.value }
+                      }))}
+                      className="text-sm"
+                      placeholder="0.000000"
+                    />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label htmlFor="price" className="text-xs">Price per Share ($)</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      value={currentFormData.pricePerShare}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        [assetType]: { ...prev[assetType], pricePerShare: e.target.value }
+                      }))}
+                      className="text-sm"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1 mt-3">
+                  <Label htmlFor="notes" className="text-xs">Notes (Optional)</Label>
+                  <Input
+                    id="notes"
+                    value={currentFormData.notes || ''}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      [assetType]: { ...prev[assetType], notes: e.target.value }
+                    }))}
+                    className="text-sm"
+                    placeholder="Add any additional details..."
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    size="sm"
+                    type="submit"
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <Check className="h-3 w-3 mr-1" />
+                    {currentEditingTransaction ? 'Update' : 'Add'} Transaction
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    type="button"
+                    onClick={() => resetForm(assetType)}
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </CardContent>
+      )}
 
       {hasValue && (
         <Collapsible open={isExpanded} onOpenChange={() => toggleAssetExpansion(assetType)}>
@@ -309,137 +429,7 @@ const AssetTypeSection: React.FC<AssetTypeSectionProps> = ({
                 </div>
               </div>
 
-              {/* Add/Edit Transaction Form */}
-              {(() => {
-                console.log('Form render check:', {
-                  assetType,
-                  showAddForm: showAddForm[assetType],
-                  currentFormData: currentFormData,
-                  shouldShow: showAddForm[assetType] && currentFormData
-                });
-                return null;
-              })()}
-              {showAddForm[assetType] && currentFormData && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">
-                      {currentEditingTransaction ? 'Edit Transaction' : 'Add New Transaction'}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Type</Label>
-                          <Select
-                            value={currentFormData.transactionType}
-                            onValueChange={(value: TransactionType) =>
-                              setFormData(prev => ({
-                                ...prev,
-                                [assetType]: { ...prev[assetType], transactionType: value }
-                              }))
-                            }
-                          >
-                            <SelectTrigger className="h-8">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="purchase">Purchase</SelectItem>
-                              <SelectItem value="sale">Sale</SelectItem>
-                              <SelectItem value="transfer_in">Transfer In</SelectItem>
-                              <SelectItem value="transfer_out">Transfer Out</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <Label className="text-xs">Date</Label>
-                          <Input
-                            type="date"
-                            value={currentFormData.transactionDate}
-                            onChange={(e) => setFormData(prev => ({
-                              ...prev,
-                              [assetType]: { ...prev[assetType], transactionDate: e.target.value }
-                            }))}
-                            className="h-8"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Shares</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            placeholder="Number of shares"
-                            value={currentFormData.sharesQuantity}
-                            onChange={(e) => setFormData(prev => ({
-                              ...prev,
-                              [assetType]: { ...prev[assetType], sharesQuantity: e.target.value }
-                            }))}
-                            className="h-8"
-                            required
-                          />
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <Label className="text-xs">Price/Share</Label>
-                          <Input
-                            type="number"
-                            step="0.0001"
-                            min="0.0001"
-                            placeholder="Price per share"
-                            value={currentFormData.pricePerShare}
-                            onChange={(e) => setFormData(prev => ({
-                              ...prev,
-                              [assetType]: { ...prev[assetType], pricePerShare: e.target.value }
-                            }))}
-                            className="h-8"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <Label className="text-xs">Notes (Optional)</Label>
-                        <Textarea
-                          placeholder="Additional notes"
-                          value={currentFormData.notes}
-                          onChange={(e) => setFormData(prev => ({
-                            ...prev,
-                            [assetType]: { ...prev[assetType], notes: e.target.value }
-                          }))}
-                          rows={2}
-                          className="text-xs"
-                        />
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          type="submit"
-                          size="sm"
-                          disabled={addTransaction.isPending || updateTransaction.isPending}
-                          className="flex-1 h-8 text-xs"
-                        >
-                          {currentEditingTransaction ? 'Update' : 'Add'} Transaction
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => resetForm(assetType)}
-                          className="h-8 text-xs"
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </form>
-                  </CardContent>
-                </Card>
-              )}
+              {/* This form section was moved outside the hasValue conditional */}
 
               {/* Transaction History */}
               <div className="space-y-2">
