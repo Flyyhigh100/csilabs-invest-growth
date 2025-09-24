@@ -13,6 +13,7 @@ import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
 import TestDataToggle from '@/components/Admin/TestDataToggle';
 import { format, startOfMonth, subMonths } from 'date-fns';
 import { useTransactionAnalytics } from '@/hooks/admin/useTransactionAnalytics';
+import RecentMessagesWidget from '@/components/Admin/Communications/RecentMessagesWidget';
 
 const AdminDashboard: React.FC = () => {
   const { includeTestData, setIncludeTestData } = useTestDataToggle();
@@ -325,6 +326,11 @@ const AdminDashboard: React.FC = () => {
             </Link>
           </Button>
         </div>
+      </div>
+
+      {/* Recent Messages Widget */}
+      <div className="mb-6">
+        <RecentMessagesWidget />
       </div>
       
       {/* Status Notice */}

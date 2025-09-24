@@ -12,8 +12,10 @@ import {
   FileText,
   Wallet,
   BarChart3,
-  Users as UsersIcon
+  Users as UsersIcon,
+  MessageSquare
 } from 'lucide-react';
+import CommunicationNotificationBadge from '@/components/Admin/Communications/CommunicationNotificationBadge';
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -23,6 +25,12 @@ const Sidebar = ({ className, ...props }: SidebarProps) => {
       title: 'Dashboard',
       href: '/admin',
       icon: <HomeIcon className="w-4 h-4 mr-3" />,
+    },
+    {
+      title: 'Communications',
+      href: '/admin/communications',
+      icon: <MessageSquare className="w-4 h-4 mr-3" />,
+      showBadge: true,
     },
     {
       title: 'Reports',
@@ -95,6 +103,7 @@ const Sidebar = ({ className, ...props }: SidebarProps) => {
         >
           {link.icon}
           {link.title}
+          {link.showBadge && <CommunicationNotificationBadge />}
         </NavLink>
       ))}
     </nav>

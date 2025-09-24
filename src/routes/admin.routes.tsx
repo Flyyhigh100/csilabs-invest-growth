@@ -11,7 +11,8 @@ import {
   BarChart2,
   FileText,
   AlertTriangle,
-  Wallet
+  Wallet,
+  MessageSquare
 } from 'lucide-react';
 
 // Lazy load admin pages for better performance
@@ -27,6 +28,7 @@ const AdminKYC = lazy(() => import('@/components/Admin/KYC'));
 const AdminTransactionTools = lazy(() => import('@/pages/Admin/TransactionTools'));
 const AdminResearchDocuments = lazy(() => import('@/pages/Admin/ResearchDocuments'));
 const AdminWalletPortfolio = lazy(() => import('@/pages/Admin/WalletPortfolio'));
+const AdminCommunications = lazy(() => import('@/pages/Admin/Communications'));
 
 export const adminRoutes = [
   {
@@ -137,6 +139,15 @@ export const adminRoutes = [
       requiresAdmin: true,
     },
   },
+  {
+    path: '/admin/communications',
+    element: <AdminCommunications />,
+    meta: {
+      title: 'Communications',
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+  },
 ];
 
 export const adminSidebarLinks = [
@@ -144,6 +155,11 @@ export const adminSidebarLinks = [
     title: 'Dashboard',
     path: '/admin',
     icon: <AdminDashboardIcon className="h-5 w-5" />,
+  },
+  {
+    title: 'Communications',
+    path: '/admin/communications',
+    icon: <MessageSquare className="h-5 w-5" />,
   },
   {
     title: 'Reports',
