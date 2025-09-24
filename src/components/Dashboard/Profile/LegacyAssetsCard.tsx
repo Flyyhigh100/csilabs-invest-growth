@@ -146,11 +146,14 @@ const LegacyAssetsCard = () => {
             </div>
 
             {hasAssets && (
-              <div className="pt-4 border-t">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">Total Holdings:</span>
-                  <span className="text-primary font-semibold">
-                    {totalAssets.toLocaleString()} shares
+              <div className="p-4 bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-md border border-amber-200 dark:border-amber-800">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-amber-800 dark:text-amber-200">Total Legacy Assets:</span>
+                  <span className="text-xl font-bold text-amber-900 dark:text-amber-100">
+                    {totalAssets.toLocaleString(undefined, { 
+                      minimumFractionDigits: 0, 
+                      maximumFractionDigits: 2 
+                    })} shares
                   </span>
                 </div>
               </div>

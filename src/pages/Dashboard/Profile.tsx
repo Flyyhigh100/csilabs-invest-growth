@@ -9,6 +9,8 @@ import ProfileForm from '@/components/Dashboard/Profile/ProfileForm';
 import TokenBalanceCard from '@/components/Dashboard/Profile/TokenBalanceCard';
 import WalletInfoCard from '@/components/Dashboard/Profile/WalletInfoCard';
 import LegacyAssetsCard from '@/components/Dashboard/Profile/LegacyAssetsCard';
+import GrandTotalCard from '@/components/Dashboard/Profile/GrandTotalCard';
+import ProfileNotesCard from '@/components/Dashboard/Profile/ProfileNotesCard';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -16,20 +18,8 @@ const Profile = () => {
 
   return (
     <DashboardLayout title="Profile">
-      {/* KYC Status Banner */}
-      <KycStatusCard />
-
-      {/* Token Balance Card */}
-      <TokenBalanceCard />
-      
-      {/* Legacy Assets */}
-      <LegacyAssetsCard />
-      
-      {/* Wallet Information */}
-      <WalletInfoCard />
-
       {/* Profile Form */}
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle>Profile Information</CardTitle>
           <CardDescription>
@@ -44,6 +34,24 @@ const Profile = () => {
           />
         </CardContent>
       </Card>
+
+      {/* KYC Status */}
+      <KycStatusCard />
+
+      {/* Wallet Information */}
+      <WalletInfoCard />
+
+      {/* Token Balance Card */}
+      <TokenBalanceCard />
+
+      {/* Grand Total Holdings */}
+      <GrandTotalCard />
+      
+      {/* Legacy Assets */}
+      <LegacyAssetsCard />
+
+      {/* Communication */}
+      <ProfileNotesCard />
     </DashboardLayout>
   );
 };
