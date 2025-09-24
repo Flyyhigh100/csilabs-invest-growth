@@ -43,12 +43,12 @@ const Profile = () => {
 
       {/* Token Balance Card */}
       <TokenBalanceCard />
-
-      {/* Grand Total Holdings */}
-      <GrandTotalCard />
       
       {/* Legacy Assets */}
       <LegacyAssetsCard />
+
+      {/* Grand Total Holdings */}
+      <GrandTotalCard />
 
       {/* Communication */}
       <ProfileNotesCard />
