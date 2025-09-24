@@ -261,10 +261,11 @@ const EnhancedClientDetailView: React.FC<EnhancedClientDetailViewProps> = ({
 
       {/* Detailed Information Tabs */}
       <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="tokens">Token Details</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
+          <TabsTrigger value="communication">Communication</TabsTrigger>
           <TabsTrigger value="kyc">KYC</TabsTrigger>
         </TabsList>
 
