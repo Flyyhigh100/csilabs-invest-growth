@@ -13,7 +13,8 @@ import {
   Wallet,
   BarChart3,
   Users as UsersIcon,
-  MessageSquare
+  MessageSquare,
+  Crown
 } from 'lucide-react';
 import CommunicationNotificationBadge from '@/components/Admin/Communications/CommunicationNotificationBadge';
 
@@ -36,6 +37,12 @@ const Sidebar = ({ className, ...props }: SidebarProps) => {
       title: 'Reports',
       href: '/admin/reports',
       icon: <BarChart3 className="w-4 h-4 mr-3" />,
+      highlight: true,
+    },
+    {
+      title: 'CEO Reports',
+      href: '/admin/ceo-reports',
+      icon: <Crown className="w-4 h-4 mr-3" />,
       highlight: true,
     },
     {

@@ -31,6 +31,7 @@ const AdminResearchDocuments = lazy(() => import('@/pages/Admin/ResearchDocument
 const AdminWalletPortfolio = lazy(() => import('@/pages/Admin/WalletPortfolio'));
 const AdminCommunications = lazy(() => import('@/pages/Admin/Communications'));
 const AdminLegacyAssets = lazy(() => import('@/pages/Admin/LegacyAssets'));
+const AdminCEOReports = lazy(() => import('@/pages/Admin/CEOReports'));
 
 export const adminRoutes = [
   {
@@ -47,6 +48,15 @@ export const adminRoutes = [
     element: <AdminReports />,
     meta: {
       title: 'Reports',
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+  },
+  {
+    path: '/admin/ceo-reports',
+    element: <AdminCEOReports />,
+    meta: {
+      title: 'CEO Reports',
       requiresAuth: true,
       requiresAdmin: true,
     },
