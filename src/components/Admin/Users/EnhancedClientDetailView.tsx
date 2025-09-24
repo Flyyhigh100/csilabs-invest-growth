@@ -14,7 +14,7 @@ import { TestIconLucide } from '@/components/icons/TestIcon';
 import { CopyButton } from '@/components/ui/copy-button';
 import UserTransactionDashboard from './UserTransactions/UserTransactionDashboard';
 import ProfileNotesCard from '@/components/Dashboard/Profile/ProfileNotesCard';
-import AdminLegacyAssetManager from '@/components/Admin/LegacyAssets/AdminLegacyAssetManager';
+import { AdminLegacyAssetContent } from '@/components/Admin/LegacyAssets/AdminLegacyAssetContent';
 import {
   Tooltip,
   TooltipContent,
@@ -413,15 +413,14 @@ const EnhancedClientDetailView: React.FC<EnhancedClientDetailViewProps> = ({
         </TabsContent>
 
         <TabsContent value="legacy-assets" className="space-y-4">
-          <AdminLegacyAssetManager
-            isOpen={true}
-            onClose={() => {}}
+          <AdminLegacyAssetContent
             user={{
               user_id: client.id,
               first_name: client.first_name || '',
               last_name: client.last_name || '',
               email: client.email || ''
             }}
+            showHeader={false}
           />
         </TabsContent>
 
