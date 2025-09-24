@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { LegacyAssetType } from '@/hooks/useLegacyAssets';
 import { useLegacyAssetTransactions, TransactionType, LegacyAssetTransaction } from '@/hooks/useLegacyAssetTransactions';
 import { format } from 'date-fns';
-import { formatCurrency, formatTokenAmount } from '@/utils/format';
+import { formatCurrency, formatTokenAmount, formatCurrencyPrecise } from '@/utils/format';
 
 interface TransactionFormData {
   transactionType: TransactionType;
@@ -200,16 +200,33 @@ const AssetTypeSection: React.FC<AssetTypeSectionProps> = ({
         </div>
         
         <div className="space-y-2">
-          <Input
-            id={assetType}
-            type="number"
-            min="0"
-            step="0.00000001"
-            placeholder="0"
-            value={displayValue}
-            onChange={(e) => handleValueChange(assetType, e.target.value)}
-            className={hasValue ? "border-primary/50 bg-primary/5" : ""}
-          />
+           <div className="space-y-1">
+             <Input
+               id={assetType}
+               type="number"
+               min="0"
+               step="0.00000001"
+               placeholder="0"
+               value={displayValue}
+               onChange={(e) => handleValueChange(assetType, e.target.value)}
+               className={hasValue ? "border-primary/50 bg-primary/5" : ""}
+             />
+             {hasValue && totalFromTransactions > 0 && (
+               <TooltipProvider>
+                 <Tooltip>
+                   <TooltipTrigger asChild>
+                     <div className="flex items-center gap-1 text-xs text-muted-foreground cursor-help">
+                       <Info className="h-3 w-3" />
+                       <span>Manual total should match transaction sum for accuracy</span>
+                     </div>
+                   </TooltipTrigger>
+                   <TooltipContent>
+                     <p className="text-xs">This field auto-saves when you type. Use the "Sync" button if transactions don't match the manual total.</p>
+                   </TooltipContent>
+                 </Tooltip>
+               </TooltipProvider>
+             )}
+           </div>
           
           {/* Prominent Add Transaction CTA for empty assets */}
           {!hasValue && transactions.length === 0 && (
@@ -327,21 +344,21 @@ const AssetTypeSection: React.FC<AssetTypeSectionProps> = ({
                     />
                   </div>
                   
-                  <div className="space-y-1">
-                    <Label htmlFor="price" className="text-xs">Price per Share ($)</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      step="0.01"
-                      value={currentFormData.pricePerShare}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        [assetType]: { ...prev[assetType], pricePerShare: e.target.value }
-                      }))}
-                      className="text-sm"
-                      placeholder="0.00"
-                    />
-                  </div>
+                   <div className="space-y-1">
+                     <Label htmlFor="price" className="text-xs">Price per Share ($)</Label>
+                     <Input
+                       id="price"
+                       type="number"
+                       step="0.001"
+                       value={currentFormData.pricePerShare}
+                       onChange={(e) => setFormData(prev => ({ 
+                         ...prev, 
+                         [assetType]: { ...prev[assetType], pricePerShare: e.target.value }
+                       }))}
+                       className="text-sm"
+                       placeholder="0.000"
+                     />
+                   </div>
                 </div>
 
                 <div className="space-y-1 mt-3">
@@ -396,7 +413,7 @@ const AssetTypeSection: React.FC<AssetTypeSectionProps> = ({
                   </div>
                   <div>
                     <span className="text-muted-foreground">Avg Cost:</span>
-                    <div className="font-medium">{formatCurrency(getAverageCostBasis(assetType))}</div>
+                    <div className="font-medium">{formatCurrencyPrecise(getAverageCostBasis(assetType))}</div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Total Value:</span>
@@ -407,15 +424,24 @@ const AssetTypeSection: React.FC<AssetTypeSectionProps> = ({
                 </div>
                 <div className="flex gap-2">
                   {hasDiscrepancy && totalFromTransactions > 0 && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={syncFromTransactions}
-                      className="text-xs"
-                    >
-                      <Calculator className="h-3 w-3 mr-1" />
-                      Sync
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={syncFromTransactions}
+                            className="text-xs"
+                          >
+                            <Calculator className="h-3 w-3 mr-1" />
+                            Sync
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">Update manual total to match transaction sum ({formatTokenAmount(totalFromTransactions)} shares)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                   <Button
                     size="sm"
@@ -477,9 +503,9 @@ const AssetTypeSection: React.FC<AssetTypeSectionProps> = ({
                                   <span className={`font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
                                     {isPositive ? '+' : '-'}{formatTokenAmount(Math.abs(transaction.shares_quantity))}
                                   </span>
-                                  <span className="text-muted-foreground">
-                                    @ {formatCurrency(transaction.price_per_share)}
-                                  </span>
+                                   <span className="text-muted-foreground">
+                                     @ {formatCurrencyPrecise(transaction.price_per_share)}
+                                   </span>
                                 </div>
                                 {transaction.notes && (
                                   <p className="text-xs text-muted-foreground truncate mt-1">

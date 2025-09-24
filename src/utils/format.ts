@@ -19,3 +19,17 @@ export const formatTokenAmount = (amount: number): string => {
     maximumFractionDigits: 2,
   }).format(amount);
 };
+
+export const formatCurrencyPrecise = (amount: number, currency: string = 'USD'): string => {
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 3,
+      maximumFractionDigits: 3,
+    }).format(amount);
+  } catch (error) {
+    // Fallback for unknown currencies
+    return `${amount.toFixed(3)} ${currency}`;
+  }
+};
