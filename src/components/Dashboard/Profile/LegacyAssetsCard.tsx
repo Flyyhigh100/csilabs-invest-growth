@@ -3,17 +3,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, TrendingUp, Info, Receipt } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { ChevronDown, ChevronRight, TrendingUp, Info, Receipt, Plus, Edit2, Trash2, Calendar } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useLegacyAssets, LEGACY_ASSET_TYPES, LegacyAssetType } from '@/hooks/useLegacyAssets';
+import { useLegacyAssetTransactions, TransactionType, LegacyAssetTransaction } from '@/hooks/useLegacyAssetTransactions';
 import { useDebounce } from '@/hooks/useDebounce';
-import TransactionModal from './TransactionModal';
+import { format } from 'date-fns';
+import { formatCurrency, formatTokenAmount } from '@/utils/format';
+import AssetTypeSection from './AssetTypeSection';
+
+interface TransactionFormData {
+  transactionType: TransactionType;
+  transactionDate: string;
+  sharesQuantity: string;
+  pricePerShare: string;
+  notes: string;
+}
 
 const LegacyAssetsCard = () => {
   const { legacyAssets, isLoading, updateAsset, getAssetAmount, getTotalAssetCount } = useLegacyAssets();
   const [isOpen, setIsOpen] = useState(false);
   const [pendingValues, setPendingValues] = useState<Record<string, string>>({});
+  const [expandedAssets, setExpandedAssets] = useState<Record<string, boolean>>({});
+  const [showAddForm, setShowAddForm] = useState<Record<string, boolean>>({});
+  const [editingTransaction, setEditingTransaction] = useState<Record<string, LegacyAssetTransaction | null>>({});
+  const [formData, setFormData] = useState<Record<string, TransactionFormData>>({});
 
   // Debounce the save operation
   const debouncedSave = useDebounce((assetType: LegacyAssetType, amount: number) => {
@@ -35,6 +53,49 @@ const LegacyAssetsCard = () => {
     }
     const amount = getAssetAmount(assetType);
     return amount > 0 ? amount.toString() : '';
+  };
+
+  const getDefaultFormData = (): TransactionFormData => ({
+    transactionType: 'purchase',
+    transactionDate: new Date().toISOString().split('T')[0],
+    sharesQuantity: '',
+    pricePerShare: '',
+    notes: ''
+  });
+
+  const toggleAssetExpansion = (assetType: string) => {
+    setExpandedAssets(prev => ({
+      ...prev,
+      [assetType]: !prev[assetType]
+    }));
+  };
+
+  const toggleAddForm = (assetType: string) => {
+    setShowAddForm(prev => ({
+      ...prev,
+      [assetType]: !prev[assetType]
+    }));
+    if (!formData[assetType]) {
+      setFormData(prev => ({
+        ...prev,
+        [assetType]: getDefaultFormData()
+      }));
+    }
+  };
+
+  const resetForm = (assetType: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [assetType]: getDefaultFormData()
+    }));
+    setEditingTransaction(prev => ({
+      ...prev,
+      [assetType]: null
+    }));
+    setShowAddForm(prev => ({
+      ...prev,
+      [assetType]: false
+    }));
   };
 
   const totalAssets = getTotalAssetCount();
@@ -87,7 +148,7 @@ const LegacyAssetsCard = () => {
               )}
             </div>
             <CardDescription>
-              Track your Cannabis Science legacy holdings and assets
+              Track your Cannabis Science legacy holdings and transaction history
             </CardDescription>
           </CardHeader>
         </CollapsibleTrigger>
@@ -102,60 +163,25 @@ const LegacyAssetsCard = () => {
               </div>
             )}
 
-            <div className="grid gap-4 md:grid-cols-2">
-              {LEGACY_ASSET_TYPES.map((assetType) => {
-                const displayValue = getDisplayValue(assetType);
-                const hasValue = parseFloat(displayValue) > 0;
-
-                return (
-                  <div key={assetType} className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor={assetType} className="text-sm font-medium">
-                        {assetType}
-                      </Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-xs">
-                            <p className="text-xs">{assetDescriptions[assetType]}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    
-                    <Input
-                      id={assetType}
-                      type="number"
-                      min="0"
-                      step="0.00000001"
-                      placeholder="0"
-                      value={displayValue}
-                      onChange={(e) => handleValueChange(assetType, e.target.value)}
-                      className={hasValue ? "border-primary/50 bg-primary/5" : ""}
-                    />
-                    
-                    {hasValue && (
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs text-muted-foreground">
-                          {parseFloat(displayValue).toLocaleString()} shares
-                        </div>
-                        <TransactionModal assetType={assetType}>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-6 px-2 text-xs"
-                          >
-                            <Receipt className="h-3 w-3 mr-1" />
-                            Transactions
-                          </Button>
-                        </TransactionModal>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+            <div className="space-y-6">
+              {LEGACY_ASSET_TYPES.map((assetType) => (
+                <AssetTypeSection 
+                  key={assetType} 
+                  assetType={assetType}
+                  displayValue={getDisplayValue(assetType)}
+                  assetDescriptions={assetDescriptions}
+                  handleValueChange={handleValueChange}
+                  expandedAssets={expandedAssets}
+                  showAddForm={showAddForm}
+                  editingTransaction={editingTransaction}
+                  formData={formData}
+                  toggleAssetExpansion={toggleAssetExpansion}
+                  toggleAddForm={toggleAddForm}
+                  resetForm={resetForm}
+                  setFormData={setFormData}
+                  setEditingTransaction={setEditingTransaction}
+                />
+              ))}
             </div>
 
             {hasAssets && (
@@ -174,7 +200,7 @@ const LegacyAssetsCard = () => {
 
             <div className="text-xs text-muted-foreground mt-4 p-3 bg-muted/50 rounded-lg">
               <p className="font-medium mb-1">💡 Auto-save enabled</p>
-              <p>Your changes are automatically saved as you type. All amounts are stored securely and visible only to you.</p>
+              <p>Your changes are automatically saved as you type. Click on any asset with holdings to manage detailed transaction records.</p>
             </div>
           </CardContent>
         </CollapsibleContent>
