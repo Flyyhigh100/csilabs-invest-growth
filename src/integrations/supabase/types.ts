@@ -43,9 +43,11 @@ export type Database = {
           created_at: string
           id: string
           ip_address: string | null
+          is_admin_action: boolean | null
           new_values: Json | null
           old_values: Json | null
           operation: string
+          reason: string | null
           record_id: string | null
           table_name: string | null
           user_agent: string | null
@@ -55,9 +57,11 @@ export type Database = {
           created_at?: string
           id?: string
           ip_address?: string | null
+          is_admin_action?: boolean | null
           new_values?: Json | null
           old_values?: Json | null
           operation: string
+          reason?: string | null
           record_id?: string | null
           table_name?: string | null
           user_agent?: string | null
@@ -67,9 +71,11 @@ export type Database = {
           created_at?: string
           id?: string
           ip_address?: string | null
+          is_admin_action?: boolean | null
           new_values?: Json | null
           old_values?: Json | null
           operation?: string
+          reason?: string | null
           record_id?: string | null
           table_name?: string | null
           user_agent?: string | null
@@ -758,6 +764,22 @@ export type Database = {
       execute_sql: {
         Args: { sql_query: string }
         Returns: Json[]
+      }
+      get_legacy_asset_history: {
+        Args: { p_asset_type?: string; p_user_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          ip_address: string
+          is_admin_action: boolean
+          new_values: Json
+          old_values: Json
+          operation: string
+          reason: string
+          record_id: string
+          table_name: string
+          user_agent: string
+        }[]
       }
       get_secret: {
         Args: { secret_name: string }
