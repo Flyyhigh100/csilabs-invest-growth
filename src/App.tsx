@@ -62,6 +62,7 @@ import CoinPaymentsSetupPage from './pages/Admin/CoinPaymentsSetup';
 import TransactionStatusManagerPage from './pages/Admin/TransactionStatusManager';
 import AdministratorsPage from './pages/Admin/Administrators';
 import AdminCommunications from './pages/Admin/Communications';
+import AdminCEOReports from './pages/Admin/CEOReports';
 
 // Create a query client
 const queryClient = new QueryClient({
@@ -124,6 +125,7 @@ function App() {
                           <Route path="dashboard" element={<AdminDashboard />} />
                           <Route path="communications" element={<AdminCommunications />} />
                           <Route path="reports" element={<ReportsPage />} />
+                          <Route path="ceo-reports" element={<AdminCEOReports />} />
                           <Route path="transactions" element={<AdminTransactionsPage />} />
                           <Route path="transactions/completed" element={<CompletedTransactionsPage />} />
                           <Route path="transactions/volume-details" element={<VolumeDetailsPage />} />
