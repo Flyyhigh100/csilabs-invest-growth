@@ -67,7 +67,7 @@ const PurchasePathSelector: React.FC<PurchasePathSelectorProps> = ({
           buttonLabel="Contribute Now" 
           disabled={isProcessing || isWalletMissing} 
           highlight={true} 
-          badgeText="Limited Time Pre-launch Special!" 
+          badgeText="Register for your Free Account" 
           badgeVariant="secondary" 
         />
         

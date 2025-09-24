@@ -96,10 +96,40 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                     <div className="absolute inset-0 rounded-2xl animate-border-dance opacity-50"></div>
                     
                     {/* Title Content */}
-                    <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-white leading-tight text-center relative z-10 animate-shimmer-text transition-transform hover:scale-105">
-                      Limited Time Pre-Launch Special!<br />
-                      Buy Direct @ Current Spot Price
-                    </h1>
+                    <div className="relative z-10 animate-shimmer-text">
+                      <div className="flex items-center justify-center mb-4">
+                        <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-white text-center">
+                          Cannabis Science - CSi Labs Crypto Trading
+                        </h1>
+                      </div>
+                      
+                      <div className="inline-block px-4 py-2 mb-4 text-sm md:text-base font-bold bg-yellow-400 text-gray-900 rounded-full">
+                        Register for your Free Account
+                      </div>
+                      
+                      <div className="space-y-2 text-left mb-4 max-w-2xl mx-auto">
+                        <div className="flex items-start space-x-3">
+                          <span className="bg-white text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mt-0.5 flex-shrink-0">1</span>
+                          <span className="font-medium text-sm md:text-base text-white">
+                            Register for your <span className="font-bold text-yellow-400">Free Account</span>
+                          </span>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <span className="bg-white text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mt-0.5 flex-shrink-0">2</span>
+                          <span className="font-medium text-sm md:text-base text-white">1-Million Strong Killing Cancers - CSi Labs Crypto Trading</span>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <span className="bg-white text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mt-0.5 flex-shrink-0">3</span>
+                          <span className="font-medium text-sm md:text-base text-white">Track your CBIS Shares to Trading</span>
+                        </div>
+                      </div>
+
+                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 mb-2 max-w-2xl mx-auto">
+                        <p className="text-sm md:text-base font-medium leading-relaxed text-white">
+                          Welcome to the Free CSi-EDP Digital HUB Designed for you to communicate & track all your CSi-EDP Holdings & Grow with us!
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (
