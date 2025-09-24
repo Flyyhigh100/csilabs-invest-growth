@@ -13,6 +13,7 @@ import { EnhancedClientData } from '@/hooks/admin/useEnhancedClientData';
 import { TestIconLucide } from '@/components/icons/TestIcon';
 import { CopyButton } from '@/components/ui/copy-button';
 import UserTransactionDashboard from './UserTransactions/UserTransactionDashboard';
+import ProfileNotesCard from '@/components/Dashboard/Profile/ProfileNotesCard';
 import {
   Tooltip,
   TooltipContent,
@@ -410,9 +411,13 @@ const EnhancedClientDetailView: React.FC<EnhancedClientDetailViewProps> = ({
 
         <TabsContent value="transactions">
           <UserTransactionDashboard userId={client.id} />
-        </TabsContent>
-
-        <TabsContent value="kyc" className="space-y-4">
+            </TabsContent>
+            
+            <TabsContent value="communication" className="space-y-4">
+              <ProfileNotesCard targetUserId={client.id} />
+            </TabsContent>
+            
+            <TabsContent value="kyc" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

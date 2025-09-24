@@ -11,7 +11,8 @@ import {
   KeyIcon,
   FileText,
   Wallet,
-  BarChart3
+  BarChart3,
+  Users as UsersIcon
 } from 'lucide-react';
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
@@ -28,6 +29,11 @@ const Sidebar = ({ className, ...props }: SidebarProps) => {
       href: '/admin/reports',
       icon: <BarChart3 className="w-4 h-4 mr-3" />,
       highlight: true,
+    },
+    {
+      title: 'User Management',
+      href: '/admin/users',
+      icon: <UsersIcon className="w-4 h-4 mr-3" />,
     },
     {
       title: 'KYC Verification',
