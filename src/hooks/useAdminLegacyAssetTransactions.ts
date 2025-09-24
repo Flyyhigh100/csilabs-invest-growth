@@ -91,6 +91,12 @@ export const useAdminLegacyAssetTransactions = (targetUserId?: string, assetType
       queryClient.invalidateQueries({ 
         queryKey: ['legacy-asset-transactions', variables.userId] 
       });
+      queryClient.invalidateQueries({ 
+        queryKey: ['admin-legacy-assets', variables.userId] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['admin-legacy-assets'] 
+      });
       toast({
         title: "Success",
         description: "Transaction added successfully",
@@ -137,6 +143,12 @@ export const useAdminLegacyAssetTransactions = (targetUserId?: string, assetType
       queryClient.invalidateQueries({ 
         queryKey: ['legacy-asset-transactions', data.user_id] 
       });
+      queryClient.invalidateQueries({ 
+        queryKey: ['admin-legacy-assets', data.user_id] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['admin-legacy-assets'] 
+      });
       toast({
         title: "Success",
         description: "Transaction updated successfully",
@@ -172,6 +184,12 @@ export const useAdminLegacyAssetTransactions = (targetUserId?: string, assetType
         });
         queryClient.invalidateQueries({ 
           queryKey: ['legacy-asset-transactions', deletedTransaction.user_id] 
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: ['admin-legacy-assets', deletedTransaction.user_id] 
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: ['admin-legacy-assets'] 
         });
       }
       toast({
