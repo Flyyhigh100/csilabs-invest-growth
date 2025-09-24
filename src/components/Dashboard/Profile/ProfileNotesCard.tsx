@@ -112,33 +112,38 @@ const ProfileNotesCard: React.FC<ProfileNotesCardProps> = ({ targetUserId }) => 
         </div>
 
         {/* New Message Form */}
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <Textarea
-            value={newNote}
-            onChange={(e) => setNewNote(e.target.value)}
-            placeholder={isAdmin && targetUserId ? 
-              "Type your message to the client..." : 
-              "Type your message or question..."
-            }
-            className="min-h-[80px] resize-none"
-            disabled={isSubmitting}
-          />
-          <div className="flex justify-end">
-            <Button 
-              type="submit" 
-              size="sm" 
-              disabled={!newNote.trim() || isSubmitting}
-              className="gap-2"
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-              Send Message
-            </Button>
-          </div>
-        </form>
+        <div className="border-t pt-4 mt-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="bg-muted/30 p-3 rounded-lg border">
+              <Textarea
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                placeholder={isAdmin && targetUserId ? 
+                  "Type your message to the client..." : 
+                  "Type your message or question..."
+                }
+                className="min-h-[80px] resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 placeholder:text-foreground/60 text-foreground"
+                disabled={isSubmitting}
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end">
+              <Button 
+                type="submit" 
+                size="sm" 
+                disabled={!newNote.trim() || isSubmitting}
+                className="gap-2"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                Send Message
+              </Button>
+            </div>
+          </form>
+        </div>
       </CardContent>
     </Card>
   );
