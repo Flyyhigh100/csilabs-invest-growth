@@ -77,17 +77,17 @@ const GrandTotalCard: React.FC = () => {
                   <DollarSign className="h-5 w-5" />
                   <span>Total Portfolio Value</span>
                 </div>
-                <div className="text-5xl font-bold text-primary">
+                <div className="text-4xl font-bold text-primary">
+                  {formatTokenAmount(grandTotal)} Total CSI Units
+                </div>
+                <div className="text-2xl font-semibold text-foreground">
                   {isPriceLoading ? (
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                   ) : grandTotalValue > 0 ? (
                     formatCurrency(grandTotalValue)
                   ) : (
-                    <span className="text-3xl text-muted-foreground">Value calculating...</span>
+                    <span className="text-lg text-muted-foreground">Value calculating...</span>
                   )}
-                </div>
-                <div className="text-lg text-muted-foreground">
-                  {formatTokenAmount(grandTotal)} Total CSI Units
                 </div>
               </div>
             </div>
