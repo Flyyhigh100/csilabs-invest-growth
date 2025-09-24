@@ -2,6 +2,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UsersIcon, CheckCircleIcon, ClockIcon, AlertCircleIcon } from 'lucide-react';
+import { useUserGrowthData } from '@/hooks/admin/useUserGrowthData';
+import { formatCurrency } from '@/utils/format';
 import { 
   BarChart, 
   Bar, 
@@ -22,6 +24,9 @@ interface UserStatsProps {
 }
 
 const UserStats: React.FC<UserStatsProps> = ({ users }) => {
+  // Get real user growth data
+  const { data: userGrowthData, isLoading: growthLoading } = useUserGrowthData();
+  
   // Calculate summary stats
   const totalUsers = users.length;
   const verifiedUsers = users.filter(user => user.kyc_status === 'approved').length;
@@ -40,13 +45,8 @@ const UserStats: React.FC<UserStatsProps> = ({ users }) => {
     { name: 'Not Started', value: totalUsers - verifiedUsers - pendingUsers - rejectedUsers, color: '#94A3B8' }
   ];
   
-  // Format sample growth data (in real app, this would come from DB with time series)
-  const userGrowthData = [
-    { name: 'Week 1', users: Math.round(totalUsers * 0.2) },
-    { name: 'Week 2', users: Math.round(totalUsers * 0.3) },
-    { name: 'Week 3', users: Math.round(totalUsers * 0.6) },
-    { name: 'Week 4', users: totalUsers }
-  ];
+  // Process real user growth data for display
+  const processedGrowthData = userGrowthData || [];
   
   // Format transaction data
   const transactionData = [
@@ -150,32 +150,59 @@ const UserStats: React.FC<UserStatsProps> = ({ users }) => {
         {/* User Growth Chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">User Growth</CardTitle>
+            <CardTitle className="text-lg">User Growth (Real Data)</CardTitle>
           </CardHeader>
           <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={userGrowthData}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => [value, 'Users']} />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="users"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  activeDot={{ r: 8 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {growthLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-muted-foreground">Loading growth data...</div>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={processedGrowthData}
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: 40,
+                  }}
+                >
+                  <XAxis 
+                    dataKey="period" 
+                    fontSize={11}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis />
+                  <Tooltip 
+                    formatter={(value, name) => [
+                      name === 'cumulative' ? `${value} total users` : `${value} new users`,
+                      name === 'cumulative' ? 'Total Users' : 'New Users'
+                    ]}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="cumulative"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    activeDot={{ r: 6 }}
+                    name="Total Users"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="users"
+                    stroke="#10b981"
+                    strokeWidth={1}
+                    strokeDasharray="5 5"
+                    activeDot={{ r: 4 }}
+                    name="New Users"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         

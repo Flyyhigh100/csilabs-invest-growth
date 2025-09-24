@@ -13,6 +13,8 @@ import { useTestDataToggle } from '@/hooks/admin/useTestDataToggle';
 import TestDataToggle from '@/components/Admin/TestDataToggle';
 import { format, startOfMonth, subMonths } from 'date-fns';
 import { useTransactionAnalytics } from '@/hooks/admin/useTransactionAnalytics';
+import { useUserGrowthData } from '@/hooks/admin/useUserGrowthData';
+import { useTransactionVolumeData } from '@/hooks/admin/useTransactionVolumeData';
 import RecentMessagesWidget from '@/components/Admin/Communications/RecentMessagesWidget';
 
 const AdminDashboard: React.FC = () => {
@@ -25,6 +27,12 @@ const AdminDashboard: React.FC = () => {
   const { data: recentAnalytics, isLoading: recentLoading } = useTransactionAnalytics({
     timeRange: '30'
   });
+  
+  // Get real user growth data
+  const { data: userGrowthData, isLoading: userGrowthLoading } = useUserGrowthData();
+  
+  // Get real transaction volume data
+  const { data: volumeData, isLoading: volumeLoading } = useTransactionVolumeData();
   
   // Fetch summary data with consistent filtering
   const { data: summaryData, isLoading } = useQuery({
@@ -68,14 +76,10 @@ const AdminDashboard: React.FC = () => {
         
         console.log(`Dashboard summary: ${userCount} users, pending KYC: ${pendingKyc}`);
         
-        // Create simplified chart data based on analytics
-        const userGrowthData = prepareUserGrowthData(userCount || 0);
-        
         return {
           userCount: userCount || 0,
           pendingKyc,
-          pendingTokensCount: pendingTokensCount || 0,
-          userGrowthData
+          pendingTokensCount: pendingTokensCount || 0
         };
       } catch (error) {
         console.error('Error fetching dashboard data', error);
@@ -84,15 +88,6 @@ const AdminDashboard: React.FC = () => {
     },
     staleTime: 60000
   });
-  
-  // Function to prepare user growth data
-  const prepareUserGrowthData = (totalUsers: number) => {
-    const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    return monthLabels.map((month, index) => ({
-      name: month,
-      users: Math.round((totalUsers) * (index + 1) / monthLabels.length)
-    }));
-  };
   
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -346,58 +341,107 @@ const AdminDashboard: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>User Growth</CardTitle>
-            <CardDescription>Monthly user registrations</CardDescription>
+            <CardDescription>Monthly user registrations (chronological)</CardDescription>
           </CardHeader>
           <CardContent className="pt-2 h-80">
-            <ChartContainer config={chartConfig}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={summaryData?.userGrowthData || []}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="users" 
-                    activeDot={{ r: 8 }} 
-                    stroke="var(--color-users)" 
-                    strokeWidth={2} 
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            {userGrowthLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-muted-foreground">Loading user growth data...</div>
+              </div>
+            ) : (
+              <ChartContainer config={chartConfig}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={userGrowthData || []}>
+                    <XAxis 
+                      dataKey="period" 
+                      fontSize={12}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis />
+                    <ChartTooltip 
+                      content={<ChartTooltipContent />}
+                      formatter={(value, name) => [
+                        name === 'cumulative' ? `${value} total users` : `${value} new users`,
+                        name === 'cumulative' ? 'Total Users' : 'New Users'
+                      ]}
+                    />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="cumulative" 
+                      activeDot={{ r: 6 }} 
+                      stroke="var(--color-users)" 
+                      strokeWidth={2}
+                      name="Total Users"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="users" 
+                      activeDot={{ r: 4 }} 
+                      stroke="hsl(var(--primary) / 0.6)" 
+                      strokeWidth={1}
+                      strokeDasharray="5 5"
+                      name="New Users"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            )}
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader>
-            <CardTitle>Transaction Volume (All Time)</CardTitle>
-            <CardDescription>Daily transaction volume since launch</CardDescription>
+            <CardTitle>Transaction Volume</CardTitle>
+            <CardDescription>Monthly transaction volume (chronological)</CardDescription>
           </CardHeader>
           <CardContent className="pt-2 h-80">
-            <ChartContainer config={chartConfig}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={allTimeAnalytics?.volumeOverTime || []}>
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Legend />
-                  <defs>
-                    <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--color-volume)" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="var(--color-volume)" stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
-                  <Area 
-                    type="monotone" 
-                    dataKey="volume" 
-                    stroke="var(--color-volume)"
-                    fillOpacity={1}
-                    fill="url(#colorVolume)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            {volumeLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-muted-foreground">Loading volume data...</div>
+              </div>
+            ) : (
+              <ChartContainer config={chartConfig}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={volumeData || []}>
+                    <XAxis 
+                      dataKey="period" 
+                      fontSize={12}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis 
+                      tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                    />
+                    <ChartTooltip 
+                      content={<ChartTooltipContent />}
+                      formatter={(value, name) => [
+                        name === 'volume' ? formatCurrency(Number(value)) : value,
+                        name === 'volume' ? 'Volume' : 'Transactions'
+                      ]}
+                    />
+                    <Legend />
+                    <defs>
+                      <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-volume)" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="var(--color-volume)" stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+                    <Area 
+                      type="monotone" 
+                      dataKey="volume" 
+                      stroke="var(--color-volume)"
+                      fillOpacity={1}
+                      fill="url(#colorVolume)"
+                      name="Volume"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            )}
           </CardContent>
         </Card>
       </div>
