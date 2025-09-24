@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import CommunicationNotificationBadge from '@/components/Admin/Communications/CommunicationNotificationBadge';
 
 interface NavItem {
   title: string;
@@ -34,10 +35,11 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ navItems }) => {
               const event = new CustomEvent('sidebar-navigation');
               window.dispatchEvent(event);
             }}
-          >
-            <span className="mr-3">{item.icon}</span>
-            {item.title}
-          </Link>
+            >
+              <span className="mr-3">{item.icon}</span>
+              {item.title}
+              {item.title === 'Communications' && <CommunicationNotificationBadge />}
+            </Link>
         ))}
       </nav>
     </div>

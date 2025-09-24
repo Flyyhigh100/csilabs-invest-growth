@@ -12,7 +12,8 @@ import {
   AlertTriangle,
   Wallet,
   Users,
-  Shield
+  Shield,
+  MessageSquare
 } from 'lucide-react';
 
 interface NavItem {
@@ -27,6 +28,11 @@ export const getAdminNavItems = (): NavItem[] => {
       title: 'Dashboard',
       path: '/admin',
       icon: <HomeIcon className="h-5 w-5" />,
+    },
+    {
+      title: 'Communications',
+      path: '/admin/communications',
+      icon: <MessageSquare className="h-5 w-5" />,
     },
     {
       title: 'Reports',
