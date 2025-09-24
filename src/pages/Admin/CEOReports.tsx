@@ -8,6 +8,7 @@ import { useEnhancedClientData } from '@/hooks/admin/useEnhancedClientData';
 import EnhancedClientDetailView from '@/components/Admin/Users/EnhancedClientDetailView';
 import { Search, Crown, TrendingUp, Users, DollarSign, Filter } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import AdminLayout from '@/components/Admin/Layout';
 
 const CEOReports = () => {
   const { data: clients = [], isLoading } = useEnhancedClientData();
@@ -67,7 +68,7 @@ const CEOReports = () => {
 
   if (isLoading) {
     return (
-      <div className="p-6">
+      <AdminLayout title="CEO Reports">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-muted rounded w-1/4"></div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -76,28 +77,26 @@ const CEOReports = () => {
             ))}
           </div>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {selectedClient ? (
-        <EnhancedClientDetailView
-          client={selectedClient}
-          onClose={() => setSelectedClient(null)}
-          onCheckKyc={() => {}}
-        />
-      ) : (
-        <>
-          {/* Header */}
-          <div className="flex items-center gap-3">
-            <Crown className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-3xl font-bold">CEO Reports</h1>
+    <AdminLayout title="CEO Reports">
+      <div className="space-y-6">
+        {selectedClient ? (
+          <EnhancedClientDetailView
+            client={selectedClient}
+            onClose={() => setSelectedClient(null)}
+            onCheckKyc={() => {}}
+          />
+        ) : (
+          <>
+            {/* Executive Summary Header */}
+            <div className="flex items-center gap-3 mb-6">
+              <Crown className="h-6 w-6 text-primary" />
               <p className="text-muted-foreground">Executive-level client analytics and insights</p>
             </div>
-          </div>
 
           {/* Summary Statistics */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -260,9 +259,10 @@ const CEOReports = () => {
               </CardContent>
             </Card>
           )}
-        </>
-      )}
-    </div>
+          </>
+        )}
+      </div>
+    </AdminLayout>
   );
 };
 
