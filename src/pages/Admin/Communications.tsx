@@ -26,6 +26,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCommunicationRealtime } from '@/hooks/communication/useCommunicationRealtime';
+import MessageBubble from '@/components/Admin/Communications/MessageBubble';
 
 interface CommunicationThread {
   user_id: string;
@@ -40,6 +41,7 @@ interface CommunicationThread {
     id: string;
     content: string;
     created_at: string;
+    updated_at: string;
     created_by: string;
     note_type: string;
   }>;
@@ -119,6 +121,7 @@ const AdminCommunications: React.FC = () => {
           id: note.id,
           content: note.content,
           created_at: note.created_at,
+          updated_at: note.updated_at,
           created_by: note.created_by,
           note_type: note.note_type
         });
@@ -376,24 +379,13 @@ const AdminCommunications: React.FC = () => {
                     {selectedThread.messages
                       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
                       .map((message) => (
-                        <div
+                        <MessageBubble
                           key={message.id}
-                          className={`flex ${message.created_by === user?.id ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div
-                            className={`max-w-[80%] p-3 rounded-lg ${
-                              message.created_by === user?.id
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-gray-100 text-gray-900'
-                            }`}
-                          >
-                            <p className="text-sm">{message.content}</p>
-                            <p className="text-xs mt-1 opacity-70">
-                              {format(new Date(message.created_at), 'MMM d, HH:mm')} •{' '}
-                              {message.created_by === user?.id ? 'You' : 'Client'}
-                            </p>
-                          </div>
-                        </div>
+                          message={message}
+                          currentUserId={user?.id || ''}
+                          onEdit={() => refetch()}
+                          onDelete={() => refetch()}
+                        />
                       ))}
                   </div>
 

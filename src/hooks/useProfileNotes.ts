@@ -119,11 +119,41 @@ export const useProfileNotes = (userId?: string) => {
     }
   });
 
+  const deleteNote = useMutation({
+    mutationFn: async ({ noteId }: { noteId: string }) => {
+      if (!user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('client_notes')
+        .delete()
+        .eq('id', noteId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile-notes', targetUserId] });
+      queryClient.invalidateQueries({ queryKey: ['communication-threads'] });
+      toast({
+        title: "Success",
+        description: "Message deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error deleting note:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete message",
+        variant: "destructive",
+      });
+    }
+  });
+
   return {
     notes: notes || [],
     isLoading,
     error,
     addNote,
-    updateNote
+    updateNote,
+    deleteNote
   };
 };
