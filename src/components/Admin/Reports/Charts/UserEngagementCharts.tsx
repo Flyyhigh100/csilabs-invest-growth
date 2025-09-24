@@ -6,6 +6,7 @@ import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Cartesia
 import { useChartEngine } from '@/lib/charts/ChartEngineProvider';
 import { HcLine, HcArea, HcBar, HcPie } from '@/components/ui/charts';
 import ChartDrillDownDialog from './ChartDrillDownDialog';
+import UserSignupDetailDialog from './UserSignupDetailDialog';
 
 interface UserEngagementChartsProps {
   userData: {
@@ -42,24 +43,27 @@ const UserEngagementCharts: React.FC<UserEngagementChartsProps> = ({ userData })
   const { isHighcharts } = useChartEngine();
   const [drillDownData, setDrillDownData] = useState<any>(null);
   const [drillDownOpen, setDrillDownOpen] = useState(false);
+  const [userSignupDialogOpen, setUserSignupDialogOpen] = useState(false);
+  const [selectedSignupDate, setSelectedSignupDate] = useState<string | null>(null);
 
   const handleChartClick = (point: any, series: any, type: string) => {
+    if (type === 'user_registration') {
+      // For registration chart clicks, show user details dialog
+      const clickedDate = point.category || point.date;
+      // Convert display date back to ISO date for API query
+      const dateObj = new Date(clickedDate + ', 2024'); // Assuming current year
+      const isoDate = dateObj.toISOString().split('T')[0];
+      
+      setSelectedSignupDate(isoDate);
+      setUserSignupDialogOpen(true);
+      return;
+    }
+
     let data;
     
     switch (type) {
       case 'user_registration':
-        data = {
-          type: 'user_registration' as const,
-          title: 'User Registration Analysis',
-          value: point.y || point.count,
-          category: point.category || point.date,
-          details: {
-            date: point.category || point.date,
-            registrations: point.y || point.count,
-            conversion_rate: (Math.random() * 20 + 5).toFixed(1) + '%', // Mock data
-            source_breakdown: 'Organic: 60%, Referral: 25%, Direct: 15%'
-          }
-        };
+        // This case is now handled above
         break;
       case 'kyc_status':
         data = {
@@ -323,6 +327,12 @@ const UserEngagementCharts: React.FC<UserEngagementChartsProps> = ({ userData })
         open={drillDownOpen}
         onOpenChange={setDrillDownOpen}
         data={drillDownData}
+      />
+      
+      <UserSignupDetailDialog
+        open={userSignupDialogOpen}
+        onOpenChange={setUserSignupDialogOpen}
+        selectedDate={selectedSignupDate}
       />
     </div>
   );
