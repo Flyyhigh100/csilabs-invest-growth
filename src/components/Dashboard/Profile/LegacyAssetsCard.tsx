@@ -73,15 +73,31 @@ const LegacyAssetsCard = () => {
   };
 
   const toggleAddForm = (assetType: string) => {
-    setShowAddForm(prev => ({
-      ...prev,
-      [assetType]: !prev[assetType]
-    }));
-    if (!formData[assetType]) {
-      setFormData(prev => ({
+    console.log('toggleAddForm called for:', assetType);
+    console.log('Current showAddForm state:', showAddForm);
+    console.log('Current formData state:', formData);
+    
+    setShowAddForm(prev => {
+      const newState = {
         ...prev,
-        [assetType]: getDefaultFormData()
-      }));
+        [assetType]: !prev[assetType]
+      };
+      console.log('New showAddForm state will be:', newState);
+      return newState;
+    });
+    
+    if (!formData[assetType]) {
+      console.log('Initializing form data for:', assetType);
+      setFormData(prev => {
+        const newFormData = {
+          ...prev,
+          [assetType]: getDefaultFormData()
+        };
+        console.log('New formData state will be:', newFormData);
+        return newFormData;
+      });
+    } else {
+      console.log('Form data already exists for:', assetType, formData[assetType]);
     }
   };
 

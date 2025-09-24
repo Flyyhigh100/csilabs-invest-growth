@@ -221,7 +221,10 @@ const AssetTypeSection: React.FC<AssetTypeSectionProps> = ({
                 </div>
                 <Button
                   size="sm"
-                  onClick={() => toggleAddForm(assetType)}
+                  onClick={() => {
+                    console.log('Start button clicked for asset:', assetType);
+                    toggleAddForm(assetType);
+                  }}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   <Plus className="h-3 w-3 mr-1" />
@@ -307,6 +310,15 @@ const AssetTypeSection: React.FC<AssetTypeSectionProps> = ({
               </div>
 
               {/* Add/Edit Transaction Form */}
+              {(() => {
+                console.log('Form render check:', {
+                  assetType,
+                  showAddForm: showAddForm[assetType],
+                  currentFormData: currentFormData,
+                  shouldShow: showAddForm[assetType] && currentFormData
+                });
+                return null;
+              })()}
               {showAddForm[assetType] && currentFormData && (
                 <Card>
                   <CardHeader className="pb-2">
