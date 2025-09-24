@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { auditLogger } from '@/utils/security/auditLogger';
 
 export interface LegacyAsset {
   id: string;
@@ -55,6 +56,14 @@ export const useLegacyAssets = () => {
     mutationFn: async ({ assetType, amount }: { assetType: LegacyAssetType; amount: number }) => {
       if (!user) throw new Error('User not authenticated');
 
+      // Get the old value for audit logging
+      const { data: oldData } = await supabase
+        .from('user_legacy_assets')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('asset_type', assetType)
+        .single();
+
       const { data, error } = await supabase
         .from('user_legacy_assets')
         .upsert({
@@ -68,6 +77,22 @@ export const useLegacyAssets = () => {
         .single();
 
       if (error) throw error;
+
+      // Log the user action
+      await auditLogger.log({
+        operation: 'legacy_asset_user_update',
+        tableName: 'user_legacy_assets',
+        recordId: data.id,
+        oldValues: oldData,
+        newValues: data,
+        metadata: {
+          assetType,
+          oldAmount: oldData?.amount || 0,
+          newAmount: amount,
+          isUserAction: true
+        }
+      });
+
       return data;
     },
     onSuccess: () => {
@@ -91,6 +116,14 @@ export const useLegacyAssets = () => {
     mutationFn: async (assetType: LegacyAssetType) => {
       if (!user) throw new Error('User not authenticated');
 
+      // Get the data before deletion for audit logging
+      const { data: oldData } = await supabase
+        .from('user_legacy_assets')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('asset_type', assetType)
+        .single();
+
       const { error } = await supabase
         .from('user_legacy_assets')
         .delete()
@@ -98,6 +131,19 @@ export const useLegacyAssets = () => {
         .eq('asset_type', assetType);
 
       if (error) throw error;
+
+      // Log the user deletion
+      await auditLogger.log({
+        operation: 'legacy_asset_user_delete',
+        tableName: 'user_legacy_assets',
+        recordId: oldData?.id,
+        oldValues: oldData,
+        metadata: {
+          assetType,
+          deletedAmount: oldData?.amount || 0,
+          isUserAction: true
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['legacy-assets', user?.id] });

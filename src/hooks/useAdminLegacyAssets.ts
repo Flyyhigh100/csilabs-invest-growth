@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { LegacyAssetType } from './useLegacyAssets';
+import { auditLogger } from '@/utils/security/auditLogger';
 
 export interface AdminLegacyAsset {
   id: string;
@@ -48,13 +49,23 @@ export const useAdminLegacyAssets = (targetUserId?: string) => {
     mutationFn: async ({ 
       userId, 
       assetType, 
-      amount 
+      amount,
+      reason 
     }: { 
       userId: string; 
       assetType: LegacyAssetType; 
-      amount: number 
+      amount: number;
+      reason?: string;
     }) => {
       if (!user) throw new Error('User not authenticated');
+
+      // Get the old value for audit logging
+      const { data: oldData } = await supabase
+        .from('user_legacy_assets')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('asset_type', assetType)
+        .single();
 
       const { data, error } = await supabase
         .from('user_legacy_assets')
@@ -69,6 +80,27 @@ export const useAdminLegacyAssets = (targetUserId?: string) => {
         .single();
 
       if (error) throw error;
+
+      // Log the admin action with enhanced audit information
+      await auditLogger.logAdminOperation('legacy_asset_admin_update', {
+        targetUserId: userId,
+        assetType,
+        oldAmount: oldData?.amount || 0,
+        newAmount: amount,
+        reason: reason || 'Admin adjustment'
+      });
+
+      // If reason was provided, add it to the audit log in the database
+      if (reason) {
+        await supabase.rpc('log_admin_action', {
+          p_operation: 'admin_legacy_asset_update',
+          p_table_name: 'user_legacy_assets',
+          p_record_id: data.id,
+          p_old_values: oldData ? JSON.stringify(oldData) : null,
+          p_new_values: JSON.stringify(data)
+        });
+      }
+
       return data;
     },
     onSuccess: (_, variables) => {
@@ -94,12 +126,22 @@ export const useAdminLegacyAssets = (targetUserId?: string) => {
   const deleteAsset = useMutation({
     mutationFn: async ({ 
       userId, 
-      assetType 
+      assetType,
+      reason 
     }: { 
       userId: string; 
-      assetType: LegacyAssetType 
+      assetType: LegacyAssetType;
+      reason?: string;
     }) => {
       if (!user) throw new Error('User not authenticated');
+
+      // Get the data before deletion for audit logging
+      const { data: oldData } = await supabase
+        .from('user_legacy_assets')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('asset_type', assetType)
+        .single();
 
       const { error } = await supabase
         .from('user_legacy_assets')
@@ -108,6 +150,14 @@ export const useAdminLegacyAssets = (targetUserId?: string) => {
         .eq('asset_type', assetType);
 
       if (error) throw error;
+
+      // Log the admin deletion
+      await auditLogger.logAdminOperation('legacy_asset_admin_delete', {
+        targetUserId: userId,
+        assetType,
+        deletedAmount: oldData?.amount || 0,
+        reason: reason || 'Admin removal'
+      });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin-legacy-assets', variables.userId] });

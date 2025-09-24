@@ -11,6 +11,7 @@ import { ChevronDown, ChevronRight, TrendingUp, Info, Receipt, Plus, Edit2, Tras
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useLegacyAssets, LEGACY_ASSET_TYPES, LegacyAssetType } from '@/hooks/useLegacyAssets';
 import { useLegacyAssetTransactions, TransactionType, LegacyAssetTransaction } from '@/hooks/useLegacyAssetTransactions';
+import { useLegacyAssetHistory } from '@/hooks/useLegacyAssetHistory';
 import { useDebounce } from '@/hooks/useDebounce';
 import { format } from 'date-fns';
 import { formatCurrency, formatTokenAmount } from '@/utils/format';
@@ -26,6 +27,7 @@ interface TransactionFormData {
 
 const LegacyAssetsCard = () => {
   const { legacyAssets, isLoading, updateAsset, getAssetAmount, getTotalAssetCount } = useLegacyAssets();
+  const { history } = useLegacyAssetHistory();
   const [isOpen, setIsOpen] = useState(false);
   const [pendingValues, setPendingValues] = useState<Record<string, string>>({});
   const [expandedAssets, setExpandedAssets] = useState<Record<string, boolean>>({});
@@ -201,6 +203,11 @@ const LegacyAssetsCard = () => {
             <div className="text-xs text-muted-foreground mt-4 p-3 bg-muted/50 rounded-lg">
               <p className="font-medium mb-1">💡 Auto-save enabled</p>
               <p>Your changes are automatically saved as you type. Click on any asset with holdings to manage detailed transaction records.</p>
+              {history.length > 0 && (
+                <p className="mt-2 text-amber-600">
+                  📋 {history.length} changes tracked - all modifications are automatically logged for your records
+                </p>
+              )}
             </div>
           </CardContent>
         </CollapsibleContent>

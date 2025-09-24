@@ -13,6 +13,7 @@ import { LegacyAssetType } from '@/hooks/useLegacyAssets';
 import { useAdminLegacyAssetTransactions, AdminTransactionType, AdminLegacyAssetTransaction } from '@/hooks/useAdminLegacyAssetTransactions';
 import { format } from 'date-fns';
 import { formatCurrency, formatTokenAmount } from '@/utils/format';
+import AdminAssetUpdateDialog from './AdminAssetUpdateDialog';
 
 interface TransactionFormData {
   transactionType: AdminTransactionType;
@@ -25,9 +26,10 @@ interface TransactionFormData {
 interface AdminAssetTypeSectionProps {
   assetType: LegacyAssetType;
   targetUserId: string;
+  targetUserName?: string;
   displayValue: string;
   assetDescriptions: Record<LegacyAssetType, string>;
-  handleValueChange: (assetType: LegacyAssetType, value: string) => void;
+  handleValueChange: (assetType: LegacyAssetType, value: string, reason?: string) => void;
   expandedAssets: Record<string, boolean>;
   showAddForm: Record<string, boolean>;
   editingTransaction: Record<string, AdminLegacyAssetTransaction | null>;
@@ -43,6 +45,7 @@ interface AdminAssetTypeSectionProps {
 export const AdminAssetTypeSection: React.FC<AdminAssetTypeSectionProps> = ({
   assetType,
   targetUserId,
+  targetUserName,
   displayValue,
   assetDescriptions,
   handleValueChange,
@@ -57,6 +60,7 @@ export const AdminAssetTypeSection: React.FC<AdminAssetTypeSectionProps> = ({
   setEditingTransaction,
   isAdminMode = false
 }) => {
+  const [showUpdateDialog, setShowUpdateDialog] = React.useState(false);
   const {
     transactions,
     isLoading,
@@ -140,7 +144,16 @@ export const AdminAssetTypeSection: React.FC<AdminAssetTypeSectionProps> = ({
   };
 
   const syncFromTransactions = () => {
-    handleValueChange(assetType, totalFromTransactions.toString());
+    if (isAdminMode) {
+      setShowUpdateDialog(true);
+    } else {
+      handleValueChange(assetType, totalFromTransactions.toString());
+    }
+  };
+
+  const handleAdminUpdate = (amount: number, reason: string) => {
+    handleValueChange(assetType, amount.toString(), reason);
+    setShowUpdateDialog(false);
   };
 
   const getTransactionTypeColor = (type: AdminTransactionType) => {
@@ -221,7 +234,20 @@ export const AdminAssetTypeSection: React.FC<AdminAssetTypeSectionProps> = ({
               step="0.00000001"
               placeholder="0"
               value={displayValue}
-              onChange={(e) => handleValueChange(assetType, e.target.value)}
+              onChange={(e) => {
+                if (isAdminMode) {
+                  // For admin mode, show dialog for significant changes
+                  const newValue = parseFloat(e.target.value) || 0;
+                  const currentValue = parseFloat(displayValue) || 0;
+                  if (Math.abs(newValue - currentValue) > 10) {
+                    setShowUpdateDialog(true);
+                  } else {
+                    handleValueChange(assetType, e.target.value, 'Minor admin adjustment');
+                  }
+                } else {
+                  handleValueChange(assetType, e.target.value);
+                }
+              }}
               className={`${hasValue ? "border-primary/50 bg-primary/5" : ""} ${isAdminMode ? "border-orange-300 bg-orange-50" : ""}`}
             />
             {isAdminMode && (
@@ -528,6 +554,17 @@ export const AdminAssetTypeSection: React.FC<AdminAssetTypeSectionProps> = ({
             </CardContent>
           </CollapsibleContent>
         </Collapsible>
+      )}
+      {/* Admin Update Dialog */}
+      {isAdminMode && (
+        <AdminAssetUpdateDialog
+          isOpen={showUpdateDialog}
+          onClose={() => setShowUpdateDialog(false)}
+          onConfirm={handleAdminUpdate}
+          assetType={assetType}
+          currentAmount={parseFloat(displayValue) || 0}
+          userName={targetUserName || `User ${targetUserId.slice(0, 8)}`}
+        />
       )}
     </Card>
   );

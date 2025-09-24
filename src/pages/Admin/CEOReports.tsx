@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEnhancedClientData } from '@/hooks/admin/useEnhancedClientData';
 import EnhancedClientDetailView from '@/components/Admin/Users/EnhancedClientDetailView';
-import { Search, Crown, TrendingUp, Users, DollarSign, Filter } from 'lucide-react';
+import AdminChangeHistoryCard from '@/components/Admin/LegacyAssets/AdminChangeHistoryCard';
+import { Search, Crown, TrendingUp, Users, DollarSign, Filter, History } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import AdminLayout from '@/components/Admin/Layout';
 
@@ -85,11 +86,19 @@ const CEOReports = () => {
     <AdminLayout title="CEO Reports">
       <div className="space-y-6">
         {selectedClient ? (
-          <EnhancedClientDetailView
-            client={selectedClient}
-            onClose={() => setSelectedClient(null)}
-            onCheckKyc={() => {}}
-          />
+          <div className="space-y-4">
+            <EnhancedClientDetailView
+              client={selectedClient}
+              onClose={() => setSelectedClient(null)}
+              onCheckKyc={() => {}}
+            />
+            
+            {/* Add Change History for Selected Client */}
+            <AdminChangeHistoryCard
+              targetUserId={selectedClient.id}
+              userName={`${selectedClient.first_name || ''} ${selectedClient.last_name || ''}`.trim() || selectedClient.email}
+            />
+          </div>
         ) : (
           <>
             {/* Executive Summary Header */}
