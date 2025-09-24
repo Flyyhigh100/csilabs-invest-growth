@@ -14,6 +14,7 @@ import { TestIconLucide } from '@/components/icons/TestIcon';
 import { CopyButton } from '@/components/ui/copy-button';
 import UserTransactionDashboard from './UserTransactions/UserTransactionDashboard';
 import ProfileNotesCard from '@/components/Dashboard/Profile/ProfileNotesCard';
+import AdminLegacyAssetManager from '@/components/Admin/LegacyAssets/AdminLegacyAssetManager';
 import {
   Tooltip,
   TooltipContent,
@@ -261,9 +262,10 @@ const EnhancedClientDetailView: React.FC<EnhancedClientDetailViewProps> = ({
 
       {/* Detailed Information Tabs */}
       <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="tokens">Token Details</TabsTrigger>
+          <TabsTrigger value="legacy-assets">Legacy Assets</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="communication">Communication</TabsTrigger>
           <TabsTrigger value="kyc">KYC</TabsTrigger>
@@ -408,6 +410,19 @@ const EnhancedClientDetailView: React.FC<EnhancedClientDetailViewProps> = ({
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="legacy-assets" className="space-y-4">
+          <AdminLegacyAssetManager
+            isOpen={true}
+            onClose={() => {}}
+            user={{
+              user_id: client.id,
+              first_name: client.first_name || '',
+              last_name: client.last_name || '',
+              email: client.email || ''
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="transactions">

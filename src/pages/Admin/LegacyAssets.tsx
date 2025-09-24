@@ -23,6 +23,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import DashboardLayout from '@/components/Dashboard/Layout';
 import { LEGACY_ASSET_TYPES } from '@/hooks/useLegacyAssets';
+import AdminLegacyAssetManager from '@/components/Admin/LegacyAssets/AdminLegacyAssetManager';
 
 interface UserLegacyAssetSummary {
   user_id: string;
@@ -40,6 +41,8 @@ const AdminLegacyAssets = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAssetType, setSelectedAssetType] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('total_value');
+  const [selectedUser, setSelectedUser] = useState<UserLegacyAssetSummary | null>(null);
+  const [isAssetManagerOpen, setIsAssetManagerOpen] = useState(false);
 
   // Fetch users with legacy assets
   const { data: usersWithAssets, isLoading } = useQuery({
@@ -140,6 +143,16 @@ const AdminLegacyAssets = () => {
   const totalShares = usersWithAssets?.reduce((sum, user) => sum + user.total_shares, 0) || 0;
   const totalValue = usersWithAssets?.reduce((sum, user) => sum + user.total_value, 0) || 0;
   const totalTransactions = usersWithAssets?.reduce((sum, user) => sum + user.transactions_count, 0) || 0;
+
+  const handleManageAssets = (user: UserLegacyAssetSummary) => {
+    setSelectedUser(user);
+    setIsAssetManagerOpen(true);
+  };
+
+  const handleCloseAssetManager = () => {
+    setSelectedUser(null);
+    setIsAssetManagerOpen(false);
+  };
 
   return (
     <DashboardLayout title="Legacy Assets Management">
@@ -309,8 +322,12 @@ const AdminLegacyAssets = () => {
                         {new Date(user.last_updated).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        <Button size="sm" variant="outline" disabled>
-                          Manage Transactions
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleManageAssets(user)}
+                        >
+                          Manage Assets
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -321,6 +338,15 @@ const AdminLegacyAssets = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Admin Legacy Asset Manager Modal */}
+      {selectedUser && (
+        <AdminLegacyAssetManager
+          isOpen={isAssetManagerOpen}
+          onClose={handleCloseAssetManager}
+          user={selectedUser}
+        />
+      )}
     </DashboardLayout>
   );
 };
