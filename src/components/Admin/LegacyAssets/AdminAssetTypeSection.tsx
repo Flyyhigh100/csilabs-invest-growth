@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { LegacyAssetType } from '@/hooks/useLegacyAssets';
 import { useAdminLegacyAssetTransactions, AdminTransactionType, AdminLegacyAssetTransaction } from '@/hooks/useAdminLegacyAssetTransactions';
 import { format } from 'date-fns';
-import { formatCurrency, formatTokenAmount } from '@/utils/format';
+import { formatCurrency, formatCurrencyPrecise, formatTokenAmount } from '@/utils/format';
 import AdminAssetUpdateDialog from './AdminAssetUpdateDialog';
 
 interface TransactionFormData {
@@ -389,7 +389,7 @@ export const AdminAssetTypeSection: React.FC<AdminAssetTypeSectionProps> = ({
                       type="number"
                       step="0.0001"
                       min="0.0001"
-                      placeholder="Price per share"
+                      placeholder="0.000"
                       value={currentFormData.pricePerShare}
                       onChange={(e) => setFormData(prev => ({
                         ...prev,
@@ -453,7 +453,7 @@ export const AdminAssetTypeSection: React.FC<AdminAssetTypeSectionProps> = ({
                   </div>
                   <div>
                     <span className="text-muted-foreground">Avg Cost:</span>
-                    <div className="font-medium">{formatCurrency(getAverageCostBasis(assetType))}</div>
+                    <div className="font-medium">{formatCurrencyPrecise(getAverageCostBasis(assetType))}</div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Total Value:</span>
@@ -513,9 +513,9 @@ export const AdminAssetTypeSection: React.FC<AdminAssetTypeSectionProps> = ({
                                   {formatTokenAmount(transaction.shares_quantity)} shares
                                 </span>
                                 <span className="text-muted-foreground"> @ </span>
-                                <span className="font-medium">
-                                  {formatCurrency(transaction.price_per_share)}
-                                </span>
+                                 <span className="font-medium">
+                                   {formatCurrencyPrecise(transaction.price_per_share)}
+                                 </span>
                               </div>
                               <div className="text-xs text-muted-foreground">
                                 {format(new Date(transaction.transaction_date), 'MMM dd, yyyy')}
