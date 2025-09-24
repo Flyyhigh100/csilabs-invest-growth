@@ -13,7 +13,8 @@ import {
   Wallet,
   Users,
   Shield,
-  MessageSquare
+  MessageSquare,
+  Crown
 } from 'lucide-react';
 
 interface NavItem {
@@ -38,6 +39,11 @@ export const getAdminNavItems = (): NavItem[] => {
       title: 'Reports',
       path: '/admin/reports',
       icon: <BarChart2 className="h-5 w-5" />,
+    },
+    {
+      title: 'CEO Reports',
+      path: '/admin/ceo-reports',
+      icon: <Crown className="h-5 w-5" />,
     },
     {
       title: 'Users',
