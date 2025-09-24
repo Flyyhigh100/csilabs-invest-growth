@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, TrendingUp, Info } from 'lucide-react';
+import { ChevronDown, ChevronRight, TrendingUp, Info, Receipt } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useLegacyAssets, LEGACY_ASSET_TYPES, LegacyAssetType } from '@/hooks/useLegacyAssets';
 import { useDebounce } from '@/hooks/useDebounce';
+import TransactionModal from './TransactionModal';
 
 const LegacyAssetsCard = () => {
   const { legacyAssets, isLoading, updateAsset, getAssetAmount, getTotalAssetCount } = useLegacyAssets();
@@ -136,8 +137,20 @@ const LegacyAssetsCard = () => {
                     />
                     
                     {hasValue && (
-                      <div className="text-xs text-muted-foreground">
-                        {parseFloat(displayValue).toLocaleString()} shares
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-muted-foreground">
+                          {parseFloat(displayValue).toLocaleString()} shares
+                        </div>
+                        <TransactionModal assetType={assetType}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-xs"
+                          >
+                            <Receipt className="h-3 w-3 mr-1" />
+                            Transactions
+                          </Button>
+                        </TransactionModal>
                       </div>
                     )}
                   </div>

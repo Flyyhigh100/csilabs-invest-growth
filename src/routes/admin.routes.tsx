@@ -12,7 +12,8 @@ import {
   FileText,
   AlertTriangle,
   Wallet,
-  MessageSquare
+  MessageSquare,
+  TrendingUp
 } from 'lucide-react';
 
 // Lazy load admin pages for better performance
@@ -29,6 +30,7 @@ const AdminTransactionTools = lazy(() => import('@/pages/Admin/TransactionTools'
 const AdminResearchDocuments = lazy(() => import('@/pages/Admin/ResearchDocuments'));
 const AdminWalletPortfolio = lazy(() => import('@/pages/Admin/WalletPortfolio'));
 const AdminCommunications = lazy(() => import('@/pages/Admin/Communications'));
+const AdminLegacyAssets = lazy(() => import('@/pages/Admin/LegacyAssets'));
 
 export const adminRoutes = [
   {
@@ -148,6 +150,15 @@ export const adminRoutes = [
       requiresAdmin: true,
     },
   },
+  {
+    path: '/admin/legacy-assets',
+    element: <AdminLegacyAssets />,
+    meta: {
+      title: 'Legacy Assets',
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+  },
 ];
 
 export const adminSidebarLinks = [
@@ -215,5 +226,10 @@ export const adminSidebarLinks = [
     title: 'Settings',
     path: '/admin/settings',
     icon: <SettingsIcon className="h-5 w-5" />,
+  },
+  {
+    title: 'Legacy Assets',
+    path: '/admin/legacy-assets',
+    icon: <TrendingUp className="h-5 w-5" />,
   },
 ];

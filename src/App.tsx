@@ -56,6 +56,7 @@ import AdminNotificationsPage from './pages/Admin/Notifications';
 import AdminTransactionToolsPage from './pages/Admin/TransactionTools';
 import AdminResearchDocuments from './pages/Admin/ResearchDocuments';
 import AdminWalletPortfolioPage from './pages/Admin/WalletPortfolio';
+import AdminLegacyAssets from './pages/Admin/LegacyAssets';
 import SystemFlowPage from './pages/Admin/SystemFlow';
 import CoinPaymentsSetupPage from './pages/Admin/CoinPaymentsSetup';
 import TransactionStatusManagerPage from './pages/Admin/TransactionStatusManager';
@@ -134,6 +135,7 @@ function App() {
                           <Route path="transaction-tools" element={<AdminTransactionToolsPage />} />
                           <Route path="research-documents" element={<AdminResearchDocuments />} />
                           <Route path="wallet-portfolio" element={<AdminWalletPortfolioPage />} />
+                          <Route path="legacy-assets" element={<AdminLegacyAssets />} />
                           <Route path="system-flow" element={<SystemFlowPage />} />
                           <Route path="coinpayments-setup" element={<CoinPaymentsSetupPage />} />
                           <Route path="transaction-status" element={<TransactionStatusManagerPage />} />

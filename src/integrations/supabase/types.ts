@@ -644,6 +644,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_legacy_asset_transactions: {
+        Row: {
+          asset_type: string
+          created_at: string
+          id: string
+          notes: string | null
+          price_per_share: number
+          shares_quantity: number
+          total_value: number | null
+          transaction_date: string
+          transaction_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_type: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          price_per_share: number
+          shares_quantity: number
+          total_value?: number | null
+          transaction_date: string
+          transaction_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_type?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          price_per_share?: number
+          shares_quantity?: number
+          total_value?: number | null
+          transaction_date?: string
+          transaction_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_legacy_assets: {
         Row: {
           amount: number
