@@ -22,7 +22,6 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import DashboardLayout from '@/components/Dashboard/Layout';
-import TransactionModal from '@/components/Dashboard/Profile/TransactionModal';
 import { LEGACY_ASSET_TYPES } from '@/hooks/useLegacyAssets';
 
 interface UserLegacyAssetSummary {
@@ -69,18 +68,6 @@ const AdminLegacyAssets = () => {
 
       if (error) throw error;
 
-      // Get transaction counts for each user
-      const { data: transactionCounts } = await supabase
-        .from('user_legacy_asset_transactions')
-        .select('user_id, id')
-        .then(({ data }) => {
-          const counts: Record<string, number> = {};
-          data?.forEach(t => {
-            counts[t.user_id] = (counts[t.user_id] || 0) + 1;
-          });
-          return { data: counts };
-        });
-
       // Aggregate data by user
       const userSummaries: Record<string, UserLegacyAssetSummary> = {};
 
@@ -99,7 +86,7 @@ const AdminLegacyAssets = () => {
             total_shares: 0,
             total_value: 0,
             asset_types_count: 0,
-            transactions_count: transactionCounts?.[userId] || 0,
+            transactions_count: 0,
             last_updated: asset.updated_at
           };
         }
@@ -322,15 +309,9 @@ const AdminLegacyAssets = () => {
                         {new Date(user.last_updated).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
-                          {LEGACY_ASSET_TYPES.map((assetType) => (
-                            <TransactionModal key={assetType} assetType={assetType}>
-                              <Button size="sm" variant="outline" className="text-xs">
-                                {assetType.split(' ')[0]}
-                              </Button>
-                            </TransactionModal>
-                          ))}
-                        </div>
+                        <Button size="sm" variant="outline" disabled>
+                          Manage Transactions
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
