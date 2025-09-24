@@ -211,6 +211,26 @@ const AssetTypeSection: React.FC<AssetTypeSectionProps> = ({
             className={hasValue ? "border-primary/50 bg-primary/5" : ""}
           />
           
+          {/* Prominent Add Transaction CTA for empty assets */}
+          {!hasValue && transactions.length === 0 && (
+            <div className="mt-2 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-md border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">📝 Add transaction here</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-300">Track your purchase history and cost basis</p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => toggleAddForm(assetType)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Start
+                </Button>
+              </div>
+            </div>
+          )}
+          
           {hasValue && (
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">
@@ -246,7 +266,7 @@ const AssetTypeSection: React.FC<AssetTypeSectionProps> = ({
             <CardContent className="pt-0 space-y-4">
               {/* Summary and Actions */}
               <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">From Transactions:</span>
                     <div className="font-medium">{formatTokenAmount(totalFromTransactions)} shares</div>
@@ -254,6 +274,12 @@ const AssetTypeSection: React.FC<AssetTypeSectionProps> = ({
                   <div>
                     <span className="text-muted-foreground">Avg Cost:</span>
                     <div className="font-medium">{formatCurrency(getAverageCostBasis(assetType))}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Total Value:</span>
+                    <div className="font-medium text-green-700 dark:text-green-400">
+                      {formatCurrency(totalFromTransactions * getAverageCostBasis(assetType))}
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-2">

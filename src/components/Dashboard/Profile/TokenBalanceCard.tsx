@@ -3,14 +3,16 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTransactions } from '@/hooks/transactions/useTransactions';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCurrentPrice } from '@/hooks/token/useCurrentPrice';
 import { formatCurrency } from '@/utils/format';
-import { Loader2, Coins, AlertCircle, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { Loader2, Coins, AlertCircle, ChevronDown, ChevronUp, ExternalLink, DollarSign } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format } from 'date-fns';
 
 const TokenBalanceCard: React.FC = () => {
   const { user } = useAuth();
   const { transactions, isLoading, error } = useTransactions(user?.id);
+  const { data: currentPrice, isLoading: isPriceLoading } = useCurrentPrice();
   const [isOpen, setIsOpen] = useState(false);
   
   // Calculate total tokens delivered (using token_sent flag rather than status)
@@ -27,6 +29,9 @@ const TokenBalanceCard: React.FC = () => {
   const latestTransaction = deliveredTransactions.length > 0 
     ? new Date(Math.max(...deliveredTransactions.map(tx => new Date(tx.updated_at).getTime())))
     : null;
+  
+  // Calculate USD value
+  const tokenValue = currentPrice ? totalTokens * currentPrice : 0;
   
   return (
     <Card className="mb-6">
@@ -46,12 +51,36 @@ const TokenBalanceCard: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center justify-between px-2 py-3 bg-slate-50 dark:bg-slate-800 rounded-md">
-              <div className="flex items-center">
-                <Coins className="h-6 w-6 mr-3 text-amber-500" />
-                <span className="font-medium">Total CSI Tokens</span>
+            <div className="px-4 py-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Coins className="h-6 w-6 text-emerald-600" />
+                  <div>
+                    <div className="font-semibold text-emerald-900 dark:text-emerald-100">
+                      {totalTokens.toFixed(2)} CSI
+                    </div>
+                    <div className="text-sm text-emerald-700 dark:text-emerald-300">
+                      Total Token Balance
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xl font-bold text-emerald-900 dark:text-emerald-100">
+                    {isPriceLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : currentPrice ? (
+                      formatCurrency(tokenValue)
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Price unavailable</span>
+                    )}
+                  </div>
+                  {currentPrice && (
+                    <div className="text-xs text-emerald-700 dark:text-emerald-300">
+                      @ {formatCurrency(currentPrice)} per token
+                    </div>
+                  )}
+                </div>
               </div>
-              <span className="text-lg font-bold">{totalTokens.toFixed(2)} CSI</span>
             </div>
             
             {latestTransaction && (
