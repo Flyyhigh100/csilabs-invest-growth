@@ -67,8 +67,6 @@ export const useAdminLegacyAssetTransactions = (targetUserId?: string, assetType
     }) => {
       if (!user) throw new Error('User not authenticated');
 
-      const totalValue = transactionData.sharesQuantity * transactionData.pricePerShare;
-
       const { data, error } = await supabase
         .from('user_legacy_asset_transactions')
         .insert({
@@ -78,7 +76,6 @@ export const useAdminLegacyAssetTransactions = (targetUserId?: string, assetType
           transaction_date: transactionData.transactionDate,
           shares_quantity: transactionData.sharesQuantity,
           price_per_share: transactionData.pricePerShare,
-          total_value: totalValue,
           notes: transactionData.notes
         })
         .select()
@@ -120,17 +117,8 @@ export const useAdminLegacyAssetTransactions = (targetUserId?: string, assetType
     }) => {
       if (!user) throw new Error('User not authenticated');
 
-      // Calculate total_value if shares_quantity or price_per_share are being updated
-      const finalUpdates = { ...updates };
-      if (updates.shares_quantity !== undefined || updates.price_per_share !== undefined) {
-        // We need to get the current transaction to calculate total_value
-        const currentTransaction = transactions?.find(t => t.id === id);
-        if (currentTransaction) {
-          const quantity = updates.shares_quantity ?? currentTransaction.shares_quantity;
-          const price = updates.price_per_share ?? currentTransaction.price_per_share;
-          finalUpdates.total_value = quantity * price;
-        }
-      }
+      // Remove total_value from updates since it's a generated column
+      const { total_value, ...finalUpdates } = updates;
 
       const { data, error } = await supabase
         .from('user_legacy_asset_transactions')
