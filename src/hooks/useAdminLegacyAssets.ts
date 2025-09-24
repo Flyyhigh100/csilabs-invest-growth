@@ -106,6 +106,7 @@ export const useAdminLegacyAssets = (targetUserId?: string) => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin-legacy-assets', variables.userId] });
       queryClient.invalidateQueries({ queryKey: ['legacy-assets', variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ['legacy-asset-history', variables.userId] });
       queryClient.invalidateQueries({ queryKey: ['admin-legacy-assets'] }); // Refresh main admin page
       toast({
         title: "Success",
@@ -162,6 +163,7 @@ export const useAdminLegacyAssets = (targetUserId?: string) => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin-legacy-assets', variables.userId] });
       queryClient.invalidateQueries({ queryKey: ['legacy-assets', variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ['legacy-asset-history', variables.userId] });
       queryClient.invalidateQueries({ queryKey: ['admin-legacy-assets'] }); // Refresh main admin page
       toast({
         title: "Success", 

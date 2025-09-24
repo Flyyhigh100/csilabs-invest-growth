@@ -22,12 +22,15 @@ export const useLegacyAssetHistory = (targetUserId?: string, assetType?: string)
   const { 
     data: history, 
     isLoading,
-    error 
+    error,
+    refetch
   } = useQuery({
     queryKey: ['legacy-asset-history', targetUserId || user?.id, assetType],
     queryFn: async () => {
       const userId = targetUserId || user?.id;
       if (!userId) return [];
+      
+      console.log('Fetching legacy asset history for:', { userId, assetType });
       
       const { data, error } = await supabase.rpc('get_legacy_asset_history', {
         p_user_id: userId,
@@ -39,9 +42,12 @@ export const useLegacyAssetHistory = (targetUserId?: string, assetType?: string)
         throw error;
       }
       
+      console.log('Legacy asset history data:', data);
       return data as LegacyAssetHistoryEntry[];
     },
     enabled: !!(targetUserId || user?.id),
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Always refetch to get latest changes
   });
 
   // Helper function to format operation names
@@ -94,6 +100,7 @@ export const useLegacyAssetHistory = (targetUserId?: string, assetType?: string)
     history: history || [],
     isLoading,
     error,
+    refetch,
     formatOperation,
     getChangeDescription,
     isSignificantChange

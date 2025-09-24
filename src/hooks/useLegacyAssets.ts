@@ -97,6 +97,7 @@ export const useLegacyAssets = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['legacy-assets', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['legacy-asset-history', user?.id] });
       toast({
         title: "Success",
         description: "Legacy asset updated successfully",
@@ -147,6 +148,7 @@ export const useLegacyAssets = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['legacy-assets', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['legacy-asset-history', user?.id] });
       toast({
         title: "Success", 
         description: "Legacy asset removed successfully",

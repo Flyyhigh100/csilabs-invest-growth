@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Shield } from 'lucide-react';
+import { AlertTriangle, Shield, Calculator } from 'lucide-react';
 import { LegacyAssetType } from '@/hooks/useLegacyAssets';
 
 interface AdminAssetUpdateDialogProps {
@@ -14,6 +14,7 @@ interface AdminAssetUpdateDialogProps {
   onConfirm: (amount: number, reason: string) => void;
   assetType: LegacyAssetType;
   currentAmount: number;
+  suggestedAmount?: number;
   userName: string;
   isPending?: boolean;
 }
@@ -24,11 +25,27 @@ export const AdminAssetUpdateDialog: React.FC<AdminAssetUpdateDialogProps> = ({
   onConfirm,
   assetType,
   currentAmount,
+  suggestedAmount,
   userName,
   isPending = false
 }) => {
-  const [newAmount, setNewAmount] = useState(currentAmount.toString());
-  const [reason, setReason] = useState('');
+  const [newAmount, setNewAmount] = useState(() => {
+    return suggestedAmount !== undefined ? suggestedAmount.toString() : currentAmount.toString();
+  });
+  const [reason, setReason] = useState(() => {
+    return suggestedAmount !== undefined ? 'Synced from transaction total' : '';
+  });
+
+  // Update amount when suggestedAmount changes
+  React.useEffect(() => {
+    if (suggestedAmount !== undefined) {
+      setNewAmount(suggestedAmount.toString());
+      setReason('Synced from transaction total');
+    } else {
+      setNewAmount(currentAmount.toString());
+      setReason('');
+    }
+  }, [suggestedAmount, currentAmount]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,8 +58,8 @@ export const AdminAssetUpdateDialog: React.FC<AdminAssetUpdateDialogProps> = ({
   };
 
   const handleClose = () => {
-    setNewAmount(currentAmount.toString());
-    setReason('');
+    setNewAmount(suggestedAmount !== undefined ? suggestedAmount.toString() : currentAmount.toString());
+    setReason(suggestedAmount !== undefined ? 'Synced from transaction total' : '');
     onClose();
   };
 
@@ -51,7 +68,7 @@ export const AdminAssetUpdateDialog: React.FC<AdminAssetUpdateDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-orange-600" />
@@ -71,6 +88,18 @@ export const AdminAssetUpdateDialog: React.FC<AdminAssetUpdateDialogProps> = ({
               </Badge>
             </div>
           </div>
+
+          {suggestedAmount !== undefined && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2 text-blue-800">
+                <Calculator className="h-4 w-4" />
+                <span className="font-medium text-sm">Sync Suggestion</span>
+              </div>
+              <p className="text-xs text-blue-600 mt-1">
+                Pre-populated with calculated total: {suggestedAmount.toLocaleString()} shares
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

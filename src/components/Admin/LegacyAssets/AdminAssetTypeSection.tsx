@@ -61,6 +61,7 @@ export const AdminAssetTypeSection: React.FC<AdminAssetTypeSectionProps> = ({
   isAdminMode = false
 }) => {
   const [showUpdateDialog, setShowUpdateDialog] = React.useState(false);
+  const [suggestedAmount, setSuggestedAmount] = React.useState<number | undefined>();
   const {
     transactions,
     isLoading,
@@ -145,6 +146,7 @@ export const AdminAssetTypeSection: React.FC<AdminAssetTypeSectionProps> = ({
 
   const syncFromTransactions = () => {
     if (isAdminMode) {
+      setSuggestedAmount(totalFromTransactions);
       setShowUpdateDialog(true);
     } else {
       handleValueChange(assetType, totalFromTransactions.toString());
@@ -154,6 +156,7 @@ export const AdminAssetTypeSection: React.FC<AdminAssetTypeSectionProps> = ({
   const handleAdminUpdate = (amount: number, reason: string) => {
     handleValueChange(assetType, amount.toString(), reason);
     setShowUpdateDialog(false);
+    setSuggestedAmount(undefined);
   };
 
   const getTransactionTypeColor = (type: AdminTransactionType) => {
@@ -559,10 +562,14 @@ export const AdminAssetTypeSection: React.FC<AdminAssetTypeSectionProps> = ({
       {isAdminMode && (
         <AdminAssetUpdateDialog
           isOpen={showUpdateDialog}
-          onClose={() => setShowUpdateDialog(false)}
+          onClose={() => {
+            setShowUpdateDialog(false);
+            setSuggestedAmount(undefined);
+          }}
           onConfirm={handleAdminUpdate}
           assetType={assetType}
           currentAmount={parseFloat(displayValue) || 0}
+          suggestedAmount={suggestedAmount}
           userName={targetUserName || `User ${targetUserId.slice(0, 8)}`}
         />
       )}
