@@ -242,7 +242,7 @@ const EnhancedClientMasterTable: React.FC<EnhancedClientMasterTableProps> = ({
       />
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -250,6 +250,24 @@ const EnhancedClientMasterTable: React.FC<EnhancedClientMasterTableProps> = ({
               <div>
                 <p className="text-sm text-gray-600">Total Clients</p>
                 <p className="text-xl font-bold">{processedClients.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-emerald-500" />
+              <div>
+                <p className="text-sm text-gray-600">New This Week</p>
+                <p className="text-xl font-bold">
+                  {processedClients.filter(client => {
+                    const clientDate = new Date(client.created_at);
+                    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                    return clientDate >= weekAgo;
+                  }).length}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -344,6 +362,10 @@ const EnhancedClientMasterTable: React.FC<EnhancedClientMasterTableProps> = ({
                   </SortHeader>
                   <SortHeader sortKey="average_token_price" className="min-w-[100px] text-center">
                     Avg Price
+                  </SortHeader>
+                  <SortHeader sortKey="created_at" className="min-w-[120px]">
+                    <Calendar className="h-4 w-4" />
+                    Member Since
                   </SortHeader>
                   <SortHeader sortKey="last_transaction_date" className="min-w-[120px]">
                     <Calendar className="h-4 w-4" />
@@ -443,6 +465,13 @@ const EnhancedClientMasterTable: React.FC<EnhancedClientMasterTableProps> = ({
                       ) : (
                         <p className="text-gray-400">-</p>
                       )}
+                    </TableCell>
+                    
+                    <TableCell>
+                      <div className="text-xs">
+                        <p>{new Date(client.created_at).toLocaleDateString()}</p>
+                        <p className="text-gray-500">{new Date(client.created_at).toLocaleTimeString()}</p>
+                      </div>
                     </TableCell>
                     
                     <TableCell>

@@ -83,6 +83,9 @@ const TRANSACTION_ACTIVITY = [
 ];
 
 const QUICK_FILTERS = [
+  { key: 'new_today', label: 'New Today', icon: Calendar, description: 'Registered today' },
+  { key: 'new_week', label: 'New This Week', icon: Calendar, description: 'Registered last 7 days' },
+  { key: 'new_month', label: 'New This Month', icon: Calendar, description: 'Registered last 30 days' },
   { key: 'high_value', label: 'High-Value Clients', icon: DollarSign, description: '>$200 invested (top 10%)' },
   { key: 'vip', label: 'VIP Clients', icon: TrendingUp, description: '3+ transactions or >$500 invested' },
   { key: 'pending_kyc', label: 'Pending KYC', icon: Shield, description: 'Needs approval' },
@@ -144,6 +147,33 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
     
     // Apply the quick filter logic with realistic thresholds
     switch (filterKey) {
+      case 'new_today':
+        onFiltersChange({ 
+          ...baseFilters, 
+          dateRange: { 
+            from: new Date(new Date().setHours(0, 0, 0, 0)),
+            to: new Date()
+          }
+        });
+        break;
+      case 'new_week':
+        onFiltersChange({ 
+          ...baseFilters, 
+          dateRange: { 
+            from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+            to: new Date()
+          }
+        });
+        break;
+      case 'new_month':
+        onFiltersChange({ 
+          ...baseFilters, 
+          dateRange: { 
+            from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+            to: new Date()
+          }
+        });
+        break;
       case 'high_value':
         onFiltersChange({ ...baseFilters, investmentRange: 'high_value_200' });
         break;
