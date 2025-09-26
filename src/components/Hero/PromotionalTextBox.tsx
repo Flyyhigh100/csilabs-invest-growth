@@ -13,7 +13,7 @@ const PromotionalTextBox: React.FC = () => {
         <div className="flex items-center justify-center mb-3">
           <Medal className="w-8 h-8 text-yellow-400 mr-2" />
           <h3 className="text-lg md:text-xl font-bold">
-            Cannabis Science - CSi Labs Crypto Trading
+            Cannabis Science Digital HUB - Tracking all your CBIS-EDP Assets
           </h3>
         </div>
         
