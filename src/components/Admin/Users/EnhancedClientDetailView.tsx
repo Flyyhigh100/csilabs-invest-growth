@@ -13,7 +13,7 @@ import { EnhancedClientData } from '@/hooks/admin/useEnhancedClientData';
 import { TestIconLucide } from '@/components/icons/TestIcon';
 import { CopyButton } from '@/components/ui/copy-button';
 import UserTransactionDashboard from './UserTransactions/UserTransactionDashboard';
-import ProfileNotesCard from '@/components/Dashboard/Profile/ProfileNotesCard';
+import CommunicationPanel from '@/components/Admin/Communications/CommunicationPanel';
 import { AdminLegacyAssetContent } from '@/components/Admin/LegacyAssets/AdminLegacyAssetContent';
 import {
   Tooltip,
@@ -429,7 +429,7 @@ const EnhancedClientDetailView: React.FC<EnhancedClientDetailViewProps> = ({
             </TabsContent>
             
             <TabsContent value="communication" className="space-y-4">
-              <ProfileNotesCard targetUserId={client.id} />
+              <CommunicationPanel targetUserId={client.id} />
             </TabsContent>
             
             <TabsContent value="kyc" className="space-y-4">
