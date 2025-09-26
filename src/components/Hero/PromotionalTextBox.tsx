@@ -1,20 +1,13 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Medal } from 'lucide-react';
-
 const PromotionalTextBox: React.FC = () => {
-  return (
-    <Link 
-      to="/signup"
-      className="block bg-gradient-to-r from-cbis-blue to-cbis-teal p-4 md:p-6 rounded-2xl shadow-elevation text-white hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-pointer"
-    >
+  return <Link to="/signup" className="block bg-gradient-to-r from-cbis-blue to-cbis-teal p-4 md:p-6 rounded-2xl shadow-elevation text-white hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-pointer">
       <div className="text-center">
         <div className="flex items-center justify-center mb-3">
           <Medal className="w-8 h-8 text-yellow-400 mr-2" />
-          <h3 className="text-lg md:text-xl font-bold">
-            Cannabis Science Digital HUB - Tracking all your CBIS-EDP Assets
-          </h3>
+          <h3 className="text-lg md:text-xl font-bold">Cannabis Science Digital HUB  
+Tracking all your CBIS-EDP Assets</h3>
         </div>
         
         <div className="inline-block px-4 py-2 mb-4 text-sm md:text-base font-bold bg-yellow-400 text-cbis-dark rounded-full">
@@ -48,8 +41,6 @@ const PromotionalTextBox: React.FC = () => {
           <span className="text-sm opacity-90">Click here to get started →</span>
         </div>
       </div>
-    </Link>
-  );
+    </Link>;
 };
-
 export default PromotionalTextBox;
