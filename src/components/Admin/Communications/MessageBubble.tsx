@@ -49,7 +49,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const { updateNote, deleteNote } = useProfileNotes();
 
   const isClientMessage = message.note_type === 'client_message';
-  const isAdminMessage = message.note_type === 'admin_response';
+  const isAdminMessage = message.note_type === 'admin_response' || message.note_type === 'communication';
   const isCurrentUserMessage = message.created_by === currentUserId;
 
   const handleSaveEdit = async () => {
