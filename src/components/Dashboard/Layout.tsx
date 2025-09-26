@@ -1,4 +1,3 @@
-
 import React, { ReactNode, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { isUserAdmin } from '@/utils/admin';
@@ -8,21 +7,24 @@ import { toast } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import Footer from '@/components/Footer';
 import { Sparkles } from 'lucide-react';
-
 interface DashboardLayoutProps {
   children: ReactNode;
   title: string;
 }
-
-const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) => {
-  const { user, signOut } = useAuth();
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({
+  children,
+  title
+}) => {
+  const {
+    user,
+    signOut
+  } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
-  
+
   // Get navigation items
   const navItems: NavItem[] = getDashboardNavItems();
   const adminNavItem: NavItem = getAdminNavItem();
-  
   useEffect(() => {
     const checkAdmin = async () => {
       setIsChecking(true);
@@ -32,7 +34,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
           setIsChecking(false);
           return;
         }
-        
+
         // Special case for chris.d.conley@gmail.com
         if (user.email === 'chris.d.conley@gmail.com') {
           console.log("Chris's email detected, granting admin access directly");
@@ -40,7 +42,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
           setIsChecking(false);
           return;
         }
-        
         console.log("Starting admin status check for user:", user.id);
         const admin = await isUserAdmin();
         console.log("Admin status check completed:", admin);
@@ -52,10 +53,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         setIsChecking(false);
       }
     };
-    
     checkAdmin();
   }, [user]);
-  
   const handleLogout = async () => {
     try {
       await signOut();
@@ -64,27 +63,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
       console.error("Logout error:", error);
     }
   };
-
-  console.log("Dashboard Layout state:", { isAdmin, isChecking, userId: user?.id });
-
-  return (
-    <TooltipProvider>
+  console.log("Dashboard Layout state:", {
+    isAdmin,
+    isChecking,
+    userId: user?.id
+  });
+  return <TooltipProvider>
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <TopNavigation 
-          email={user?.email}
-          isAdmin={isAdmin}
-          isChecking={isChecking}
-          navItems={navItems}
-          adminNavItem={adminNavItem}
-          handleLogout={handleLogout}
-        />
+        <TopNavigation email={user?.email} isAdmin={isAdmin} isChecking={isChecking} navItems={navItems} adminNavItem={adminNavItem} handleLogout={handleLogout} />
 
         {/* Main content */}
         <div className="flex-1 overflow-auto pt-16">
           <main className="py-4 md:py-6 px-4 md:px-6 lg:px-8">
             <div className="mb-4 md:mb-6">
-              {title === "Buy Tokens" ? (
-                <div className="relative">
+              {title === "Buy Tokens" ? <div className="relative">
                   {/* Animated Background Container */}
                   <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-teal-500 p-6 md:p-8 rounded-2xl shadow-2xl animate-shimmer-bg animate-pulse-glow animate-fade-in-down overflow-hidden">
                     {/* Sparkle Icons */}
@@ -98,9 +90,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                     {/* Title Content */}
                     <div className="relative z-10 animate-shimmer-text">
                       <div className="flex items-center justify-center mb-6">
-                        <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-white text-center">
-                          Cannabis Science - CSi Labs Crypto Trading
-                        </h1>
+                        <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-white text-center">Cannabis Science Digital Hub 
+Tracking all your CBIS-EDP Assets</h1>
                       </div>
                       
                       <div className="space-y-2 text-left mb-4 max-w-2xl mx-auto">
@@ -121,12 +112,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                       </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <h1 className="text-xl md:text-2xl font-bold text-gray-900">
+                </div> : <h1 className="text-xl md:text-2xl font-bold text-gray-900">
                   {title}
-                </h1>
-              )}
+                </h1>}
             </div>
             {children}
           </main>
@@ -135,8 +123,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         {/* Footer */}
         <Footer />
       </div>
-    </TooltipProvider>
-  );
+    </TooltipProvider>;
 };
-
 export default DashboardLayout;
