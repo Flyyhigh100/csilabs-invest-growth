@@ -6,8 +6,10 @@ const PromotionalTextBox: React.FC = () => {
       <div className="text-center">
         <div className="flex items-center justify-center mb-3">
           <Medal className="w-8 h-8 text-yellow-400 mr-2" />
-          <h3 className="text-lg md:text-xl font-bold">Cannabis Science Digital HUB   
-Tracking all your CBIS-EDP Assets</h3>
+          <h3 className="text-lg md:text-xl font-bold">
+            Cannabis Science Digital HUB<br />
+            Tracking all your CBIS-EDP Assets
+          </h3>
         </div>
         
         <div className="inline-block px-4 py-2 mb-4 text-sm md:text-base font-bold bg-yellow-400 text-cbis-dark rounded-full">
