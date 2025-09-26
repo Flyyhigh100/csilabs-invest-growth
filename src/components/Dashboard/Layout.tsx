@@ -90,8 +90,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                     {/* Title Content */}
                     <div className="relative z-10 animate-shimmer-text">
                       <div className="flex items-center justify-center mb-6">
-                        <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-white text-center">Cannabis Science Digital Hub 
-Tracking all your CBIS-EDP Assets</h1>
+                        <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-white text-center">Cannabis Science Digital Hub:  Tracking all your CBIS-EDP Assets</h1>
                       </div>
                       
                       <div className="space-y-2 text-left mb-4 max-w-2xl mx-auto">
