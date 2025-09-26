@@ -13,7 +13,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({ isLoaded }) => {
       <div className="space-y-4">
         <YouTubeEmbed
           videoId="POjx7zFbYrc"
-          title="Site Walkthrough - How to Navigate the Platform"
+          title="CSi-Labs - Project Overview"
           className="bg-white rounded-2xl p-4 shadow-elevation"
         />
       </div>
