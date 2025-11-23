@@ -44,10 +44,11 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<any> 
         console.log('Added merchant ID to status check request');
       }
       
-      // Create a unique nonce using millisecond precision timestamp + random suffix
-      const timestamp = Date.now();
-      const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-      const nonce = `${timestamp}${randomSuffix}`;
+      // Create a unique nonce using microsecond precision
+      // CoinPayments requires an integer nonce that is always increasing
+      const microtime = performance.now() * 1000; // Convert to microseconds
+      const timestamp = Date.now() * 1000; // Milliseconds to microseconds
+      const nonce = Math.floor(timestamp + microtime).toString();
       console.log(`Using nonce: ${nonce} for transaction ${txnId}`);
       
       requestData.append('format', 'json');
@@ -90,6 +91,24 @@ export async function checkCoinPaymentsTransaction(txnId: string): Promise<any> 
       // Handle API errors
       if (data.error !== 'ok') {
         console.error('CoinPayments API error:', data.error);
+        
+        // Special handling for common errors
+        if (data.error && data.error.includes('Could not find any transactions')) {
+          return {
+            error: true,
+            status_text: 'Transaction not found in CoinPayments. It may not have been created yet or the transaction ID is incorrect.',
+            notFound: true
+          };
+        }
+        
+        if (data.error && data.error.includes('Invalid nonce')) {
+          return {
+            error: true,
+            status_text: 'API authentication error (invalid nonce). Please try again in a moment.',
+            retryable: true
+          };
+        }
+        
         return {
           error: true,
           status_text: `API error: ${data.error}`
