@@ -86,12 +86,18 @@ serve(async (req) => {
     
     if (apiResponse.error) {
       console.error(`API error for transaction ${transactionId}:`, apiResponse.status_text);
+      
+      // Return appropriate status code based on error type
+      const statusCode = apiResponse.notFound ? 404 : (apiResponse.retryable ? 503 : 500);
+      
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: `API error: ${apiResponse.status_text}`
+          message: apiResponse.status_text,
+          retryable: apiResponse.retryable || false,
+          notFound: apiResponse.notFound || false
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: statusCode }
       );
     }
 
