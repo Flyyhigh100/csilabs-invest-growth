@@ -757,14 +757,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      cleanup_expired_magic_links: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      execute_sql: {
-        Args: { sql_query: string }
-        Returns: Json[]
-      }
+      cleanup_expired_magic_links: { Args: never; Returns: undefined }
+      execute_sql: { Args: { sql_query: string }; Returns: Json[] }
       get_legacy_asset_history: {
         Args: { p_asset_type?: string; p_user_id: string }
         Returns: {
@@ -781,18 +775,9 @@ export type Database = {
           user_agent: string
         }[]
       }
-      get_secret: {
-        Args: { secret_name: string }
-        Returns: string
-      }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_admin_for_storage: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      get_secret: { Args: { secret_name: string }; Returns: string }
+      is_admin: { Args: never; Returns: boolean }
+      is_admin_for_storage: { Args: never; Returns: boolean }
       log_admin_action: {
         Args: {
           p_new_values?: Json
@@ -803,10 +788,7 @@ export type Database = {
         }
         Returns: string
       }
-      mark_data_as_test: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      mark_data_as_test: { Args: never; Returns: Json }
     }
     Enums: {
       kyc_status:

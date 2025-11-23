@@ -78,7 +78,7 @@ const GrandTotalCard: React.FC = () => {
                   <span>Total Portfolio Value</span>
                 </div>
                 <div className="text-4xl font-bold text-primary">
-                  {formatTokenAmount(grandTotal)} Total CSI Units
+                  {formatTokenAmount(grandTotal)} Total CSI Shares
                 </div>
                 <div className="text-2xl font-semibold text-foreground">
                   {isPriceLoading ? (
