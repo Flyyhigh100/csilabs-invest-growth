@@ -1,33 +1,33 @@
-## Remove the DexTools Chart from the Homepage Token Card
+## Fix the TWAP price fetch error
 
-The chart shown in your screenshot is the DexTools embed inside the `$CSi-EDP/Labs` card on the homepage hero. It's rendered by `src/components/Hero/TokenCard.tsx` via the `<DexToolsChart />` component.
+### Diagnosis
 
-### Change
+The 503 "Service is temporarily unavailable" was a transient Supabase Edge Runtime cold-start hiccup — the `crypto-price-proxy` function logs show every actual request returning success (`[PRICE PROXY] Success for rpc/graph`). No edge-function fix is needed.
 
-**File:** `src/components/Hero/TokenCard.tsx`
+The **real, repeating bug** in your console is:
 
-Remove the chart container block and its import:
-
-1. Remove the import:
-```tsx
-import DexToolsChart from '@/components/TokenPricing/DexToolsChart';
+```
+TypeError: token0Result.slice is not a function
+  at fetchOnchainTwap (src/services/api/twapPriceService.ts:40)
 ```
 
-2. Remove this block (lines 41–44):
-```tsx
-{/* Chart container with responsive height and padding */}
-<div className="h-auto mb-8 sm:mb-10">
-  <DexToolsChart />
-</div>
-```
+It retries 4 times every price refresh, then falls back to V3 spot price. Cause: `makeRpcCall` in `src/services/api/proxyService.ts` returns the **full JSON-RPC envelope** (`{ jsonrpc, id, result: '0x...' }`) — not the hex string. The TWAP code calls `.slice(-40)` directly on that object, which throws.
 
-3. Tidy spacing — since the chart is gone, drop the now-redundant top margin on the `TokenInfo` wrapper so the card stays balanced:
-```tsx
-<div className="mt-2">
-  <TokenInfo tokenInfo={tokenInfo} isLoading={isLoading} />
-</div>
-```
+### Fix
+
+**File:** `src/services/api/twapPriceService.ts`
+
+In `fetchOnchainTwap()`, extract `.result` from each `makeRpcCall` response before using it as a hex string. Three call sites are affected:
+
+1. **Lines 42–60** — `token0()` and `token1()` calls: rename returned values to `token0Response` / `token1Response`, then derive `token0Result` / `token1Result` as `response.result` (with a string fallback for safety) and validate they exist before slicing.
+
+2. **Lines 87–99** — `observe()` call: same pattern — read `.result` off `observeResponse` before passing to `ethers.utils.defaultAbiCoder.decode`.
+
+Add a clear thrown error if `.result` is missing so future regressions surface immediately instead of through the cryptic `.slice is not a function`.
 
 ### Result
 
-The `$CSi-EDP/Labs` card on the homepage will keep its title and the token info section below, but the embedded DexTools price chart (and the "View on DexTools" button overlay) will be cleanly removed. No other pages are affected — the admin Token Pricing page still uses `DexToolsChart` independently.
+- TWAP fetch succeeds on the first try, no more retry loop.
+- The on-chain TWAP price source becomes the active one again instead of always falling back to V3 spot.
+- Console noise (4 warnings + 1 error per price refresh) is gone.
+- Edge function is untouched — it's already healthy.

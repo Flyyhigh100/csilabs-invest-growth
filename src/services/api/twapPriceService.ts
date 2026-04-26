@@ -39,7 +39,7 @@ export async function fetchOnchainTwap(): Promise<number> {
       }
       
       // Get actual token addresses from the pool to handle potential token ordering issues
-      const token0Result = await makeRpcCall('eth_call', [
+      const token0Response = await makeRpcCall('eth_call', [
         {
           to: UNISWAP_V3_POOL,
           data: '0x0dfe1681' // token0() function selector
@@ -47,13 +47,21 @@ export async function fetchOnchainTwap(): Promise<number> {
         'latest'
       ], POLYGON_RPC_URL);
       
-      const token1Result = await makeRpcCall('eth_call', [
+      const token1Response = await makeRpcCall('eth_call', [
         {
           to: UNISWAP_V3_POOL,
           data: '0xd21220a7' // token1() function selector
         },
         'latest'
       ], POLYGON_RPC_URL);
+      
+      // Extract hex string result from JSON-RPC response (proxy returns the full envelope)
+      const token0Result: string = typeof token0Response === 'string' ? token0Response : token0Response?.result;
+      const token1Result: string = typeof token1Response === 'string' ? token1Response : token1Response?.result;
+      
+      if (!token0Result || !token1Result) {
+        throw new Error(`Invalid RPC response for token addresses: token0=${JSON.stringify(token0Response)}, token1=${JSON.stringify(token1Response)}`);
+      }
       
       // Parse token addresses
       const token0Address = ethers.utils.getAddress('0x' + token0Result.slice(-40)).toLowerCase();
@@ -84,13 +92,18 @@ export async function fetchOnchainTwap(): Promise<number> {
         [[WINDOW_SEC, 0]]
       );
       
-      const observeResult = await makeRpcCall('eth_call', [
+      const observeResponse = await makeRpcCall('eth_call', [
         {
           to: UNISWAP_V3_POOL,
           data: '0x883bdbfd' + observeCalldata.slice(2) // observe() function selector + calldata
         },
         'latest'
       ], POLYGON_RPC_URL);
+      
+      const observeResult: string = typeof observeResponse === 'string' ? observeResponse : observeResponse?.result;
+      if (!observeResult) {
+        throw new Error(`Invalid RPC response for observe(): ${JSON.stringify(observeResponse)}`);
+      }
       
       // Decode the result
       const decodedResult = ethers.utils.defaultAbiCoder.decode(
