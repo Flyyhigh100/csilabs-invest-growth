@@ -1,7 +1,6 @@
 import React from 'react';
 import { Info } from 'lucide-react';
 import { TokenInfo as TokenInfoType } from '@/types/token';
-import DexToolsChart from '@/components/TokenPricing/DexToolsChart';
 import TokenInfo from './TokenInfo';
 import { useTokenPrice } from '@/context/TokenPriceContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -38,13 +37,7 @@ const TokenCard: React.FC<TokenCardProps> = ({
             
           </div>
           
-          {/* Chart container with responsive height and padding */}
-          <div className="h-auto mb-8 sm:mb-10">
-            <DexToolsChart />
-          </div>
-          
-          {/* Increased spacing before TokenInfo */}
-          <div className="mt-8 pt-2 sm:mt-10">
+          <div className="mt-2">
             <TokenInfo tokenInfo={tokenInfo} isLoading={isLoading} />
           </div>
         </div>
