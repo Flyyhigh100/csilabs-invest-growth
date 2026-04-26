@@ -19,33 +19,66 @@ interface ProxyResponse {
 /**
  * Makes API calls through the Supabase edge function proxy to bypass network restrictions
  */
+const MAX_EDGE_RETRIES = 2;
+const EDGE_RETRY_DELAY_MS = 800;
+
+const isTransientEdgeError = (err: any): boolean => {
+  const msg = (err?.message || '').toString().toLowerCase();
+  return (
+    msg.includes('503') ||
+    msg.includes('temporarily unavailable') ||
+    msg.includes('supabase_edge_runtime_error') ||
+    msg.includes('failed to fetch') ||
+    msg.includes('networkerror')
+  );
+};
+
 export async function makeProxyRequest(request: ProxyRequest): Promise<any> {
-  try {
-    console.log(`[PROXY SERVICE] Making proxy request for ${request.source}`);
-    
-    const { data, error } = await supabase.functions.invoke('crypto-price-proxy', {
-      body: request
-    });
+  let attempt = 0;
+  let lastError: any;
 
-    if (error) {
-      console.error(`[PROXY SERVICE] Edge function error:`, error);
-      throw new Error(`Proxy request failed: ${error.message}`);
+  while (attempt <= MAX_EDGE_RETRIES) {
+    try {
+      console.log(`[PROXY SERVICE] Making proxy request for ${request.source} (attempt ${attempt + 1})`);
+
+      const { data, error } = await supabase.functions.invoke('crypto-price-proxy', {
+        body: request
+      });
+
+      if (error) {
+        // Retry transient runtime errors (cold start / 503)
+        if (isTransientEdgeError(error) && attempt < MAX_EDGE_RETRIES) {
+          console.warn(`[PROXY SERVICE] Transient edge error, retrying in ${EDGE_RETRY_DELAY_MS * (attempt + 1)}ms`);
+          await new Promise((r) => setTimeout(r, EDGE_RETRY_DELAY_MS * (attempt + 1)));
+          attempt++;
+          continue;
+        }
+        console.error(`[PROXY SERVICE] Edge function error:`, error);
+        throw new Error(`Proxy request failed: ${error.message}`);
+      }
+
+      const response: ProxyResponse = data;
+
+      if (!response?.success) {
+        console.error(`[PROXY SERVICE] Proxy returned error:`, response?.error);
+        throw new Error(response?.error || 'Proxy request failed');
+      }
+
+      console.log(`[PROXY SERVICE] Success for ${request.source}`);
+      return response.data;
+    } catch (error) {
+      lastError = error;
+      if (isTransientEdgeError(error) && attempt < MAX_EDGE_RETRIES) {
+        await new Promise((r) => setTimeout(r, EDGE_RETRY_DELAY_MS * (attempt + 1)));
+        attempt++;
+        continue;
+      }
+      console.error(`[PROXY SERVICE] Error making proxy request:`, error);
+      throw error;
     }
-
-    const response: ProxyResponse = data;
-    
-    if (!response.success) {
-      console.error(`[PROXY SERVICE] Proxy returned error:`, response.error);
-      throw new Error(response.error || 'Proxy request failed');
-    }
-
-    console.log(`[PROXY SERVICE] Success for ${request.source}`);
-    return response.data;
-
-  } catch (error) {
-    console.error(`[PROXY SERVICE] Error making proxy request:`, error);
-    throw error;
   }
+
+  throw lastError ?? new Error('Proxy request failed');
 }
 
 /**
