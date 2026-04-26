@@ -42,5 +42,5 @@ export const MAX_VALID_PRICE = 10; // Maximum valid price (updated to 10 based o
 // Max retries for API calls
 export const MAX_RETRIES = 3;
 export const RETRY_DELAY = 1000; // Base delay in ms for exponential backoff
-export const FORCE_REFRESH_CACHE = true; // Temporarily set to true to refresh cached prices
+export const FORCE_REFRESH_CACHE = false;
 export const STABLE_PRICE_THRESHOLD = 0.0001;

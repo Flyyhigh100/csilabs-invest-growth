@@ -19,18 +19,35 @@ interface ProxyResponse {
 /**
  * Makes API calls through the Supabase edge function proxy to bypass network restrictions
  */
-const MAX_EDGE_RETRIES = 2;
-const EDGE_RETRY_DELAY_MS = 800;
+const MAX_EDGE_RETRIES = 3;
+const EDGE_RETRY_DELAY_MS = 1000;
 
 const isTransientEdgeError = (err: any): boolean => {
-  const msg = (err?.message || '').toString().toLowerCase();
+  const msg = `${err?.name || ''} ${err?.message || ''} ${err?.code || ''}`.toLowerCase();
   return (
     msg.includes('503') ||
+    msg.includes('functionshttperror') ||
+    msg.includes('non-2xx status code') ||
+    msg.includes('service_unavailable') ||
     msg.includes('temporarily unavailable') ||
     msg.includes('supabase_edge_runtime_error') ||
     msg.includes('failed to fetch') ||
     msg.includes('networkerror')
   );
+};
+
+const tryDirectDexScreenerFallback = async (request: ProxyRequest): Promise<any | null> => {
+  if (request.source !== 'dexscreener' || !request.url) return null;
+
+  try {
+    console.warn('[PROXY SERVICE] Trying direct DexScreener fallback after edge runtime failure');
+    const response = await fetch(request.url);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (fallbackError) {
+    console.warn('[PROXY SERVICE] Direct DexScreener fallback failed:', fallbackError);
+    return null;
+  }
 };
 
 export async function makeProxyRequest(request: ProxyRequest): Promise<any> {
@@ -54,6 +71,8 @@ export async function makeProxyRequest(request: ProxyRequest): Promise<any> {
           continue;
         }
         console.error(`[PROXY SERVICE] Edge function error:`, error);
+        const fallbackData = await tryDirectDexScreenerFallback(request);
+        if (fallbackData) return fallbackData;
         throw new Error(`Proxy request failed: ${error.message}`);
       }
 
@@ -74,9 +93,14 @@ export async function makeProxyRequest(request: ProxyRequest): Promise<any> {
         continue;
       }
       console.error(`[PROXY SERVICE] Error making proxy request:`, error);
+      const fallbackData = await tryDirectDexScreenerFallback(request);
+      if (fallbackData) return fallbackData;
       throw error;
     }
   }
+
+  const fallbackData = await tryDirectDexScreenerFallback(request);
+  if (fallbackData) return fallbackData;
 
   throw lastError ?? new Error('Proxy request failed');
 }
