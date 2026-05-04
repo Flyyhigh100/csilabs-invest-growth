@@ -24,6 +24,21 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // DISABLED: CoinPayments live polling is turned off (White Glove flow).
+  // Returning a benign 200 response prevents hammering the CoinPayments API
+  // (which was returning rate-limit 500s) and stops client-side error toasts.
+  return new Response(
+    JSON.stringify({
+      success: true,
+      disabled: true,
+      message: 'CoinPayments status polling is disabled.',
+      status: 'pending',
+      updated: false,
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+  );
+
+  // eslint-disable-next-line no-unreachable
   try {
     const client = createSupabaseClient();
     const { transactionId, forceUpdate = false } = await req.json();
