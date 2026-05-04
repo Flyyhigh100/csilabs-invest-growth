@@ -21,12 +21,18 @@ const HeroContent: React.FC<HeroContentProps> = ({
       <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed max-w-lg font-normal">
         The 1-Million Strong Killing Cancers Foundation, the 1-Million Strong Fight Club, & CSi Labs are making cancer treatments affordable and accessible for millions of patients through our innovative cancer killing fundraising meme token. Our Low-Cost, Harvard Award Winning cannabinoid-based treatments eliminate cancer cells without the harsh side effects of chemical therapies.
       </p>
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Button asChild size="lg" className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity flex-shrink-0">
-          <Link to="/register" className="mx-0 my-0 px-[6px]">
-            Purchase Now to Contribute <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
+      <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+        <Link
+          to="/register"
+          className="flex-shrink-0 inline-flex flex-col items-center justify-center rounded-lg bg-gradient-to-r from-cbis-blue to-cbis-teal text-white px-6 py-3 shadow-elevation hover:opacity-90 transition-opacity"
+        >
+          <span className="flex items-center text-xl md:text-2xl font-extrabold tracking-wide">
+            JOIN NOW <ArrowRight className="ml-2 h-5 w-5" />
+          </span>
+          <span className="text-xs md:text-sm font-light italic mt-0.5 opacity-90">
+            Do your Part … to Keep Killing Cancers …
+          </span>
+        </Link>
         <Button asChild variant="outline" size="lg" className="border-cbis-blue text-cbis-blue hover:bg-cbis-blue/5 transition-colors flex-shrink-0">
           <Link to="/research-documents" className="mx-0 px-[6px]">
             View Research Documents
