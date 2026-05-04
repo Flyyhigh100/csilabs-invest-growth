@@ -33,10 +33,14 @@ const TokenCard: React.FC<TokenCardProps> = ({
       <div className="rounded-xl overflow-hidden bg-gradient-to-br from-cbis-blue/10 to-cbis-teal/10">
         <div className="p-4 sm:p-6 md:p-8">
           <div className="text-center mb-4 sm:mb-6">
-            <div className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent mb-3">$CSi-EDP/Labs</div>
-            
+            <div className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-cbis-blue to-cbis-teal bg-clip-text text-transparent mb-3">$CSi-EDP/Labs FC</div>
+            <div className="mt-2 inline-block bg-white/70 backdrop-blur-sm rounded-xl px-5 py-3 shadow-sm border border-cbis-blue/10">
+              <p className="text-xs uppercase tracking-wider text-gray-500 font-medium">CSi-Labs (CSL) Current Spot Price</p>
+              <p className="text-3xl sm:text-4xl font-bold text-cbis-blue mt-1">$1.00 USD</p>
+              <p className="text-xs text-gray-600 mt-1">Per Coin</p>
+            </div>
           </div>
-          
+
           <div className="mt-2">
             <TokenInfo tokenInfo={tokenInfo} isLoading={isLoading} />
           </div>
