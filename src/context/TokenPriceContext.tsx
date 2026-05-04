@@ -1,7 +1,7 @@
+import { createContext, useContext, ReactNode } from 'react';
+import { STATIC_TOKEN_PRICE } from '@/services/api/staticPrice';
 
-import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { fetchCurrentTokenPrice, PriceResult } from '@/services/api/priceService';
-import { toast } from 'sonner';
+type DataSource = 'on-chain' | 'on-chain-v4' | 'on-chain-v3' | 'defined.fi' | 'dexscreener' | 'cache' | 'static' | null;
 
 interface TokenPriceContextType {
   currentPrice: number | null;
@@ -12,16 +12,14 @@ interface TokenPriceContextType {
   refreshPrice: () => Promise<void>;
   convertUsdToTokens: (usdAmount: number) => number;
   convertTokensToUsd: (tokenAmount: number) => number;
-  dataSource: 'on-chain' | 'on-chain-v4' | 'on-chain-v3' | 'defined.fi' | 'dexscreener' | 'cache' | null;
+  dataSource: DataSource;
 }
 
 const TokenPriceContext = createContext<TokenPriceContextType | undefined>(undefined);
 
 export const useTokenPrice = () => {
   const context = useContext(TokenPriceContext);
-  if (!context) {
-    throw new Error('useTokenPrice must be used within a TokenPriceProvider');
-  }
+  if (!context) throw new Error('useTokenPrice must be used within a TokenPriceProvider');
   return context;
 };
 
@@ -30,100 +28,22 @@ interface TokenPriceProviderProps {
   refreshInterval?: number;
 }
 
-export const TokenPriceProvider = ({ 
-  children,
-  refreshInterval = 60000 
-}: TokenPriceProviderProps) => {
-  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [timeUntilNextUpdate, setTimeUntilNextUpdate] = useState<number>(refreshInterval);
-  const [dataSource, setDataSource] = useState<'on-chain' | 'on-chain-v4' | 'on-chain-v3' | 'defined.fi' | 'dexscreener' | 'cache' | null>(null);
+/**
+ * Token price is locked at a static $1.00 USD per coin (May 2026 client decision).
+ * The provider keeps its API surface so existing consumers continue to work.
+ */
+export const TokenPriceProvider = ({ children }: TokenPriceProviderProps) => {
+  const value: TokenPriceContextType = {
+    currentPrice: STATIC_TOKEN_PRICE,
+    isLoading: false,
+    error: null,
+    lastUpdated: new Date(),
+    timeUntilNextUpdate: 0,
+    refreshPrice: async () => {},
+    convertUsdToTokens: (usdAmount: number) => usdAmount / STATIC_TOKEN_PRICE,
+    convertTokensToUsd: (tokenAmount: number) => tokenAmount * STATIC_TOKEN_PRICE,
+    dataSource: 'static',
+  };
 
-  const fetchPrice = async (showToast: boolean = false) => {
-    try {
-      setIsLoading(true);
-      
-      try {
-        // In the real implementation, the price service should return both the price and source
-        const result = await fetchCurrentTokenPrice(showToast);
-        
-        // The result now always contains price and source information
-        const price = result.price;
-        const source = result.source;
-        
-        console.log('TokenPriceContext received price:', price, 'from source:', source);
-        
-        setCurrentPrice(price);
-        setLastUpdated(new Date());
-        setDataSource(source);
-        
-        if (showToast) {
-          toast.success("Price updated", {
-            description: `Current token price: $${price.toFixed(5)} (${source})`
-          });
-        }
-        
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching token price:', err);
-        setError(err instanceof Error ? err : new Error('Failed to fetch token price'));
-        setDataSource(null);
-        
-        if (showToast) {
-          toast.warning("Using fallback price data", {
-            description: "Real-time price unavailable. Using latest known price."
-          });
-        }
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  useEffect(() => {
-    fetchPrice();
-    
-    const intervalId = setInterval(() => {
-      fetchPrice();
-    }, refreshInterval);
-    
-    const countdownId = setInterval(() => {
-      setTimeUntilNextUpdate(prev => prev > 0 ? prev - 1000 : refreshInterval);
-    }, 1000);
-    
-    return () => {
-      clearInterval(intervalId);
-      clearInterval(countdownId);
-    };
-  }, [refreshInterval]);
-  
-  const convertUsdToTokens = (usdAmount: number): number => {
-    if (!currentPrice || currentPrice <= 0) return 0;
-    return usdAmount / currentPrice;
-  };
-  
-  const convertTokensToUsd = (tokenAmount: number): number => {
-    if (!currentPrice) return 0;
-    return tokenAmount * currentPrice;
-  };
-  
-  return (
-    <TokenPriceContext.Provider 
-      value={{
-        currentPrice,
-        isLoading,
-        error,
-        lastUpdated,
-        timeUntilNextUpdate,
-        refreshPrice: () => fetchPrice(true),
-        convertUsdToTokens,
-        convertTokensToUsd,
-        dataSource
-      }}
-    >
-      {children}
-    </TokenPriceContext.Provider>
-  );
+  return <TokenPriceContext.Provider value={value}>{children}</TokenPriceContext.Provider>;
 };
