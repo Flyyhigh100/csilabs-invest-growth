@@ -18,8 +18,6 @@ import { cn } from '@/lib/utils';
 import EnhancedPurchaseGuide from '../TokenPurchase/EnhancedPurchaseGuide';
 import { useWalletAddress } from '../WalletAddress/useWalletAddress';
 
-// Define the CSI Token Uniswap URL as a constant
-const CSI_TOKEN_UNISWAP_URL = 'https://app.uniswap.org/explore/tokens/polygon/0xcba5ca199bca0af3f6046da01169035f2c6a7ff0';
 
 export const TokenPurchaseSections: React.FC<{
   isLoadingWallet: boolean;
@@ -167,10 +165,6 @@ export const TokenPurchaseSections: React.FC<{
                 showCoinPayments();
                 setDirectPurchase(true);
                 toast.success("Payment options loaded");
-              }}
-              onSelectDex={() => {
-                // We use the constant directly here, but the actual navigation is handled in PurchasePathSelector
-                console.log("DEX option selected, redirecting to:", CSI_TOKEN_UNISWAP_URL);
               }}
               setDirectPurchase={setDirectPurchase}
             />
