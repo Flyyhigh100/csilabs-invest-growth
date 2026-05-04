@@ -168,10 +168,6 @@ export const TokenPurchaseSections: React.FC<{
                 setDirectPurchase(true);
                 toast.success("Payment options loaded");
               }}
-              onSelectDex={() => {
-                // We use the constant directly here, but the actual navigation is handled in PurchasePathSelector
-                console.log("DEX option selected, redirecting to:", CSI_TOKEN_UNISWAP_URL);
-              }}
               setDirectPurchase={setDirectPurchase}
             />
           </CardContent>
