@@ -6,7 +6,7 @@ import { KycVerificationData } from '@/hooks/kyc/types';
 import CryptoOnrampTab from './CryptoOnrampTab';
 import CryptoPaymentTab from './CryptoPaymentTab';
 import CompanyPurchaseMethods from './CompanyPurchaseMethods';
-import DexPurchaseOption from './DexPurchaseOption';
+import WhiteGloveServiceOption from './WhiteGloveServiceOption';
 import { Separator } from "@/components/ui/separator";
 
 interface PaymentOptionsProps {
@@ -108,16 +108,16 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
       )}
       
       <Separator className="my-8" />
-      
-      {/* DEX purchase option */}
-      <DexPurchaseOption />
-      
+
+      {/* White Glove VIP service */}
+      <WhiteGloveServiceOption />
+
       {/* Educational content */}
       <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
         <h4 className="font-medium text-base mb-3">Understanding Your Purchase Options</h4>
         <div className="space-y-2 text-sm">
           <p><strong>Direct Purchase (Card/Crypto):</strong> Funds go directly to the company, supporting research, development, and operations.</p>
-          <p><strong>DEX Trading:</strong> Trading occurs on the open market between buyers and sellers. Funds do not flow to the company directly.</p>
+          <p><strong>White Glove Service:</strong> For contributions of $1,000+, our VIP concierge team provides bank wire instructions and personalized support.</p>
         </div>
       </div>
     </div>
