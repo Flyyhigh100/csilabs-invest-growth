@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import HeroContent from './HeroContent';
 import TokenCard from './TokenCard';
 import PromotionalTextBox from './PromotionalTextBox';
+import FightClubBanner from './FightClubBanner';
 import VideoSection from './VideoSection';
 import { useTokenData } from '@/hooks/useTokenData';
 import { Skeleton } from '@/components/ui/skeleton';
