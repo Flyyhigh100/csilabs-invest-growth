@@ -134,16 +134,12 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
         </div>
       </div>
 
-      {currentPrice && (
-        <div className="text-base font-semibold text-gray-700" aria-live="polite">
-          Estimated tokens: {formattedTokenAmount} CSL
-          {currentPrice && (
-            <div className="text-sm font-semibold text-gray-600 mt-1">
-              Current Spot Price: ${currentPrice.toFixed(5)} per token
-            </div>
-          )}
+      <div className="text-base font-semibold text-gray-700" aria-live="polite">
+        Estimated tokens: {formattedTokenAmount} CSL
+        <div className="text-sm font-semibold text-gray-600 mt-1">
+          Current Spot Price: $1.00 USD - Per Coin
         </div>
-      )}
+      </div>
 
       {isExceedingLimit && (
         <Alert variant="destructive">
