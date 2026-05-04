@@ -10,8 +10,18 @@ export async function checkCryptoPaymentStatus(
   transactionId: string,
   forceUpdate: boolean = false
 ): Promise<CryptoStatusCheckResult> {
-  console.log(`Checking status for CoinPayments transaction: ${transactionId}, forceUpdate: ${forceUpdate}`);
-  
+  console.log(`[disabled] Skipping CoinPayments status check for ${transactionId} (forceUpdate=${forceUpdate}). Platform is on White Glove flow.`);
+
+  // Short-circuit: CoinPayments live polling is disabled while purchases run through
+  // the White Glove concierge flow. Return a benign "pending" result so existing
+  // pollers/UI don't surface 404/503 errors or blank screens.
+  return {
+    status: 'pending',
+    updated: false,
+    details: 'CoinPayments live status polling is disabled.',
+  } as CryptoStatusCheckResult;
+
+  // eslint-disable-next-line no-unreachable
   try {
     // First, verify if the transaction exists in the database
     const { data: transactionCheck, error: checkError } = await supabase
