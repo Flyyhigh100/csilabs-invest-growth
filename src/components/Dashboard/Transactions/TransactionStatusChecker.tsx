@@ -43,18 +43,12 @@ const TransactionStatusChecker: React.FC<TransactionStatusCheckerProps> = ({
     }
   }, 60000); // Check every minute
 
-  // Start polling when component mounts if transaction is pending
+  // Polling disabled: CoinPayments live status checks are turned off (White Glove flow).
   useEffect(() => {
-    if (transaction.status === 'pending' && transaction.payment_method === 'coinpayments') {
-      console.log(`Starting status polling for pending transaction ${transaction.id}`);
-      startPolling();
-    }
-    
     return () => {
-      console.log(`Cleaning up status checker for transaction ${transaction.id}`);
       stopPolling();
     };
-  }, [transaction.id, transaction.status, startPolling, stopPolling]);
+  }, [stopPolling]);
 
   // Don't show anything for non-crypto transactions
   if (transaction.payment_method !== 'coinpayments') {
