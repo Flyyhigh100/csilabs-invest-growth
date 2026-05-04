@@ -1,39 +1,40 @@
-## Audit vs original plan + client feedback
+## Current state vs. requested image
 
-| Plan item | Status |
-|---|---|
-| 1. Static $1.00 token price wired everywhere | ✅ Done (`staticPrice.ts`, contexts, services, hooks) |
-| 2. Remove price chart from Admin Overview | ✅ Done (`TokenPriceChart` / `DexToolsChart` files retained but unreferenced) |
-| 3a. Replace DEX with White Glove in `PaymentOptions.tsx` (BuyTokens flow) | ✅ Done |
-| 3b. Replace DEX with White Glove in `PurchasePathSelector.tsx` (Payments page entry) | ❌ **Missed** — still shows "Decentralized Exchange (DEX)" card with Polygon/Solana DEX buttons |
-| 4. Promo refresh: Hero copy, $1.00, $20M Killing Cancer Goal, Harvard award, 1-2-3 steps, 1-Million Strong | ✅ Done in `TokenCard.tsx`, `PromotionalTextBox.tsx`, `HeroContent.tsx` |
-| Edge functions disabled (CoinPayments polling) | ✅ Done (no more 503/500s) |
+The uploaded screenshot shows two changes the client wants on the homepage hero:
 
-**Only gap:** `PurchasePathSelector` is the first thing users see on `/dashboard/payments`, and it still routes to Uniswap/Raydium. This contradicts the client's "DEX → White Glove" direction.
+1. **Primary CTA** — replace the current `Purchase Now to Contribute →` button with a bold **"JOIN NOW"** button that has a small subtitle underneath: *"Do your Part … to Keep Killing Cancers …"*. The "View Research Documents" outline button next to it stays.
+2. **Brand banner** — a new dark/gold ribbon reading **"1-Million STRONG | Digital HUB"** on top and **"KILLING CANCER FIGHT CLUB"** in a gold gradient bar underneath.
 
-## Fix
+### What's already in place
+- Promo box ("EASY as 1, 2, 3", Harvard, $1.00, $20M goal) — done.
+- DEX → White Glove migration — done.
+- Static $1.00 pricing — done.
 
-**1. `src/components/Dashboard/TokenPurchase/PurchasePathSelector.tsx`**
-- Remove `CSI_TOKEN_POLYGON_URL`, `CSI_TOKEN_SOLANA_URL`, `handleSelectPolygonDex`, `handleSelectSolanaDex`, and the `onSelectDex` prop.
-- Replace the second `PurchaseMethodCard` ("Decentralized Exchange (DEX)") with a White Glove card:
-  - Title: **White Glove Service**
-  - Description: "VIP concierge for $1,000+ contributions. Bank wire instructions and dedicated onboarding from the CSi Labs team."
-  - Icon: `Crown` (lucide)
-  - Badge: "VIP" / `secondary`
-  - Single CTA button: **"Request White Glove Service"** → `mailto:raymond.dabney@cannabisscience.com` (same address used in the existing `WhiteGloveServiceOption`)
-- Update the "Why choose Direct Charitable Contribution?" footer bullets to compare Direct vs White Glove (drop the DEX-specific language).
+### What's missing
+- Hero CTA still reads "Purchase Now to Contribute" — no "JOIN NOW" + tagline styling.
+- No "1-Million STRONG | Digital HUB / KILLING CANCER FIGHT CLUB" banner anywhere on the homepage.
 
-**2. `src/components/Dashboard/Payments/PaymentSections.tsx`**
-- Remove the `onSelectDex` prop and the related `CSI_TOKEN_UNISWAP_URL` import/log lines that become dead code.
+## Plan
 
-**3. QA**
-- Visual check on `/dashboard/payments` (mobile 393px + desktop): confirm two cards render — Direct Charitable Contribution + White Glove Service. No DEX/Uniswap/Raydium text or links remain anywhere in the purchase flow.
-- Spot-check Hero, BuyTokens, Admin TokenPricing pages still render correctly (no regressions from the previous round).
+**1. `src/components/Hero/HeroContent.tsx`**
+- Replace the primary `Button` with a stacked CTA:
+  - Large bold **`JOIN NOW`** label (keep gradient blue→teal background, white text).
+  - Smaller italic/light subtitle below: *"Do your Part … to Keep Killing Cancers …"*.
+  - Wrap in `<Link to="/register">`. Keep the arrow icon.
+- Leave the "View Research Documents" outline button unchanged.
 
-## Out of scope
+**2. New banner component `src/components/Hero/FightClubBanner.tsx`**
+- Dark (cbis-dark/black) rounded container.
+- Top row: **"1-Million STRONG"** in gold serif + a thin vertical divider + **"Digital HUB"** in white sans bold.
+- Bottom row: full-width gold gradient bar (amber-400 → amber-600) with **"KILLING CANCER FIGHT CLUB"** — "KILLING CANCER" in dark/black bold, "FIGHT CLUB" in white bold, matching the screenshot.
+- Responsive: stacks cleanly at 393px viewport.
 
-- Backend / edge functions — already disabled, untouched.
-- `BuyTokensTab` / `PaymentOptions.tsx` — already correct.
-- Unreferenced chart files (`TokenPriceChart.tsx`, `DexToolsChart.tsx`) — left in place per original plan for future re-enable.
+**3. `src/components/Hero/index.tsx`**
+- Render `<FightClubBanner />` directly above the hero grid (full width inside the existing container) so it appears at the very top of the homepage hero, visible on both mobile and desktop.
+
+**4. QA**
+- Mobile (393px) + desktop: confirm JOIN NOW button shows tagline cleanly, banner renders with gold ribbon legible, no overflow.
+- Click JOIN NOW → routes to `/register`.
+- No regressions to TokenCard, PromotionalTextBox, or Research Documents button.
 
 Approve and I'll implement.
