@@ -2,16 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import heroImg from '@/assets/hero/fight-club-hero.png';
-import { useTokenData } from '@/hooks/useTokenData';
 
 const FightClubHeroPanel: React.FC = () => {
-  const { currentPrice, isLoading } = useTokenData();
-
-  const priceDisplay =
-    !isLoading && currentPrice && (currentPrice as any).price
-      ? `$${Number((currentPrice as any).price).toFixed(2)} USD - Per Coin`
-      : '$1.00 USD - Per Coin';
-
   return (
     <div className="w-full">
       <Link
