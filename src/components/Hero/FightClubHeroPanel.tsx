@@ -26,14 +26,7 @@ const FightClubHeroPanel: React.FC = () => {
         />
       </Link>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 items-stretch">
-        <div className="rounded-xl border border-amber-500/40 bg-gradient-to-br from-cbis-dark to-black text-white p-4 flex flex-col justify-center">
-          <div className="text-xs uppercase tracking-wider text-amber-400 font-semibold">
-            CSi-Labs (CSL) — Current Spot Price
-          </div>
-          <div className="text-2xl md:text-3xl font-extrabold mt-1">{priceDisplay}</div>
-        </div>
-
+      <div className="mt-4">
         <Link
           to="/register"
           className="rounded-xl bg-gradient-to-r from-cbis-blue to-cbis-teal text-white p-4 flex flex-col items-center justify-center text-center shadow-elevation hover:opacity-90 transition-opacity"
