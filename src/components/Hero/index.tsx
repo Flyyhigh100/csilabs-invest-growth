@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import HeroContent from './HeroContent';
 import TokenCard from './TokenCard';
 import FightClubHeroPanel from './FightClubHeroPanel';
-import VideoSection from './VideoSection';
+import JourneyTimelinePanel from './JourneyTimelinePanel';
+import FightClubTagBar from './FightClubTagBar';
+import CelebratingBadge from './CelebratingBadge';
 import { useTokenData } from '@/hooks/useTokenData';
 import { TokenPriceProvider } from '@/context/TokenPriceContext';
 
@@ -24,14 +26,24 @@ const Hero: React.FC = () => {
       </div>
 
       <div className="container-custom relative z-10 pt-20">
-        <div className={`mb-12 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+        <div className={`mb-8 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
           <FightClubHeroPanel />
         </div>
 
-        <VideoSection isLoaded={isLoaded} />
+        <div className={`mb-6 transition-all duration-1000 delay-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+          <JourneyTimelinePanel />
+        </div>
 
-        <div className={`grid md:grid-cols-2 gap-8 mb-12 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+        <div className={`mb-10 transition-all duration-1000 delay-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+          <FightClubTagBar />
+        </div>
+
+        <div className={`grid md:grid-cols-2 gap-8 mb-12 items-center transition-all duration-1000 delay-700 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
           <HeroContent isLoaded={isLoaded} />
+          <CelebratingBadge />
+        </div>
+
+        <div className={`mb-12 transition-all duration-1000 delay-700 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
           <TokenPriceProvider>
             <TokenCard
               isLoaded={isLoaded}
