@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import HeroContent from './HeroContent';
 import TokenCard from './TokenCard';
-import FightClubBanner from './FightClubBanner';
 import FightClubHeroPanel from './FightClubHeroPanel';
 import VideoSection from './VideoSection';
 import { useTokenData } from '@/hooks/useTokenData';
@@ -25,10 +24,6 @@ const Hero: React.FC = () => {
       </div>
 
       <div className="container-custom relative z-10 pt-20">
-        <div className={`mb-6 transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-          <FightClubBanner />
-        </div>
-
         <div className={`mb-12 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
           <FightClubHeroPanel />
         </div>
