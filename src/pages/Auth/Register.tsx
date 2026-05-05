@@ -80,10 +80,8 @@ const Register = () => {
           <FadeInSection direction="up" delay={300}>
             <div className="flex flex-col gap-6">
               <RegistrationBenefits />
-              <div className="flex justify-end">
-                <div className="w-full max-w-sm">
-                  <FightClubTagBar />
-                </div>
+              <div className="w-full">
+                <FightClubTagBar />
               </div>
             </div>
           </FadeInSection>
