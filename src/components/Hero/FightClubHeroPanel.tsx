@@ -7,7 +7,7 @@ const FightClubHeroPanel: React.FC = () => {
   return (
     <div className="w-full">
       <Link
-        to="/register"
+        to="/signup"
         aria-label="Join the 1-Million Strong Killing Cancer Fight Club"
         className="block w-full rounded-2xl overflow-hidden shadow-elevation border border-amber-500/30 hover:shadow-lg hover:scale-[1.005] transition-all duration-300"
       >
