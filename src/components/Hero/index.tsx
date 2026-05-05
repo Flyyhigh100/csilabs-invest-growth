@@ -1,18 +1,14 @@
-
 import React, { useEffect, useState } from 'react';
 import HeroContent from './HeroContent';
 import TokenCard from './TokenCard';
-import PromotionalTextBox from './PromotionalTextBox';
 import FightClubBanner from './FightClubBanner';
+import FightClubHeroPanel from './FightClubHeroPanel';
 import VideoSection from './VideoSection';
 import { useTokenData } from '@/hooks/useTokenData';
-import { Skeleton } from '@/components/ui/skeleton';
 import { TokenPriceProvider } from '@/context/TokenPriceContext';
 
 const Hero: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
-  const [heroImageError, setHeroImageError] = useState(false);
   const { priceData, volumeData, currentPrice, tokenInfo, isLoading, hasError } = useTokenData();
 
   useEffect(() => {
@@ -32,45 +28,17 @@ const Hero: React.FC = () => {
         <div className={`mb-6 transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
           <FightClubBanner />
         </div>
-        <div className={`grid md:grid-cols-2 gap-6 mb-12 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-          {/* Left Column: Cancer Treatment Image + Promotional Text Box */}
-          <div className="space-y-6">
-            <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white">
-              <div className="w-full bg-gray-100 flex items-center justify-center p-4">
-                {!isLoaded ? (
-                  <Skeleton className="w-full aspect-auto" />
-                ) : (
-                  <a 
-                    href="https://americanstatesuniversity.com/images/EBYH_CSi-Cancer_Drug_Presentation.pdf?_t=1725588201"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full cursor-pointer hover:opacity-90 transition-opacity"
-                  >
-                    <img 
-                      src="/rawwhiteonepagepng.png"
-                      alt="Cannabis Science Cancer Treatment Research - Click to view detailed presentation" 
-                      className="w-full h-auto object-contain"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.onerror = null;
-                        target.src = '/placeholder.svg';
-                        setImageError(true);
-                      }}
-                    />
-                  </a>
-                )}
-              </div>
-            </div>
-            
-            {/* Promotional Text Box - Below the Cancer Treatment Image */}
-            <div className={`transition-all duration-1000 delay-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-              <PromotionalTextBox />
-            </div>
-          </div>
 
-          {/* Right Column: Token Card */}
+        <div className={`mb-12 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+          <FightClubHeroPanel />
+        </div>
+
+        <VideoSection isLoaded={isLoaded} />
+
+        <div className={`grid md:grid-cols-2 gap-8 mb-12 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+          <HeroContent isLoaded={isLoaded} />
           <TokenPriceProvider>
-            <TokenCard 
+            <TokenCard
               isLoaded={isLoaded}
               priceData={priceData}
               volumeData={volumeData}
@@ -80,43 +48,6 @@ const Hero: React.FC = () => {
               hasError={!!hasError}
             />
           </TokenPriceProvider>
-        </div>
-
-        {/* Video Section - Added in the white space */}
-        <VideoSection isLoaded={isLoaded} />
-
-        {/* Bottom Section: Hero Content with Image */}
-        <div className={`grid md:grid-cols-2 gap-8 mb-12 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-          {/* Left Column: Hero Content */}
-          <HeroContent isLoaded={isLoaded} />
-          
-          {/* Right Column: Dr. Ray Image */}
-          <div className="relative rounded-2xl overflow-hidden shadow-elevation bg-white">
-            <div className="w-full h-full bg-gray-100 flex items-center justify-center p-4">
-              {!isLoaded ? (
-                <Skeleton className="w-full aspect-auto" />
-              ) : (
-                <a 
-                  href="https://americanstatesuniversity.com/images/1mm_Strong_KC_CSi-VIP_Event_Media_Kit_March_2025.pdf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full cursor-pointer hover:opacity-90 transition-opacity"
-                >
-                  <img 
-                    src="/cryptologo_ray.jpg"
-                    alt="CBIS Ray Crypto Logo - Click to view VIP Event Media Kit" 
-                    className="w-full h-auto object-cover rounded-lg"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.onerror = null;
-                      target.src = '/placeholder.svg';
-                      setHeroImageError(true);
-                    }}
-                  />
-                </a>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </div>
