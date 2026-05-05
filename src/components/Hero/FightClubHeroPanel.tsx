@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+
 import heroImg from '@/assets/hero/fight-club-hero.png';
 
 const FightClubHeroPanel: React.FC = () => {
