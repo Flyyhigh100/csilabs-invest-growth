@@ -44,7 +44,7 @@ const PurchasePathSelector: React.FC<PurchasePathSelectorProps> = ({
           onClick={handleSelectCoinPayments}
           buttonLabel="Contribute Now"
           disabled={isProcessing || isWalletMissing}
-          highlight={true}
+          
           badgeText="Register for your Free Account"
           badgeVariant="secondary"
         />
