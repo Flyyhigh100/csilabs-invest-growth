@@ -6,8 +6,10 @@ import FadeInSection from '@/components/FadeInSection';
 import RegisterForm from '@/components/Auth/RegisterForm';
 import RegistrationSuccess from '@/components/Auth/RegistrationSuccess';
 import RegistrationBenefits from '@/components/Auth/RegistrationBenefits';
+import FightClubTagBar from '@/components/Hero/FightClubTagBar';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import registerHeroBanner from '@/assets/hero/register-hero-banner.png';
 
 const Register = () => {
   const { user } = useAuth();
@@ -43,7 +45,17 @@ const Register = () => {
         </div>
       </div>
 
-      <div className="pt-12 pb-20 container-custom">
+      <div className="container-custom mt-2">
+        <div className="rounded-2xl overflow-hidden shadow-elevation border border-amber-500/30">
+          <img
+            src={registerHeroBanner}
+            alt="1-Million STRONG Digital HUB — Killing Cancer Fight Club. Join the FIGHT now!"
+            className="w-full h-auto block"
+          />
+        </div>
+      </div>
+
+      <div className="pt-10 pb-20 container-custom">
         <FadeInSection>
           <div className="text-center mb-12 max-w-3xl mx-auto">
             <h1 className="text-3xl md:text-4xl font-bold mb-4 text-cbis-dark">
@@ -64,9 +76,16 @@ const Register = () => {
           <FadeInSection direction="up" delay={200}>
             <RegisterForm onSuccess={() => setRegistrationComplete(true)} />
           </FadeInSection>
-          
+
           <FadeInSection direction="up" delay={300}>
-            <RegistrationBenefits />
+            <div className="flex flex-col gap-6">
+              <RegistrationBenefits />
+              <div className="flex justify-end">
+                <div className="w-full max-w-sm">
+                  <FightClubTagBar />
+                </div>
+              </div>
+            </div>
           </FadeInSection>
         </div>
       </div>
