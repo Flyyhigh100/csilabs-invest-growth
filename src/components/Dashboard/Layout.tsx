@@ -6,7 +6,7 @@ import { getDashboardNavItems, getAdminNavItem, NavItem } from './Layouts/Dashbo
 import { toast } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import Footer from '@/components/Footer';
-import { Sparkles } from 'lucide-react';
+import dashboardFightClubBanner from '@/assets/hero/dashboard-fight-club-banner.png';
 interface DashboardLayoutProps {
   children: ReactNode;
   title: string;
