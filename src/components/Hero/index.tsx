@@ -34,9 +34,6 @@ const Hero: React.FC = () => {
           <JourneyTimelinePanel />
         </div>
 
-        <div className={`mb-10 transition-all duration-1000 delay-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-          <FightClubTagBar />
-        </div>
 
         <div className={`grid md:grid-cols-2 gap-8 mb-12 items-center transition-all duration-1000 delay-700 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
           <HeroContent isLoaded={isLoaded} />
