@@ -1,40 +1,50 @@
-## Current state vs. requested image
+## Hero Section Redesign — Step 1 of 9
 
-The uploaded screenshot shows two changes the client wants on the homepage hero:
+The client provided a composite mockup (`Hero_Section.png`) showing exactly how the top of the homepage should look. This plan covers **only the hero section**. Subsequent pages of the PDF will be addressed in follow-up steps.
 
-1. **Primary CTA** — replace the current `Purchase Now to Contribute →` button with a bold **"JOIN NOW"** button that has a small subtitle underneath: *"Do your Part … to Keep Killing Cancers …"*. The "View Research Documents" outline button next to it stays.
-2. **Brand banner** — a new dark/gold ribbon reading **"1-Million STRONG | Digital HUB"** on top and **"KILLING CANCER FIGHT CLUB"** in a gold gradient bar underneath.
+### What the mockup shows
+A single dark, gold-trimmed hero panel containing:
+- "CELEBRATING 1-Million STRONG KILLING CANCERS FOUNDATION" with laurels and "Congratulations! New Fight Club Members!" ribbon
+- Photo of Dr. Raymond Dabney with Harvard award (top right)
+- "YOUR Contributions and Memberships $$$'s" bullet list with gold "GO DIRECTLY" callouts
+- "HARVARD Award Winning — CANCER KILLING SUCCESS — Stage 4 Lung Cancer, Dead" sidebar with award icon
+- "More Cancer Killing Success... Skin Cancer, Kaposi Sarcoma, Stage 4 Breast Cancer, Dead"
+- "EVERYONE has been AFFECTED by Cancers!"
+- "1-Million STRONG | Digital HUB" / "KILLING CANCER FIGHT CLUB" gold ribbon
+- Gold "Seal of Approval" medallion listing perks (Membership, Crypto & Perks, Awards & Grants, Contests & VIP's, Contribution Perks, TV Shows, Events, Scholarships, Jobs, Perks)
+- "It's TIME for Low-Cost Cancer Killing Drugs"
+- Two stat cards: **CSi-Labs (CSL) Current Spot Price $1.00 USD - Per Coin** and **$20,000,000.00 USD Killing Cancer Goal / $3,900.00 USD - Now**
+- "It's as EASY as 1, 2, 3..." — REGISTER / CONNECT / CONTRIBUTE
 
-### What's already in place
-- Promo box ("EASY as 1, 2, 3", Harvard, $1.00, $20M goal) — done.
-- DEX → White Glove migration — done.
-- Static $1.00 pricing — done.
+### Approach
+Use the uploaded `Hero_Section.png` as the primary hero artwork (the simplest path to "look exactly like the image") and overlay the live, dynamic pieces (price, JOIN NOW CTA) so the page stays functional.
 
-### What's missing
-- Hero CTA still reads "Purchase Now to Contribute" — no "JOIN NOW" + tagline styling.
-- No "1-Million STRONG | Digital HUB / KILLING CANCER FIGHT CLUB" banner anywhere on the homepage.
+### Changes
+1. **Add the artwork**
+   - Copy `user-uploads://Hero_Section.png` → `src/assets/hero/fight-club-hero.png`.
 
-## Plan
+2. **`src/components/Hero/index.tsx`**
+   - Replace the current two-column grid (cancer-treatment image + token card + promo box + Dr. Ray photo) with a single full-width hero block.
+   - Render `FightClubBanner` (already exists) at the very top.
+   - Below it, render the new `FightClubHeroPanel` (see #3).
+   - Keep `VideoSection` and `HeroContent` (with JOIN NOW button) underneath — the JOIN NOW CTA from the mockup will appear directly below the artwork.
+   - Keep the live `TokenCard` further down so dynamic price + chart data is still available, but de-emphasized.
 
-**1. `src/components/Hero/HeroContent.tsx`**
-- Replace the primary `Button` with a stacked CTA:
-  - Large bold **`JOIN NOW`** label (keep gradient blue→teal background, white text).
-  - Smaller italic/light subtitle below: *"Do your Part … to Keep Killing Cancers …"*.
-  - Wrap in `<Link to="/register">`. Keep the arrow icon.
-- Leave the "View Research Documents" outline button unchanged.
+3. **New `src/components/Hero/FightClubHeroPanel.tsx`**
+   - Renders the imported `fight-club-hero.png` as a responsive image (`w-full h-auto rounded-2xl shadow-elevation border border-amber-500/30`).
+   - Wrapped in a `Link to="/register"` so the entire panel is clickable (matches the "JOIN NOW" intent).
+   - Below the image: a live overlay strip with the **current spot price** pulled from `useTokenData()` so the "$1.00 USD - Per Coin" stat reflects real data, and a "JOIN NOW — Do your Part… to Keep Killing Cancers…" CTA button (reuses styling from `HeroContent`).
+   - Alt text: "1-Million Strong Killing Cancer Fight Club — Harvard Award Winning Cancer Treatments".
 
-**2. New banner component `src/components/Hero/FightClubBanner.tsx`**
-- Dark (cbis-dark/black) rounded container.
-- Top row: **"1-Million STRONG"** in gold serif + a thin vertical divider + **"Digital HUB"** in white sans bold.
-- Bottom row: full-width gold gradient bar (amber-400 → amber-600) with **"KILLING CANCER FIGHT CLUB"** — "KILLING CANCER" in dark/black bold, "FIGHT CLUB" in white bold, matching the screenshot.
-- Responsive: stacks cleanly at 393px viewport.
+4. **Retire / relocate**
+   - Remove `PromotionalTextBox` from the hero (its content is now baked into the artwork). Leave the file in place for now in case the client wants it elsewhere.
+   - Remove the standalone Dr. Ray photo + cancer-treatment PDF image from the hero grid (also represented in the artwork). Keep the PDF link accessible via "View Research Documents" button already in `HeroContent`.
 
-**3. `src/components/Hero/index.tsx`**
-- Render `<FightClubBanner />` directly above the hero grid (full width inside the existing container) so it appears at the very top of the homepage hero, visible on both mobile and desktop.
+### Technical notes
+- Image will be imported via ES module: `import heroImg from '@/assets/hero/fight-club-hero.png'` for proper Vite bundling.
+- Responsive: image scales full-width on mobile; on `md+` it's capped at container width with the JOIN NOW CTA stacked beneath.
+- Live price still flows through `useTokenData` → displayed in the overlay strip and unchanged in the existing `TokenCard` further down the page.
+- No backend, no schema, no auth changes.
 
-**4. QA**
-- Mobile (393px) + desktop: confirm JOIN NOW button shows tagline cleanly, banner renders with gold ribbon legible, no overflow.
-- Click JOIN NOW → routes to `/register`.
-- No regressions to TokenCard, PromotionalTextBox, or Research Documents button.
-
-Approve and I'll implement.
+### Out of scope (future steps)
+Pages 2–9 of the PDF (Journey/About, Membership Privileges, Roadmap, Token Details, Fight Now, Contribution flow, Welcome/Explore, Login) will be tackled one-by-one in follow-up requests.
