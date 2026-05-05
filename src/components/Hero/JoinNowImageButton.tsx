@@ -4,7 +4,7 @@ import joinImg from '@/assets/hero/join-now-button.png';
 
 const JoinNowImageButton: React.FC<{ className?: string }> = ({ className = '' }) => (
   <Link
-    to="/register"
+    to="/signup"
     aria-label="Join Now — Do your part to keep killing cancers"
     className={`block rounded-lg overflow-hidden shadow-elevation hover:opacity-90 hover:scale-[1.01] transition-all duration-200 ${className}`}
   >

@@ -4,7 +4,7 @@ import badgeImg from '@/assets/hero/celebrating-badge.png';
 
 const CelebratingBadge: React.FC = () => (
   <Link
-    to="/register"
+    to="/signup"
     aria-label="Join the 1-Million Strong Killing Cancers Foundation"
     className="block w-full rounded-2xl overflow-hidden shadow-elevation border border-amber-500/30 hover:shadow-lg hover:scale-[1.005] transition-all duration-300"
   >
