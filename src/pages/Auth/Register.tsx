@@ -6,8 +6,10 @@ import FadeInSection from '@/components/FadeInSection';
 import RegisterForm from '@/components/Auth/RegisterForm';
 import RegistrationSuccess from '@/components/Auth/RegistrationSuccess';
 import RegistrationBenefits from '@/components/Auth/RegistrationBenefits';
+import FightClubTagBar from '@/components/Hero/FightClubTagBar';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import registerHeroBanner from '@/assets/hero/register-hero-banner.png';
 
 const Register = () => {
   const { user } = useAuth();
