@@ -63,7 +63,7 @@ const TokenCard: React.FC<TokenCardProps> = ({ tokenInfo, isLoading }) => {
               <img
                 src={drRayImg}
                 alt="Dr. Raymond C. Dabney, Harvard Award Winner"
-                className="w-14 h-14 rounded-full object-cover border-2 border-amber-400 flex-shrink-0"
+                className="w-14 h-14 rounded-full object-cover object-[center_15%] border-2 border-amber-400 flex-shrink-0"
               />
               <div>
                 <div className="flex items-center gap-1">
