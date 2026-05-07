@@ -1,10 +1,20 @@
 ## Goal
-Remove the "$3,900.00 USD - Now" green text line from the signup page hero banner image, keeping everything else identical.
+1. Replace the existing "JOIN NOW" button image on the homepage with the newly uploaded image.
+2. Fix all `/register` links across the site so they point to `/signup` (the only registered route — `/register` is currently 404).
 
-## Change
-- Target file: `src/assets/hero/register-hero-banner.png` (used by `src/pages/Auth/Register.tsx`)
-- Use `imagegen--edit_image` (Nano Banana) with a tightly-scoped prompt: erase only the green "$3,900.00 USD - Now" line inside the dark "Killing Cancer Goal" panel and fill with the same black background. Preserve the "$20,000,000.00 USD" headline, "Killing Cancer Goal" subtitle, gold border, CSi-Labs panel, seal, "EASY as 1, 2, 3" steps, and all other text/layout exactly as-is.
-- Overwrite same path so the import keeps working.
+## Changes
+
+### 1. Replace button image
+Copy `user-uploads://image-69.png` to `src/assets/hero/join-now-button.png` (overwrite). Existing component `src/components/Hero/JoinNowImageButton.tsx` already imports this path and already links to `/signup`, so no code change needed there.
+
+### 2. Fix `/register` links → `/signup`
+Found 4 stale `/register` links (router only registers `/signup`):
+- `src/components/Hero/PromotionalTextBox.tsx` (line 8)
+- `src/pages/TokenInfo.tsx` (lines 123, 228, 242)
+- `src/components/InvestmentModel.tsx` (line 76)
+
+Update each `to="/register"` → `to="/signup"`. Pure find-and-replace, no other changes.
 
 ## Verification
-Reload `/signup` and confirm the panel shows only the $20M goal + subtitle, with no artifacts where the line used to be.
+- Reload `/`, click the new JOIN NOW button → lands on `/signup` (not 404).
+- Click "Join Now — Register Free" promo box and the InvestmentModel / TokenInfo CTAs → all land on `/signup`.
