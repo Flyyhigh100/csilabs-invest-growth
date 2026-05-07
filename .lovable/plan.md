@@ -1,11 +1,11 @@
 ## Change
-Remove only line 57 in `src/components/Hero/TokenCard.tsx`:
+In `src/components/Hero/TokenCard.tsx` line 66, add an `object-position` to the circular avatar so the face is fully visible. The image currently crops at the suit/tie because `object-cover` defaults to center.
 
 ```tsx
-<p className="text-base font-semibold text-amber-300 mt-2">$3,900.00 USD — Now</p>
+className="w-14 h-14 rounded-full object-cover object-[center_15%] border-2 border-amber-400 flex-shrink-0"
 ```
 
-Leave the `$20,000,000 USD` headline and the `Killing Cancer Goal` subtitle untouched.
+This pulls the visible portion ~15% higher in the frame, revealing the full face inside the circle. No other elements change.
 
 ## Verification
-Reload `/` and confirm the dark goal banner now shows only the goal amount and label.
+Reload `/` and confirm the avatar in the Harvard Award callout shows the full face.
