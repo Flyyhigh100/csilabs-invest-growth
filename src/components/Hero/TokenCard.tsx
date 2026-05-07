@@ -54,7 +54,7 @@ const TokenCard: React.FC<TokenCardProps> = ({ tokenInfo, isLoading }) => {
           <div className="bg-cbis-dark text-white rounded-xl p-4 text-center border-2 border-amber-400 shadow-md">
             <p className="text-2xl sm:text-3xl font-bold text-amber-400">$20,000,000 USD</p>
             <p className="text-sm text-amber-200 mt-1">Killing Cancer Goal</p>
-            <p className="text-base font-semibold text-amber-300 mt-2">$3,900.00 USD — Now</p>
+            
           </div>
 
           {/* Harvard award callout */}
