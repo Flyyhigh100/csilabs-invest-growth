@@ -5,7 +5,7 @@ import heroImg from '@/assets/hero/fight-club-hero.png';
 
 const FightClubHeroPanel: React.FC = () => {
   return (
-    <div className="w-full">
+    <div className="w-full pt-[20%]">
       <Link
         to="/signup"
         aria-label="Join the 1-Million Strong Killing Cancer Fight Club"
@@ -14,7 +14,7 @@ const FightClubHeroPanel: React.FC = () => {
         <img
           src={heroImg}
           alt="1-Million Strong Killing Cancer Fight Club — Harvard Award Winning Cancer Treatments"
-          className="w-full aspect-[16/9] object-cover object-[center_20%] block"
+          className="w-full h-auto object-contain block"
         />
       </Link>
 
