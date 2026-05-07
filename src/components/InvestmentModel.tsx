@@ -1,9 +1,8 @@
 
 import React from 'react';
 import FadeInSection from './FadeInSection';
-import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
-import { ArrowRight, Beaker, TrendingUp, BarChart4, CheckCircle2 } from 'lucide-react';
+import { Beaker, TrendingUp, BarChart4, CheckCircle2 } from 'lucide-react';
+import JoinNowImageButton from './Hero/JoinNowImageButton';
 
 const InvestmentModel: React.FC = () => {
   return (
@@ -72,11 +71,7 @@ const InvestmentModel: React.FC = () => {
               </div>
               
               <div className="pt-4">
-                <Button asChild size="lg" className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white hover:opacity-90 transition-opacity">
-                  <Link to="/signup">
-                    Purchase Now to Contribute <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+                <JoinNowImageButton className="w-full sm:w-auto sm:max-w-[260px]" />
               </div>
             </div>
           </FadeInSection>
