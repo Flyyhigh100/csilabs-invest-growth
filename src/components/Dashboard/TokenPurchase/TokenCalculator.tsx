@@ -136,8 +136,8 @@ const TokenCalculator: React.FC<TokenCalculatorProps> = ({
 
       <div className="text-base font-semibold text-gray-700" aria-live="polite">
         Estimated tokens: {formattedTokenAmount} CSL
-        <div className="text-sm font-semibold text-gray-600 mt-1">
-          Current Spot Price: $1.00 USD - Per Coin
+        <div className="text-sm font-semibold text-gray-600 mt-1 whitespace-pre-wrap">
+          {"\n"}
         </div>
       </div>
 
