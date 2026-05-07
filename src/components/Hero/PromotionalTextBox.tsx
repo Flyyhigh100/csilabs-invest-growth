@@ -5,7 +5,7 @@ import celebrationImg from '@/assets/promo/celebrating-1m-strong.jpg';
 const PromotionalTextBox: React.FC = () => {
   return (
     <Link
-      to="/register"
+      to="/signup"
       className="block bg-gradient-to-br from-cbis-dark to-black p-4 md:p-6 rounded-2xl shadow-elevation text-white hover:scale-[1.02] hover:shadow-lg transition-all duration-300 cursor-pointer border border-amber-500/30"
     >
       <div className="text-center">

@@ -120,7 +120,7 @@ const TokenInfo: React.FC = () => {
                       Our token distribution is designed to prioritize research funding while maintaining a reserve for future development and partnerships.
                     </p>
                     <Button className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white" asChild>
-                      <Link to="/register">
+                      <Link to="/signup">
                         Purchase Now to Contribute <ArrowRight className="ml-2 h-4 w-4" />
                       </Link>
                     </Button>
@@ -225,7 +225,7 @@ const TokenInfo: React.FC = () => {
                 </div>
                 <div className="mt-6">
                   <Button variant="secondary" className="w-full bg-white text-cbis-blue hover:bg-opacity-90" asChild>
-                    <Link to="/register">
+                    <Link to="/signup">
                       Start Your Contribution
                     </Link>
                   </Button>
@@ -239,7 +239,7 @@ const TokenInfo: React.FC = () => {
               <h2 className="text-2xl md:text-3xl font-bold mb-4 text-cbis-dark">Ready to Join Our Cancer Killing Community?</h2>
               <p className="text-gray-600 mb-8 max-w-2xl mx-auto">Join via our meme token community to help fund low-cost cancer treatments without harsh side effects, making them accessible to millions of patients worldwide.</p>
               <Button size="lg" className="bg-gradient-to-r from-cbis-blue to-cbis-teal text-white" asChild>
-                <Link to="/register">
+                <Link to="/signup">
                   Purchase Now to Contribute <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
