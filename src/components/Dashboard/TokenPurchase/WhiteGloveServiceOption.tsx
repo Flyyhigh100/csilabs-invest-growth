@@ -9,7 +9,7 @@ interface WhiteGloveServiceOptionProps {
 const CONTACT_EMAIL = 'raymond.dabney@cannabisscience.com';
 
 const HIGHLIGHTS = [
-  { icon: DollarSign, label: '$1,000+ Contributions' },
+  { icon: DollarSign, label: '$10,000+ Contributions' },
   { icon: Star, label: 'VIP Status' },
   { icon: Building2, label: 'Bank Wire Instructions' },
 ];
@@ -77,7 +77,7 @@ const WhiteGloveServiceOption: React.FC<WhiteGloveServiceOptionProps> = ({ class
           className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold shadow-md"
         >
           <a
-            href={`mailto:${CONTACT_EMAIL}?subject=White%20Glove%20Service%20Request%20-%20VIP%20Contribution&body=I%20would%20like%20to%20request%20White%20Glove%20Service%20for%20a%20contribution%20of%20%241%2C000%2B.%20Please%20send%20me%20bank%20wire%20instructions%20and%20VIP%20onboarding%20details.`}
+            href={`mailto:${CONTACT_EMAIL}?subject=White%20Glove%20Service%20Request%20-%20VIP%20Contribution&body=I%20would%20like%20to%20request%20White%20Glove%20Service%20for%20a%20contribution%20of%20%2410%2C000%2B.%20Please%20send%20me%20bank%20wire%20instructions%20and%20VIP%20onboarding%20details.`}
           >
             <Mail className="mr-2 h-4 w-4" />
             Request White Glove Service

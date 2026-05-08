@@ -51,7 +51,7 @@ const PurchasePathSelector: React.FC<PurchasePathSelectorProps> = ({
 
         <PurchaseMethodCard
           title="White Glove Service"
-          description="VIP concierge for $1,000+ contributions. Bank wire instructions and dedicated onboarding from the CSi Labs team."
+          description="VIP concierge for $10,000+ contributions. Bank wire instructions and dedicated onboarding from the CSi Labs team."
           icon={<Crown className="h-6 w-6" />}
           onClick={() => {}}
           buttonLabel=""
@@ -65,7 +65,7 @@ const PurchasePathSelector: React.FC<PurchasePathSelectorProps> = ({
             size="sm"
           >
             <a
-              href={`mailto:${WHITE_GLOVE_EMAIL}?subject=White%20Glove%20Service%20Request%20-%20VIP%20Contribution&body=I%20would%20like%20to%20request%20White%20Glove%20Service%20for%20a%20contribution%20of%20%241%2C000%2B.%20Please%20send%20me%20bank%20wire%20instructions%20and%20VIP%20onboarding%20details.`}
+              href={`mailto:${WHITE_GLOVE_EMAIL}?subject=White%20Glove%20Service%20Request%20-%20VIP%20Contribution&body=I%20would%20like%20to%20request%20White%20Glove%20Service%20for%20a%20contribution%20of%20%2410%2C000%2B.%20Please%20send%20me%20bank%20wire%20instructions%20and%20VIP%20onboarding%20details.`}
             >
               <Mail className="h-4 w-4" />
               Request White Glove Service
