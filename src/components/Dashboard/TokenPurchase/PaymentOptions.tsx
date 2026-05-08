@@ -117,7 +117,7 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
         <h4 className="font-medium text-base mb-3">Understanding Your Purchase Options</h4>
         <div className="space-y-2 text-sm">
           <p><strong>Direct Purchase (Card/Crypto):</strong> Funds go directly to the company, supporting research, development, and operations.</p>
-          <p><strong>White Glove Service:</strong> For contributions of $1,000+, our VIP concierge team provides bank wire instructions and personalized support.</p>
+          <p><strong>White Glove Service:</strong> For contributions of $10,000+, our VIP concierge team provides bank wire instructions and personalized support.</p>
         </div>
       </div>
     </div>
